@@ -1,0 +1,13 @@
+version: '3.5'
+
+services:
+
+  keycloak:
+    image: jboss/keycloak
+    container_name: keycloak
+    ports:
+      -  8080:8080
+    environment:
+      KEYCLOAK_USER: "admin"
+      KEYCLOAK_PASSWORD: "admin"
+      PROXY_ADDRESS_FORWARDING: "true"
