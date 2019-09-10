@@ -67,8 +67,8 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
             validator = new JWTSignatureValidator(
                     config.getValue(ServerConfig.OAUTH_JWKS_ENDPOINT_URI),
                     config.getValue(ServerConfig.OAUTH_VALID_ISSUER_URI),
-                    config.getValueAsInt(ServerConfig.OAUTH_JWKS_EXPIRY_SECONDS, 300),
-                    config.getValueAsInt(ServerConfig.OAUTH_JWKS_REFRESH_SECONDS, 360),
+                    config.getValueAsInt(ServerConfig.OAUTH_JWKS_EXPIRY_SECONDS, 360),
+                    config.getValueAsInt(ServerConfig.OAUTH_JWKS_REFRESH_SECONDS, 300),
                     config.getValueAsBoolean(ServerConfig.OAUTH_VALIDATE_COMMON_CHECKS, true),
                     config.getValue(ServerConfig.OAUTH_VALIDATE_AUDIENCE)
             );

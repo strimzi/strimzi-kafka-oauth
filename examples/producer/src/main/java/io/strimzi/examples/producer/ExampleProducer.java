@@ -21,21 +21,20 @@ public class ExampleProducer {
         Config config = new Config();
 
 
-        // TODO: To be able to connect to Keycloak properly set KEYCLOAK_IP
-        //  You can set system property 'keycloak.ip' or ENV property KEYCLOAK_IP, and similarly for 'realm'
+        // TODO: Set KEYCLOAK_IP to be able to connect to Keycloak
+        //  Use 'keycloak.ip' system property or KEYCLOAK_IP env property
         final String KEYCLOAK_IP = config.getValue("keycloak.ip", "KEYCLOAK IP");
         final String REALM = config.getValue("realm", "demo");
 
         final String TOKEN_ENDPOINT_URI = "http://" + KEYCLOAK_IP+ ":8080/auth/realms/" + REALM + "/protocol/openid-connect/token";
 
-        // TODO: You can set system property 'access.token' or ENV property ACCESS_TOKEN
-        //  and analogously for 'refresh.token' / REFRESH_TOKEN
+        // TODO: You can set ACCESS_TOKEN or REFRESH_TOKEN to override default authentication with clientId and secret
         //  See README.md for more info.
         final String ACCESS_TOKEN = config.getValue("access.token", null);
         final String REFRESH_TOKEN = config.getValue("refresh.token", null);
 
 
-        // By default, authenticate with client id, and secret to obtain access token by contacting Keycloak server
+        // By default, authenticate with client id, and secret to obtain access token from Keycloak server
         if (ACCESS_TOKEN == null && REFRESH_TOKEN == null) {
             System.setProperty(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, TOKEN_ENDPOINT_URI);
             System.setProperty(Config.OAUTH_CLIENT_ID, "kafka-producer-client");
@@ -45,7 +44,7 @@ public class ExampleProducer {
         else if (ACCESS_TOKEN != null) {
             System.setProperty(ClientConfig.OAUTH_ACCESS_TOKEN, ACCESS_TOKEN);
         }
-        // If REFRESH_TOKEN is specified, use it to obtain access token by contacting Keycloak server
+        // If REFRESH_TOKEN is specified, use it to obtain access token from Keycloak server
         else if (REFRESH_TOKEN != null) {
             System.setProperty(ClientConfig.OAUTH_REFRESH_TOKEN, REFRESH_TOKEN);
             System.setProperty(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, TOKEN_ENDPOINT_URI);
@@ -83,7 +82,6 @@ public class ExampleProducer {
             }
         }
     }
-
 
     private static Properties configure() {
 

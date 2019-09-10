@@ -2,6 +2,8 @@ package io.strimzi.kafka.oauth.server;
 
 import io.strimzi.kafka.oauth.common.Config;
 
+import java.util.Properties;
+
 public class ServerConfig extends Config {
 
     public static final String OAUTH_JWKS_ENDPOINT_URI = "oauth.jwks.endpoint.uri";
@@ -15,7 +17,7 @@ public class ServerConfig extends Config {
     public ServerConfig() {
     }
 
-    public ServerConfig(java.util.Properties p) {
+    public ServerConfig(Properties p) {
         super(p);
     }
 }

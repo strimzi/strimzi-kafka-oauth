@@ -5,19 +5,18 @@
 
     <parent>
         <groupId>io.strimzi.oauth.docker</groupId>
-        <artifactId>kafka-docker-strimzi</artifactId>
+        <artifactId>kafka-oauth-docker-parent</artifactId>
         <relativePath>../pom.xml</relativePath>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>kafka-oauth-wurstmeister</artifactId>
+    <artifactId>kafka-oauth-docker-wurstmeister</artifactId>
     <packaging>pom</packaging>
 
     <build>
         <plugins>
             <plugin>
                 <artifactId>maven-resources-plugin</artifactId>
-                <version>3.1.0</version>
                 <executions>
                     <execution>
                         <id>copy-resources</id>
@@ -44,7 +43,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
-                <version>3.1.1</version>
                 <executions>
                     <execution>
                         <id>copy</id>
@@ -59,38 +57,26 @@
                         <artifactItem>
                             <groupId>io.strimzi.oauth</groupId>
                             <artifactId>strimzi-kafka-oauth-client</artifactId>
-                            <version>${project.version}</version>
-                            <type>jar</type>
                         </artifactItem>
                         <artifactItem>
                             <groupId>io.strimzi.oauth</groupId>
                             <artifactId>strimzi-kafka-oauth-server</artifactId>
-                            <version>${project.version}</version>
-                            <type>jar</type>
                         </artifactItem>
                         <artifactItem>
                             <groupId>io.strimzi.oauth</groupId>
                             <artifactId>strimzi-kafka-oauth-common</artifactId>
-                            <version>${project.version}</version>
-                            <type>jar</type>
                         </artifactItem>
                         <artifactItem>
                             <groupId>org.keycloak</groupId>
                             <artifactId>keycloak-core</artifactId>
-                            <version>${keycloak.version}</version>
-                            <type>jar</type>
                         </artifactItem>
                         <artifactItem>
                             <groupId>org.keycloak</groupId>
                             <artifactId>keycloak-common</artifactId>
-                            <version>${keycloak.version}</version>
-                            <type>jar</type>
                         </artifactItem>
                         <artifactItem>
                             <groupId>org.bouncycastle</groupId>
                             <artifactId>bcprov-jdk15on</artifactId>
-                            <version>${bouncycastle.version}</version>
-                            <type>jar</type>
                         </artifactItem>
                     </artifactItems>
                     <outputDirectory>${basedir}/target/libs</outputDirectory>

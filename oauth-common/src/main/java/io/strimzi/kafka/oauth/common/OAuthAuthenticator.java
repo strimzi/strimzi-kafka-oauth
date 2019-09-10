@@ -18,8 +18,9 @@ public class OAuthAuthenticator {
     private static final Logger log = LoggerFactory.getLogger(OAuthAuthenticator.class);
 
     public static TokenInfo loginWithAccessToken(String token) {
-        log.warn("loginWithAccessToken() - pass-through access_token: " + token);
-
+        if (log.isDebugEnabled()) {
+            log.debug("loginWithAccessToken() - pass-through access_token: {}", token);
+        }
         // try introspect token
         try {
             return introspectAccessToken(token);

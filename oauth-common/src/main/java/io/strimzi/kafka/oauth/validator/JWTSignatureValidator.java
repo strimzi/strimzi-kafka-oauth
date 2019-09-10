@@ -45,7 +45,7 @@ public class JWTSignatureValidator implements TokenValidator {
     public JWTSignatureValidator(String keysEndpointUri,
                                  String validIssuerUri,
                                  int refreshSeconds,
-                                 int maxStaleSeconds,
+                                 int expirySeconds,
                                  boolean defaultChecks,
                                  String audience) {
 
@@ -63,10 +63,10 @@ public class JWTSignatureValidator implements TokenValidator {
         }
         this.issuerUri = validIssuerUri;
 
-        if (maxStaleSeconds < refreshSeconds + 60) {
-            throw new IllegalArgumentException("maxStaleSeconds has to be at least 60 seconds longer than refreshSeconds");
+        if (expirySeconds < refreshSeconds + 60) {
+            throw new IllegalArgumentException("expirySeconds has to be at least 60 seconds longer than refreshSeconds");
         }
-        this.maxStaleSeconds = maxStaleSeconds;
+        this.maxStaleSeconds = expirySeconds;
 
         this.defaultChecks = defaultChecks;
         this.audience = audience;

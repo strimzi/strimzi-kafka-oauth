@@ -5,19 +5,18 @@
 
     <parent>
         <groupId>io.strimzi.oauth.docker</groupId>
-        <artifactId>kafka-docker-strimzi</artifactId>
+        <artifactId>kafka-oauth-docker-strimzi</artifactId>
         <relativePath>../pom.xml</relativePath>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>kafka-oauth-strimzi-zookeeper</artifactId>
+    <artifactId>kafka-oauth-docker-strimzi-zookeeper</artifactId>
     <packaging>pom</packaging>
 
     <build>
         <plugins>
             <plugin>
                 <artifactId>maven-resources-plugin</artifactId>
-                <version>3.1.0</version>
                 <executions>
                     <execution>
                         <id>copy-resources</id>
