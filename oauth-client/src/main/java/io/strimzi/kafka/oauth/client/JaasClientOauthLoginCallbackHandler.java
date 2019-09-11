@@ -1,6 +1,7 @@
 package io.strimzi.kafka.oauth.client;
 
 import io.strimzi.kafka.oauth.common.Config;
+import io.strimzi.kafka.oauth.common.SSLUtil;
 import io.strimzi.kafka.oauth.common.TokenInfo;
 import org.apache.kafka.common.security.auth.AuthenticateCallbackHandler;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule;
@@ -9,6 +10,7 @@ import org.apache.kafka.common.security.oauthbearer.OAuthBearerTokenCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.net.ssl.SSLSocketFactory;
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.login.AppConfigurationEntry;
@@ -38,6 +40,7 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
     private URI tokenEndpoint;
     private String usernameClaim;
 
+    private SSLSocketFactory socketFactory;
 
     @Override
     public void configure(Map<String, ?> configs, String saslMechanism, List<AppConfigurationEntry> jaasConfigEntries) {
@@ -79,6 +82,8 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
             if (refreshToken == null && clientSecret == null) {
                 throw new RuntimeException("No access token, refresh token, nor client secret specified");
             }
+
+            socketFactory = createSSLFactory();
         }
 
         usernameClaim = config.getValue(Config.OAUTH_USERNAME_CLAIM, "sub");
@@ -92,6 +97,16 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
                     + "\n    clientId: " + clientId + "\n    clientSecret: " + clientSecret
                     + "\n    usernameClaim: " + usernameClaim);
         }
+    }
+
+    private SSLSocketFactory createSSLFactory() {
+        String truststore = config.getValue(Config.OAUTH_SSL_TRUSTSTORE_LOCATION);
+        String password = config.getValue(Config.OAUTH_SSL_TRUSTSTORE_PASSWORD);
+        String type = config.getValue(Config.OAUTH_SSL_TRUSTSTORE_TYPE);
+        String rnd = config.getValue(Config.OAUTH_SSL_SECURE_RANDOM_IMPLEMENTATION);
+        boolean anyHost = config.getValueAsBoolean(Config.OAUTH_SSL_INSECURE_ALLOW_ANY_HOST, false);
+
+        return SSLUtil.createSSLFactory(truststore, password, type, rnd, anyHost);
     }
 
     @Override
@@ -121,9 +136,9 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
             // we could check if it's a JWT - in that case we could check if it's expired
             result = loginWithAccessToken(token);
         } else if (refreshToken != null) {
-            result = loginWithRefreshToken(tokenEndpoint, refreshToken, clientId, clientSecret);
+            result = loginWithRefreshToken(tokenEndpoint, socketFactory, refreshToken, clientId, clientSecret);
         } else if (clientSecret != null) {
-            result = loginWithClientSecret(tokenEndpoint, clientId, clientSecret);
+            result = loginWithClientSecret(tokenEndpoint, socketFactory, clientId, clientSecret);
         } else {
             throw new IllegalStateException("Invalid oauth client configuration - no credentials");
         }

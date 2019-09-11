@@ -3,6 +3,8 @@ package io.strimzi.kafka.oauth.common;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLSocketFactory;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -20,19 +22,39 @@ public class HttpUtil {
     private static final Logger log = LoggerFactory.getLogger(HttpUtil.class);
 
     public static <T> T get(URI uri, String authorization, Class<T> responseType) throws IOException {
-        return postOrGet(uri, authorization, null, null, responseType);
+        return postOrGet(uri, null, authorization, null, null, responseType);
+    }
+
+    public static <T> T get(URI uri, SSLSocketFactory socketFactory, String authorization, Class<T> responseType) throws IOException {
+        return postOrGet(uri, socketFactory, authorization, null, null, responseType);
     }
 
     public static <T> T post(URI uri, String authorization, String contentType, String body, Class<T> responseType) throws IOException {
-        return postOrGet(uri, authorization, contentType, body, responseType);
+        return postOrGet(uri, null, authorization, contentType, body, responseType);
+    }
+
+    public static <T> T post(URI uri, SSLSocketFactory socketFactory, String authorization, String contentType, String body, Class<T> responseType) throws IOException {
+        return postOrGet(uri, socketFactory, authorization, contentType, body, responseType);
     }
 
     public static <T> T postOrGet(URI uri, String authorization, String contentType, String body, Class<T> responseType) throws IOException {
+        return postOrGet(uri, null, authorization, contentType, body, responseType);
+    }
+
+    public static <T> T postOrGet(URI uri, SSLSocketFactory socketFactory, String authorization, String contentType, String body, Class<T> responseType) throws IOException {
         HttpURLConnection con;
         try {
             con = (HttpURLConnection) uri.toURL().openConnection();
         } catch (MalformedURLException e) {
             throw new IllegalArgumentException("Malformed token endpoint url: " + uri);
+        }
+
+        if (con instanceof HttpsURLConnection) {
+            if (socketFactory != null) {
+                HttpsURLConnection.class.cast(con).setSSLSocketFactory(socketFactory);
+            }
+        } else if (socketFactory != null) {
+            log.warn("SSL socket factory set but url scheme not https ({})", uri);
         }
 
         con.setUseCaches(false);

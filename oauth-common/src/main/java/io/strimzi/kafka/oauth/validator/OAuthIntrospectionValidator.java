@@ -7,13 +7,14 @@ import org.apache.kafka.common.utils.Time;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
 import static io.strimzi.kafka.oauth.common.HttpUtil.post;
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.base64encode;
-import static io.strimzi.kafka.oauth.validator.TokenValidationException.*;
+import static io.strimzi.kafka.oauth.validator.TokenValidationException.Status;
 
 public class OAuthIntrospectionValidator implements TokenValidator {
 
@@ -25,8 +26,10 @@ public class OAuthIntrospectionValidator implements TokenValidator {
     private final String clientSecret;
     private final boolean defaultChecks;
     private final String audience;
+    private final SSLSocketFactory socketFactory;
 
     public OAuthIntrospectionValidator(String introspectionEndpointUri,
+                                       SSLSocketFactory socketFactory,
                                        String issuerUri,
                                        String clientId,
                                        String clientSecret,
@@ -42,6 +45,11 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         } catch (URISyntaxException e) {
             throw new IllegalArgumentException("Invalid introspection endpoint uri: " + introspectionEndpointUri, e);
         }
+
+        if (socketFactory != null && !"https".equals(introspectionURI.getScheme())) {
+            throw new IllegalArgumentException("SSL socket factory set but introspectionEndpointUri not 'https://'");
+        }
+        this.socketFactory = socketFactory;
 
         try {
             new URI(issuerUri);
@@ -66,7 +74,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
 
         JsonNode response;
         try {
-            response = post(introspectionURI, authorization, "application/x-www-form-urlencoded", body.toString(), JsonNode.class);
+            response = post(introspectionURI, socketFactory, authorization, "application/x-www-form-urlencoded", body.toString(), JsonNode.class);
         } catch (IOException e) {
             throw new RuntimeException("Failed to introspect token - send, fetch or parse failed: ", e);
         }
