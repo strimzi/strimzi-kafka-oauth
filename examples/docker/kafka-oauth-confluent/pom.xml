@@ -25,7 +25,7 @@
                             <goal>copy-resources</goal>
                         </goals>
                         <configuration>
-                            <outputDirectory>${basedir}/target</outputDirectory>
+                            <outputDirectory>target</outputDirectory>
                             <resources>
                                 <resource>
                                     <directory>${basedir}</directory>
@@ -81,7 +81,7 @@
                             <artifactId>bcprov-jdk15on</artifactId>
                         </artifactItem>
                     </artifactItems>
-                    <outputDirectory>${basedir}/target/libs</outputDirectory>
+                    <outputDirectory>target/libs</outputDirectory>
                     <overWriteReleases>false</overWriteReleases>
                     <overWriteSnapshots>true</overWriteSnapshots>
                 </configuration>

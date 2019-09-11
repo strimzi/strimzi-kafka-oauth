@@ -14,7 +14,6 @@
         <plugins.dependency.version>3.1.1</plugins.dependency.version>
         <plugins.resources.version>3.1.0</plugins.resources.version>
 
-        <junit.version>4.12</junit.version>
         <keycloak.version>7.0.0</keycloak.version>
         <bouncycastle.version>1.60</bouncycastle.version>
     </properties>
@@ -57,12 +56,6 @@
                 <groupId>org.bouncycastle</groupId>
                 <artifactId>bcprov-jdk15on</artifactId>
                 <version>${bouncycastle.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>junit</groupId>
-                <artifactId>junit</artifactId>
-                <version>${junit.version}</version>
-                <scope>test</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>

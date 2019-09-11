@@ -25,7 +25,7 @@
                             <goal>copy-resources</goal>
                         </goals>
                         <configuration>
-                            <outputDirectory>${basedir}/target</outputDirectory>
+                            <outputDirectory>target</outputDirectory>
                             <resources>
                                 <resource>
                                     <directory>${basedir}</directory>

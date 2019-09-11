@@ -51,7 +51,7 @@ Or, you can have multiple terminal windows and start individual component in eac
     docker-compose -f compose.yml -f keycloak-import/compose.yml up --build
 
 
-See [examples/README.md](../examples/README.md) for more information.
+See [examples/README.md](../README.md) for more information.
 
 
 TODO: Implement and document simple OAuth JWT Authorizer
