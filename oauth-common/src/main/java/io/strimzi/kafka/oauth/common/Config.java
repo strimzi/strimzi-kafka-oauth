@@ -15,7 +15,7 @@ public class Config {
     public static final String OAUTH_SSL_TRUSTSTORE_PASSWORD = "oauth.ssl.truststore.password";
     public static final String OAUTH_SSL_TRUSTSTORE_TYPE = "oauth.ssl.truststore.type";
     public static final String OAUTH_SSL_SECURE_RANDOM_IMPLEMENTATION = "oauth.ssl.secure.random.implementation";
-    public static final String OAUTH_SSL_INSECURE_ALLOW_ANY_HOST = "oauth.ssl.insecure.allow.any.host";
+    public static final String OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM = "oauth.ssl.endpoint.identification.algorithm";
 
     private Properties props;
 

@@ -108,9 +108,9 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
         String password = config.getValue(Config.OAUTH_SSL_TRUSTSTORE_PASSWORD);
         String type = config.getValue(Config.OAUTH_SSL_TRUSTSTORE_TYPE);
         String rnd = config.getValue(Config.OAUTH_SSL_SECURE_RANDOM_IMPLEMENTATION);
-        boolean anyHost = config.getValueAsBoolean(Config.OAUTH_SSL_INSECURE_ALLOW_ANY_HOST, false);
+        String hostCheck = config.getValue(Config.OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM, "HTTPS");
 
-        return SSLUtil.createSSLFactory(truststore, password, type, rnd, anyHost);
+        return SSLUtil.createSSLFactory(truststore, password, type, rnd, "".equals(hostCheck));
     }
 
     @Override
