@@ -58,8 +58,9 @@ services:
 
       # Validation config
       OAUTH_JWKS_ENDPOINT_URI: "https://${KEYCLOAK_IP:-keycloak}:8443/auth/realms/${REALM:-demo}/protocol/openid-connect/certs"
-      #OAUTH_INTROSPECTION_ENDPOINT_URI: "https://${KEYCLOAK_IP:-keycloak}:8443/auth/realms/${REALM:-demo}/protocol/openid-connect/token/introspect"
       OAUTH_VALID_ISSUER_URI: "https://${KEYCLOAK_IP:-keycloak}:8443/auth/realms/${REALM:-demo}"
+      #OAUTH_INTROSPECTION_ENDPOINT_URI: "https://${KEYCLOAK_IP:-keycloak}:8443/auth/realms/${REALM:-demo}/protocol/openid-connect/token/introspect"
+
 
       # username extraction from JWT token claim
       OAUTH_USERNAME_CLAIM: preferred_username
@@ -75,6 +76,7 @@ services:
       # For start.sh script to know where the keycloak is listening
       KEYCLOAK_IP: ${KEYCLOAK_IP:-keycloak}
       REALM: ${REALM:-demo}
+      KEYCLOAK_URI: "https://${KEYCLOAK_IP:-keycloak}:8443/auth"
 
   zookeeper:
     image: strimzi/example-zookeeper

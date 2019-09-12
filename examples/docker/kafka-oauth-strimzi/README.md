@@ -46,3 +46,6 @@ From `docker` directory run:
      
 Kafka broker should be available on localhost:9092. It connects to Keycloak using `https://${KEYCLOAK_IP}:8443`
 
+
+### Explaining the configuration settings
+

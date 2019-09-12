@@ -11,13 +11,13 @@ services:
       - 9092:9092
 
       # javaagent debug port
-      - 5005:5005
+      #- 5005:5005
 
     environment:
 
       # Java Debug
-      KAFKA_DEBUG: y
-      DEBUG_SUSPEND_FLAG: y
+      #KAFKA_DEBUG: y
+      #DEBUG_SUSPEND_FLAG: y
       #JAVA_DEBUG_PORT: 5005
 
       #
@@ -57,9 +57,10 @@ services:
       OAUTH_TOKEN_ENDPOINT_URI: "http://${KEYCLOAK_IP:-keycloak}:8080/auth/realms/${REALM:-demo}/protocol/openid-connect/token"
 
       # Validation config
+      OAUTH_VALID_ISSUER_URI: "http://${KEYCLOAK_IP:-keycloak}:8080/auth/realms/${REALM:-demo}"
       OAUTH_JWKS_ENDPOINT_URI: "http://${KEYCLOAK_IP:-keycloak}:8080/auth/realms/${REALM:-demo}/protocol/openid-connect/certs"
       #OAUTH_INTROSPECTION_ENDPOINT_URI: "http://${KEYCLOAK_IP}:8080/auth/realms/${REALM:-demo}/protocol/openid-connect/token/introspect"
-      OAUTH_VALID_ISSUER_URI: "http://${KEYCLOAK_IP:-keycloak}:8080/auth/realms/${REALM:-demo}"
+
 
       # username extraction from JWT token claim
       OAUTH_USERNAME_CLAIM: preferred_username

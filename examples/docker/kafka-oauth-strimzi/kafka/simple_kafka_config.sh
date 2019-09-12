@@ -21,12 +21,12 @@ pop_value() {
 
 unset IFS
 for var in $(compgen -e); do
-  if [ "KAFKA_${var:6}" = "${var}" ]; then
+  if [[ $var == KAFKA_* ]]; then
 
-    case ${var} in
+    case $var in
       KAFKA_DEBUG|KAFKA_OPTS|KAFKA_VERSION|KAFKA_HOME|KAFKA_CHECKSUM|KAFKA_LOG4J_OPTS|KAFKA_HEAP_OPTS|KAFKA_JVM_PERFORMANCE_OPTS|KAFKA_GC_LOG_OPTS|KAFKA_JMX_OPTS) ;;
       *)
-        props[`to_property_name ${var}`]=${!var}
+        props[`to_property_name $var`]=${!var}
       ;;
     esac
   fi

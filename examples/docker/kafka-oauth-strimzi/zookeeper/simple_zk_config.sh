@@ -21,9 +21,8 @@ pop_value() {
 
 unset IFS
 for var in $(compgen -e); do
-  if [ "ZK_${var:3}" = "${var}" ]; then
-
-    props[`to_property_name ${var}`]=${!var}
+  if [[ $var == ZK_* ]]; then
+    props[`to_property_name $var`]=${!var}
   fi
 done
 
