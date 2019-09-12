@@ -7,10 +7,12 @@ package io.strimzi.kafka.oauth.common;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ConnectException;
 import java.net.HttpURLConnection;
@@ -26,26 +28,30 @@ public class HttpUtil {
     private static final Logger log = LoggerFactory.getLogger(HttpUtil.class);
 
     public static <T> T get(URI uri, String authorization, Class<T> responseType) throws IOException {
-        return postOrGet(uri, null, authorization, null, null, responseType);
+        return postOrGet(uri, null, null, authorization, null, null, responseType);
     }
 
     public static <T> T get(URI uri, SSLSocketFactory socketFactory, String authorization, Class<T> responseType) throws IOException {
-        return postOrGet(uri, socketFactory, authorization, null, null, responseType);
+        return postOrGet(uri, socketFactory, null, authorization, null, null, responseType);
+    }
+
+    public static <T> T get(URI uri, SSLSocketFactory socketFactory, HostnameVerifier hostnameVerifier, String authorization, Class<T> responseType) throws IOException {
+        return postOrGet(uri, socketFactory, hostnameVerifier, authorization, null, null, responseType);
     }
 
     public static <T> T post(URI uri, String authorization, String contentType, String body, Class<T> responseType) throws IOException {
-        return postOrGet(uri, null, authorization, contentType, body, responseType);
+        return postOrGet(uri, null, null, authorization, contentType, body, responseType);
     }
 
     public static <T> T post(URI uri, SSLSocketFactory socketFactory, String authorization, String contentType, String body, Class<T> responseType) throws IOException {
-        return postOrGet(uri, socketFactory, authorization, contentType, body, responseType);
+        return postOrGet(uri, socketFactory, null, authorization, contentType, body, responseType);
     }
 
-    public static <T> T postOrGet(URI uri, String authorization, String contentType, String body, Class<T> responseType) throws IOException {
-        return postOrGet(uri, null, authorization, contentType, body, responseType);
+    public static <T> T post(URI uri, SSLSocketFactory socketFactory, HostnameVerifier verifier, String authorization, String contentType, String body, Class<T> responseType) throws IOException {
+        return postOrGet(uri, socketFactory, verifier, authorization, contentType, body, responseType);
     }
 
-    public static <T> T postOrGet(URI uri, SSLSocketFactory socketFactory, String authorization, String contentType, String body, Class<T> responseType) throws IOException {
+    public static <T> T postOrGet(URI uri, SSLSocketFactory socketFactory, HostnameVerifier hostnameVerifier, String authorization, String contentType, String body, Class<T> responseType) throws IOException {
         HttpURLConnection con;
         try {
             con = (HttpURLConnection) uri.toURL().openConnection();
@@ -54,8 +60,12 @@ public class HttpUtil {
         }
 
         if (con instanceof HttpsURLConnection) {
+            HttpsURLConnection scon = (HttpsURLConnection) con;
             if (socketFactory != null) {
-                HttpsURLConnection.class.cast(con).setSSLSocketFactory(socketFactory);
+                scon.setSSLSocketFactory(socketFactory);
+            }
+            if (hostnameVerifier != null) {
+                scon.setHostnameVerifier(hostnameVerifier);
             }
         } else if (socketFactory != null) {
             log.warn("SSL socket factory set but url scheme not https ({})", uri);
@@ -92,13 +102,19 @@ public class HttpUtil {
 
         int code = con.getResponseCode();
         if (code != 200) {
-            ByteArrayOutputStream err = new ByteArrayOutputStream(4096);
-            try {
-                copy(con.getErrorStream(), err);
-            } catch (Exception e) {
-                log.warn("[IGNORED] Failed to read response body", e);
+            InputStream err = con.getErrorStream();
+            if (err != null) {
+                ByteArrayOutputStream errbuf = new ByteArrayOutputStream(4096);
+                try {
+                    copy(err, errbuf);
+                } catch (Exception e) {
+                    log.warn("[IGNORED] Failed to read response body", e);
+                }
+
+                throw new RuntimeException("Request failed with status " + code + ": " + errbuf.toString(StandardCharsets.UTF_8.name()));
+            } else {
+                throw new RuntimeException("Request failed with status " + code + " " + con.getResponseMessage());
             }
-            throw new RuntimeException("Request failed with status " + code + ": " + err.toString(StandardCharsets.UTF_8.name()));
         }
         return JSONUtil.readJSON(con.getInputStream(), responseType);
     }

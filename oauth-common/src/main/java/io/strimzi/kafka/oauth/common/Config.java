@@ -17,20 +17,21 @@ public class Config {
     public static final String OAUTH_SSL_SECURE_RANDOM_IMPLEMENTATION = "oauth.ssl.secure.random.implementation";
     public static final String OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM = "oauth.ssl.endpoint.identification.algorithm";
 
-    private Properties props;
+    private Properties defaults;
 
     /**
-     * Use this construtor if you only want to lookup configuration properties in System properties and ENV.
+     * Use this construtor if you only want to lookup configuration in system properties and env
+     * without any default configuration.
      */
     public Config() {}
 
     /**
-     * Use this constructor to provide your own Properties object, with System properties and ENV serving as fallback.
+     * Use this constructor to provide default values in case some configuration is not set system properties or ENV.
      *
-     * @param p Properties
+     * @param p Default property values
      */
     public Config(Properties p) {
-        props = p;
+        defaults = p;
     }
 
     /**
@@ -40,28 +41,29 @@ public class Config {
      *
      * @throws RuntimeException if validation fails
      */
-    public void validate() {
-
-    }
-
+    public void validate() {}
 
     /**
      * Get value for property key, returning fallback if configuration for key is not found.
+     *
+     * This method first checks if system property exists for the key.
+     * If not it checks if env variable exists with the name derived from the key:
+     *
+     *   key.toUpperCase().replace('-', '_').replace('.', '_');
+     *
+     * If not it checks if env variable with name equals to key exists.
+     * Ultimately it checks the defaults passed at Config object construction time.
+     *
+     * If no configuration is found for key it returns the fallback value.
      *
      * @param key Config key
      * @param fallback Fallback value
      * @return Configuration value for specified key
      */
     public String getValue(String key, String fallback) {
-        // try props first
-        String result = props != null ? props.getProperty(key) : null;
 
-        if (result != null) {
-            return result;
-        }
-
-        // try system properties
-        result = System.getProperty(key, null);
+        // try system properties first
+        String result = System.getProperty(key, null);
         if (result != null) {
             return result;
         }
@@ -74,6 +76,12 @@ public class Config {
 
         // try env property by key name (without converting with toEnvName())
         result = System.getenv(key);
+        if (result != null) {
+            return result;
+        }
+
+        // try default properties and if all else fails return fallback value
+        result = defaults != null ? defaults.getProperty(key) : null;
 
         return result != null ? result : fallback;
     }

@@ -15,4 +15,4 @@ wait_for_url "http://${KEYCLOAK_IP:-keycloak}:8080/auth" "Waiting for Keycloak t
 
 wait_for_url "http://${KEYCLOAK_IP:-keycloak}:8080/auth/realms/${REALM:-demo}" "Waiting for realm '${REALM}' to be available"
 
-/usr/bin/start-kafka.sh
+exec /usr/bin/start-kafka.sh

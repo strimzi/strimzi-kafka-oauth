@@ -11,6 +11,7 @@ import org.apache.kafka.common.utils.Time;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
 import java.net.URI;
@@ -31,9 +32,11 @@ public class OAuthIntrospectionValidator implements TokenValidator {
     private final boolean defaultChecks;
     private final String audience;
     private final SSLSocketFactory socketFactory;
+    private final HostnameVerifier hostnameVerifier;
 
     public OAuthIntrospectionValidator(String introspectionEndpointUri,
                                        SSLSocketFactory socketFactory,
+                                       HostnameVerifier verifier,
                                        String issuerUri,
                                        String clientId,
                                        String clientSecret,
@@ -51,9 +54,14 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         }
 
         if (socketFactory != null && !"https".equals(introspectionURI.getScheme())) {
-            throw new IllegalArgumentException("SSL socket factory set but introspectionEndpointUri not 'https://'");
+            throw new IllegalArgumentException("SSL socket factory set but introspectionEndpointUri not 'https'");
         }
         this.socketFactory = socketFactory;
+
+        if (verifier != null && !"https".equals(introspectionURI.getScheme())) {
+            throw new IllegalArgumentException("Certificate hostname verifier set but keysEndpointUri not 'https'");
+        }
+        this.hostnameVerifier = verifier;
 
         try {
             new URI(issuerUri);
@@ -78,7 +86,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
 
         JsonNode response;
         try {
-            response = post(introspectionURI, socketFactory, authorization, "application/x-www-form-urlencoded", body.toString(), JsonNode.class);
+            response = post(introspectionURI, socketFactory, hostnameVerifier, authorization, "application/x-www-form-urlencoded", body.toString(), JsonNode.class);
         } catch (IOException e) {
             throw new RuntimeException("Failed to introspect token - send, fetch or parse failed: ", e);
         }

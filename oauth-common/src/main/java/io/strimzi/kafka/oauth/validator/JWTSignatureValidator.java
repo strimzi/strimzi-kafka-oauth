@@ -17,6 +17,7 @@ import org.keycloak.util.JWKSUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSocketFactory;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -42,6 +43,7 @@ public class JWTSignatureValidator implements TokenValidator {
     private final boolean defaultChecks;
     private final String audience;
     private final SSLSocketFactory socketFactory;
+    private final HostnameVerifier hostnameVerifier;
 
     private long lastFetchTime;
 
@@ -50,6 +52,7 @@ public class JWTSignatureValidator implements TokenValidator {
 
     public JWTSignatureValidator(String keysEndpointUri,
                                  SSLSocketFactory socketFactory,
+                                 HostnameVerifier verifier,
                                  String validIssuerUri,
                                  int refreshSeconds,
                                  int expirySeconds,
@@ -66,9 +69,15 @@ public class JWTSignatureValidator implements TokenValidator {
         }
 
         if (socketFactory != null && !"https".equals(keysUri.getScheme())) {
-            throw new IllegalArgumentException("SSL socket factory set but keysEndpointUri not 'https://'");
+            throw new IllegalArgumentException("SSL socket factory set but keysEndpointUri not 'https'");
         }
         this.socketFactory = socketFactory;
+
+        if (verifier != null && !"https".equals(keysUri.getScheme())) {
+            throw new IllegalArgumentException("Certificate hostname verifier set but keysEndpointUri not 'https'");
+        }
+        this.hostnameVerifier = verifier;
+
 
         if (validIssuerUri == null) {
             throw new IllegalArgumentException("validIssuerUri == null");
@@ -116,7 +125,7 @@ public class JWTSignatureValidator implements TokenValidator {
 
     private void fetchKeys() {
         try {
-            JSONWebKeySet jwks = HttpUtil.get(keysUri, socketFactory,null, JSONWebKeySet.class);
+            JSONWebKeySet jwks = HttpUtil.get(keysUri, socketFactory, hostnameVerifier, null, JSONWebKeySet.class);
             cache = JWKSUtils.getKeysForUse(jwks, JWK.Use.SIG);
             lastFetchTime = System.currentTimeMillis();
         } catch (Exception ex) {

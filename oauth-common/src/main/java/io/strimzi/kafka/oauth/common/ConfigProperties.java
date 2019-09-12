@@ -8,36 +8,29 @@ import java.util.Properties;
 
 public class ConfigProperties {
 
-    private Properties props;
-    private Config config = new Config();
+    private Properties defaults;
+    private Config config;
 
-    public ConfigProperties() {
-        this.props = new Properties();
+    public ConfigProperties(Properties defaults) {
+        this.defaults = defaults;
+        config = new Config(defaults);
     }
 
-    public ConfigProperties(Properties overrides) {
-        this.props = new Properties(overrides);
+    public Properties resolveTo(Properties destination) {
+        for (Object key: defaults.keySet()) {
+            destination.setProperty(key.toString(), config.getValue(key.toString()));
+        }
+        return destination;
     }
 
-    /**
-     * This method first checks if any initial overrides are passed.
-     * If not, it checks system property with the same name as key.
-     * If it doesn't find it, it checks if ENV variable is set with the name:
-     *
-     *   key.toUpperCase().replace('-', '_').replace('.', '_');
-     *
-     * Finally, if nothing is found it sets the property to passed defaultValue.
-     *
-     * @param key
-     * @param defaultValue
-     */
-    public void setProperty(String key, String defaultValue) {
-        props.setProperty(key, config.getValue(key, defaultValue));
+    public static void resolveAndExportToSystemProperties(Properties defaults) {
+        Properties p = new ConfigProperties(defaults).resolveTo(new Properties());
+        for (Object key: p.keySet()) {
+            System.setProperty(key.toString(), p.getProperty(key.toString()));
+        }
     }
 
-    public Properties toProperties() {
-        Properties p = new Properties();
-        p.putAll(props);
-        return p;
+    public static Properties resolve(Properties defaults) {
+        return new ConfigProperties(defaults).resolveTo(new Properties());
     }
 }

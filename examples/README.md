@@ -7,6 +7,11 @@ First, start the necessary containers by following instructions in [docker/READM
 
 Also, don't forget to set KEYCLOAK_IP environment variable as instructed.
 
+    export OAUTH_SSL_TRUSTSTORE_LOCATION=docker/keycloak/config/keycloak.client.truststore.p12
+    export OAUTH_SSL_TRUSTSTORE_PASSWORD=changeit
+    export OAUTH_SSL_TRUSTSTORE_TYPE=pkcs12
+    export OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM=
+
 
 You can now use an IDE to run example clients, or you can run from shell.
 

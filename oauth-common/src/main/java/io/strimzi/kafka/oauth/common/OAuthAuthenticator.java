@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -35,7 +36,7 @@ public class OAuthAuthenticator {
         return new TokenInfo(token, "undefined", "undefined", System.currentTimeMillis(), System.currentTimeMillis() + 365 * 24 * 3600000);
     }
 
-    public static TokenInfo loginWithClientSecret(URI tokenEndpointUrl, SSLSocketFactory socketFactory, String clientId, String clientSecret) throws IOException {
+    public static TokenInfo loginWithClientSecret(URI tokenEndpointUrl, SSLSocketFactory socketFactory, HostnameVerifier hostnameVerifier, String clientId, String clientSecret) throws IOException {
         log.warn("loginWithClientSecret() - tokenEndpointUrl: " + tokenEndpointUrl
                 + ", clientId: " + clientId  + ", clientSecret: " + clientSecret);
 
@@ -43,10 +44,10 @@ public class OAuthAuthenticator {
 
         StringBuilder body = new StringBuilder("grant_type=client_credentials");
 
-        return post(tokenEndpointUrl, socketFactory, authorization, body.toString());
+        return post(tokenEndpointUrl, socketFactory, hostnameVerifier, authorization, body.toString());
     }
 
-    public static TokenInfo loginWithRefreshToken(URI tokenEndpointUrl, SSLSocketFactory socketFactory, String refreshToken, String clientId, String clientSecret) throws IOException {
+    public static TokenInfo loginWithRefreshToken(URI tokenEndpointUrl, SSLSocketFactory socketFactory, HostnameVerifier hostnameVerifier, String refreshToken, String clientId, String clientSecret) throws IOException {
         log.warn("loginWithRefreshToken() - tokenEndpointUrl: " + tokenEndpointUrl + ", refreshToken: " + refreshToken
                 + ", clientId: " + clientId + ", clientSecret: " + clientSecret);
 
@@ -59,15 +60,16 @@ public class OAuthAuthenticator {
                 .append("&refresh_token=").append(refreshToken)
                 .append("&client_id=").append((urlencode(clientId)));
 
-        return post(tokenEndpointUrl, socketFactory, authorization, body.toString());
+        return post(tokenEndpointUrl, socketFactory, hostnameVerifier, authorization, body.toString());
     }
 
-    private static TokenInfo post(URI tokenEndpointUri, SSLSocketFactory socketFactory, String authorization, String body) throws IOException {
+    private static TokenInfo post(URI tokenEndpointUri, SSLSocketFactory socketFactory, HostnameVerifier hostnameVerifier, String authorization, String body) throws IOException {
 
         long now = System.currentTimeMillis();
 
         JsonNode result = HttpUtil.post(tokenEndpointUri,
                 socketFactory,
+                hostnameVerifier,
                 authorization,
                 "application/x-www-form-urlencoded",
                 body,

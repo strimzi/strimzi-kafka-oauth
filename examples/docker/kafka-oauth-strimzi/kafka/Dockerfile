@@ -1,6 +1,7 @@
 FROM strimzi/kafka:latest-kafka-2.3.0
 
 COPY libs/* /opt/kafka/libs/
+COPY config/* /opt/kafka/
 COPY start.sh /opt/kafka/
 COPY simple_kafka_config.sh /opt/kafka/
 

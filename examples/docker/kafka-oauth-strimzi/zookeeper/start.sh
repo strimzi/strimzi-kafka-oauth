@@ -20,4 +20,4 @@ wait_for_url() {
 
 #echo CURRENT USER:
 #id
-/opt/kafka/bin/zookeeper-server-start.sh /tmp/strimzi.properties
+exec /opt/kafka/bin/zookeeper-server-start.sh /tmp/strimzi.properties

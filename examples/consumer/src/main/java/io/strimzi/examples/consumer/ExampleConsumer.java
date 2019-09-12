@@ -24,44 +24,44 @@ public class ExampleConsumer {
 
         String topic = "Topic1";
 
-        Config config = new Config();
-
+        Properties defaults = new Properties();
+        Config external = new Config();
 
         // TODO: Set KEYCLOAK_IP to be able to connect to Keycloak
-        //  Use 'keycloak.ip' system property or KEYCLOAK_IP env property
-        final String KEYCLOAK_IP = config.getValue("keycloak.ip", "KEYCLOAK IP");
-        final String REALM = config.getValue("realm", "demo");
+        //  Use 'keycloak.ip' system property or KEYCLOAK_IP env variable
 
+        final String KEYCLOAK_IP = external.getValue("keycloak.ip", "keycloak");
+        final String REALM = external.getValue("realm", "demo");
         final String TOKEN_ENDPOINT_URI = "http://" + KEYCLOAK_IP+ ":8080/auth/realms/" + REALM + "/protocol/openid-connect/token";
 
-        // TODO: You can set ACCESS_TOKEN or REFRESH_TOKEN to override default authentication with clientId and secret
+        // You can also configure token endpoint uri directly via 'oauth.token.endpoint.uri' system property
+        //  or OAUTH_TOKEN_ENDPOINT_URI env variable
+        defaults.setProperty(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, TOKEN_ENDPOINT_URI);
+
+
+        // TODO: By defaut this client uses preconfigured clientId and secret to authenticate.
+        //  You can set OAUTH_ACCESS_TOKEN or OAUTH_REFRESH_TOKEN to override default authentication.
+        //
+        //  If access token is configured, it is passed directly to Kafka broker
+        //  If refresh token is configured, it is used in conjunction with clientId and secret
+        //
         //  See README.md for more info.
-        final String ACCESS_TOKEN = config.getValue("access.token", null);
-        final String REFRESH_TOKEN = config.getValue("refresh.token", null);
 
+        final String ACCESS_TOKEN = external.getValue(ClientConfig.OAUTH_ACCESS_TOKEN, null);
 
-        // By default, authenticate with client id, and secret to obtain access token from Keycloak server
-        if (ACCESS_TOKEN == null && REFRESH_TOKEN == null) {
-            System.setProperty(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, TOKEN_ENDPOINT_URI);
-            System.setProperty(Config.OAUTH_CLIENT_ID, "kafka-producer-client");
-            System.setProperty(Config.OAUTH_CLIENT_SECRET, "kafka-producer-client-secret");
-        }
-        // If ACCESS_TOKEN is specified, pass it directly to Kafka Broker where it will be validated
-        else if (ACCESS_TOKEN != null) {
-            System.setProperty(ClientConfig.OAUTH_ACCESS_TOKEN, ACCESS_TOKEN);
-        }
-        // If REFRESH_TOKEN is specified, use it to obtain access token from Keycloak server
-        else if (REFRESH_TOKEN != null) {
-            System.setProperty(ClientConfig.OAUTH_REFRESH_TOKEN, REFRESH_TOKEN);
-            System.setProperty(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, TOKEN_ENDPOINT_URI);
-            System.setProperty(Config.OAUTH_CLIENT_ID, "kafka-producer-client");
-            System.setProperty(Config.OAUTH_CLIENT_SECRET, "kafka-producer-client-secret");
+        if (ACCESS_TOKEN == null) {
+            defaults.setProperty(Config.OAUTH_CLIENT_ID, "kafka-producer-client");
+            defaults.setProperty(Config.OAUTH_CLIENT_SECRET, "kafka-producer-client-secret");
         }
 
         // Use 'preferred_username' rather than 'sub' for principal name
-        System.setProperty(Config.OAUTH_USERNAME_CLAIM, "preferred_username");
+        defaults.setProperty(Config.OAUTH_USERNAME_CLAIM, "preferred_username");
 
-        Properties props = configure();
+        // Resolve external configurations falling back to provided defaults
+        ConfigProperties.resolveAndExportToSystemProperties(defaults);
+
+
+        Properties props = buildConsumerConfig();
         Consumer<String, String> consumer = new KafkaConsumer<>(props);
 
         consumer.subscribe(Arrays.asList(topic));
@@ -74,9 +74,15 @@ public class ExampleConsumer {
         }
     }
 
-    private static Properties configure() {
+    /**
+     * Build KafkaConsumer properties. The specified values are defaults that can be overriden
+     * through runtime system properties or env variables.
+     *
+     * @return Configuration properties
+     */
+    private static Properties buildConsumerConfig() {
 
-        ConfigProperties p = new ConfigProperties();
+        Properties p = new Properties();
 
         p.setProperty("security.protocol", "SASL_PLAINTEXT");
         p.setProperty("sasl.mechanism", "OAUTHBEARER");
@@ -91,6 +97,6 @@ public class ExampleConsumer {
         p.setProperty(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "10");
         p.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
 
-        return p.toProperties();
+        return ConfigProperties.resolve(p);
     }
 }

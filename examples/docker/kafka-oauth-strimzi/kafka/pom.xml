@@ -33,6 +33,7 @@
                                         <include>start.sh</include>
                                         <include>simple_kafka_config.sh</include>
                                         <include>Dockerfile</include>
+                                        <include>config/</include>
                                     </includes>
                                     <filtering>false</filtering>
                                 </resource>

@@ -4,6 +4,7 @@
  */
 package io.strimzi.kafka.oauth.common;
 
+import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
@@ -12,12 +13,10 @@ import javax.net.ssl.X509TrustManager;
 import java.io.FileInputStream;
 import java.security.KeyStore;
 import java.security.SecureRandom;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 
 public class SSLUtil {
 
-    public static SSLSocketFactory createSSLFactory(String truststore, String password, String type, String rnd, boolean anyHost) {
+    public static SSLSocketFactory createSSLFactory(String truststore, String password, String type, String rnd) {
 
         if (truststore == null) {
             return null;
@@ -33,43 +32,16 @@ public class SSLUtil {
             throw new RuntimeException("Failed to load truststore: " + truststore, e);
         }
 
-        X509TrustManager tmDelegate;
+        X509TrustManager tm;
         try {
             TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
             tmf.init(store);
 
-            tmDelegate = getTrustManager(tmf);
+            tm = getTrustManager(tmf);
         } catch (Exception e) {
             throw new RuntimeException("Failed to initialise truststore: " + truststore, e);
         }
 
-
-        X509TrustManager tm = new X509TrustManager() {
-
-            @Override
-            public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
-                if (anyHost) {
-                    return;
-                }
-                tmDelegate.checkClientTrusted(chain,authType);
-            }
-
-            @Override
-            public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
-                if (anyHost) {
-                    return;
-                }
-                tmDelegate.checkServerTrusted(chain,authType);
-            }
-
-            @Override
-            public X509Certificate[] getAcceptedIssuers() {
-                if (anyHost) {
-                    return new X509Certificate[0];
-                }
-                return tmDelegate.getAcceptedIssuers();
-            }
-        };
 
         SecureRandom random = null;
         if (rnd != null) {
@@ -98,5 +70,9 @@ public class SSLUtil {
             }
         }
         throw new IllegalStateException("No X509TrustManager on default factory");
+    }
+
+    public static HostnameVerifier createAnyHostHostnameVerifier() {
+        return (hostname, session) -> true;
     }
 }

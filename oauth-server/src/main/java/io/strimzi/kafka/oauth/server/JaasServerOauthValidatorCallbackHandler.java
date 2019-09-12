@@ -5,7 +5,7 @@
 package io.strimzi.kafka.oauth.server;
 
 import io.strimzi.kafka.oauth.common.Config;
-import io.strimzi.kafka.oauth.common.SSLUtil;
+import io.strimzi.kafka.oauth.common.ConfigUtil;
 import io.strimzi.kafka.oauth.validator.JWTSignatureValidator;
 import io.strimzi.kafka.oauth.validator.OAuthIntrospectionValidator;
 import io.strimzi.kafka.oauth.common.TokenInfo;
@@ -22,6 +22,7 @@ import org.keycloak.representations.AccessToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSocketFactory;
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.UnsupportedCallbackException;
@@ -67,7 +68,8 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
         validateConfig();
 
-        SSLSocketFactory socketFactory = createSSLFactory();
+        SSLSocketFactory socketFactory = ConfigUtil.createSSLFactory(config);
+        HostnameVerifier verifier = ConfigUtil.createHostnameVerifier(config);
 
         String jwksUri = config.getValue(ServerConfig.OAUTH_JWKS_ENDPOINT_URI);
 
@@ -75,9 +77,10 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
             validator = new JWTSignatureValidator(
                     config.getValue(ServerConfig.OAUTH_JWKS_ENDPOINT_URI),
                     socketFactory,
+                    verifier,
                     config.getValue(ServerConfig.OAUTH_VALID_ISSUER_URI),
-                    config.getValueAsInt(ServerConfig.OAUTH_JWKS_EXPIRY_SECONDS, 360),
                     config.getValueAsInt(ServerConfig.OAUTH_JWKS_REFRESH_SECONDS, 300),
+                    config.getValueAsInt(ServerConfig.OAUTH_JWKS_EXPIRY_SECONDS, 360),
                     config.getValueAsBoolean(ServerConfig.OAUTH_VALIDATE_COMMON_CHECKS, true),
                     config.getValue(ServerConfig.OAUTH_VALIDATE_AUDIENCE)
             );
@@ -85,6 +88,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
             validator = new OAuthIntrospectionValidator(
                     config.getValue(ServerConfig.OAUTH_INTROSPECTION_ENDPOINT_URI),
                     socketFactory,
+                    verifier,
                     config.getValue(ServerConfig.OAUTH_VALID_ISSUER_URI),
                     config.getValue(Config.OAUTH_CLIENT_ID),
                     config.getValue(Config.OAUTH_CLIENT_SECRET),
@@ -97,16 +101,6 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         if ("sub".equals(usernameClaim)) {
             usernameClaim = null;
         }
-    }
-
-    private SSLSocketFactory createSSLFactory() {
-        String truststore = config.getValue(Config.OAUTH_SSL_TRUSTSTORE_LOCATION);
-        String password = config.getValue(Config.OAUTH_SSL_TRUSTSTORE_PASSWORD);
-        String type = config.getValue(Config.OAUTH_SSL_TRUSTSTORE_TYPE);
-        String rnd = config.getValue(Config.OAUTH_SSL_SECURE_RANDOM_IMPLEMENTATION);
-        String hostCheck = config.getValue(Config.OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM, "HTTPS");
-
-        return SSLUtil.createSSLFactory(truststore, password, type, rnd, "".equals(hostCheck));
     }
 
     private void validateConfig() {
