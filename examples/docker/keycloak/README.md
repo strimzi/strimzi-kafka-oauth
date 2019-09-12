@@ -1,30 +1,35 @@
+Keycloak
+========
 
-This project builds and runs Keycloak docker container with enabled https on port 8443.
+This project builds and runs Keycloak docker container.
 
-Certificates, key stores, and trust stores are pre-generated in 'config' directory.
+### Running without SSL
 
-They were generated using the following commands.
+From `docker` directory run:
 
-#### Create server certificate for Keycloak
+    docker-compose -f compose.yml -f keycloak/compose.yml up --build 
 
-    keytool -keystore keycloak.server.keystore.p12 -storetype pkcs12 -keyalg RSA -alias keycloak -validity 366 -genkey -storepass changeit -keypass changeit -dname CN=keycloak -ext SAN=DNS:keycloak
+You may want to delete any previous instances by using:
+
+    docker rm -f keycloak
+    
+### Running with SSL
+
+From `docker` directory run:
+
+    docker-compose -f compose.yml -f keycloak/compose-ssl.yml up --build
+     
+
+Certificates, keystores, and truststores are pre-generated in `certificates` sub-directory. If you want to regenerate them run:
+
+    cd certificates
+    rm c* k*
+    ./build-certs.sh
 
 
-#### Create own CA:
+In order for whole SSL demo to work copy the files to where they are needed:
 
-    openssl req -new -x509 -keyout ca-key -out ca-cert -days 3650 -subj "/CN=strimzi.io" -passout pass:changeit
+    cp keycloak.server.keystore.p12 ../config/
+    cp -t ../../keycloak-import/config/ ca-cert keycloak.client.truststore.p12 
+    cp -t ../../kafka-oauth-strimzi/kafka/config/ ca-cert keycloak.client.truststore.p12
 
-
-#### Create client truststore:
-
-    keytool -keystore keycloak.client.truststore.p12 -storetype pkcs12 -alias KeycloakCARoot -storepass changeit -keypass changeit -import -file ca-cert -noprompt
-
-
-#### Sign server certificate (export, sign, add signed to keystore):
-
-    keytool -keystore keycloak.server.keystore.p12 -storetype pkcs12 -alias keycloak -storepass changeit -keypass changeit -certreq -file cert-file
-
-    openssl x509 -req -CA ca-cert -CAkey ca-key -in cert-file -out cert-signed -days 366 -CAcreateserial -passin pass:changeit
-
-    keytool -keystore keycloak.server.keystore.p12 -alias CARoot -storepass changeit -keypass changeit -import -file ca-cert -noprompt
-    keytool -keystore keycloak.server.keystore.p12 -alias keycloak -storepass changeit -keypass changeit -import -file cert-signed -noprompt
