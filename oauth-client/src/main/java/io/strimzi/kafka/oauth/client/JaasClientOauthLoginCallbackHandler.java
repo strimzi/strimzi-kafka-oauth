@@ -56,11 +56,9 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
         }
 
         for (AppConfigurationEntry e: jaasConfigEntries) {
-            if ("KafkaClient".equals(e.getLoginModuleName()) || e.getLoginModuleName() == null) {
-                Properties p = new Properties();
-                p.putAll(e.getOptions());
-                config = new ClientConfig(p);
-            }
+            Properties p = new Properties();
+            p.putAll(e.getOptions());
+            config = new ClientConfig(p);
         }
 
         token = config.getValue(ClientConfig.OAUTH_ACCESS_TOKEN);
