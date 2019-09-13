@@ -156,7 +156,7 @@ When you authenticate as `kafka-consumer-client` you get access token that looks
 ```
 
 
-By default, NoopAuthorizer is configured which grants all permissions to all clients.
+By default, no authorizer is configured which grants all permissions to all clients.
 
 
 You can configure another authorizer by setting KAFKA_AUTHORIZER_CLASS_NAME env variable in `kafka-oauth-*/compose.yml`

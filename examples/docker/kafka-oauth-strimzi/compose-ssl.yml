@@ -38,9 +38,6 @@ services:
       KAFKA_LISTENER_NAME_CLIENT_OAUTHBEARER_SASL_LOGIN_CALLBACK_HANDLER_CLASS: io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
       KAFKA_LISTENER_NAME_CLIENT_OAUTHBEARER_SASL_SERVER_CALLBACK_HANDLER_CLASS: io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
 
-      KAFKA_AUTHORIZER_CLASS_NAME: io.strimzi.kafka.oauth.server.NoopAuthorizer
-      #KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.auth.SimpleAclAuthorizer
-
       KAFKA_SUPER_USERS: User:service-account-kafka-broker
 
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
