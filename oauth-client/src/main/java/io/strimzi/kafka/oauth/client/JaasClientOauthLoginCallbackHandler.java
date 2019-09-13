@@ -28,6 +28,7 @@ import java.util.Properties;
 import java.util.Set;
 
 import static io.strimzi.kafka.oauth.common.JSONUtil.getClaimFromJWT;
+import static io.strimzi.kafka.oauth.common.LogUtil.mask;
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithAccessToken;
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithClientSecret;
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithRefreshToken;
@@ -51,7 +52,7 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
     @Override
     public void configure(Map<String, ?> configs, String saslMechanism, List<AppConfigurationEntry> jaasConfigEntries) {
         if (!OAuthBearerLoginModule.OAUTHBEARER_MECHANISM.equals(saslMechanism))    {
-            throw new IllegalArgumentException(String.format("Unexpected SASL mechanism: %s", saslMechanism));
+            throw new IllegalArgumentException("Unexpected SASL mechanism: " + saslMechanism);
         }
 
         for (AppConfigurationEntry e: jaasConfigEntries) {
@@ -99,9 +100,11 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
         }
 
         if (log.isDebugEnabled()) {
-            log.debug("Configured JaasClientOauthLoginCallbackHandler:\n    token: " + token
-                    + "\n    refreshToken: " + refreshToken + "\n    tokenEndpointUri: " + tokenEndpoint
-                    + "\n    clientId: " + clientId + "\n    clientSecret: " + clientSecret
+            log.debug("Configured JaasClientOauthLoginCallbackHandler:\n    token: " + mask(token)
+                    + "\n    refreshToken: " + mask(refreshToken)
+                    + "\n    tokenEndpointUri: " + tokenEndpoint
+                    + "\n    clientId: " + clientId
+                    + "\n    clientSecret: " + mask(clientSecret)
                     + "\n    usernameClaim: " + usernameClaim);
         }
     }

@@ -37,6 +37,7 @@ import java.util.Properties;
 import java.util.Set;
 
 import static io.strimzi.kafka.oauth.common.JSONUtil.getClaimFromJWT;
+import static io.strimzi.kafka.oauth.common.LogUtil.mask;
 
 public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCallbackHandler {
 
@@ -180,7 +181,9 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
             });
 
         } catch (TokenValidationException e) {
-            log.warn("Validation failed for token: " + token, e);
+            if (log.isDebugEnabled()) {
+                log.debug("Validation failed for token: " + mask(token), e);
+            }
             callback.error(e.status(), null, null);
         } catch (RuntimeException e) {
             throw new AuthenticationException("Validation failed due to runtime exception:", e);
@@ -195,21 +198,25 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
 
     private void debugLogToken(String token) {
+        if (!log.isDebugEnabled()) {
+            return;
+        }
+
         JWSInput parser;
         try {
             parser = new JWSInput(token);
-            log.info("Token: " + parser.readContentAsString());
+            log.debug("Token: {}", parser.readContentAsString());
         } catch (JWSInputException e) {
-            log.info("Token doesn't seem to be JWT token: " + token, e);
+            log.debug("Token doesn't seem to be JWT token: " + token, e);
             return;
         }
 
         try {
             AccessToken t = parser.readJsonContent(AccessToken.class);
-            log.info("Access token expires at (UTC): " + LocalDateTime.ofEpochSecond(t.getExpiration(), 0, ZoneOffset.UTC).format(DateTimeFormatter.ISO_DATE_TIME));
+            log.debug("Access token expires at (UTC): " + LocalDateTime.ofEpochSecond(t.getExpiration(), 0, ZoneOffset.UTC).format(DateTimeFormatter.ISO_DATE_TIME));
         } catch (JWSInputException e) {
             // Try parse as refresh token:
-            log.info("[IGNORED] Failed to parse JWT token's payload", e);
+            log.debug("[IGNORED] Failed to parse JWT token's payload", e);
         }
     }
 }

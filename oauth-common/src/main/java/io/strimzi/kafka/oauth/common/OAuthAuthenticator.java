@@ -17,6 +17,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
+import static io.strimzi.kafka.oauth.common.LogUtil.mask;
 import static io.strimzi.kafka.oauth.common.TokenIntrospection.introspectAccessToken;
 
 public class OAuthAuthenticator {
@@ -25,21 +26,22 @@ public class OAuthAuthenticator {
 
     public static TokenInfo loginWithAccessToken(String token) {
         if (log.isDebugEnabled()) {
-            log.debug("loginWithAccessToken() - pass-through access_token: {}", token);
+            log.debug("loginWithAccessToken() - pass-through access_token: {}", mask(token));
         }
         // try introspect token
         try {
             return introspectAccessToken(token);
         } catch (Exception e) {
-            log.info("[IGNORED] Could not parse token as JWT access token. Could not extract scope, subject, and expiry.", e);
+            log.debug("[IGNORED] Could not parse token as JWT access token. Could not extract scope, subject, and expiry.", e);
         }
         return new TokenInfo(token, "undefined", "undefined", System.currentTimeMillis(), System.currentTimeMillis() + 365 * 24 * 3600000);
     }
 
     public static TokenInfo loginWithClientSecret(URI tokenEndpointUrl, SSLSocketFactory socketFactory, HostnameVerifier hostnameVerifier, String clientId, String clientSecret) throws IOException {
-        log.warn("loginWithClientSecret() - tokenEndpointUrl: " + tokenEndpointUrl
-                + ", clientId: " + clientId  + ", clientSecret: " + clientSecret);
-
+        if (log.isDebugEnabled()) {
+            log.debug("loginWithClientSecret() - tokenEndpointUrl: {}, clientId: {}, clientSecret: {}",
+                    tokenEndpointUrl, clientId, mask(clientSecret));
+        }
         String authorization = "Basic " + base64encode(clientId + ':' + clientSecret);
 
         StringBuilder body = new StringBuilder("grant_type=client_credentials");
@@ -48,9 +50,10 @@ public class OAuthAuthenticator {
     }
 
     public static TokenInfo loginWithRefreshToken(URI tokenEndpointUrl, SSLSocketFactory socketFactory, HostnameVerifier hostnameVerifier, String refreshToken, String clientId, String clientSecret) throws IOException {
-        log.warn("loginWithRefreshToken() - tokenEndpointUrl: " + tokenEndpointUrl + ", refreshToken: " + refreshToken
-                + ", clientId: " + clientId + ", clientSecret: " + clientSecret);
-
+        if (log.isDebugEnabled()) {
+            log.debug("loginWithRefreshToken() - tokenEndpointUrl: {}, refreshToken: {}, clientId: {}, clientSecret: {}",
+                    tokenEndpointUrl, refreshToken, clientId, mask(clientSecret));
+        }
 
         String authorization = clientSecret != null ?
                 "Basic " + base64encode(clientId + ':' + clientSecret) :
@@ -94,7 +97,7 @@ public class OAuthAuthenticator {
         try {
             return introspectAccessToken(token.asText());
         } catch (Exception e) {
-            log.info("[IGNORED] Could not parse token as JWT access token. Could not extract subject.", e);
+            log.debug("[IGNORED] Could not parse token as JWT access token. Could not extract subject.", e);
         }
 
         return new TokenInfo(token.asText(), scope.asText(), "undefined", now, now + expiresIn.asInt() * 1000);
