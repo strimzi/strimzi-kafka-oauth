@@ -170,22 +170,4 @@ mvn clean install
 Demo
 ----
 
-The demo uses docker-compose build projects to start Keycloak (`docker/keycloak`), import clients, and users as a new Keycloak realm (`docker/keycloak-import`), 
-package containerized Kafka with strimzi-kafka-oauth modules and example configuration (`docker/kafka-oauth-*`).
-
-Follow the instructions in [docker/README.md](docker/README.md) to start up the demo servers.
-
-Then, follow instructions in [examples/README.md](examples/README.md) to run example producer, and consumer.
-
-
-TODOs
------
-
-We're preparing more OAuth2 servers to run the demo with - Hydra, maybe Okta, CAS, a Spring Boot Kafka client example.
-
-Strimzi Kafka docker image support is still work in progress. Confluent image requires some polish.
-
-We need a working example of default Kafka ACL Authorizer.
-
-We need a simple implementation of JWT claims based Authorizer.
-
+See [examples README](examples/README.md).

@@ -1,9 +1,17 @@
+OAuth2 Examples / Demo
+======================
 
-These examples are part of the preconfigured demo which uses Keycloak as OAuth2 authorization server.
+This directory contains a preconfigured demo which uses Keycloak as OAuth2 authorization server.
+
+The demo uses docker-compose build projects to start Keycloak (`docker/keycloak`), import clients, and users as a new Keycloak realm (`docker/keycloak-import`), 
+package containerized Kafka with strimzi-kafka-oauth modules and example configuration (`docker/kafka-oauth-strimzi`).
+
 
 The demo is primarily about authentication, and does not enforce any restrictions on clients.
 
 First, start the necessary containers by following instructions in [docker/README.md](../docker/README.md)
+
+Then, follow instructions in [producer README](producer/README.md) and [consumer README](consumer/README.md) to run example clients.
 
 Also, don't forget to set all the environment variables as instructed.
 

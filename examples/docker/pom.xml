@@ -90,8 +90,6 @@
 
     <modules>
         <module>kafka-oauth-strimzi</module>
-        <module>kafka-oauth-wurstmeister</module>
-        <module>kafka-oauth-confluent</module>
     </modules>
 </project>
 
