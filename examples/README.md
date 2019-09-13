@@ -5,30 +5,15 @@ The demo is primarily about authentication, and does not enforce any restriction
 
 First, start the necessary containers by following instructions in [docker/README.md](../docker/README.md)
 
-Also, don't forget to set KEYCLOAK_IP environment variable as instructed.
-
-    export OAUTH_SSL_TRUSTSTORE_LOCATION=docker/keycloak/config/keycloak.client.truststore.p12
-    export OAUTH_SSL_TRUSTSTORE_PASSWORD=changeit
-    export OAUTH_SSL_TRUSTSTORE_TYPE=pkcs12
-    export OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM=
+Also, don't forget to set all the environment variables as instructed.
 
 
-You can now use an IDE to run example clients, or you can run from shell.
-
-You'll first want to run a producer:
-
-    java -cp producer/target/*:producer/target/lib/* io.strimzi.examples.producer.ExampleProducer
-    
-And then the consumer:
-
-    java -cp consumer/target/*:consumer/target/lib/* io.strimzi.examples.consumer.ExampleConsumer
-
-By default, producer and consumer both authenticate with client credentials using client id, and client secret.
-
+You can use an IDE to run example clients, or you can run from shell.
 
 
 You can remove the need for specifying client id and client secret in client configuration by generating an access token 
-directly, using a CLI tooling.
+directly, using CLI tooling.
+
 
 Assuming `keycloak` container is up and running you can do the following.
 
@@ -36,12 +21,21 @@ Connect to 'keycloak' container to get access to `kcadm.sh` tool:
 
     docker exec -ti -e KEYCLOAK_IP=$KEYCLOAK_IP keycloak /bin/sh
     cd keycloak
+
+Set the server endpoint url:
+
+    export URL=http://${KEYCLOAK_IP}:8080/auth
     
-Authenticate as client application itself:
+If you are using SSL configuration with Keycloak (using `compose-ssl.yml`) - which you should, whenever running anywhere but on your local machine) use the following endpoint url:
+    
+    export URL=https://${KEYCLOAK_IP}:8443/auth
+
+
+Now, you can authenticate as client application itself:
 
     bin/kcadm.sh config credentials --server http://${KEYCLOAK_IP}:8080/auth --realm demo --client kafka-producer-client --secret kafka-producer-client-secret
 
-As an alternative you can authenticate as some user authorizing the client application, which may add user-specific permissions to the token:
+Alternatively, you can authenticate as some user authorizing the client application, which may add user-specific permissions to the token:
 
     bin/kcadm.sh config credentials --server http://${KEYCLOAK_IP}:8080/auth --realm demo --user alice --password alice-password --client kafka-producer-client --secret kafka-producer-client-secret
     
@@ -52,6 +46,7 @@ After successfully authenticating you can retrieve access token and refresh toke
     
     # OR retrieve a refresh token
     cat ~/.keycloak/kcadm.config | grep refreshToken | awk -F'"' '{print $4}'
+
 
 For this example you can instruct ExampleProducer / ExampleConsumer to use an access token by setting ACCESS_TOKEN env variable:
 
@@ -159,9 +154,9 @@ When you authenticate as `kafka-consumer-client` you get access token that looks
 By default, no authorizer is configured which grants all permissions to all clients.
 
 
-You can configure another authorizer by setting KAFKA_AUTHORIZER_CLASS_NAME env variable in `kafka-oauth-*/compose.yml`
+You can configure the default authorizer using KAFKA_AUTHORIZER_CLASS_NAME env variable in `kafka-oauth-*/compose.yml`. 
 
-For example, you can uncomment SimpleAclAuthorizer, and make sure to then configure KAFKA_SUPER_USERS, and OAUTH_USERNAME_CLAIM:
+For example:
 
     KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.auth.SimpleAclAuthorizer
     KAFKA_SUPER_USERS: User:service-account-kafka-broker
