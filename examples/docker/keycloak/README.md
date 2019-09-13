@@ -30,6 +30,6 @@ Certificates, keystores, and truststores are pre-generated in `certificates` sub
 In order for whole SSL demo to work copy the files to where they are needed:
 
     cp keycloak.server.keystore.p12 ../config/
-    cp -t ../../keycloak-import/config/ ca-cert keycloak.client.truststore.p12 
-    cp -t ../../kafka-oauth-strimzi/kafka/config/ ca-cert keycloak.client.truststore.p12
+    cp keycloak.client.truststore.p12 ../../keycloak-import/config/  
+    cp keycloak.client.truststore.p12 ../../kafka-oauth-strimzi/kafka/config/
 

@@ -6,7 +6,7 @@ wait_for_url() {
     MSG=$2
 
     if [[ $URL == https* ]]; then
-        CMD="curl --cacert ca-cert -sL -o /dev/null -w %{http_code} $URL"
+        CMD="curl -k -sL -o /dev/null -w %{http_code} $URL"
     else
         CMD="curl -sL -o /dev/null -w %{http_code} $URL"
     fi
