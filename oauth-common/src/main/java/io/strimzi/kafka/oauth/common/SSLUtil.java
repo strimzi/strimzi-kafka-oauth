@@ -22,9 +22,7 @@ public class SSLUtil {
             return null;
         }
 
-
         KeyStore store;
-
         try (FileInputStream is = new FileInputStream(truststore)) {
             store = KeyStore.getInstance(type != null ? type : KeyStore.getDefaultType());
             store.load(is, password.toCharArray());
@@ -41,7 +39,6 @@ public class SSLUtil {
         } catch (Exception e) {
             throw new RuntimeException("Failed to initialise truststore: " + truststore, e);
         }
-
 
         SecureRandom random = null;
         if (rnd != null) {
@@ -66,7 +63,7 @@ public class SSLUtil {
     private static X509TrustManager getTrustManager(TrustManagerFactory tmf) {
         for (TrustManager tm : tmf.getTrustManagers()) {
             if (tm instanceof X509TrustManager) {
-                return X509TrustManager.class.cast(tm);
+                return (X509TrustManager) tm;
             }
         }
         throw new IllegalStateException("No X509TrustManager on default factory");

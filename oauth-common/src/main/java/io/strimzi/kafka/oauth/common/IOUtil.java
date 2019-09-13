@@ -11,7 +11,7 @@ import java.io.OutputStream;
 public class IOUtil {
 
     public static void copy(InputStream input, OutputStream output) throws IOException {
-        byte [] buf = new byte[4092];
+        byte [] buf = new byte[4096];
 
         int rc;
         try {

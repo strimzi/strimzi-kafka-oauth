@@ -60,8 +60,8 @@ public class OAuthAuthenticator {
                 null;
 
         StringBuilder body = new StringBuilder("grant_type=refresh_token")
-                .append("&refresh_token=").append(refreshToken)
-                .append("&client_id=").append((urlencode(clientId)));
+                .append("&refresh_token=").append(urlencode(refreshToken))
+                .append("&client_id=").append(urlencode(clientId));
 
         return post(tokenEndpointUrl, socketFactory, hostnameVerifier, authorization, body.toString());
     }

@@ -16,7 +16,7 @@ User authentication is separated into an outside step which user manually perfor
 limited set of permissions to a specific client app. In the simplest case, the client application can authenticate in its own name using client 
 credentials. While the client secret is in this case packaged with application client, the benefit is still that it is not shared with application 
 server (Kafka Broker in our case) - the client first performs authentication against OAuth2 authorization server in exchange for an access token, 
-which it then sends to authorization server instead of its secrets. Access tokens can be independently tracked and revoked at will, and represent a 
+which it then sends to the application server instead of its secrets. Access tokens can be independently tracked and revoked at will, and represent a 
 limited access to resources on application server.
 
 When user authenticates and authorizes application client in exchange for a token, the client application can be packaged with only the access token
@@ -25,7 +25,7 @@ during session initialisation, while a refresh token is first used to ask author
 Broker to start a new authenticated session.
 
 A developer authorising the client application with access to Kafka resources will access authorisation server directly using a web 
-based or CLI based tool to sign in and provide access token or refresh token for application client.
+based or CLI based tool to sign in and generate access token or refresh token for application client.
 
 
 When using refresh tokens for authentication the retrieved access tokens can be relatively short-lived which puts a time limit on potential abuse 

@@ -25,19 +25,19 @@ public class ExampleProducer {
         Properties defaults = new Properties();
         Config external = new Config();
 
-        // TODO: Set KEYCLOAK_IP to be able to connect to Keycloak
+        //  Set KEYCLOAK_IP to be able to connect to Keycloak
         //  Use 'keycloak.ip' system property or KEYCLOAK_IP env variable
 
         final String KEYCLOAK_IP = external.getValue("keycloak.ip", "keycloak");
         final String REALM = external.getValue("realm", "demo");
         final String TOKEN_ENDPOINT_URI = "http://" + KEYCLOAK_IP+ ":8080/auth/realms/" + REALM + "/protocol/openid-connect/token";
 
-        // You can also configure token endpoint uri directly via 'oauth.token.endpoint.uri' system property
+        //  You can also configure token endpoint uri directly via 'oauth.token.endpoint.uri' system property
         //  or OAUTH_TOKEN_ENDPOINT_URI env variable
         defaults.setProperty(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, TOKEN_ENDPOINT_URI);
 
 
-        // TODO: By defaut this client uses preconfigured clientId and secret to authenticate.
+        //  By defaut this client uses preconfigured clientId and secret to authenticate.
         //  You can set OAUTH_ACCESS_TOKEN or OAUTH_REFRESH_TOKEN to override default authentication.
         //
         //  If access token is configured, it is passed directly to Kafka broker
@@ -70,14 +70,12 @@ public class ExampleProducer {
 
                 System.out.println("Produced Message " + i);
 
-
             } catch (InterruptedException e) {
                 throw new RuntimeException("Interrupted while sending!");
 
             } catch (ExecutionException e) {
                 throw new RuntimeException("Failed to send message: " + i, e);
             }
-
 
             try {
                 Thread.sleep(2000);
@@ -87,6 +85,12 @@ public class ExampleProducer {
         }
     }
 
+    /**
+     * Build KafkaProducer properties. The specified values are defaults that can be overridden
+     * through runtime system properties or env variables.
+     *
+     * @return Configuration properties
+     */
     private static Properties buildProducerConfig() {
 
         Properties p = new Properties();

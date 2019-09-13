@@ -95,9 +95,9 @@ public class HttpUtil {
         }
 
         if (body != null && body.length() > 0) {
-            OutputStream out = con.getOutputStream();
-            out.write(body.getBytes(StandardCharsets.UTF_8));
-            out.close();
+            try (OutputStream out = con.getOutputStream()) {
+                out.write(body.getBytes(StandardCharsets.UTF_8));
+            }
         }
 
         int code = con.getResponseCode();
@@ -116,6 +116,9 @@ public class HttpUtil {
                 throw new RuntimeException("Request failed with status " + code + " " + con.getResponseMessage());
             }
         }
-        return JSONUtil.readJSON(con.getInputStream(), responseType);
+
+        try (InputStream response = con.getInputStream()) {
+            return JSONUtil.readJSON(response, responseType);
+        }
     }
 }
