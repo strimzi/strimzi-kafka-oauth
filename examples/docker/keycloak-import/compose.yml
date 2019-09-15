@@ -7,4 +7,4 @@ services:
     build: keycloak-import
     container_name: keycloak_import
     environment:
-      KEYCLOAK_IP: "${KEYCLOAK_IP}"
+      KEYCLOAK_HOST: "${KEYCLOAK_HOST}"

@@ -16,13 +16,15 @@ Copy resources to prepare the docker-compose project by running:
 This demo is configured to use an open-source OAuth2 compliant Keycloak SSO server. It is important that all Keycloak clients access
 the OAuth2 endpoints using the same url schema, host and port.
  
-Therefore, before continuing, first determine the local IP address of your machine, and set the IP as environment variable:
+First, determine your machine's local network IP address, and add keycloak entry to your `/etc/host`.
 
-    export KEYCLOAK_IP=<YOUR_IP_ADDRESS>
+You can use `ifconfig` utility. On macOS for example you can run:
 
-For example, on macOS:
+    ifconfig en0 | grep 'inet ' | awk '{print $2}'
 
-    export KEYCLOAK_IP=$(ifconfig en0 | grep 'inet ' | awk '{print $2}')
+Then, add keycloak entry to your `/etc/hosts` file 
+
+    <YOUR_IP_ADDRESS>    keycloak
 
 
 ### Running without SSL
@@ -31,7 +33,7 @@ From `docker` directory run:
 
     docker-compose -f compose.yml -f kafka-oauth-strimzi/compose.yml up --build 
 
-Kafka broker should be available on localhost:9092. It connects to Keycloak using `http://${KEYCLOAK_IP}:8080`
+Kafka broker should be available on localhost:9092. It connects to Keycloak using `http://keycloak:8080`
 
 
 ### Running with SSL
@@ -44,8 +46,6 @@ From `docker` directory run:
 
     docker-compose -f compose.yml -f kafka-oauth-strimzi/compose-ssl.yml up --build
      
-Kafka broker should be available on localhost:9092. It connects to Keycloak using `https://${KEYCLOAK_IP}:8443`
+Kafka broker should be available on localhost:9092. It connects to Keycloak using `https://keycloak:8443`
 
-
-### Explaining the configuration settings
 

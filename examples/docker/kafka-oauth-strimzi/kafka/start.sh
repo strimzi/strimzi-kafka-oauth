@@ -20,7 +20,7 @@ wait_for_url() {
 
 URI=${KEYCLOAK_URI}
 if [ "" == "${URI}" ]; then
-    URI="http://${KEYCLOAK_IP:-keycloak}:8080/auth"
+    URI="http://${KEYCLOAK_HOST:-keycloak}:8080/auth"
 fi
 
 wait_for_url $URI "Waiting for Keycloak to start"

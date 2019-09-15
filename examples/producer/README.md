@@ -13,13 +13,15 @@ Building
 Preparing
 ---------
 
-Determine your machine's local network IP address, and set it as env variable.
+Determine your machine's local network IP address, and add keycloak entry to your `/etc/host`.
 
-    export KEYCLOAK_IP=<YOUR_IP_ADDRESS>
+You can use `ifconfig` utility. On macOS for example you can run:
 
-For example, on macOS:
+    ifconfig en0 | grep 'inet ' | awk '{print $2}'
 
-    export KEYCLOAK_IP=$(ifconfig en0 | grep 'inet ' | awk '{print $2}')
+Then, add keycloak entry to your `/etc/hosts` file 
+
+    <YOUR_IP_ADDRESS>    keycloak
 
 
 Running without SSL
@@ -38,8 +40,10 @@ You need to set additional env variables in order to configure truststore, and t
     OAUTH_SSL_TRUSTSTORE_LOCATION=../docker/keycloak-import/config/keycloak.client.truststore.p12
     OAUTH_SSL_TRUSTSTORE_PASSWORD=changeit
     OAUTH_SSL_TRUSTSTORE_TYPE=pkcs12
-    OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM=
-    OAUTH_TOKEN_ENDPOINT_URI=https://${KEYCLOAK_IP}:8443/auth/realms/demo/protocol/openid-connect/token
+    OAUTH_TOKEN_ENDPOINT_URI=https://keycloak:8443/auth/realms/demo/protocol/openid-connect/token
+
+    # If certificate hostname didn't match 'keycloak' you could use the following line to skip hostname verification
+    #OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM=
 
 You can now use an IDE to run example clients, or you can run from shell:
 

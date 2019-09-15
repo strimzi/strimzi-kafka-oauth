@@ -27,12 +27,12 @@ public class ExampleConsumer {
         Properties defaults = new Properties();
         Config external = new Config();
 
-        //  Set KEYCLOAK_IP to be able to connect to Keycloak
-        //  Use 'keycloak.ip' system property or KEYCLOAK_IP env variable
+        //  Set KEYCLOAK_HOST to be able to connect to Keycloak
+        //  Use 'keycloak.host' system property or KEYCLOAK_HOST env variable
 
-        final String KEYCLOAK_IP = external.getValue("keycloak.ip", "keycloak");
+        final String KEYCLOAK_HOST = external.getValue("keycloak.host", "keycloak");
         final String REALM = external.getValue("realm", "demo");
-        final String TOKEN_ENDPOINT_URI = "http://" + KEYCLOAK_IP+ ":8080/auth/realms/" + REALM + "/protocol/openid-connect/token";
+        final String TOKEN_ENDPOINT_URI = "http://" + KEYCLOAK_HOST + ":8080/auth/realms/" + REALM + "/protocol/openid-connect/token";
 
         //  You can also configure token endpoint uri directly via 'oauth.token.endpoint.uri' system property
         //  or OAUTH_TOKEN_ENDPOINT_URI env variable

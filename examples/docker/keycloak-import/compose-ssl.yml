@@ -7,6 +7,6 @@ services:
     build: keycloak-import
     container_name: keycloak_import
     environment:
-      KEYCLOAK_URI: https://${KEYCLOAK_IP:-keycloak}:8443/auth
+      KEYCLOAK_URI: https://${KEYCLOAK_HOST:-keycloak}:8443/auth
       TRUSTSTORE: keycloak.client.truststore.p12
       TRUSTSTORE_PASSWORD: changeit

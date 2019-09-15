@@ -11,7 +11,7 @@ First, start the necessary containers by following instructions in [docker/READM
 
 Then, follow instructions in [producer README](producer/README.md) and [consumer README](consumer/README.md) to run example clients.
 
-Also, don't forget to set all the environment variables as instructed.
+Also, don't forget to set all the environment variables as instructed, and add 'keycloak' to your /etc/hosts if necessary.
 
 You can use an IDE to run example clients, or you can run from shell.
 
@@ -21,24 +21,30 @@ Assuming `keycloak` container is up and running you can do the following.
 
 Connect to 'keycloak' container to get access to `kcadm.sh` tool:
 
-    docker exec -ti -e KEYCLOAK_IP=$KEYCLOAK_IP keycloak /bin/sh
+    docker exec -ti keycloak /bin/sh
     cd keycloak
 
 Set the server endpoint url:
 
-    export URL=http://${KEYCLOAK_IP}:8080/auth
+    export URL=http://keycloak:8080/auth
     
 If you are using SSL configuration with Keycloak (using `compose-ssl.yml`) - which you should, whenever running anywhere but on your local machine - use the following endpoint url:
     
-    export URL=https://${KEYCLOAK_IP}:8443/auth
+    export URL=https://keycloak:8443/auth
 
+If you're using SSL, configure the truststore for client to be able to connect:
+
+    bin/kcadm.sh config truststore --trustpass changeit standalone/configuration/keycloak.server.keystore.p12
+
+Note: Unfortunately `kcadm.sh` doesn't support turning off certificate hostname verification, which means that for SSL example demo we can't generate tokens with proper issuer.
+    
 Now, you can authenticate as client application itself:
 
-    bin/kcadm.sh config credentials --server http://${KEYCLOAK_IP}:8080/auth --realm demo --client kafka-producer-client --secret kafka-producer-client-secret
+    bin/kcadm.sh config credentials --server $URL --realm demo --client kafka-producer-client --secret kafka-producer-client-secret
 
 Alternatively, you can authenticate as some user ('alice' in this case) authorizing the client application, which may add user-specific permissions to the token:
 
-    bin/kcadm.sh config credentials --server http://${KEYCLOAK_IP}:8080/auth --realm demo --user alice --password alice-password --client kafka-producer-client --secret kafka-producer-client-secret
+    bin/kcadm.sh config credentials --server $URL --realm demo --user alice --password alice-password --client kafka-producer-client --secret kafka-producer-client-secret
     
 After successfully authenticating you can retrieve access token and refresh token from local config file:
 
@@ -167,7 +173,7 @@ SimpleAclAuthorizer only takes established user identity into account (it has no
 In order to add permissions you then have to use command line tool that comes with kafka, to add permissions to specific users.
 For example:
 
-    docker exec -ti -e  KEYCLOAK_IP=$KEYCLOAK_IP kafka /bin/sh
+    docker exec -ti kafka /bin/sh
     
     # Topic 'Topic1' does not exist yet, but we can already grant access on it
     bin/kafka-acls.sh --topic Topic1 --producer --authorizer-properties zookeeper.connect=zookeeper:2181 --add --allow-principal User:alice

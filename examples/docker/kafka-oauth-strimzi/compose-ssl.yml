@@ -51,12 +51,12 @@ services:
       # Authentication config
       OAUTH_CLIENT_ID: "kafka-broker"
       OAUTH_CLIENT_SECRET: "kafka-broker-secret"
-      OAUTH_TOKEN_ENDPOINT_URI: "https://${KEYCLOAK_IP:-keycloak}:8443/auth/realms/${REALM:-demo}/protocol/openid-connect/token"
+      OAUTH_TOKEN_ENDPOINT_URI: "https://${KEYCLOAK_HOST:-keycloak}:8443/auth/realms/${REALM:-demo}/protocol/openid-connect/token"
 
       # Validation config
-      OAUTH_JWKS_ENDPOINT_URI: "https://${KEYCLOAK_IP:-keycloak}:8443/auth/realms/${REALM:-demo}/protocol/openid-connect/certs"
-      OAUTH_VALID_ISSUER_URI: "https://${KEYCLOAK_IP:-keycloak}:8443/auth/realms/${REALM:-demo}"
-      #OAUTH_INTROSPECTION_ENDPOINT_URI: "https://${KEYCLOAK_IP:-keycloak}:8443/auth/realms/${REALM:-demo}/protocol/openid-connect/token/introspect"
+      OAUTH_JWKS_ENDPOINT_URI: "https://${KEYCLOAK_HOST:-keycloak}:8443/auth/realms/${REALM:-demo}/protocol/openid-connect/certs"
+      OAUTH_VALID_ISSUER_URI: "https://${KEYCLOAK_HOST:-keycloak}:8443/auth/realms/${REALM:-demo}"
+      #OAUTH_INTROSPECTION_ENDPOINT_URI: "https://${KEYCLOAK_HOST:-keycloak}:8443/auth/realms/${REALM:-demo}/protocol/openid-connect/token/introspect"
 
 
       # username extraction from JWT token claim
@@ -71,9 +71,9 @@ services:
       OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: ""
 
       # For start.sh script to know where the keycloak is listening
-      KEYCLOAK_IP: ${KEYCLOAK_IP:-keycloak}
+      KEYCLOAK_HOST: ${KEYCLOAK_HOST:-keycloak}
       REALM: ${REALM:-demo}
-      KEYCLOAK_URI: "https://${KEYCLOAK_IP:-keycloak}:8443/auth"
+      KEYCLOAK_URI: "https://${KEYCLOAK_HOST:-keycloak}:8443/auth"
 
   zookeeper:
     image: strimzi/example-zookeeper
