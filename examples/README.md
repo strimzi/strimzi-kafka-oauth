@@ -1,11 +1,9 @@
-OAuth2 Examples / Demo
-======================
+Examples / Demo
+===============
 
 This directory contains a preconfigured demo which uses Keycloak as OAuth2 authorization server.
 
-The demo uses docker-compose build projects to start Keycloak (`docker/keycloak`), import clients, and users as a new Keycloak realm (`docker/keycloak-import`), 
-package containerized Kafka with strimzi-kafka-oauth modules and example configuration (`docker/kafka-oauth-strimzi`).
-
+The demo uses docker-compose build projects to start Keycloak (`docker/keycloak`), import clients, and users as a new Keycloak realm (`docker/keycloak-import`), package containerized Kafka with strimzi-kafka-oauth modules and example configuration (`docker/kafka-oauth-strimzi`).
 
 The demo is primarily about authentication, and does not enforce any restrictions on clients.
 
@@ -15,13 +13,9 @@ Then, follow instructions in [producer README](producer/README.md) and [consumer
 
 Also, don't forget to set all the environment variables as instructed.
 
-
 You can use an IDE to run example clients, or you can run from shell.
 
-
-You can remove the need for specifying client id and client secret in client configuration by generating an access token 
-directly, using CLI tooling.
-
+You can remove the need for specifying client id and client secret in client configuration by generating an access token directly, using CLI tooling.
 
 Assuming `keycloak` container is up and running you can do the following.
 
@@ -34,20 +28,19 @@ Set the server endpoint url:
 
     export URL=http://${KEYCLOAK_IP}:8080/auth
     
-If you are using SSL configuration with Keycloak (using `compose-ssl.yml`) - which you should, whenever running anywhere but on your local machine) use the following endpoint url:
+If you are using SSL configuration with Keycloak (using `compose-ssl.yml`) - which you should, whenever running anywhere but on your local machine - use the following endpoint url:
     
     export URL=https://${KEYCLOAK_IP}:8443/auth
-
 
 Now, you can authenticate as client application itself:
 
     bin/kcadm.sh config credentials --server http://${KEYCLOAK_IP}:8080/auth --realm demo --client kafka-producer-client --secret kafka-producer-client-secret
 
-Alternatively, you can authenticate as some user authorizing the client application, which may add user-specific permissions to the token:
+Alternatively, you can authenticate as some user ('alice' in this case) authorizing the client application, which may add user-specific permissions to the token:
 
     bin/kcadm.sh config credentials --server http://${KEYCLOAK_IP}:8080/auth --realm demo --user alice --password alice-password --client kafka-producer-client --secret kafka-producer-client-secret
     
-After successfully authenticating you can retrieve access token and refresh token:
+After successfully authenticating you can retrieve access token and refresh token from local config file:
 
     # retrieve saved access token
     cat ~/.keycloak/kcadm.config | grep token | awk -F'"' '{print $4}'
@@ -55,16 +48,14 @@ After successfully authenticating you can retrieve access token and refresh toke
     # OR retrieve a refresh token
     cat ~/.keycloak/kcadm.config | grep refreshToken | awk -F'"' '{print $4}'
 
+For this example you can instruct ExampleProducer / ExampleConsumer to use an access token by setting OAUTH_ACCESS_TOKEN env variable:
 
-For this example you can instruct ExampleProducer / ExampleConsumer to use an access token by setting ACCESS_TOKEN env variable:
-
-    export ACCESS_TOKEN=<YOUR ACCESS TOKEN>
+    export OAUTH_ACCESS_TOKEN=<YOUR ACCESS TOKEN>
     
-Or, to use a refresh token, set REFRESH_TOKEN env variable (if ACCESS_TOKEN is set it will be used instead):
+Or, to use a refresh token, set OAUTH_REFRESH_TOKEN env variable (if OAUTH_ACCESS_TOKEN is set it will be used instead):
 
-    export REFRESH_TOKEN=<YOUR REFRESH TOKEN>
+    export OAUTH_REFRESH_TOKEN=<YOUR REFRESH TOKEN>
  
-
 When you authenticate as client application itself (`kafka-producer-client`), you get an access token that looks something like:
 
 ```
@@ -92,8 +83,7 @@ When you authenticate as client application itself (`kafka-producer-client`), yo
 
 This client is configured in the demo in such a way that it gets no `roles` claims by itself.
 
-When authenticating as user `alice`, some roles will be added to the token, which may be used by custom Authorizer in Kafka Broker
-to grant access to some topics:
+When authenticating as user `alice`, some roles will be added to the token, which may be used by custom Authorizer in Kafka Broker to grant access to some topics:
 
 ```
 {
@@ -158,9 +148,7 @@ When you authenticate as `kafka-consumer-client` you get access token that looks
 
 ```
 
-
 By default, no authorizer is configured which grants all permissions to all clients.
-
 
 You can configure the default authorizer using KAFKA_AUTHORIZER_CLASS_NAME env variable in `kafka-oauth-*/compose.yml`. 
 
@@ -172,10 +160,9 @@ For example:
     # username extraction from JWT token claim
     OAUTH_USERNAME_CLAIM: preferred_username
 
-When running Kafka with this configuration, the ExampleProducer will not have the necessary permissions by default. Also, no user has any
-permissions by default when SimpleAclAuthorizer is enabled - except the super users. SimpleAclAuthorizer only takes established user
-identity into account (it has no integration with OAuth tokens, so above mentioned differences in roles present in JWT token - those 
-make no difference to SimpleAclAuthorizer.
+When running Kafka with this configuration, the ExampleProducer will not have the necessary permissions by default.
+Also, no user has any permissions by default when SimpleAclAuthorizer is enabled - except the super users.
+SimpleAclAuthorizer only takes established user identity into account (it has no integration with OAuth tokens, so above mentioned differences in roles present in JWT token - those make no difference to SimpleAclAuthorizer.
 
 In order to add permissions you then have to use command line tool that comes with kafka, to add permissions to specific users.
 For example:

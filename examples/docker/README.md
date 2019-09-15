@@ -1,13 +1,17 @@
 Demo services
 =============
 
+This module provides docker containers for the demo. It includes Keycloak, realm import service for Keycloak, and a preconfigured Kafka broker.
 
-### Building
+
+Building
+--------
  
     mvn clean install -f ..
 
 
-### Preparing
+Preparing
+---------
 
 Determine your machine's local network IP address, and set it as env variable.
 
@@ -17,17 +21,17 @@ For example, on macOS:
 
     export KEYCLOAK_IP=$(ifconfig en0 | grep 'inet ' | awk '{print $2}')
 
-When client connects to Kafka Broker running inside docker image, the broker will redirect the client to: kafka:9292.
+That's needed, because Kafka brokers and Kafka clients connecting to Keycloak have to use the same hostname to ensure 
+compatibility of generated access tokens.
+
+When client connects to Kafka broker running inside docker image, the broker will redirect the client to: kafka:9292.
 For that reason you also have to put the following line in your `/etc/hosts`:
 
     127.0.0.1       kafka
-    
-  
-The reason is that Kafka Brokers, and Kafka clients connecting to Keycloak have to use the same hostname to ensure 
-compatibility of generated access tokens.
 
 
-### Running 
+Running 
+-------
     
 All the following docker-compose commands should be run from this directory.
 
@@ -36,7 +40,8 @@ You may want to remove any old container to start clean:
     docker rm -f kafka zookeeper keycloak
 
 
-#### Running without SSL
+Running without SSL
+-------------------
 
 You can startup all the containers at once:
 
@@ -52,7 +57,8 @@ Or, you can have multiple terminal windows and start individual component in eac
     docker-compose -f compose.yml -f keycloak-import/compose.yml up --build
 
 
-#### Running with SSL
+Running with SSL
+----------------
 
 You can startup all the containers at once:
 

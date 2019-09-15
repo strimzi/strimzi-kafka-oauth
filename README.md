@@ -1,170 +1,230 @@
-Strimzi Kafka OAuth Guide
-=========================
+Strimzi Kafka OAuth
+===================
 
-
-Strimzi Kafka OAuth modules provide support for using OAuth2 as authentication mechanism when establishing a session with Kafka Broker.
+Strimzi Kafka OAuth modules provide support for OAuth2 as authentication mechanism when establishing a session with Kafka broker.
 
 
 OAuth2 for Authentication
 -------------------------
 
-One of the advantages of OAuth2 compared to direct client-server authentication is that client credentials are never shared with the server. Rather, 
-there exists a separate OAuth2 authorization server that application clients and application servers communicate with. This way user management, 
-authentication, and authorization is 'outsourced' to authorization server.  
+One of the advantages of OAuth2 compared to direct client-server authentication is that client credentials are never shared with the server.
+Rather, there exists a separate OAuth2 authorization server that application clients and application servers communicate with.
+This way user management, authentication, and authorization is 'outsourced' to a third party - authorization server.  
 
-User authentication is separated into an outside step which user manually performs to obtain an access token or a refresh token, which grants a 
-limited set of permissions to a specific client app. In the simplest case, the client application can authenticate in its own name using client 
-credentials. While the client secret is in this case packaged with application client, the benefit is still that it is not shared with application 
-server (Kafka Broker in our case) - the client first performs authentication against OAuth2 authorization server in exchange for an access token, 
-which it then sends to the application server instead of its secrets. Access tokens can be independently tracked and revoked at will, and represent a 
-limited access to resources on application server.
+User authentication is then an outside step which user manually performs to obtain an access token or a refresh token, which grants a limited set of permissions to a specific client app.
 
-When user authenticates and authorizes application client in exchange for a token, the client application can be packaged with only the access token
-or the refresh token. User's username and password are never packaged with application client. The access token is sent directly to Kafka Broker 
-during session initialisation, while a refresh token is first used to ask authorisation server for a new access token, before sending it to Kafka 
-Broker to start a new authenticated session.
+In the simplest case, the client application can authenticate in its own name using client 
+credentials - client id and secret.
+While the client secret is in this case packaged with application client, the benefit is still that it is not shared with application server (Kafka broker in our case) - the client first performs authentication against OAuth2 authorization server in exchange for an access token, which it then sends to the application server instead of its secret.
+Access tokens can be independently tracked and revoked at will, and represent a limited access to resources on application server.
 
-A developer authorising the client application with access to Kafka resources will access authorisation server directly using a web 
-based or CLI based tool to sign in and generate access token or refresh token for application client.
+In a more advanced case, user authenticates and authorizes the application client in exchange for a token.
+The client application is then packaged with only a long lived access token or a long lived refresh token.
+User's username and password are never packaged with application client.
+If access token is configured it is sent directly to Kafka broker during session initialisation.
+But if refresh token is configured, it is first used to ask authorization server for a new access token, which is then sent to Kafka broker to start a new authenticated session.
 
+When using refresh tokens for authentication the retrieved access tokens can be relatively short-lived which puts a time limit on potential abuse of a leaked access token.
+Repeated exchanges with authorization server also provide centralised tracking of authentication attempts which is something that can be desired.
 
-When using refresh tokens for authentication the retrieved access tokens can be relatively short-lived which puts a time limit on potential abuse 
-of a leaked access token. Repeated exchanges with authorisation server also provide centralised tracking of authentication attempts which is 
-something that can be desired.
+A developer authorizing the client application with access to Kafka resources will access authorization server directly, using a web based or CLI based tool to sign in and generate access token or refresh token for application client.
 
-As hinted above, OAuth2 allows for different implementations, multiple layers of security, and it is up to you, taking existing security policies 
-into account, how exactly you would implement it.
+As hinted above, OAuth2 allows for different implementations, multiple layers of security, and it is up to the developer, taking existing security policies into account, on how exactly they would implement it in their applications.
 
 
 OAuth2 for Authorization
 ------------------------
-Authentication is the procedure of establishing if the user is who they claim they are. Authorization is the procedure to decide if the user is 
-allowed to perform some action using some resource. Kafka Brokers by default use an ACL based mechanism where access rules are saved in ZooKeeper 
-and replicated across brokers. 
 
-Authorization in Kafka is implemented completely separately and independently of authentication. Thus, it is possible to configure Kafka Brokers 
-to use OAuth2 based authentication, and at the same time the default ACL authorization. 
+Authentication is the procedure of establishing if the user is who they claim they are.
+Authorization is the procedure of deciding if the user is 
+allowed to perform some action using some resource.
+Kafka brokers by default allow all users full access - there is no specific authorization policy in place.
+Kafka comes with an implementation of ACL based authorization mechanism where access rules are saved in ZooKeeper and replicated across brokers. 
 
-Since OAuth2 access tokens can contain arbitrary claims - including sets of roles or permissions, rather than basing authorization decisions purely 
-on user's identity, it could be based on externally assigned roles. All we need is define a mapping between access token claims and actions performed 
-on resources. For example, a 'kafka-topic:clicks_*:consumer' claim can be interpreted to mean that the user can read from any topic of which name 
-starts with 'clicks_'.
+Authorization in Kafka is implemented completely separately and independently of authentication.
+Thus, it is possible to configure Kafka brokers to use OAuth2 based authentication, and at the same time the default ACL authorization. 
 
-Another possibility is to delegate authorization decisions to external authorization service - this can be a service provided by the same 
-OAuth2 authorization server used for authentication or it can be a different one, sharing the users database. 
+Since OAuth2 access tokens can contain arbitrary claims - including sets of roles or permissions, rather than basing authorization decisions purely  on user's identity, it could be based on externally assigned roles.
+All we need is to define a mapping between access token claims and actions performed on resources.
+For example, a 'kafka-topic:clicks_*:consumer' claim can be interpreted to mean that the user can read from any topic of which name starts with 'clicks_'.
+
+Another possibility is to delegate authorization decisions to external authorization service - this can be a service provided by the same OAuth2 authorization server used for authentication or it can be a different one, sharing the users database. 
 See https://docs.kantarainitiative.org/uma/wg/oauth-uma-grant-2.0-09.html for OAuth2 based standard for standardised UMA authorization services.
 
 At this time Strimzi Kafka OAuth doesn't provide authorization.
 
 
-
 Kafka OAuth2 Support
 --------------------
-Kafka comes with basic OAuth2 support in the form of SASL based authentication module which provides client-server retrieval, exchange and validation 
-of access token as credentials. For real world usage, extensions have to be provided in the form of JAAS callback handlers which is what Strimzi Kafka 
-OAuth does.
+
+Kafka comes with basic OAuth2 support in the form of SASL based authentication module which provides client-server retrieval, exchange and validation of access token used as credentials.
+For real world usage, extensions have to be provided in the form of JAAS callback handlers which is what Strimzi Kafka OAuth does.
 
 
 Configuring the Kafka Broker as a Server
 ----------------------------------------
-- Enable OAUTHBEARER as SASL mechanism
-- Configure `io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler` as validator callback handler
-- Specify `admin.user` - in order to properly integrate with default ACL authorization implementation, the broker authenticates itself as _admin_ user.
-With OAuth2 every access token is associated with some user via unique user identifier. `admin.user` should be set to the principal kafka-broker 
-authenticates as. 
 
-Specify valid issuer uri (OAUTH_VALID_ISSUER_URI) - only access tokens issued by this issuer will be accepted.
+In Kafka server.properties specify the following:
 
-Next, if your authorization server issues JWT access tokens, and provides a JWKS certificates endpoint, you can configure that for fast local token 
-validation (OAUTH_JWKS_ENDPOINT_URI). You can control how often JWKS certificates are refreshed by setting OAUTH_JWKS_REFRESH_SECONDS, and you can set
-the maximum time JWKS certificates are considered valid (OAUTH_JWKS_EXPIRY_SECONDS).
+    # Enable OAUTHBEARER as SASL mechanism
+    sasl.enabled.mechanisms=OAUTHBEARERS
 
-TODO: Alternatively, you can also manually retrieve the public key from your authorization server, and configure it explicitly (OAUTH_JWKS_CERT).
+    # Configure a listener for client applications
+    # Replace 'kafka' with a valid hostname resolvable by clients
+    listeners=CLIENTS://kafka:9092
 
+    # Specify the protocol for the listener
+    listener.security.protocol.map=CLIENT:SASL_PLAINTEXT
 
-If you're using non-JWT opaque access tokens, then you have to configure an introspection endpoint (OAUTH_INTROSPECTION_ENDPOINT_URI), and token 
-validation will have to be delegated to your authorization server.
+    # Enable Strimzi Kafka OAuth
+    listener.name.client.oauthbearer.sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required;
+    listener.name.client.oauthbearer.sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
+    listener.name.client.oauthbearer.sasl.server.callback.handler.class=io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
 
-Kafka broker also has to establish its own identity when connecting to other brokers. If OAUTHBEARER is used as inter-broker protocol then you need
-to provide client configuration as described in the next chapter.
+Configure Strimzi Kafka OAuth through environment variables or system properties.
+You can convert environment variables to system properties by converting all letters to lowercase, and all underscores to dots.  
+
+    # Specify OAuth2 Token Endpoint URL to your authorization server
+    # For production you should always use https url - see examples/docker/kafka-oauth-strimzi/compose-ssl.yml
+    export OAUTH_TOKEN_ENDPOINT_URI=https://auth-server/token
+
+    # Specify configured client id of Kafka broker - same for all brokers.
+    # You have to manually register this client with your authorization server
+    # (you may use a different client id and secret accordingly).
+    export OAUTH_CLIENT_ID=kafka-broker
+
+    # Specify configured secret for Kafka broker - same for all brokers 
+    export OAUTH_CLIENT_SECRET=kafka-broker-secret
+
+Additionally, if you've obtained a long lived refresh token for Kafka brokers, you can specify that:
+
+    export OAUTH_REFRESH_TOKEN=<YOUR_REFRESH_TOKEN_FOR_KAFKA_BROKERS>
+
+Alternatively, if you've created a long lived access token for Kafka brokers, you can just specify the access token:
+
+    export OAUTH_ACCESS_TOKEN=<YOUR_ACCESS_TOKEN_FOR_KAFKA_BROKERS>
+
+    # Specify valid Issuer URI
+    # Only access tokens issued by this issuer will be accepted
+    export OAUTH_VALID_ISSUER_URI=https://auth-server
+
+If your authorization server issues JWT access tokens, and provides a JWKS certificates endpoint, you can configure fast local token validation:
+
+    # Specify JWKS Endpoint URL
+    export OAUTH_JWKS_ENDPOINT_URI=https://auth-server/jwks
+
+    # Period between consecutive certificate endpoint refreshes
+    # (Optional, default value is 300)
+    export OAUTH_JWKS_REFRESH_SECONDS=300
+
+    # If you are willing to trust potentially revoked certificates
+    # during connectivity issues to authorization server
+    # specify a bigger value of certificate expiry time
+    # (Optional, default value is 360)
+    export OAUTH_JWKS_EXPIRY_SECONDS=360
+
+If, on the other hand, you're using non-JWT (opaque) access tokens, then you have to configure an introspection endpoint and token validation will be delegated to your authorization server.
+
+    # Specify OAuth2 Introspection Endpoint URL
+    export OAUTH_INTROSPECTION_ENDPOINT_URI=https://auth-server/introspection
+
+You may need to provide a custom truststore for connecting to your authorization server or may need to turn off hostname certificate check.
+Use the following configuration:
+
+      # Truststore config for connecting to secured authorization server
+      OAUTH_SSL_TRUSTSTORE_LOCATION: /path/to/truststore.p12
+      OAUTH_SSL_TRUSTSTORE_PASSWORD: changeit
+      OAUTH_SSL_TRUSTSTORE_TYPE: pkcs12
+      
+      #OAUTH_SSL_SECURE_RANDOM_IMPLEMENTATION=
+
+      # Turn off certificate host name check
+      OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: "" 
 
 
 Configuring the Kafka Broker as a Client
 ----------------------------------------
-- Enable OAUTHBEARER as interbroker SASL mechanism
 
-Provide Kafka Broker credentials in the same way as with any Kafka Client as described in the next chapter.
+You can also use OAuth2 for Broker to Broker authentication.
 
+In Kafka `server.properties` specify:
 
-Configuring the Kafka Client or Kafka Broker as a Client
---------------------------------------------------------
-- Provide jaas configuration - specify `org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule` as a login module.
-- Configure login callback handler class - `io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler`
-- Configure authorization server token endpoint (OAUTH_TOKEN_ENDPOINT_URI)
-- Specify credentials for authentication
+    # Specify the interbroker listener - this is usually not the same as for external clients, but in this example configuration it is
+    inter.broker.listener.name: CLIENTS
 
-Three mechanisms are currently supported:
-
-a) Authenticate with client id and client secret
-  - specify OAUTH_CLIENT_ID and OAUTH_CLIENT_SECRET
-  
-b) Authenticate with access token obtained from authorization server 
-  - specify OAUTH_ACCESS_TOKEN
-
-c) Authenticate with refresh token obtained from authorization server
-  - specify OAUTH_REFRESH_TOKEN
-  - specify OAUTH_CLIENT_ID
-  - Optionally specify OAUTH_CLIENT_SECRET depending on whether the client used is a public client or confidential client
+    # Specify OAUTHBEARER to be used as interbroker SASL protocol
+    sasl.mechanism.inter.broker.protocol: OAUTHBEARER
 
 
+If you have turned on ACL authorization in Kafka brokers, then you need to properly set an admin user. 
+By default, access token's 'sub' claim is used as user id. You may want to use another claim provided in access token as an alternative user id (username, email ...). 
+It depends on your authorization server and its configuration, what is available.
 
-Obtaining the tokens
---------------------
+In Kafka `server.properties` specify:
 
-This step is specific to the authorization server that you use. 
+    # Add user id present as JWT token's 'sub', or alternative claim, in your kafka-broker client's access token
+    admin.users=User:service-account-kafka-broker
 
-#### Keycloak
+Configure alternative user id extraction through Strimzi Kafka OAuth environment variable or system property.
 
+    export OAUTH_USERNAME_CLAIM=preferred_username
 
-Keycloak server distribution comes with a java based CLI client tool called 'kcadm'.
-
-An example of logging into Keycloak server as user 'alice', authorizing specific client with 'kafka-producer' clientId, and some secret (we assume 
-here the `demo` realm as prepared in `docker/keycloak/import`):
-
-
-    bin/kcadm.sh config credentials --server http://${KEYCLOAK_IP}:8080/auth --realm demo --client kafka-consumer-client --secret kafka-consumer-client-secret --user alice --password alice-password
-
-If using demo docker-compose setup you can invoke kcadm.sh from `keycloak` container by first executing the following:
-
-    docker exec -ti keycloak /bin/bash
-    export KEYCLOAK_IP=YOUR INTRANET IP
-    
-Now you can run bin/kcadm.sh ...
-
-The access token and refresh token are saved in ~/.keycloak/kcadm.config file. An access token or refresh token can be obtained manually from that file.
+Also provide Kafka broker credentials in the same way as with any Kafka client as described in the next chapter.
 
 
-TODO:
+Configuring the Kafka Client
+----------------------------
 
-A more convenient option would be for kcadm.sh to be able to return the token for current session.
+Client applications like producers, consumers, connectors have to be configured through client properties.
 
-For example:
+For example, for `org.apache.kafka.clients.producer.KafkaProducer` or `org.apache.kafka.clients.consumer.KafkaConsumer`, set the following properties:
 
-    bin/kcadm.sh config credentials --server http://${KEYCLOAK_IP}:8080/auth --realm demo --client kafka-consumer-client --user alice --password alice-password --token
+    sasl.mechanism=OAUTHBEARER
+    sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required;
+    sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
+
+To further configure OAuth2 authentication, use environment variables or system properties.
+You can convert environment variables to system properties by converting all letters to lowercase, and all underscores to dots.  
+
+    # Specify OAuth2 Token Endpoint URL to your authorization server
+    # For production you should always use https url - see examples/docker/kafka-oauth-strimzi/compose-ssl.yml
+    export OAUTH_TOKEN_ENDPOINT_URI=https://auth-server/token
+
+    # Specify configured client id of client app
+    # You have to manually register this client with your authorization server
+    export OAUTH_CLIENT_ID=kafka-producer-client
+
+    # Specify any configured secret for your client
+    # (or not if your client is considered public, and has no secret)
+    export OAUTH_CLIENT_SECRET=kafka-producer-client-secret
+
+Additionally, if you've obtained a long lived refresh token for your client, you can specify that:
+
+    export OAUTH_REFRESH_TOKEN=<YOUR_REFRESH_TOKEN_FOR_KAFKA_PRODUCER_CLIENT>
+
+Alternatively, if you've created a long lived access token for your client, you can just specify the access token:
+
+    export OAUTH_ACCESS_TOKEN=<YOUR_ACCESS_TOKEN_FOR_KAFKA_PRODUCER_CLIENT>
+
+If you're using alternative username claim on the Kafka brokers, and want to see proper principal during debugging on the client, also configure:
+
+    export OAUTH_USERNAME_CLAIM=preferred_username
 
 
-Or:
+Configuring the authorization server
+------------------------------------
 
-    bin/kcadm.sh config credentials get-token
-    bin/kcadm.sh config credentials get-refresh-token
+At your authorization server, you need to configure a client for Kafka broker, and a client for each of your client applications.
 
+Also, you may want each developer to have a user account in order to configure user based access controls.
 
+Configuring users, clients, and authorizing clients, obtaining access tokens, and refresh tokens are steps that are specific to the authorization server that you use. Consult your authorization server's documentation.
 
 
 Building
 --------
 
-mvn clean install
+    mvn clean install
 
 
 Demo

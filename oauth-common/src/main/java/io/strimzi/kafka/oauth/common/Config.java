@@ -26,7 +26,7 @@ public class Config {
     public Config() {}
 
     /**
-     * Use this constructor to provide default values in case some configuration is not set system properties or ENV.
+     * Use this constructor to provide default values in case some configuration is not set through system properties or ENV.
      *
      * @param p Default property values
      */
@@ -44,17 +44,17 @@ public class Config {
     public void validate() {}
 
     /**
-     * Get value for property key, returning fallback if configuration for key is not found.
+     * Get value for property key, returning fallback value if configuration for key is not found.
      *
      * This method first checks if system property exists for the key.
-     * If not it checks if env variable exists with the name derived from the key:
+     * If not, it checks if env variable exists with the name derived from the key:
      *
      *   key.toUpperCase().replace('-', '_').replace('.', '_');
      *
-     * If not it checks if env variable with name equals to key exists.
-     * Ultimately it checks the defaults passed at Config object construction time.
+     * If not, it checks if env variable with name equal to key exists.
+     * Ultimately, it checks the defaults passed at Config object construction time.
      *
-     * If no configuration is found for key it returns the fallback value.
+     * If no configuration is found for key, it returns the fallback value.
      *
      * @param key Config key
      * @param fallback Fallback value

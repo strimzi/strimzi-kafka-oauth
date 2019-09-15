@@ -22,7 +22,16 @@ import java.nio.charset.StandardCharsets;
 
 import static io.strimzi.kafka.oauth.common.IOUtil.copy;
 
-
+/**
+ * A helper class that performs all network calls using java.net.HttpURLConnection.
+ *
+ * If application uses many concurrent threads initiating many Kafka sessions in parallel, consider setting
+ * 'http.maxConnections' system property to value closer to the number of parallel sessions.
+ *
+ * This value controls the size of internal connection pool per destination in JDK's java.net.HttpURLConnection implementation.
+ *
+ * See: https://docs.oracle.com/javase/8/docs/technotes/guides/net/http-keepalive.html
+ */
 public class HttpUtil {
 
     private static final Logger log = LoggerFactory.getLogger(HttpUtil.class);
@@ -120,5 +129,14 @@ public class HttpUtil {
         try (InputStream response = con.getInputStream()) {
             return JSONUtil.readJSON(response, responseType);
         }
+
+        // Don't call con.disconnect() in order to allow connection reuse.
+        //
+        // The connection pool per destination is determined by http.maxConnections system property.
+        //
+        // See also:
+        //   https://docs.oracle.com/javase/8/docs/api/java/net/HttpURLConnection.html
+        //   https://docs.oracle.com/javase/8/docs/technotes/guides/net/http-keepalive.html
+        //   https://docs.oracle.com/javase/8/docs/api/java/net/doc-files/net-properties.html
     }
 }

@@ -1,15 +1,16 @@
 Example Kafka Consumer
 ======================
 
-This projects demonstrates a Kafka client that uses OAuth to establish Kafka session.
+This projects demonstrates a Kafka client that uses OAuth2 to establish Kafka session.
 
 
-### Building
-
+Building
+--------
     mvn clean install
 
 
-### Preparing
+Preparing
+---------
 
 Determine your machine's local network IP address, and set it as env variable.
 
@@ -20,14 +21,16 @@ For example, on macOS:
     export KEYCLOAK_IP=$(ifconfig en0 | grep 'inet ' | awk '{print $2}')
 
 
-### Running without SSL
+Running without SSL
+-------------------
 
 You can use an IDE to run example clients, or you can run from shell:
 
     java -cp consumer/target/*:consumer/target/lib/* io.strimzi.examples.consumer.ExampleConsumer
 
 
-### Running with SSL
+Running with SSL
+----------------
 
 You need to set additional env variables in order to configure truststore, and turn off certificate hostname validation:
 
@@ -36,8 +39,6 @@ You need to set additional env variables in order to configure truststore, and t
     OAUTH_SSL_TRUSTSTORE_TYPE=pkcs12
     OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM=
     OAUTH_TOKEN_ENDPOINT_URI=https://${KEYCLOAK_IP}:8443/auth/realms/demo/protocol/openid-connect/token
-
-
 
 You can now use an IDE to run example clients, or you can run from shell:
 
