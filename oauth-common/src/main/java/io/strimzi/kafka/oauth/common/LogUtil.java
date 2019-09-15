@@ -28,6 +28,6 @@ public class LogUtil {
             return "" + input.charAt(0) + "*********";
         }
 
-        return input.substring(0, 4) + "***..***" + input.substring(len-4, len);
+        return input.substring(0, 4) + "**" + input.substring(len-4, len);
     }
 }
