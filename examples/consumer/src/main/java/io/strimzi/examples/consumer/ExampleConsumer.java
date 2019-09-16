@@ -27,17 +27,17 @@ public class ExampleConsumer {
         Properties defaults = new Properties();
         Config external = new Config();
 
-        //  Set KEYCLOAK_HOST to be able to connect to Keycloak
+        //  Set KEYCLOAK_HOST to connect to Keycloak host other than 'keycloak'
         //  Use 'keycloak.host' system property or KEYCLOAK_HOST env variable
 
         final String KEYCLOAK_HOST = external.getValue("keycloak.host", "keycloak");
         final String REALM = external.getValue("realm", "demo");
         final String TOKEN_ENDPOINT_URI = "http://" + KEYCLOAK_HOST + ":8080/auth/realms/" + REALM + "/protocol/openid-connect/token";
 
-        //  You can also configure token endpoint uri directly via 'oauth.token.endpoint.uri' system property
+        //  You can also configure token endpoint uri directly via 'oauth.token.endpoint.uri' system property,
         //  or OAUTH_TOKEN_ENDPOINT_URI env variable
-        defaults.setProperty(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, TOKEN_ENDPOINT_URI);
 
+        defaults.setProperty(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, TOKEN_ENDPOINT_URI);
 
         //  By defaut this client uses preconfigured clientId and secret to authenticate.
         //  You can set OAUTH_ACCESS_TOKEN or OAUTH_REFRESH_TOKEN to override default authentication.
@@ -45,7 +45,7 @@ public class ExampleConsumer {
         //  If access token is configured, it is passed directly to Kafka broker
         //  If refresh token is configured, it is used in conjunction with clientId and secret
         //
-        //  See README.md for more info.
+        //  See examples README.md for more info.
 
         final String ACCESS_TOKEN = external.getValue(ClientConfig.OAUTH_ACCESS_TOKEN, null);
 

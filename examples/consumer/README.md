@@ -41,7 +41,8 @@ You need to set additional env variables in order to configure truststore, and t
     OAUTH_SSL_TRUSTSTORE_TYPE=pkcs12
     OAUTH_TOKEN_ENDPOINT_URI=https://keycloak:8443/auth/realms/demo/protocol/openid-connect/token
 
-    # If certificate hostname didn't match 'keycloak' you could use the following line to skip hostname verification
+    # If connecting to keycloak using a host different than 'keycloak', you can uncomment the following line 
+    # to skip hostname verification
     #OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM=
 
 You can now use an IDE to run example clients, or you can run from shell:
