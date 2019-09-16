@@ -8,6 +8,51 @@
     <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        </license>
+    </licenses>
+
+    <name>Strimzi - Apache Kafka on Kubernetes</name>
+    <description>Strimzi uses the Kubernetes operator pattern to provide a way to run an Apache Kafka cluster on
+        Kubernetes in various deployment configurations. The OAuth subproject implements the callbacks for
+        Kafka authentication using OAuth (based on SASL OAUTHBEARER mechanism).</description>
+    <url>https://strimzi.io/</url>
+
+    <scm>
+        <connection>scm:git:git://github.com/strimzi/strimzi-kafka-oauth.git</connection>
+        <developerConnection>scm:git:ssh://github.com:strimzi/strimzi-kafka-oauth.git</developerConnection>
+        <url>https://github.com/strimzi/strimzi-kafka-oauth</url>
+    </scm>
+
+    <issueManagement>
+        <system>GitHub</system>
+        <url>https://github.com/strimzi/strimzi-kafka-oauth/issues</url>
+    </issueManagement>
+
+    <developers>
+        <developer>
+            <name>Tom Bentley</name>
+            <email>tbentley@redhat.com</email>
+            <organization>Red Hat</organization>
+            <organizationUrl>http://www.redhat.com</organizationUrl>
+        </developer>
+        <developer>
+            <name>Paolo Patierno</name>
+            <email>ppatierno@live.com</email>
+            <organization>Red Hat</organization>
+            <organizationUrl>http://www.redhat.com</organizationUrl>
+        </developer>
+        <developer>
+            <name>Jakub Scholz</name>
+            <email>github@scholzj.com</email>
+            <organization>Red Hat</organization>
+            <organizationUrl>http://www.redhat.com</organizationUrl>
+        </developer>
+    </developers>
+
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
@@ -30,12 +75,13 @@
         <bouncycastle.version>1.60</bouncycastle.version>
     </properties>
 
-    <licenses>
-        <license>
-            <name>Apache License, Version 2.0</name>
-            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
-        </license>
-    </licenses>
+    <modules>
+        <module>oauth-common</module>
+        <module>oauth-client</module>
+        <module>oauth-server</module>
+        <module>examples/consumer</module>
+        <module>examples/producer</module>
+    </modules>
 
     <dependencyManagement>
         <dependencies>
@@ -220,7 +266,6 @@
                             <goal>jar</goal>
                         </goals>
                         <configuration>
-                            <sourcepath>${project.build.sourceDirectory}:${project.build.directory}/generated-sources/annotations</sourcepath>
                             <show>public</show>
                             <failOnError>true</failOnError>
                             <failOnWarnings>true</failOnWarnings>
@@ -231,12 +276,48 @@
         </plugins>
     </build>
 
-    <modules>
-        <module>oauth-common</module>
-        <module>oauth-client</module>
-        <module>oauth-server</module>
-        <module>examples/consumer</module>
-        <module>examples/producer</module>
-    </modules>
+    <profiles>
+        <profile>
+            <id>ossrh</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <!--suppress UnresolvedMavenProperty -->
+                <gpg.executable>${env.GPG_EXECUTABLE}</gpg.executable>
+                <!--suppress UnresolvedMavenProperty -->
+                <gpg.passphrase>${env.GPG_PASSPHRASE}</gpg.passphrase>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>${maven.gpg.version}</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>deploy</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.sonatype.plugins</groupId>
+                        <artifactId>nexus-staging-maven-plugin</artifactId>
+                        <version>${sonatype.nexus.staging}</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <serverId>ossrh</serverId>
+                            <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+                            <autoReleaseAfterClose>false</autoReleaseAfterClose>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
 
