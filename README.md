@@ -61,25 +61,45 @@ Kafka comes with basic OAuth2 support in the form of SASL based authentication m
 For real world usage, extensions have to be provided in the form of JAAS callback handlers which is what Strimzi Kafka OAuth does.
 
 
+Building
+--------
+
+    mvn clean install
+
+
+Installing
+----------
+
+Copy the following jars into your Kafka libs directory:
+
+    oauth-common/target/strimzi-kafka-oauth-common-*.jar
+    oauth-server/target/strimzi-kafka-oauth-server-*.jar
+    oauth-client/target/strimzi-kafka-oauth-client-*.jar
+    oauth-client/target/lib/keycloak-common-*.jar
+    oauth-client/target/lib/keycloak-core-*.jar
+    oauth-client/target/lib/bcprov-*.jar
+
+
 Configuring the Kafka Broker as a Server
 ----------------------------------------
 
-In Kafka server.properties specify the following:
+In Kafka server.properties enable specify the following:
 
     # Enable OAUTHBEARER as SASL mechanism
-    sasl.enabled.mechanisms=OAUTHBEARERS
+    sasl.enabled.mechanisms=OAUTHBEARER
 
     # Configure a listener for client applications
-    # Replace 'kafka' with a valid hostname resolvable by clients
+    # Replace 'kafka' with a valid hostname, resolvable by clients
     listeners=CLIENTS://kafka:9092
 
     # Specify the protocol for the listener
-    listener.security.protocol.map=CLIENT:SASL_PLAINTEXT
+    listener.security.protocol.map=CLIENTS:SASL_PLAINTEXT
 
     # Enable Strimzi Kafka OAuth
     listener.name.client.oauthbearer.sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required;
     listener.name.client.oauthbearer.sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
     listener.name.client.oauthbearer.sasl.server.callback.handler.class=io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
+
 
 Configure Strimzi Kafka OAuth through environment variables or system properties.
 You can convert environment variables to system properties by converting all letters to lowercase, and all underscores to dots.  
@@ -88,6 +108,10 @@ You can convert environment variables to system properties by converting all let
     # For production you should always use https url - see examples/docker/kafka-oauth-strimzi/compose-ssl.yml
     export OAUTH_TOKEN_ENDPOINT_URI=https://auth-server/token
 
+    # Specify valid Issuer URI
+    # Only access tokens issued by this issuer will be accepted
+    export OAUTH_VALID_ISSUER_URI=https://auth-server
+    
     # Specify configured client id of Kafka broker - same for all brokers.
     # You have to manually register this client with your authorization server
     # (you may use a different client id and secret accordingly).
@@ -103,10 +127,6 @@ Additionally, if you've obtained a long lived refresh token for Kafka brokers, y
 Alternatively, if you've created a long lived access token for Kafka brokers, you can just specify the access token:
 
     export OAUTH_ACCESS_TOKEN=<YOUR_ACCESS_TOKEN_FOR_KAFKA_BROKERS>
-
-    # Specify valid Issuer URI
-    # Only access tokens issued by this issuer will be accepted
-    export OAUTH_VALID_ISSUER_URI=https://auth-server
 
 If your authorization server issues JWT access tokens, and provides a JWKS certificates endpoint, you can configure fast local token validation:
 
@@ -149,7 +169,7 @@ You can also use OAuth2 for Broker to Broker authentication.
 
 In Kafka `server.properties` specify:
 
-    # Specify the interbroker listener - this is usually not the same as for external clients, but in this example configuration it is
+    # Specify the interbroker listener - this is usually not the same as for external clients, but in this example it is
     inter.broker.listener.name: CLIENTS
 
     # Specify OAUTHBEARER to be used as interbroker SASL protocol
