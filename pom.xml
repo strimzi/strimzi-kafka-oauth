@@ -266,7 +266,7 @@
                             <goal>jar</goal>
                         </goals>
                         <configuration>
-                            <sourcepath>${project.build.sourceDirectory}:${project.build.directory}/generated-sources/annotations</sourcepath>
+                            <source>8</source>
                             <show>public</show>
                             <failOnError>true</failOnError>
                             <failOnWarnings>true</failOnWarnings>
