@@ -1,0 +1,76 @@
+version: '3.5'
+
+services:
+
+  #################################### KAFKA BROKER ####################################
+  kafka:
+    image: strimzi/example-kafka
+    build: kafka-oauth-strimzi/kafka/target
+    container_name: kafka
+    ports:
+      - 9092:9092
+
+      # javaagent debug port
+      #- 5005:5005
+
+    environment:
+
+      # Java Debug
+      #KAFKA_DEBUG: y
+      #DEBUG_SUSPEND_FLAG: y
+      #JAVA_DEBUG_PORT: 5005
+
+      #
+      # KAFKA Configuration
+      #
+      LOG_DIR: /home/kafka/logs
+      #KAFKA_LOG_DIRS: /home/kafka/1
+
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: CLIENT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CLIENT:SASL_PLAINTEXT
+      KAFKA_SASL_ENABLED_MECHANISMS: OAUTHBEARER
+      KAFKA_INTER_BROKER_LISTENER_NAME: CLIENT
+      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: OAUTHBEARER
+
+      KAFKA_LISTENER_NAME_CLIENT_OAUTHBEARER_SASL_JAAS_CONFIG: "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required;"
+      KAFKA_LISTENER_NAME_CLIENT_OAUTHBEARER_SASL_LOGIN_CALLBACK_HANDLER_CLASS: io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
+      KAFKA_LISTENER_NAME_CLIENT_OAUTHBEARER_SASL_SERVER_CALLBACK_HANDLER_CLASS: io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
+
+      KAFKA_SUPER_USERS: User:service-account-kafka-broker
+
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+
+
+      #
+      # Strimzi OAuth Configuration
+      #
+
+      # Authentication config
+      OAUTH_CLIENT_ID: "kafka-broker"
+      OAUTH_CLIENT_SECRET: "kafka-broker-secret"
+      OAUTH_TOKEN_ENDPOINT_URI: "http://${KEYCLOAK_HOST:-keycloak}:8080/auth/realms/${REALM:-demo}/protocol/openid-connect/token"
+
+      # Validation config
+      OAUTH_VALID_ISSUER_URI: "http://${KEYCLOAK_HOST:-keycloak}:8080/auth/realms/${REALM:-demo}"
+      OAUTH_JWKS_ENDPOINT_URI: "http://${KEYCLOAK_HOST:-keycloak}:8080/auth/realms/${REALM:-demo}/protocol/openid-connect/certs"
+      #OAUTH_INTROSPECTION_ENDPOINT_URI: "http://${KEYCLOAK_HOST}:8080/auth/realms/${REALM:-demo}/protocol/openid-connect/token/introspect"
+
+
+      # username extraction from JWT token claim
+      OAUTH_USERNAME_CLAIM: preferred_username
+
+      # For start.sh script to know where the keycloak is listening
+      KEYCLOAK_HOST: ${KEYCLOAK_HOST:-keycloak}
+      REALM: ${REALM:-demo}
+
+  zookeeper:
+    image: strimzi/example-zookeeper
+    build: kafka-oauth-strimzi/zookeeper/target
+    container_name: zookeeper
+    ports:
+      - 2181:2181
+    environment:
+      LOG_DIR: /home/kafka/logs

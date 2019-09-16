@@ -1,0 +1,16 @@
+version: '3.5'
+
+services:
+
+  keycloak:
+    image: strimzi/example-keycloak
+    build: keycloak
+    container_name: keycloak
+    ports:
+      -  8080:8080
+      -  8443:8443
+    environment:
+      KEYCLOAK_USER: "admin"
+      KEYCLOAK_PASSWORD: "admin"
+      KEYCLOAK_HTTPS_PORT: 8443
+      PROXY_ADDRESS_FORWARDING: "true"

@@ -1,0 +1,11 @@
+version: '3.5'
+
+# This files serves as filesystem anchor
+# Including it as first .yml file makes all build paths relative to this directory ('docker')
+#
+# Examples:
+#
+#   docker-compose -f compose.yml -f keycloak/compose.yml -f keycloak-import/compose.yml up --build
+#
+# keycloak-import/compose.yml is a build project and specifies its build directory relative to 'docker' parent
+#
