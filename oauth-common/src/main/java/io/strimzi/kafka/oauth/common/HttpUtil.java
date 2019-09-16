@@ -62,7 +62,7 @@ public class HttpUtil {
     }
 
     @SuppressWarnings("checkstyle:NPathComplexity")
-    // Surpressed because of Spotbugs Java 11 bug
+    // Surpressed because of Spotbugs Java 11 bug - https://github.com/spotbugs/spotbugs/issues/756
     @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
     public static <T> T postOrGet(URI uri, SSLSocketFactory socketFactory, HostnameVerifier hostnameVerifier, String authorization, String contentType, String body, Class<T> responseType) throws IOException {
         HttpURLConnection con;
