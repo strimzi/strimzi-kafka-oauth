@@ -9,9 +9,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 public class IOUtil {
-
     public static void copy(InputStream input, OutputStream output) throws IOException {
-        byte [] buf = new byte[4096];
+        byte[] buf = new byte[4096];
 
         int rc;
         try {
@@ -21,7 +20,7 @@ public class IOUtil {
         } finally {
             try {
                 input.close();
-            } catch (Exception e) {}
+            } catch (Exception e) { }
         }
     }
 }

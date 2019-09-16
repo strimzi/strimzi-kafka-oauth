@@ -1,3 +1,7 @@
+/*
+ * Copyright 2017-2019, Strimzi authors.
+ * License: Apache License 2.0 (see the file LICENSE or http://apache.org/licenses/LICENSE-2.0.html).
+ */
 package io.strimzi.kafka.oauth.common;
 
 public class LogUtil {
@@ -11,8 +15,9 @@ public class LogUtil {
      *
      * The idea is to give some information for debugging while not leaking too much information about secrets.
      *
-     * @param input
-     * @return
+     * @param input     String with sensitive date which should be masked
+     *
+     * @return  The new masked string
      */
     public static String mask(String input) {
         if (input == null) {
@@ -28,6 +33,6 @@ public class LogUtil {
             return "" + input.charAt(0) + "*********";
         }
 
-        return input.substring(0, 4) + "**" + input.substring(len-4, len);
+        return input.substring(0, 4) + "**" + input.substring(len - 4, len);
     }
 }

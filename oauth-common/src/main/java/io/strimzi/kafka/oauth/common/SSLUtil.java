@@ -52,7 +52,7 @@ public class SSLUtil {
         SSLContext sslContext;
         try {
             sslContext = SSLContext.getInstance("TLS");
-            sslContext.init(null, new TrustManager[] { tm }, random);
+            sslContext.init(null, new TrustManager[] {tm}, random);
         } catch (Exception e) {
             throw new RuntimeException("Failed to initialise ssl context", e);
         }

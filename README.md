@@ -64,9 +64,9 @@ Installing
 
 Copy the following jars into your Kafka libs directory:
 
-    oauth-common/target/strimzi-kafka-oauth-common-*.jar
-    oauth-server/target/strimzi-kafka-oauth-server-*.jar
-    oauth-client/target/strimzi-kafka-oauth-client-*.jar
+    oauth-common/target/kafka-oauth-common-*.jar
+    oauth-server/target/kafka-oauth-server-*.jar
+    oauth-client/target/kafka-oauth-client-*.jar
     oauth-client/target/lib/keycloak-common-*.jar
     oauth-client/target/lib/keycloak-core-*.jar
     oauth-client/target/lib/bcprov-*.jar

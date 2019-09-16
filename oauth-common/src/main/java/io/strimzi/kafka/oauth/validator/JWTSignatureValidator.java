@@ -133,6 +133,7 @@ public class JWTSignatureValidator implements TokenValidator {
         }
     }
 
+    @SuppressWarnings("deprecation")
     public TokenInfo validate(String token) {
         TokenVerifier<AccessToken> tokenVerifier = TokenVerifier.create(token, AccessToken.class);
 
