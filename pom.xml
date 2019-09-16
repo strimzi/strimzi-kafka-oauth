@@ -17,7 +17,7 @@
 
         <kafka.version>2.3.0</kafka.version>
         <scala.lib.version>2.12.8</scala.lib.version>
-        <jackson.version>2.9.9.1</jackson.version>
+        <jackson.version>2.9.9.3</jackson.version>
         <junit.version>4.12</junit.version>
         <slf4j.version>1.7.26</slf4j.version>
         <keycloak.version>7.0.0</keycloak.version>
