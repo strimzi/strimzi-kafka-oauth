@@ -4,6 +4,7 @@
  */
 package io.strimzi.kafka.oauth.validator;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.strimzi.kafka.oauth.common.HttpUtil;
 import io.strimzi.kafka.oauth.common.TimeUtil;
 import io.strimzi.kafka.oauth.common.TokenInfo;
@@ -78,7 +79,6 @@ public class JWTSignatureValidator implements TokenValidator {
         }
         this.hostnameVerifier = verifier;
 
-
         if (validIssuerUri == null) {
             throw new IllegalArgumentException("validIssuerUri == null");
         }
@@ -95,13 +95,7 @@ public class JWTSignatureValidator implements TokenValidator {
         fetchKeys();
 
         // set up periodic timer to update keys from server every refreshSeconds;
-        scheduler = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
-            public Thread newThread(Runnable r) {
-                Thread t = Executors.defaultThreadFactory().newThread(r);
-                t.setDaemon(true);
-                return t;
-            }
-        });
+        scheduler = Executors.newSingleThreadScheduledExecutor(new DaemonThreadFactory());
 
         scheduler.scheduleAtFixedRate(() -> fetchKeys(), refreshSeconds, refreshSeconds, TimeUnit.SECONDS);
     }
@@ -111,7 +105,7 @@ public class JWTSignatureValidator implements TokenValidator {
     }
 
     private PublicKey getKeyUnlessStale(String id) {
-        if (lastFetchTime + maxStaleSeconds * 1000 > System.currentTimeMillis()) {
+        if (lastFetchTime + maxStaleSeconds * 1000L > System.currentTimeMillis()) {
             PublicKey result = cache.get(id);
             if (result == null) {
                 log.warn("No public key for id: " + id);
@@ -134,6 +128,8 @@ public class JWTSignatureValidator implements TokenValidator {
     }
 
     @SuppressWarnings("deprecation")
+    @SuppressFBWarnings(value = "BC_UNCONFIRMED_CAST_OF_RETURN_VALUE",
+            justification = "We tell TokenVerifier to parse AccessToken. It will return AccessToken or fail.")
     public TokenInfo validate(String token) {
         TokenVerifier<AccessToken> tokenVerifier = TokenVerifier.create(token, AccessToken.class);
 
@@ -177,5 +173,18 @@ public class JWTSignatureValidator implements TokenValidator {
         }
 
         return new TokenInfo(t, token);
+    }
+
+
+    /**
+     * Use daemon thread for refresh job
+     */
+    static class DaemonThreadFactory implements ThreadFactory {
+
+        public Thread newThread(Runnable r) {
+            Thread t = Executors.defaultThreadFactory().newThread(r);
+            t.setDaemon(true);
+            return t;
+        }
     }
 }

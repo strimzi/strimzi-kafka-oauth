@@ -100,7 +100,7 @@ public class OAuthAuthenticator {
             log.debug("[IGNORED] Could not parse token as JWT access token. Could not extract subject.", e);
         }
 
-        return new TokenInfo(token.asText(), scope.asText(), "undefined", now, now + expiresIn.asInt() * 1000);
+        return new TokenInfo(token.asText(), scope.asText(), "undefined", now, now + expiresIn.asLong() * 1000L);
     }
 
     public static String base64encode(String value) {

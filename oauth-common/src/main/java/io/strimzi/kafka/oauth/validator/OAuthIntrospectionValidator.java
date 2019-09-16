@@ -133,7 +133,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
             }
 
             if (subject == null) {
-                throw new TokenValidationException("Token check failed - invalid subject: " + subject)
+                throw new TokenValidationException("Token check failed - invalid subject: null")
                         .status(Status.INVALID_TOKEN);
             }
 
