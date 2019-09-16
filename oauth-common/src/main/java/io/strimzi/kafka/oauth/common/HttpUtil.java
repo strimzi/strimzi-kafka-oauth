@@ -4,6 +4,7 @@
  */
 package io.strimzi.kafka.oauth.common;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,6 +62,8 @@ public class HttpUtil {
     }
 
     @SuppressWarnings("checkstyle:NPathComplexity")
+    // Surpressed because of Spotbugs Java 11 bug
+    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
     public static <T> T postOrGet(URI uri, SSLSocketFactory socketFactory, HostnameVerifier hostnameVerifier, String authorization, String contentType, String body, Class<T> responseType) throws IOException {
         HttpURLConnection con;
         try {
