@@ -15,9 +15,9 @@
         </license>
     </licenses>
 
-    <name>Strimzi - Apache Kafka on Kubernetes and OpenShift</name>
+    <name>Strimzi - Apache Kafka on Kubernetes</name>
     <description>Strimzi uses the Kubernetes operator pattern to provide a way to run an Apache Kafka cluster on
-        Kubernetes or OpenShift in various deployment configurations. The OAuth subproject implements the callbacks for
+        Kubernetes in various deployment configurations. The OAuth subproject implements the callbacks for
         Kafka authentication using OAuth (based on SASL OAUTHBEARER mechanism).</description>
     <url>https://strimzi.io/</url>
 
