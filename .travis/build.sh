@@ -22,7 +22,6 @@ else
   mvn -e -V -B -Dmaven.javadoc.skip=true install
 fi
 
-
 mvn spotbugs:check
 
 # Push only releases
