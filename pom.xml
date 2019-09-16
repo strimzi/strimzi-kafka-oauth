@@ -260,7 +260,7 @@
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>${maven.javadoc.version}</version>
                 <configuration>
-                    <source>1.8</source>
+                    <source>8</source>
                 </configuration>
                 <executions>
                     <execution>
@@ -269,7 +269,7 @@
                             <goal>jar</goal>
                         </goals>
                         <configuration>
-                            <source>1.8</source>
+                            <source>8</source>
                             <show>public</show>
                             <failOnError>true</failOnError>
                             <failOnWarnings>true</failOnWarnings>
