@@ -34,7 +34,7 @@ public class TokenInfo {
         this.issuedAt = issuedAtMs;
         this.expiresAt = expiresAtMs;
 
-        String [] parsedScopes = scope != null ? scope.split(" ") : new String[0];
+        String[] parsedScopes = scope != null ? scope.split(" ") : new String[0];
         for (String s: parsedScopes) {
             scopes.add(s);
         }

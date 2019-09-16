@@ -1,4 +1,27 @@
-.idea
+# Maven build targets
+**/target/*
+
+# Maven release files
+*.releaseBackup
+release.properties
+
+# Eclipse specific
+**/.project
+**/.settings/*
+**/.prefs
+**/.classpath
+/target/
+
+# IntelliJ IDEA specific
+.idea/
 *.iml
-*.jar
-target/
+
+# VS Code
+.factorypath
+.vscode
+
+# Velocity.log
+velocity.log
+
+# MacOS Desktop Services Store files
+**/.DS_Store

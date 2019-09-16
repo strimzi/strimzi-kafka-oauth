@@ -4,12 +4,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>io.strimzi.oauth</groupId>
-        <artifactId>strimzi-kafka-oauth-parent</artifactId>
+        <groupId>io.strimzi</groupId>
+        <artifactId>oauth</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>strimzi-kafka-oauth-common</artifactId>
+    <artifactId>kafka-oauth-common</artifactId>
 
     <dependencies>
         <dependency>

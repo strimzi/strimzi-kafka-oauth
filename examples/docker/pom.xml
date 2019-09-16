@@ -28,18 +28,18 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>io.strimzi.oauth</groupId>
-                <artifactId>strimzi-kafka-oauth-common</artifactId>
+                <groupId>io.strimzi</groupId>
+                <artifactId>kafka-oauth-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.strimzi.oauth</groupId>
-                <artifactId>strimzi-kafka-oauth-client</artifactId>
+                <groupId>io.strimzi</groupId>
+                <artifactId>kafka-oauth-client</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.strimzi.oauth</groupId>
-                <artifactId>strimzi-kafka-oauth-server</artifactId>
+                <groupId>io.strimzi</groupId>
+                <artifactId>kafka-oauth-server</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

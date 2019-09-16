@@ -60,6 +60,7 @@ public class HttpUtil {
         return postOrGet(uri, socketFactory, verifier, authorization, contentType, body, responseType);
     }
 
+    @SuppressWarnings("checkstyle:NPathComplexity")
     public static <T> T postOrGet(URI uri, SSLSocketFactory socketFactory, HostnameVerifier hostnameVerifier, String authorization, String contentType, String body, Class<T> responseType) throws IOException {
         HttpURLConnection con;
         try {

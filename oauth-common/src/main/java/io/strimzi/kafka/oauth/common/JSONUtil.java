@@ -13,10 +13,10 @@ import java.io.InputStream;
 
 public class JSONUtil {
 
-    public static final ObjectMapper mapper = new ObjectMapper();
+    public static final ObjectMapper MAPPER = new ObjectMapper();
 
     public static <T> T readJSON(InputStream is, Class<T> clazz) throws IOException {
-        return mapper.readValue(is, clazz);
+        return MAPPER.readValue(is, clazz);
     }
 
     public static String getClaimFromJWT(String claim, Object token) {

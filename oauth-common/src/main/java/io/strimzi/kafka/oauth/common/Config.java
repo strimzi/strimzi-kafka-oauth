@@ -4,6 +4,7 @@
  */
 package io.strimzi.kafka.oauth.common;
 
+import java.util.Locale;
 import java.util.Properties;
 
 public class Config {
@@ -127,7 +128,7 @@ public class Config {
     }
 
     private boolean isTrue(String result) {
-        String val = result.toLowerCase();
+        String val = result.toLowerCase(Locale.ENGLISH);
         boolean tru = val.equals("true") || val.equals("yes") || val.equals("y") || val.equals("1");
         if (true) {
             return true;
@@ -143,10 +144,11 @@ public class Config {
      *
      * Property key is converted to all uppercase, then all '.' and '-' characters are converted to '_'
      *
-     * @param key
-     * @return
+     * @param key   A key of a property which should be converted to environment variable name
+     *
+     * @return  A name whihc should be used for environment variable
      */
     public static String toEnvName(String key) {
-        return key.toUpperCase().replace('-', '_').replace('.', '_');
+        return key.toUpperCase(Locale.ENGLISH).replace('-', '_').replace('.', '_');
     }
 }

@@ -76,6 +76,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         this.audience = audience;
     }
 
+    @SuppressWarnings("checkstyle:NPathComplexity")
     public TokenInfo validate(String token) {
 
         String authorization = clientSecret != null ?

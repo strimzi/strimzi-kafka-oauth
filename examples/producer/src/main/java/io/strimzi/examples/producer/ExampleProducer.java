@@ -28,14 +28,14 @@ public class ExampleProducer {
         //  Set KEYCLOAK_HOST to connect to Keycloak host other than 'keycloak'
         //  Use 'keycloak.host' system property or KEYCLOAK_HOST env variable
 
-        final String KEYCLOAK_HOST = external.getValue("keycloak.host", "keycloak");
-        final String REALM = external.getValue("realm", "demo");
-        final String TOKEN_ENDPOINT_URI = "http://" + KEYCLOAK_HOST+ ":8080/auth/realms/" + REALM + "/protocol/openid-connect/token";
+        final String keycloakHost = external.getValue("keycloak.host", "keycloak");
+        final String realm = external.getValue("realm", "demo");
+        final String tokenEndpointUri = "http://" + keycloakHost + ":8080/auth/realms/" + realm + "/protocol/openid-connect/token";
 
         //  You can also configure token endpoint uri directly via 'oauth.token.endpoint.uri' system property,
         //  or OAUTH_TOKEN_ENDPOINT_URI env variable
 
-        defaults.setProperty(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, TOKEN_ENDPOINT_URI);
+        defaults.setProperty(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, tokenEndpointUri);
 
         //  By defaut this client uses preconfigured clientId and secret to authenticate.
         //  You can set OAUTH_ACCESS_TOKEN or OAUTH_REFRESH_TOKEN to override default authentication.
@@ -45,9 +45,9 @@ public class ExampleProducer {
         //
         //  See examples README.md for more info.
 
-        final String ACCESS_TOKEN = external.getValue(ClientConfig.OAUTH_ACCESS_TOKEN, null);
+        final String accessToken = external.getValue(ClientConfig.OAUTH_ACCESS_TOKEN, null);
 
-        if (ACCESS_TOKEN == null) {
+        if (accessToken == null) {
             defaults.setProperty(Config.OAUTH_CLIENT_ID, "kafka-producer-client");
             defaults.setProperty(Config.OAUTH_CLIENT_SECRET, "kafka-producer-client-secret");
         }
