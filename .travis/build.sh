@@ -16,7 +16,13 @@ export PULL_REQUEST=${PULL_REQUEST:-true}
 export BRANCH=${BRANCH:-master}
 export TAG=${TAG:-latest}
 
-mvn -e -V -B install
+if [ ${JAVA_MAJOR_VERSION} -eq 1 ] ; then
+  mvn -e -V -B install
+else
+  mvn -e -V -B -Dmaven.javadoc.skip=true install
+fi
+
+
 mvn spotbugs:check
 
 # Push only releases
