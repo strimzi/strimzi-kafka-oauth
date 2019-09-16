@@ -36,22 +36,14 @@ OAuth2 for Authorization
 ------------------------
 
 Authentication is the procedure of establishing if the user is who they claim they are.
-Authorization is the procedure of deciding if the user is 
-allowed to perform some action using some resource.
+Authorization is the procedure of deciding if the user is allowed to perform some action using some resource.
 Kafka brokers by default allow all users full access - there is no specific authorization policy in place.
 Kafka comes with an implementation of ACL based authorization mechanism where access rules are saved in ZooKeeper and replicated across brokers. 
 
 Authorization in Kafka is implemented completely separately and independently of authentication.
 Thus, it is possible to configure Kafka brokers to use OAuth2 based authentication, and at the same time the default ACL authorization. 
 
-Since OAuth2 access tokens can contain arbitrary claims - including sets of roles or permissions, rather than basing authorization decisions purely  on user's identity, it could be based on externally assigned roles.
-All we need is to define a mapping between access token claims and actions performed on resources.
-For example, a 'kafka-topic:clicks_*:consumer' claim can be interpreted to mean that the user can read from any topic of which name starts with 'clicks_'.
-
-Another possibility is to delegate authorization decisions to external authorization service - this can be a service provided by the same OAuth2 authorization server used for authentication or it can be a different one, sharing the users database. 
-See https://docs.kantarainitiative.org/uma/wg/oauth-uma-grant-2.0-09.html for OAuth2 based standard for standardised UMA authorization services.
-
-At this time Strimzi Kafka OAuth doesn't provide authorization.
+At this time Strimzi Kafka OAuth doesn't provide authorization that would integrate with JWT token claims or UMA authorization services.
 
 
 Kafka OAuth2 Support
