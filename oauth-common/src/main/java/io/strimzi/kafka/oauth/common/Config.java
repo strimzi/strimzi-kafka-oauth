@@ -106,7 +106,7 @@ public class Config {
      */
     public int getValueAsInt(String key, int fallback) {
         String result = getValue(key);
-        return result != null ? Integer.valueOf(result) : fallback;
+        return result != null ? Integer.parseInt(result) : fallback;
     }
 
     /**

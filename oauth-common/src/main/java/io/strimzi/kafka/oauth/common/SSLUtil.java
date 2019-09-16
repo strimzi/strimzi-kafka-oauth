@@ -4,6 +4,8 @@
  */
 package io.strimzi.kafka.oauth.common;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
@@ -16,6 +18,8 @@ import java.security.SecureRandom;
 
 public class SSLUtil {
 
+    @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION",
+            justification = "Avoid enumerating all checked exceptions in try-with-resources")
     public static SSLSocketFactory createSSLFactory(String truststore, String password, String type, String rnd) {
 
         if (truststore == null) {
