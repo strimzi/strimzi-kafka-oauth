@@ -30,6 +30,8 @@ if [ "$PULL_REQUEST" != "false" ] ; then
     echo "Building Pull Request - nothing to push"
 elif [ "$TAG" = "latest" ] && [ "$BRANCH" != "master" ]; then
     echo "Not in master branch and not in release tag - nothing to push"
+    echo "Pushing JARs"
+    ./.travis/push-to-nexus.sh
 else
     if [ "${MAIN_BUILD}" = "TRUE" ] ; then
         echo "Pushing JARs"
