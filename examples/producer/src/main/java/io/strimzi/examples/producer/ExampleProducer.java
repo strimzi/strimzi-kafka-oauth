@@ -53,7 +53,9 @@ public class ExampleProducer {
         }
 
         // Use 'preferred_username' rather than 'sub' for principal name
-        defaults.setProperty(Config.OAUTH_USERNAME_CLAIM, "preferred_username");
+        if (!external.getValueAsBoolean(Config.OAUTH_TOKENS_NOT_JWT, false)) {
+            defaults.setProperty(Config.OAUTH_USERNAME_CLAIM, "preferred_username");
+        }
 
         // Resolve external configurations falling back to provided defaults
         ConfigProperties.resolveAndExportToSystemProperties(defaults);

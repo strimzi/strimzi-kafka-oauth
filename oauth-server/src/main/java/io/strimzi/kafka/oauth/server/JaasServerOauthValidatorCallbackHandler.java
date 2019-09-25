@@ -49,6 +49,8 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
     private String usernameClaim;
 
+    private boolean notJWT;
+
     @Override
     public void configure(Map<String, ?> configs, String saslMechanism, List<AppConfigurationEntry> jaasConfigEntries) {
 
@@ -67,10 +69,13 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
             break;
         }
 
+        notJWT = config.getValueAsBoolean(Config.OAUTH_TOKENS_NOT_JWT, false);
+
         validateConfig();
 
         SSLSocketFactory socketFactory = ConfigUtil.createSSLFactory(config);
         HostnameVerifier verifier = ConfigUtil.createHostnameVerifier(config);
+
 
         String jwksUri = config.getValue(ServerConfig.OAUTH_JWKS_ENDPOINT_URI);
 
@@ -83,6 +88,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                     config.getValueAsInt(ServerConfig.OAUTH_JWKS_REFRESH_SECONDS, 300),
                     config.getValueAsInt(ServerConfig.OAUTH_JWKS_EXPIRY_SECONDS, 360),
                     true,
+                    config.getValueAsBoolean(ServerConfig.OAUTH_VALIDATION_SKIP_TYPE_CHECK, false),
                     null
             );
         } else {
@@ -108,15 +114,15 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         String jwksUri = config.getValue(ServerConfig.OAUTH_JWKS_ENDPOINT_URI);
         String introspectUri = config.getValue(ServerConfig.OAUTH_INTROSPECTION_ENDPOINT_URI);
 
-        // if both set or none set
         if ((jwksUri == null) && (introspectUri == null)) {
             throw new RuntimeException("OAuth validator configuration error: either OAUTH_JWKS_ENDPOINT_URI (for fast local signature validation) or OAUTH_INTROSPECTION_ENDPOINT_URI (for using authorization server during validation) should be specified!");
         } else if ((jwksUri != null) && (introspectUri != null)) {
             throw new RuntimeException("OAuth validator configuration error: only one of OAUTH_JWKS_ENDPOINT_URI (for fast local signature validation) and OAUTH_INTROSPECTION_ENDPOINT_URI (for using authorization server during validation) can be specified!");
         }
 
-        // check - if truststore set - that uri starts with https://
-
+        if (jwksUri != null && notJWT) {
+            throw new RuntimeException("OAuth validator configuration error - OAUTH_JWKS_ENDPOINT_URI (for fast local signature validation) is not compatible with OAUTH_TOKENS_NOT_JWT");
+        }
     }
 
     @Override
@@ -135,7 +141,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         }
     }
 
-    private void handleCallback(OAuthBearerValidatorCallback callback) throws IOException {
+    private void handleCallback(OAuthBearerValidatorCallback callback) {
         if (callback.tokenValue() == null) {
             throw new IllegalArgumentException("Callback has null token value!");
         }
@@ -187,20 +193,39 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                 log.debug("Validation failed for token: " + mask(token), e);
             }
             callback.error(e.status(), null, null);
+
         } catch (RuntimeException e) {
-            throw new AuthenticationException("Validation failed due to runtime exception:", e);
+            // Kafka ignores cause inside thrown exception, and doesn't log it
+            if (log.isDebugEnabled()) {
+                log.debug("Validation failed due to runtime exception (network issue or misconfiguration): ", e);
+            }
+            // Extract cause and include it in a message string in order for it to be in the server log
+            throw new AuthenticationException("Validation failed due to runtime exception: " + getCauseMessage(e), e);
+
         } catch (Exception e) {
+            // Log cause, because Kafka doesn't
+            log.error("Unexpected failure during signature check:", e);
+
             throw new RuntimeException("Unexpected failure during signature check:", e);
         }
+    }
+
+    private static String getCauseMessage(Throwable e) {
+        StringBuilder sb = new StringBuilder(e.toString());
+
+        Throwable t = e;
+        while ((t = t.getCause()) != null) {
+            sb.append(", caused by: ").append(t.toString());
+        }
+        return sb.toString();
     }
 
     private TokenInfo validateToken(String token) {
         return validator.validate(token);
     }
 
-
     private void debugLogToken(String token) {
-        if (!log.isDebugEnabled()) {
+        if (!log.isDebugEnabled() || notJWT) {
             return;
         }
 
@@ -209,7 +234,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
             parser = new JWSInput(token);
             log.debug("Token: {}", parser.readContentAsString());
         } catch (JWSInputException e) {
-            log.debug("Token doesn't seem to be JWT token: " + token, e);
+            log.debug("[IGNORED] Token doesn't seem to be JWT token: " + mask(token), e);
             return;
         }
 

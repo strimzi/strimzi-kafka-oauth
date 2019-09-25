@@ -1,0 +1,11 @@
+version: '3.5'
+
+services:
+
+  hydra-db:
+    image: postgres:9.6
+    container_name: hydra-db
+    environment:
+      POSTGRES_USER: hydra
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: hydra

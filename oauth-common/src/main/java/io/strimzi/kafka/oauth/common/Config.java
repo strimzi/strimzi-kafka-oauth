@@ -17,6 +17,7 @@ public class Config {
     public static final String OAUTH_SSL_TRUSTSTORE_TYPE = "oauth.ssl.truststore.type";
     public static final String OAUTH_SSL_SECURE_RANDOM_IMPLEMENTATION = "oauth.ssl.secure.random.implementation";
     public static final String OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM = "oauth.ssl.endpoint.identification.algorithm";
+    public static final String OAUTH_TOKENS_NOT_JWT = "oauth.tokens.not.jwt";
 
     private Properties defaults;
 

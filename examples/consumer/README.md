@@ -6,21 +6,25 @@ This projects demonstrates a Kafka client that uses OAuth2 to establish Kafka se
 
 Building
 --------
+
     mvn clean install
 
 
 Preparing
 ---------
 
-Determine your machine's local network IP address, and add keycloak entry to your `/etc/host`.
+Make sure that the following ports on your host machine are free: 9092, 2128 (Kafka), 8080, 8443 (Keycloak), 4444, 4445 (Hydra).
 
-You can use `ifconfig` utility. On macOS for example you can run:
+Then, you have to add some entries to your `/etc/hosts` file:
 
-    ifconfig en0 | grep 'inet ' | awk '{print $2}'
+    127.0.0.1            keycloak
+    127.0.0.1            hydra
+    127.0.0.1            kafka
 
-Then, add keycloak entry to your `/etc/hosts` file 
+That's needed for host resolution, because Kafka brokers and Kafka clients connecting to Keycloak / Hydra have to use the 
+same hostname to ensure compatibility of generated access tokens.
 
-    <YOUR_IP_ADDRESS>    keycloak
+Also, when Kafka client connects to Kafka broker running inside docker image, the broker will redirect the client to: kafka:9292.
 
 
 Running without SSL
@@ -28,7 +32,7 @@ Running without SSL
 
 You can use an IDE to run example clients, or you can run from shell:
 
-    java -cp consumer/target/*:consumer/target/lib/* io.strimzi.examples.consumer.ExampleConsumer
+    java -cp target/*:target/lib/* io.strimzi.examples.consumer.ExampleConsumer
 
 
 Running with SSL
@@ -36,19 +40,30 @@ Running with SSL
 
 You need to set additional env variables in order to configure truststore, and turn off certificate hostname validation:
 
-    OAUTH_SSL_TRUSTSTORE_LOCATION=../docker/keycloak-import/config/keycloak.client.truststore.p12
-    OAUTH_SSL_TRUSTSTORE_PASSWORD=changeit
-    OAUTH_SSL_TRUSTSTORE_TYPE=pkcs12
-    OAUTH_TOKEN_ENDPOINT_URI=https://keycloak:8443/auth/realms/demo/protocol/openid-connect/token
+    export OAUTH_SSL_TRUSTSTORE_LOCATION=../docker/certificates/ca-truststore.p12
+    export OAUTH_SSL_TRUSTSTORE_PASSWORD=changeit
+    export OAUTH_SSL_TRUSTSTORE_TYPE=pkcs12
 
-    # If connecting to keycloak using a host different than 'keycloak', you can uncomment the following line 
-    # to skip hostname verification
-    #OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM=
+To use Keycloak as authorization server set url of Keycloak's demo realm token endpoint:
+
+    export OAUTH_TOKEN_ENDPOINT_URI=https://keycloak:8443/auth/realms/demo/protocol/openid-connect/token
+
+To use Hydra as authorization server set url of Hydra's token endpoint:
+
+    export OAUTH_TOKEN_ENDPOINT_URI=https://hydra:4444/oauth2/token
+
+If using Hydra with opaque tokens, also set:
+
+    export OAUTH_TOKENS_NOT_JWT=true
+
+If using Hydra with JWT tokens, then set:
+
+    export OAUTH_USERNAME_CLAIM=sub
 
 You can now use an IDE to run example clients, or you can run from shell:
 
-    java -cp consumer/target/*:consumer/target/lib/* io.strimzi.examples.consumer.ExampleConsumer
+    java -cp target/*:target/lib/* io.strimzi.examples.consumer.ExampleConsumer
     
-By default, producer authenticates with client credentials using client id, and client secret.
+By default, consumer authenticates with client credentials using client id, and client secret.
 
 See [examples README](../README.md) for other authentication options.

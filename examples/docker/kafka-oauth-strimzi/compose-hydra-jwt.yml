@@ -7,6 +7,10 @@ services:
     image: strimzi/example-kafka
     build: kafka-oauth-strimzi/kafka/target
     container_name: kafka
+    command:
+      - /bin/bash
+      - /opt/kafka/start_with_hydra.sh
+
     ports:
       - 9092:9092
 
@@ -24,7 +28,6 @@ services:
       # KAFKA Configuration
       #
       LOG_DIR: /home/kafka/logs
-      #KAFKA_LOG_DIRS: /home/kafka/1
 
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
@@ -38,10 +41,9 @@ services:
       KAFKA_LISTENER_NAME_CLIENT_OAUTHBEARER_SASL_LOGIN_CALLBACK_HANDLER_CLASS: io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
       KAFKA_LISTENER_NAME_CLIENT_OAUTHBEARER_SASL_SERVER_CALLBACK_HANDLER_CLASS: io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
 
-      KAFKA_SUPER_USERS: User:service-account-kafka-broker
+      KAFKA_SUPER_USERS: User:kafka-broker
 
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-
 
 
       #
@@ -51,16 +53,14 @@ services:
       # Authentication config
       OAUTH_CLIENT_ID: "kafka-broker"
       OAUTH_CLIENT_SECRET: "kafka-broker-secret"
-      OAUTH_TOKEN_ENDPOINT_URI: "https://${KEYCLOAK_HOST:-keycloak}:8443/auth/realms/${REALM:-demo}/protocol/openid-connect/token"
+      OAUTH_TOKEN_ENDPOINT_URI: "https://${HYDRA_HOST:-hydra}:4444/oauth2/token"
 
       # Validation config
-      OAUTH_JWKS_ENDPOINT_URI: "https://${KEYCLOAK_HOST:-keycloak}:8443/auth/realms/${REALM:-demo}/protocol/openid-connect/certs"
-      OAUTH_VALID_ISSUER_URI: "https://${KEYCLOAK_HOST:-keycloak}:8443/auth/realms/${REALM:-demo}"
-      #OAUTH_INTROSPECTION_ENDPOINT_URI: "https://${KEYCLOAK_HOST:-keycloak}:8443/auth/realms/${REALM:-demo}/protocol/openid-connect/token/introspect"
+      OAUTH_VALID_ISSUER_URI: "https://${HYDRA_HOST:-hydra}:4444/"
+      OAUTH_JWKS_ENDPOINT_URI: "https://${HYDRA_HOST:-hydra}:4444/.well-known/jwks.json"
 
-
-      # username extraction from JWT token claim
-      OAUTH_USERNAME_CLAIM: preferred_username
+      # Hydra JWT tokens don't contain token type claim, therefore type check has to be skipped
+      OAUTH_VALIDATION_SKIP_TYPE_CHECK: "true"
 
       # Truststore config for connecting to secured authorization server
       OAUTH_SSL_TRUSTSTORE_LOCATION: /opt/kafka/config/ca-truststore.p12
@@ -68,12 +68,10 @@ services:
       OAUTH_SSL_TRUSTSTORE_TYPE: pkcs12
 
       # Turn off certificate host name check
-      OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: ""
+      #OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: ""
 
-      # For start.sh script to know where the keycloak is listening
-      KEYCLOAK_HOST: ${KEYCLOAK_HOST:-keycloak}
-      REALM: ${REALM:-demo}
-      KEYCLOAK_URI: "https://${KEYCLOAK_HOST:-keycloak}:8443/auth"
+      # For start_with_hydra.sh script to know where hydra is listening
+      HYDRA_HOST: ${HYDRA_HOST:-hydra}
 
   zookeeper:
     image: strimzi/example-zookeeper

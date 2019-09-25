@@ -45,6 +45,8 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
     private String clientSecret;
     private URI tokenEndpoint;
     private String usernameClaim;
+    private boolean isJWT;
+    private int maxTokenExpirySeconds;
 
     private SSLSocketFactory socketFactory;
     private HostnameVerifier hostnameVerifier;
@@ -66,7 +68,7 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
             String endpoint = config.getValue(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI);
 
             if (endpoint == null) {
-                throw new RuntimeException("Access Token not specified ('oauth.access.token'). OAuth2 Token Endpoint ('oauth.token.endpoint.uri') should then be set.");
+                throw new RuntimeException("Access Token not specified (OAUTH_ACCESS_TOKEN). OAuth2 Token Endpoint (OAUTH_TOKEN_ENDPOINT_URI) should then be set.");
             }
 
             try {
@@ -81,7 +83,7 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
             clientSecret = config.getValue(Config.OAUTH_CLIENT_SECRET);
 
             if (clientId == null) {
-                throw new RuntimeException("No client id specified ('oauth.client.id')");
+                throw new RuntimeException("No client id specified (OAUTH_CLIENT_ID)");
             }
 
             if (refreshToken == null && clientSecret == null) {
@@ -97,12 +99,24 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
             usernameClaim = null;
         }
 
+        isJWT = !config.getValueAsBoolean(Config.OAUTH_TOKENS_NOT_JWT, false);
+        if (!isJWT && usernameClaim != null) {
+            throw new RuntimeException("Custom username claim (OAUTH_USERNAME_CLAIM) not available, when tokens are configured as opaque (OAUTH_TOKENS_NOT_JWT)");
+        }
+
+        maxTokenExpirySeconds = config.getValueAsInt(ClientConfig.OAUTH_MAX_TOKEN_EXPIRY_SECONDS, -1);
+        if (maxTokenExpirySeconds > 0 && maxTokenExpirySeconds < 60) {
+            throw new RuntimeException("Invalid value configured for OAUTH_MAX_TOKEN_EXPIRY_SECONDS: " + maxTokenExpirySeconds + " (should be at least 60)");
+        }
+
         if (log.isDebugEnabled()) {
             log.debug("Configured JaasClientOauthLoginCallbackHandler:\n    token: " + mask(token)
                     + "\n    refreshToken: " + mask(refreshToken)
                     + "\n    tokenEndpointUri: " + tokenEndpoint
                     + "\n    clientId: " + clientId
                     + "\n    clientSecret: " + mask(clientSecret)
+                    + "\n    notJWT: " + !isJWT
+                    + "\n    maxTokenExpirySeconds: " + maxTokenExpirySeconds
                     + "\n    usernameClaim: " + usernameClaim);
         }
     }
@@ -132,11 +146,11 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
 
         if (token != null) {
             // we could check if it's a JWT - in that case we could check if it's expired
-            result = loginWithAccessToken(token);
+            result = loginWithAccessToken(token, isJWT);
         } else if (refreshToken != null) {
-            result = loginWithRefreshToken(tokenEndpoint, socketFactory, hostnameVerifier, refreshToken, clientId, clientSecret);
+            result = loginWithRefreshToken(tokenEndpoint, socketFactory, hostnameVerifier, refreshToken, clientId, clientSecret, isJWT);
         } else if (clientSecret != null) {
-            result = loginWithClientSecret(tokenEndpoint, socketFactory, hostnameVerifier, clientId, clientSecret);
+            result = loginWithClientSecret(tokenEndpoint, socketFactory, hostnameVerifier, clientId, clientSecret, isJWT);
         } else {
             throw new IllegalStateException("Invalid oauth client configuration - no credentials");
         }
@@ -156,6 +170,10 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
 
             @Override
             public long lifetimeMs() {
+                long maxExpiresAt = finalResult.issuedAtMs() + maxTokenExpirySeconds * 1000L;
+                if (maxTokenExpirySeconds > 0 && finalResult.expiresAtMs() > maxExpiresAt) {
+                    return maxExpiresAt;
+                }
                 return finalResult.expiresAtMs();
             }
 

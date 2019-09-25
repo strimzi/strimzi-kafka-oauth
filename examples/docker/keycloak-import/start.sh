@@ -27,6 +27,7 @@ wait_for_url $URI "Waiting for Keycloak to start"
 
 PATH=$PATH:/opt/jboss/keycloak/bin
 
+cd /opt/jboss
 FILES=realms/*.json
 
 if [ "" != "$TRUSTSTORE" ]; then

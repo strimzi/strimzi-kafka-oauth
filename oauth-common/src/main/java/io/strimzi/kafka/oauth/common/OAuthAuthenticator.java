@@ -25,31 +25,44 @@ public class OAuthAuthenticator {
     private static final Logger log = LoggerFactory.getLogger(OAuthAuthenticator.class);
 
     public static TokenInfo loginWithAccessToken(String token) {
+        return loginWithAccessToken(token, true);
+    }
+
+    public static TokenInfo loginWithAccessToken(String token, boolean isJWT) {
         if (log.isDebugEnabled()) {
             log.debug("loginWithAccessToken() - pass-through access_token: {}", mask(token));
         }
-        // try introspect token
-        try {
-            return introspectAccessToken(token);
-        } catch (Exception e) {
-            log.debug("[IGNORED] Could not parse token as JWT access token. Could not extract scope, subject, and expiry.", e);
+
+        if (isJWT) {
+            // try introspect token
+            try {
+                return introspectAccessToken(token);
+            } catch (Exception e) {
+                log.debug("[IGNORED] Could not parse token as JWT access token. Could not extract scope, subject, and expiry.", e);
+            }
         }
+
         return new TokenInfo(token, "undefined", "undefined", System.currentTimeMillis(), System.currentTimeMillis() + 365 * 24 * 3600000);
     }
 
-    public static TokenInfo loginWithClientSecret(URI tokenEndpointUrl, SSLSocketFactory socketFactory, HostnameVerifier hostnameVerifier, String clientId, String clientSecret) throws IOException {
+    public static TokenInfo loginWithClientSecret(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
+                                                  HostnameVerifier hostnameVerifier,
+                                                  String clientId, String clientSecret, boolean isJWT) throws IOException {
         if (log.isDebugEnabled()) {
             log.debug("loginWithClientSecret() - tokenEndpointUrl: {}, clientId: {}, clientSecret: {}",
                     tokenEndpointUrl, clientId, mask(clientSecret));
         }
+
         String authorization = "Basic " + base64encode(clientId + ':' + clientSecret);
 
         StringBuilder body = new StringBuilder("grant_type=client_credentials");
 
-        return post(tokenEndpointUrl, socketFactory, hostnameVerifier, authorization, body.toString());
+        return post(tokenEndpointUrl, socketFactory, hostnameVerifier, authorization, body.toString(), isJWT);
     }
 
-    public static TokenInfo loginWithRefreshToken(URI tokenEndpointUrl, SSLSocketFactory socketFactory, HostnameVerifier hostnameVerifier, String refreshToken, String clientId, String clientSecret) throws IOException {
+    public static TokenInfo loginWithRefreshToken(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
+                                                  HostnameVerifier hostnameVerifier, String refreshToken,
+                                                  String clientId, String clientSecret, boolean isJWT) throws IOException {
         if (log.isDebugEnabled()) {
             log.debug("loginWithRefreshToken() - tokenEndpointUrl: {}, refreshToken: {}, clientId: {}, clientSecret: {}",
                     tokenEndpointUrl, refreshToken, clientId, mask(clientSecret));
@@ -63,10 +76,11 @@ public class OAuthAuthenticator {
                 .append("&refresh_token=").append(urlencode(refreshToken))
                 .append("&client_id=").append(urlencode(clientId));
 
-        return post(tokenEndpointUrl, socketFactory, hostnameVerifier, authorization, body.toString());
+        return post(tokenEndpointUrl, socketFactory, hostnameVerifier, authorization, body.toString(), isJWT);
     }
 
-    private static TokenInfo post(URI tokenEndpointUri, SSLSocketFactory socketFactory, HostnameVerifier hostnameVerifier, String authorization, String body) throws IOException {
+    private static TokenInfo post(URI tokenEndpointUri, SSLSocketFactory socketFactory, HostnameVerifier hostnameVerifier,
+                                  String authorization, String body, boolean isJWT) throws IOException {
 
         long now = System.currentTimeMillis();
 
@@ -93,11 +107,13 @@ public class OAuthAuthenticator {
             throw new IllegalStateException("Invalid response from authorization server: no scope");
         }
 
-        // try introspect token
-        try {
-            return introspectAccessToken(token.asText());
-        } catch (Exception e) {
-            log.debug("[IGNORED] Could not parse token as JWT access token. Could not extract subject.", e);
+        if (isJWT) {
+            // try introspect token
+            try {
+                return introspectAccessToken(token.asText());
+            } catch (Exception e) {
+                log.debug("[IGNORED] Could not parse token as JWT access token. Could not extract subject.", e);
+            }
         }
 
         return new TokenInfo(token.asText(), scope.asText(), "undefined", now, now + expiresIn.asLong() * 1000L);

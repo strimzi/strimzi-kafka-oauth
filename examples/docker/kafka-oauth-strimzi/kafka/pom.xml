@@ -30,7 +30,9 @@
                                 <resource>
                                     <directory>${basedir}</directory>
                                     <includes>
+                                        <include>functions.sh</include>
                                         <include>start.sh</include>
+                                        <include>start_with_hydra.sh</include>
                                         <include>simple_kafka_config.sh</include>
                                         <include>Dockerfile</include>
                                         <include>config/</include>

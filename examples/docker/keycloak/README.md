@@ -23,15 +23,16 @@ From `docker` directory run:
 
     docker-compose -f compose.yml -f keycloak/compose-ssl.yml up --build
      
-Certificates, keystores, and truststores are pre-generated in `certificates` sub-directory. If you want to regenerate them run:
+A keystore is pre-generated in `certificates` sub-directory.
+There is also a pre-generated CA root certificate, used to sign server certificate, in `../certificates`:
+
+
+Regenerating server certificate
+-------------------------------
+
+If you want to regenerate a server keystore run the following:
 
     cd certificates
-    rm c* k*
-    ./build-certs.sh
-
-In order for whole SSL demo to work copy the files to where they are needed:
-
-    cp keycloak.server.keystore.p12 ../config/
-    cp keycloak.client.truststore.p12 ../../keycloak-import/config/  
-    cp keycloak.client.truststore.p12 ../../kafka-oauth-strimzi/kafka/config/
+    rm *.srl *.p12 cert-*
+    ./gen-keycloak-certs.sh
 
