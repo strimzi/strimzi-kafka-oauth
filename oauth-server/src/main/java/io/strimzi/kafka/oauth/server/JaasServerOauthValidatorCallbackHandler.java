@@ -109,8 +109,10 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         String introspectUri = config.getValue(ServerConfig.OAUTH_INTROSPECTION_ENDPOINT_URI);
 
         // if both set or none set
-        if ((jwksUri == null) == (introspectUri == null)) {
-            throw new RuntimeException("OAuth validator configuration error - one of the two should be specified: OAUTH_JWKS_ENDPOINT_URI (for fast local signature validation) or OAUTH_INTROSPECTION_ENDPOINT_URI (for using authorization server during validation)");
+        if ((jwksUri == null) && (introspectUri == null)) {
+            throw new RuntimeException("OAuth validator configuration error: either OAUTH_JWKS_ENDPOINT_URI (for fast local signature validation) or OAUTH_INTROSPECTION_ENDPOINT_URI (for using authorization server during validation) should be specified!");
+        } else if ((jwksUri != null) && (introspectUri != null)) {
+            throw new RuntimeException("OAuth validator configuration error: only one of OAUTH_JWKS_ENDPOINT_URI (for fast local signature validation) and OAUTH_INTROSPECTION_ENDPOINT_URI (for using authorization server during validation) can be specified!");
         }
 
         // check - if truststore set - that uri starts with https://
