@@ -7,7 +7,7 @@ The demo uses docker-compose build projects to start Keycloak (`docker/keycloak`
 
 The demo is primarily about authentication, and does not enforce any restrictions on clients.
 
-First, start the necessary containers by following instructions in [docker/README.md](../docker/README.md)
+First, start the necessary containers by following instructions in [docker/README.md](docker/README.md)
 
 Then, follow instructions in [producer README](producer/README.md) and [consumer README](consumer/README.md) to run example clients.
 

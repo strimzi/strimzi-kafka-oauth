@@ -19,7 +19,7 @@ Building
 Preparing
 ---------
 
-Make sure that the following ports on your host machine are free: 9092, 2128 (Kafka), 8080, 8443 (Keycloak), 4444, 4445 (Hydra).
+Make sure that the following ports on your host machine are free: 9092, 2181 (Kafka), 8080, 8443 (Keycloak), 4444, 4445 (Hydra).
 
 Then, you have to add some entries to your `/etc/hosts` file:
 
