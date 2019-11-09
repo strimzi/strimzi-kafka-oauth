@@ -31,6 +31,8 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 import static io.strimzi.kafka.oauth.validator.TokenValidationException.Status;
+import static org.keycloak.TokenVerifier.IS_ACTIVE;
+import static org.keycloak.TokenVerifier.SUBJECT_EXISTS_CHECK;
 
 public class JWTSignatureValidator implements TokenValidator {
 
@@ -42,6 +44,7 @@ public class JWTSignatureValidator implements TokenValidator {
     private final String issuerUri;
     private final int maxStaleSeconds;
     private final boolean defaultChecks;
+    private final boolean skipTypeCheck;
     private final String audience;
     private final SSLSocketFactory socketFactory;
     private final HostnameVerifier hostnameVerifier;
@@ -58,6 +61,7 @@ public class JWTSignatureValidator implements TokenValidator {
                                  int refreshSeconds,
                                  int expirySeconds,
                                  boolean defaultChecks,
+                                 boolean skipTypeCheck,
                                  String audience) {
 
         if (keysEndpointUri == null) {
@@ -90,6 +94,7 @@ public class JWTSignatureValidator implements TokenValidator {
         this.maxStaleSeconds = expirySeconds;
 
         this.defaultChecks = defaultChecks;
+        this.skipTypeCheck = skipTypeCheck;
         this.audience = audience;
 
         fetchKeys();
@@ -98,6 +103,16 @@ public class JWTSignatureValidator implements TokenValidator {
         scheduler = Executors.newSingleThreadScheduledExecutor(new DaemonThreadFactory());
 
         scheduler.scheduleAtFixedRate(() -> fetchKeys(), refreshSeconds, refreshSeconds, TimeUnit.SECONDS);
+
+        if (log.isDebugEnabled()) {
+            log.debug("Configured JWTSignatureValidator:\n    keysEndpointUri: " + keysEndpointUri
+                    + "\n    sslSocketFactory: " + socketFactory
+                    + "\n    hostnameVerifier: " + hostnameVerifier
+                    + "\n    validIssuerUri: " + validIssuerUri
+                    + "\n    certsRefreshSeconds: " + refreshSeconds
+                    + "\n    certsExpirySeconds: " + expirySeconds
+                    + "\n    skipTypeCheck: " + skipTypeCheck);
+        }
     }
 
     private PublicKey getPublicKey(String id) {
@@ -127,16 +142,19 @@ public class JWTSignatureValidator implements TokenValidator {
         }
     }
 
-    @SuppressWarnings("deprecation")
+    @SuppressWarnings({"deprecation", "unchecked"})
     @SuppressFBWarnings(value = "BC_UNCONFIRMED_CAST_OF_RETURN_VALUE",
             justification = "We tell TokenVerifier to parse AccessToken. It will return AccessToken or fail.")
     public TokenInfo validate(String token) {
         TokenVerifier<AccessToken> tokenVerifier = TokenVerifier.create(token, AccessToken.class);
 
         if (defaultChecks) {
-            tokenVerifier
-                    .withDefaultChecks()
-                    .realmUrl(issuerUri);
+            if (skipTypeCheck) {
+                tokenVerifier.withChecks(SUBJECT_EXISTS_CHECK, IS_ACTIVE);
+            } else {
+                tokenVerifier.withDefaultChecks();
+            }
+            tokenVerifier.realmUrl(issuerUri);
         }
 
         String kid = null;

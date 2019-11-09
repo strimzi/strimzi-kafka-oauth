@@ -1,0 +1,17 @@
+version: '3.5'
+
+services:
+
+  hydra-import:
+    image: strimzi/example-hydra-import
+    build: hydra-import
+    container_name: hydra-import
+    entrypoint: ""
+    command:
+      - /bin/sh
+      - -c
+      - /start.sh
+
+    environment:
+      HYDRA_ADMIN_URL: https://hydra:4445
+      HYDRA_URI: https://hydra:4445/clients

@@ -1,0 +1,23 @@
+version: '3.5'
+
+services:
+
+  hydra:
+    image: oryd/hydra:v1.0.0
+    container_name: hydra
+    ports:
+      - 4444:4444
+      - 4445:4445
+    command: serve all
+
+    volumes:
+      - ./hydra/certificates:/tmp/certs
+
+    environment:
+      #DSN: postgres://hydra:secret@hydra-db:5432/hydra?sslmode=disable
+      DSN: memory
+      URLS_SELF_ISSUER: https://hydra:4444/
+      URLS_CONSENT: http://hydra:9020/consent
+      URLS_LOGIN: http://hydra:9020/login
+      SERVE_TLS_KEY_PATH: /tmp/certs/hydra.key
+      SERVE_TLS_CERT_PATH: /tmp/certs/hydra.crt

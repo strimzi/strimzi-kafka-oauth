@@ -18,6 +18,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 
 import static io.strimzi.kafka.oauth.common.HttpUtil.post;
+import static io.strimzi.kafka.oauth.common.LogUtil.mask;
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.base64encode;
 import static io.strimzi.kafka.oauth.validator.TokenValidationException.Status;
 
@@ -74,10 +75,24 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         this.clientSecret = clientSecret;
         this.defaultChecks = defaultChecks;
         this.audience = audience;
+
+        if (log.isDebugEnabled()) {
+            log.debug("Configured OAuthIntrospectionValidator:\n    introspectionEndpointUri: " + introspectionEndpointUri
+                    + "\n    sslSocketFactory: " + socketFactory
+                    + "\n    hostnameVerifier: " + hostnameVerifier
+                    + "\n    validIssuerUri: " + validIssuerURI
+                    + "\n    clientId: " + clientId
+                    + "\n    clientSecret: " + mask(clientSecret));
+        }
     }
 
     @SuppressWarnings("checkstyle:NPathComplexity")
     public TokenInfo validate(String token) {
+
+        // TODO: remove this debug code
+        if ("ignore".equals(token)) {
+            return new TokenInfo(token, null, "ignore", System.currentTimeMillis(), System.currentTimeMillis() + 1000 * 60 * 60 * 365);
+        }
 
         String authorization = clientSecret != null ?
                 "Basic " + base64encode(clientId + ':' + clientSecret) :
@@ -87,7 +102,8 @@ public class OAuthIntrospectionValidator implements TokenValidator {
 
         JsonNode response;
         try {
-            response = post(introspectionURI, socketFactory, hostnameVerifier, authorization, "application/x-www-form-urlencoded", body.toString(), JsonNode.class);
+            response = post(introspectionURI, socketFactory, hostnameVerifier, authorization,
+                    "application/x-www-form-urlencoded", body.toString(), JsonNode.class);
         } catch (IOException e) {
             throw new RuntimeException("Failed to introspect token - send, fetch or parse failed: ", e);
         }
@@ -126,22 +142,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         String subject = value != null ? value.asText() : null;
 
         if (defaultChecks) {
-            value = response.get("iss");
-            if (value == null || !validIssuerURI.equals(value.asText())) {
-                throw new TokenValidationException("Token check failed - invalid issuer: " + value)
-                        .status(Status.INVALID_TOKEN);
-            }
-
-            if (subject == null) {
-                throw new TokenValidationException("Token check failed - invalid subject: null")
-                        .status(Status.INVALID_TOKEN);
-            }
-
-            value = response.get("token_type");
-            if (value != null && !"access_token".equals(value.asText())) {
-                throw new TokenValidationException("Token check failed - invalid token type: " + value)
-                        .status(Status.UNSUPPORTED_TOKEN_TYPE);
-            }
+            performDefaultChecks(response, subject);
         }
 
         if (audience != null) {
@@ -156,5 +157,25 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         String scopes = value != null ? value.asText() : null;
 
         return new TokenInfo(token, scopes, subject, iat, expiresMillis);
+    }
+
+    private void performDefaultChecks(JsonNode response, String subject) {
+        JsonNode value;
+        value = response.get("iss");
+        if (value == null || !validIssuerURI.equals(value.asText())) {
+            throw new TokenValidationException("Token check failed - invalid issuer: " + value)
+                    .status(Status.INVALID_TOKEN);
+        }
+
+        if (subject == null) {
+            throw new TokenValidationException("Token check failed - invalid subject: null")
+                    .status(Status.INVALID_TOKEN);
+        }
+
+        value = response.get("token_type");
+        if (value != null && !"access_token".equals(value.asText())) {
+            throw new TokenValidationException("Token check failed - invalid token type: " + value)
+                    .status(Status.UNSUPPORTED_TOKEN_TYPE);
+        }
     }
 }

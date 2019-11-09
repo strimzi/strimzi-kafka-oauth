@@ -1,12 +1,11 @@
 FROM strimzi/kafka:latest-kafka-2.3.0
 
-COPY libs/* /opt/kafka/libs/
+COPY libs/* /opt/kafka/libs/strimzi/
 COPY config/* /opt/kafka/config/
-COPY start.sh /opt/kafka/
-COPY simple_kafka_config.sh /opt/kafka/
+COPY *.sh /opt/kafka/
 
 USER root
-RUN chmod +x /opt/kafka/start.sh /opt/kafka/simple_kafka_config.sh
+RUN chmod +x /opt/kafka/*.sh
 USER kafka
 
 CMD ["/bin/bash", "/opt/kafka/start.sh"]
