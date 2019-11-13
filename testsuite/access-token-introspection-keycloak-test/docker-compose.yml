@@ -1,0 +1,81 @@
+version: '3'
+
+services:
+  keycloak:
+    image: jboss/keycloak
+    container_name: keycloak
+    ports:
+      - 8080:8080
+      - 8443:8443
+    volumes:
+      - ${PWD}/../docker/keycloak/scripts:/opt/jboss/keycloak/ssl
+      - ${PWD}/../target/keycloak/certs:/opt/jboss/keycloak/standalone/configuration/certs
+      - ${PWD}/../docker/keycloak/realms:/opt/jboss/keycloak/realms
+
+    entrypoint: ""
+
+    command:
+      - /bin/bash
+      - -c
+      - cd /opt/jboss/keycloak && bin/jboss-cli.sh --file=ssl/keycloak-ssl.cli && rm -rf standalone/configuration/standalone_xml_history/current && cd .. && /opt/jboss/tools/docker-entrypoint.sh -b 0.0.0.0
+
+    environment:
+      - KEYCLOAK_USER=admin
+      - KEYCLOAK_PASSWORD=admin
+      - KEYCLOAK_HTTPS_PORT=8443
+      - PROXY_ADDRESS_FORWARDING=true
+      - KEYCLOAK_IMPORT=/opt/jboss/keycloak/realms/demo.json
+
+  kafka:
+    image: strimzi/kafka:latest-kafka-2.3.0
+    container_name: kafka
+    ports:
+      - 9092:9092
+    volumes:
+      - ${PWD}/../target/kafka/libs:/opt/kafka/libs/strimzi
+      - ${PWD}/../docker/kafka/config:/opt/kafka/config/strimzi
+      - ${PWD}/../docker/kafka/scripts:/opt/kafka/strimzi
+    command:
+      - /bin/bash
+      - -c
+      - cd /opt/kafka/strimzi && ./start.sh
+    environment:
+      - KAFKA_BROKER_ID=1
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_LISTENERS=CLIENT://kafka:9092
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CLIENT:SASL_PLAINTEXT
+      - KAFKA_SASL_ENABLED_MECHANISMS=OAUTHBEARER
+      - KAFKA_INTER_BROKER_LISTENER_NAME=CLIENT
+      - KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL=OAUTHBEARER
+      - KAFKA_LISTENER_NAME_CLIENT_OAUTHBEARER_SASL_JAAS_CONFIG=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required;
+      - KAFKA_LISTENER_NAME_CLIENT_OAUTHBEARER_SASL_LOGIN_CALLBACK_HANDLER_CLASS=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
+      - KAFKA_LISTENER_NAME_CLIENT_OAUTHBEARER_SASL_SERVER_CALLBACK_HANDLER_CLASS=io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
+      - KAFKA_SUPER_USERS=User:service-account-kafka-broker
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+
+      # Authentication config
+      - OAUTH_CLIENT_ID=kafka-broker
+      - OAUTH_CLIENT_SECRET=kafka-broker-secret
+      - OAUTH_TOKEN_ENDPOINT_URI=http://${KEYCLOAK_HOST:-keycloak}:8080/auth/realms/${REALM:-demo}/protocol/openid-connect/token
+
+      # Validation config
+      - OAUTH_VALID_ISSUER_URI=http://${KEYCLOAK_HOST:-keycloak}:8080/auth/realms/${REALM:-demo}
+      - OAUTH_INTROSPECTION_ENDPOINT_URI=http://${KEYCLOAK_HOST:-keycloak}:8080/auth/realms/${REALM:-demo}/protocol/openid-connect/token/introspect
+
+      # For start.sh script to know where the keycloak is listening
+      - KEYCLOAK_HOST=${KEYCLOAK_HOST:-keycloak}
+      - REALM=${REALM:-demo}
+
+  zookeeper:
+    image: strimzi/zookeeper:0.11.4-kafka-2.1.0
+    container_name: zookeeper
+    ports:
+      - 2181:2181
+    volumes:
+      - ${PWD}/../docker/zookeeper/scripts:/opt/kafka/strimzi
+    command:
+      - /bin/bash
+      - -c
+      - cd /opt/kafka/strimzi && ./start.sh
+    environment:
+      - LOG_DIR=/tmp/logs

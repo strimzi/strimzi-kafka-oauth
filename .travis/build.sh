@@ -24,6 +24,12 @@ fi
 
 mvn spotbugs:check
 
+# Run testsuite with java 8 only
+if [ ${JAVA_MAJOR_VERSION} -eq 1 ] ; then
+  mvn test-compile spotbugs:check -e -V -B -f testsuite
+  mvn -e -V -B install -f testsuite
+fi
+
 # Push only releases
 if [ "$PULL_REQUEST" != "false" ] ; then
     echo "Building Pull Request - nothing to push"
