@@ -14,7 +14,7 @@ wait_for_url $URI/kafka-broker "Waiting for kafka-broker client to be available"
 
 ./simple_kafka_config.sh | tee /tmp/strimzi.properties
 
-# add extra jars to classpath
+# add Strimzi kafka-oauth-* jars and their dependencies to classpath
 export CLASSPATH="/opt/kafka/libs/strimzi/*:$CLASSPATH"
 
 exec /opt/kafka/bin/kafka-server-start.sh /tmp/strimzi.properties
