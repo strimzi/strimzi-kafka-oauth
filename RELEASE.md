@@ -1,6 +1,6 @@
 # Strimzi Kafka OAuth release process
 
-This document describes the steps needed for release of Strimti Kafka OAuth library.
+This document describes the steps needed for release of Strimzi Kafka OAuth library.
 
 ## Create new release branch
 
@@ -23,11 +23,11 @@ Where `X.Y.Z` is the new version which is going to be released.
 
 ## Update dependencies in examples and tests
 
-Update the version in dependencies in:
+Update the `strimzi-oauth.version` in dependencies in:
 * `examples/docker/pom.xml`
 * `testsuite/pom.xml`
 
-These are independent Maven projects, so the dependency version needs ot be bumped manually.
+These are independent Maven projects, so the dependency version needs to be changed manually.
 
 ## Tag the new release
 
