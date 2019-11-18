@@ -16,6 +16,7 @@
 
         <keycloak.version>7.0.0</keycloak.version>
         <bouncycastle.version>1.60</bouncycastle.version>
+        <strimzi-oauth.version>1.0.0-SNAPSHOT</strimzi-oauth.version>
     </properties>
 
     <licenses>
@@ -30,17 +31,17 @@
             <dependency>
                 <groupId>io.strimzi</groupId>
                 <artifactId>kafka-oauth-common</artifactId>
-                <version>${project.version}</version>
+                <version>${strimzi-oauth.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.strimzi</groupId>
                 <artifactId>kafka-oauth-client</artifactId>
-                <version>${project.version}</version>
+                <version>${strimzi-oauth.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.strimzi</groupId>
                 <artifactId>kafka-oauth-server</artifactId>
-                <version>${project.version}</version>
+                <version>${strimzi-oauth.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.keycloak</groupId>
