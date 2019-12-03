@@ -1,7 +1,6 @@
 dist: xenial
 sudo: required
 language: java
-
 jobs:
   include:
   - os: linux
