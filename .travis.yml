@@ -5,8 +5,7 @@ jobs:
   include:
   - os: linux
     arch: s390x
-    exclude:
-      jdk: openjdk8
+    jdk: openjdk11
     addons:
       apt:
         packages:
