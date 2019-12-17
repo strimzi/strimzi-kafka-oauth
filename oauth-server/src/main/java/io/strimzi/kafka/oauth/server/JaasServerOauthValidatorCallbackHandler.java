@@ -6,6 +6,7 @@ package io.strimzi.kafka.oauth.server;
 
 import io.strimzi.kafka.oauth.common.Config;
 import io.strimzi.kafka.oauth.common.ConfigUtil;
+import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
 import io.strimzi.kafka.oauth.validator.JWTSignatureValidator;
 import io.strimzi.kafka.oauth.validator.OAuthIntrospectionValidator;
 import io.strimzi.kafka.oauth.common.TokenInfo;
@@ -14,7 +15,6 @@ import io.strimzi.kafka.oauth.validator.TokenValidationException;
 import org.apache.kafka.common.errors.AuthenticationException;
 import org.apache.kafka.common.security.auth.AuthenticateCallbackHandler;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule;
-import org.apache.kafka.common.security.oauthbearer.OAuthBearerToken;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerValidatorCallback;
 import org.keycloak.jose.jws.JWSInput;
 import org.keycloak.jose.jws.JWSInputException;
@@ -156,7 +156,19 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         try {
             TokenInfo ti = validateToken(token);
 
-            callback.token(new OAuthBearerToken() {
+            callback.token(new BearerTokenWithPayload() {
+
+                private Object payload;
+
+                @Override
+                public Object getPayload() {
+                    return payload;
+                }
+
+                @Override
+                public void setPayload(Object value) {
+                    payload = value;
+                }
 
                 @Override
                 public String value() {
@@ -189,6 +201,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                 public Long startTimeMs() {
                     return ti.issuedAtMs();
                 }
+
             });
 
         } catch (TokenValidationException e) {

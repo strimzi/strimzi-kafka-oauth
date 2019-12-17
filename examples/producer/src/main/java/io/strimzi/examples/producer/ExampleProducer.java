@@ -20,7 +20,7 @@ public class ExampleProducer {
 
     public static void main(String[] args) {
 
-        String topic = "Topic1";
+        String topic = "a_Topic1";
 
         Properties defaults = new Properties();
         Config external = new Config();

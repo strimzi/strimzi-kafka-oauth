@@ -68,6 +68,7 @@
         <sonatype.nexus.staging>1.6.3</sonatype.nexus.staging>
 
         <kafka.version>2.3.0</kafka.version>
+        <scala.version>2.12.8</scala.version>
         <jackson.version>2.9.10.2</jackson.version>
         <junit.version>4.12</junit.version>
         <slf4j.version>1.7.26</slf4j.version>
@@ -90,6 +91,7 @@
         <module>oauth-common</module>
         <module>oauth-client</module>
         <module>oauth-server</module>
+        <module>oauth-keycloak-authorizer</module>
         <module>examples/consumer</module>
         <module>examples/producer</module>
     </modules>
@@ -112,6 +114,16 @@
                 <version>${kafka.version}</version>
             </dependency>
             <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka_2.12</artifactId>
+                <version>${kafka.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.scala-lang</groupId>
+                <artifactId>scala-library</artifactId>
+                <version>${scala.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>io.strimzi</groupId>
                 <artifactId>kafka-oauth-common</artifactId>
                 <version>${project.version}</version>
@@ -124,6 +136,11 @@
             <dependency>
                 <groupId>io.strimzi</groupId>
                 <artifactId>kafka-oauth-server</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strimzi</groupId>
+                <artifactId>kafka-oauth-keycloak-authorizer</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

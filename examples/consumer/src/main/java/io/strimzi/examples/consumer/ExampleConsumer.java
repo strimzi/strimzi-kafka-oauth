@@ -22,7 +22,7 @@ public class ExampleConsumer {
 
     public static void main(String[] args) {
 
-        String topic = "Topic1";
+        String topic = "a_Topic1";
 
         Properties defaults = new Properties();
         Config external = new Config();
@@ -50,8 +50,8 @@ public class ExampleConsumer {
         final String accessToken = external.getValue(ClientConfig.OAUTH_ACCESS_TOKEN, null);
 
         if (accessToken == null) {
-            defaults.setProperty(Config.OAUTH_CLIENT_ID, "kafka-producer-client");
-            defaults.setProperty(Config.OAUTH_CLIENT_SECRET, "kafka-producer-client-secret");
+            defaults.setProperty(Config.OAUTH_CLIENT_ID, "kafka-consumer-client");
+            defaults.setProperty(Config.OAUTH_CLIENT_SECRET, "kafka-consumer-client-secret");
         }
 
         // Use 'preferred_username' rather than 'sub' for principal name
@@ -94,7 +94,7 @@ public class ExampleConsumer {
         p.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         p.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
 
-        p.setProperty(ConsumerConfig.GROUP_ID_CONFIG, "consumer-group");
+        p.setProperty(ConsumerConfig.GROUP_ID_CONFIG, "a_consumer-group");
         p.setProperty(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "10");
         p.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
 

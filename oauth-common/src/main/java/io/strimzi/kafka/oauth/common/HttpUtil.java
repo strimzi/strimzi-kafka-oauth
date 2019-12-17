@@ -124,9 +124,9 @@ public class HttpUtil {
                     log.warn("[IGNORED] Failed to read response body", e);
                 }
 
-                throw new RuntimeException("Request to " + uri + " failed with status " + code + ": " + errbuf.toString(StandardCharsets.UTF_8.name()));
+                throw new HttpException(uri, code, errbuf.toString(StandardCharsets.UTF_8.name()));
             } else {
-                throw new RuntimeException("Request to " + uri + " failed with status " + code + " " + con.getResponseMessage());
+                throw new HttpException(uri, code, con.getResponseMessage());
             }
         }
 
