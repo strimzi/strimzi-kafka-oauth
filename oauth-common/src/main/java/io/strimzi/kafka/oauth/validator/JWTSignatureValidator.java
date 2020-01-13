@@ -9,7 +9,10 @@ import io.strimzi.kafka.oauth.common.HttpUtil;
 import io.strimzi.kafka.oauth.common.TimeUtil;
 import io.strimzi.kafka.oauth.common.TokenInfo;
 import org.apache.kafka.common.utils.Time;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.keycloak.TokenVerifier;
+import org.keycloak.crypto.AsymmetricSignatureVerifierContext;
+import org.keycloak.crypto.KeyWrapper;
 import org.keycloak.exceptions.TokenSignatureInvalidException;
 import org.keycloak.jose.jwk.JSONWebKeySet;
 import org.keycloak.jose.jwk.JWK;
@@ -23,6 +26,7 @@ import javax.net.ssl.SSLSocketFactory;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.security.PublicKey;
+import java.security.Security;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -35,6 +39,10 @@ import static org.keycloak.TokenVerifier.IS_ACTIVE;
 import static org.keycloak.TokenVerifier.SUBJECT_EXISTS_CHECK;
 
 public class JWTSignatureValidator implements TokenValidator {
+
+    static {
+        Security.insertProviderAt(new BouncyCastleProvider(), 1);
+    }
 
     private static final Logger log = LoggerFactory.getLogger(JWTSignatureValidator.class);
 
@@ -164,7 +172,6 @@ public class JWTSignatureValidator implements TokenValidator {
             throw new TokenValidationException("Token signature validation failed: " + token, e)
                     .status(Status.INVALID_TOKEN);
         }
-        tokenVerifier.publicKey(getPublicKey(kid));
 
         if (audience != null) {
             tokenVerifier.audience(audience);
@@ -173,6 +180,17 @@ public class JWTSignatureValidator implements TokenValidator {
         AccessToken t;
 
         try {
+            KeyWrapper keywrap = new KeyWrapper();
+            PublicKey pub = getPublicKey(kid);
+            keywrap.setPublicKey(pub);
+            keywrap.setAlgorithm(tokenVerifier.getHeader().getAlgorithm().name());
+            keywrap.setKid(kid);
+
+            AsymmetricSignatureVerifierContext ctx = "EC".equals(pub.getAlgorithm()) ?
+                    new ECDSASignatureVerifierContext(keywrap) :
+                    new AsymmetricSignatureVerifierContext(keywrap);
+            tokenVerifier.verifierContext(ctx);
+
             tokenVerifier.verify();
             t = tokenVerifier.getToken();
 

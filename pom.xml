@@ -72,6 +72,7 @@
         <junit.version>4.12</junit.version>
         <slf4j.version>1.7.26</slf4j.version>
         <keycloak.version>7.0.0</keycloak.version>
+        <bouncycastle.version>1.60</bouncycastle.version>
     </properties>
 
     <distributionManagement>
@@ -139,6 +140,11 @@
                 <groupId>org.keycloak</groupId>
                 <artifactId>keycloak-common</artifactId>
                 <version>${keycloak.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcprov-jdk15on</artifactId>
+                <version>${bouncycastle.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.github.spotbugs</groupId>
