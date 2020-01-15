@@ -187,7 +187,7 @@ public class JWTSignatureValidator implements TokenValidator {
             keywrap.setKid(kid);
 
             log.debug("Signature algorithm used: [" + pub.getAlgorithm() + "]");
-            AsymmetricSignatureVerifierContext ctx = "EC".equals(pub.getAlgorithm()) ?
+            AsymmetricSignatureVerifierContext ctx = isAlgorithmEC(pub.getAlgorithm()) ?
                     new ECDSASignatureVerifierContext(keywrap) :
                     new AsymmetricSignatureVerifierContext(keywrap);
             tokenVerifier.verifierContext(ctx);
@@ -212,6 +212,10 @@ public class JWTSignatureValidator implements TokenValidator {
         }
 
         return new TokenInfo(t, token);
+    }
+
+    private static boolean isAlgorithmEC(String algorithm) {
+        return "EC".equals(algorithm) || "ECDSA".equals(algorithm);
     }
 
 
