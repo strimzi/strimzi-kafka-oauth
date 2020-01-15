@@ -11,11 +11,6 @@
               await:
                 strategy: sleeping
                 sleepTime: 5 s
-              beforeStop:
-                - log:
-                    to: /dev/fd/1
-                    stdout: true
-                    stderr: true
 
             kafka:
               await:
@@ -24,7 +19,7 @@
                 timeout: 120
               beforeStop:
                 - log:
-                    to: /dev/fd/1
+                    to: ${PWD}/../kafka.log
                     stdout: true
                     stderr: true
 
@@ -33,11 +28,6 @@
                 strategy: log
                 match: 'regexp:.* Keycloak .* started in .*'
                 timeout: 120
-              beforeStop:
-                - log:
-                    to: /dev/fd/1
-                    stdout: true
-                    stderr: true
 
         </property>
     </extension>

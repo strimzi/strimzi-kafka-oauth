@@ -27,7 +27,13 @@ mvn spotbugs:check
 # Run testsuite with java 8 only
 if [ ${JAVA_MAJOR_VERSION} -eq 1 ] ; then
   mvn test-compile spotbugs:check -e -V -B -f testsuite
+  set +e
   mvn -e -V -B install -f testsuite
+
+  EXIT=$?
+  FILE=testsuite/kafka.log
+  [ "$EXIT" != "0" ] && test -f "$FILE" && cat $FILE && exit $EXIT
+  set -e
 fi
 
 # Push only releases
