@@ -7,8 +7,7 @@ package io.strimzi.kafka.oauth.server.authorizer;
 import java.util.Locale;
 
 /**
- * ResourceSpec is used to parse resource matching pattern and to perform matching to apecific resource.
- *
+ * ResourceSpec is used to parse resource matching pattern and to perform matching to specific resource.
  */
 public class ResourceSpec {
 
@@ -74,7 +73,7 @@ public class ResourceSpec {
         if (type == null) {
             throw new IllegalArgumentException("type == null");
         }
-        if (!type.equals(resourceType.name())) {
+        if (resourceType == null || !type.equals(resourceType.name())) {
             return false;
         }
 

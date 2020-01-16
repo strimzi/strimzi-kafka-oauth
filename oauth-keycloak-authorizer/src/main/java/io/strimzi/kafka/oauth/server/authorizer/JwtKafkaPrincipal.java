@@ -23,4 +23,15 @@ public class JwtKafkaPrincipal extends KafkaPrincipal {
     public BearerTokenWithPayload getJwt() {
         return jwt;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        // We don't care about jwt field for equals comparison
+        return super.equals(o);
+    }
+
+    @Override
+    public int hashCode() {
+        return super.hashCode();
+    }
 }

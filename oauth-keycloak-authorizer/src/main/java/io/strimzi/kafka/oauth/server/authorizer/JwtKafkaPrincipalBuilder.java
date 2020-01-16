@@ -5,16 +5,12 @@
 package io.strimzi.kafka.oauth.server.authorizer;
 
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
-import org.apache.kafka.common.Configurable;
 import org.apache.kafka.common.security.auth.AuthenticationContext;
 import org.apache.kafka.common.security.auth.KafkaPrincipal;
-import org.apache.kafka.common.security.auth.KafkaPrincipalBuilder;
 import org.apache.kafka.common.security.auth.SaslAuthenticationContext;
 import org.apache.kafka.common.security.authenticator.DefaultKafkaPrincipalBuilder;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule;
 import org.apache.kafka.common.security.oauthbearer.internals.OAuthBearerSaslServer;
-
-import java.util.Map;
 
 /**
  * This class needs to be enabled as the PrincipalBuilder on Kafka Broker.
@@ -24,15 +20,10 @@ import java.util.Map;
  * You can use 'principal.builder.class=io.strimzi.kafka.oauth.server.authorizer.JwtKafkaPrincipalBuilder'
  * property definition in server.properties.
  */
-public class JwtKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder implements KafkaPrincipalBuilder, Configurable {
+public class JwtKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder {
 
     public JwtKafkaPrincipalBuilder() {
         super(null, null);
-    }
-
-    @Override
-    public void configure(Map<String, ?> configs) {
-
     }
 
     @Override

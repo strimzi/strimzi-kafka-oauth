@@ -250,14 +250,15 @@ public class KeycloakRBACAuthorizer extends SimpleAclAuthorizer {
     @Override
     public boolean authorize(RequestChannel.Session session, Operation operation, Resource resource) {
 
-        if (!(session.principal() instanceof JwtKafkaPrincipal)) {
+        KafkaPrincipal principal = session.principal();
+        if (!(principal instanceof JwtKafkaPrincipal)) {
             throw new IllegalStateException("Kafka Broker is misconfigured. KeycloakRBACAuthorizer requires io.strimzi.kafka.oauth.server.authorizer.JwtKafkaPrincipalBuilder as 'principal.builder.class'");
         }
 
-        JwtKafkaPrincipal principal = (JwtKafkaPrincipal) session.principal();
+        JwtKafkaPrincipal jwtPrincipal = (JwtKafkaPrincipal) principal;
         for (UserSpec u: superUsers) {
-            if (principal.getPrincipalType().equals(u.getType())
-                    && principal.getName().equals(u.getName())) {
+            if (jwtPrincipal.getPrincipalType().equals(u.getType())
+                    && jwtPrincipal.getName().equals(u.getName())) {
 
                 // it's a super user. super users are granted everything
                 if (log.isDebugEnabled()) {
@@ -272,7 +273,7 @@ public class KeycloakRBACAuthorizer extends SimpleAclAuthorizer {
         // If not, fetch authorization grants and store them in the token
         //
 
-        BearerTokenWithPayload token = principal.getJwt();
+        BearerTokenWithPayload token = jwtPrincipal.getJwt();
         JsonNode authz = (JsonNode) token.getPayload();
 
         if (authz == null) {
@@ -303,27 +304,28 @@ public class KeycloakRBACAuthorizer extends SimpleAclAuthorizer {
         // Iterate authorization rules and try to find a match
         //
 
-        Iterator<JsonNode> it = authz.iterator();
-        while (it.hasNext()) {
-            JsonNode permission = it.next();
-            String name = permission.get("rsname").asText();
-            ResourceSpec resourceSpec = ResourceSpec.of(name);
-            if (resourceSpec.match(clusterName, resource.resourceType().name(), resource.name())) {
+        if (authz != null) {
+            Iterator<JsonNode> it = authz.iterator();
+            while (it.hasNext()) {
+                JsonNode permission = it.next();
+                String name = permission.get("rsname").asText();
+                ResourceSpec resourceSpec = ResourceSpec.of(name);
+                if (resourceSpec.match(clusterName, resource.resourceType().name(), resource.name())) {
 
-                ScopesSpec grantedScopes = ScopesSpec.of(
-                        validateScopes(
-                            JSONUtil.asListOfString(permission.get("scopes"))));
+                    ScopesSpec grantedScopes = ScopesSpec.of(
+                            validateScopes(
+                                    JSONUtil.asListOfString(permission.get("scopes"))));
 
-                if (grantedScopes.isGranted(operation.name())) {
-                    if (log.isDebugEnabled()) {
-                        log.debug("Authorization GRANTED - cluster: " + clusterName + ",user: " + session.principal() + ", operation: " + operation +
-                                ", resource: " + resource + "\nGranted scopes for resource (" + resourceSpec + "): " + grantedScopes);
+                    if (grantedScopes.isGranted(operation.name())) {
+                        if (log.isDebugEnabled()) {
+                            log.debug("Authorization GRANTED - cluster: " + clusterName + ",user: " + session.principal() + ", operation: " + operation +
+                                    ", resource: " + resource + "\nGranted scopes for resource (" + resourceSpec + "): " + grantedScopes);
+                        }
+                        return true;
                     }
-                    return true;
                 }
             }
         }
-
         return delegateIfRequested(session, operation, resource, authz);
     }
 
