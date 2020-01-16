@@ -25,6 +25,7 @@ import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSocketFactory;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.security.Provider;
 import java.security.PublicKey;
 import java.security.Security;
 import java.util.Map;
@@ -33,6 +34,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.strimzi.kafka.oauth.validator.TokenValidationException.Status;
 import static org.keycloak.TokenVerifier.IS_ACTIVE;
@@ -40,11 +42,9 @@ import static org.keycloak.TokenVerifier.SUBJECT_EXISTS_CHECK;
 
 public class JWTSignatureValidator implements TokenValidator {
 
-    static {
-        Security.insertProviderAt(new BouncyCastleProvider(), 1);
-    }
-
     private static final Logger log = LoggerFactory.getLogger(JWTSignatureValidator.class);
+
+    private static AtomicBoolean bouncyInstalled =  new AtomicBoolean(false);
 
     private final ScheduledExecutorService scheduler;
 
@@ -70,7 +70,9 @@ public class JWTSignatureValidator implements TokenValidator {
                                  int expirySeconds,
                                  boolean defaultChecks,
                                  boolean skipTypeCheck,
-                                 String audience) {
+                                 String audience,
+                                 boolean enableBouncyCastleProvider,
+                                 int bouncyCastleProviderPosition) {
 
         if (keysEndpointUri == null) {
             throw new IllegalArgumentException("keysEndpointUri == null");
@@ -105,6 +107,20 @@ public class JWTSignatureValidator implements TokenValidator {
         this.skipTypeCheck = skipTypeCheck;
         this.audience = audience;
 
+        if (enableBouncyCastleProvider && !bouncyInstalled.getAndSet(true)) {
+            int installedPosition = Security.insertProviderAt(new BouncyCastleProvider(), bouncyCastleProviderPosition);
+            log.info("BouncyCastle security provider installed at position: " + installedPosition);
+
+            if (log.isDebugEnabled()) {
+                StringBuilder sb = new StringBuilder("Installed security providers:\n");
+                for (Provider p: Security.getProviders()) {
+                    sb.append("  - " + p.toString() + "  [" + p.getClass().getName() + "]\n");
+                    sb.append("   " + p.getInfo() + "\n");
+                }
+                log.debug(sb.toString());
+            }
+        }
+
         fetchKeys();
 
         // set up periodic timer to update keys from server every refreshSeconds;
@@ -119,7 +135,9 @@ public class JWTSignatureValidator implements TokenValidator {
                     + "\n    validIssuerUri: " + validIssuerUri
                     + "\n    certsRefreshSeconds: " + refreshSeconds
                     + "\n    certsExpirySeconds: " + expirySeconds
-                    + "\n    skipTypeCheck: " + skipTypeCheck);
+                    + "\n    skipTypeCheck: " + skipTypeCheck
+                    + "\n    enableBouncyCastleProvider: " + enableBouncyCastleProvider
+                    + "\n    bouncyCastleProviderPosition: " + bouncyCastleProviderPosition);
         }
     }
 

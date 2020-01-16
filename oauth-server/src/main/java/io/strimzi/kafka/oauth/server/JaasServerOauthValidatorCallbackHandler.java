@@ -62,12 +62,10 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
             throw new IllegalArgumentException("Exactly one jaasConfigEntry expected (size: " + jaasConfigEntries.size());
         }
 
-        for (AppConfigurationEntry e: jaasConfigEntries) {
-            Properties p = new Properties();
-            p.putAll(e.getOptions());
-            config = new ServerConfig(p);
-            break;
-        }
+        AppConfigurationEntry e = jaasConfigEntries.get(0);
+        Properties p = new Properties();
+        p.putAll(e.getOptions());
+        config = new ServerConfig(p);
 
         notJWT = config.getValueAsBoolean(Config.OAUTH_TOKENS_NOT_JWT, false);
 
@@ -79,6 +77,9 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
         String jwksUri = config.getValue(ServerConfig.OAUTH_JWKS_ENDPOINT_URI);
 
+        boolean enableBouncy = config.getValueAsBoolean(ServerConfig.OAUTH_CRYPTO_BOUNCYCASTLE_PROVIDER_ENABLE, false);
+        int bouncyPosition = config.getValueAsInt(ServerConfig.OAUTH_CRYPTO_BOUNCYCASTLE_PROVIDER_POSITION, 0);
+
         if (jwksUri != null) {
             validator = new JWTSignatureValidator(
                     config.getValue(ServerConfig.OAUTH_JWKS_ENDPOINT_URI),
@@ -89,7 +90,9 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                     config.getValueAsInt(ServerConfig.OAUTH_JWKS_EXPIRY_SECONDS, 360),
                     true,
                     config.getValueAsBoolean(ServerConfig.OAUTH_VALIDATION_SKIP_TYPE_CHECK, false),
-                    null
+                    null,
+                    enableBouncy,
+                    bouncyPosition
             );
         } else {
             validator = new OAuthIntrospectionValidator(
