@@ -16,8 +16,8 @@ public class ServerConfig extends Config {
     public static final String OAUTH_VALID_ISSUER_URI = "oauth.valid.issuer.uri";
     public static final String OAUTH_INTROSPECTION_ENDPOINT_URI = "oauth.introspection.endpoint.uri";
     public static final String OAUTH_VALIDATION_SKIP_TYPE_CHECK = "oauth.validation.skip.type.check";
-    public static final String OAUTH_CRYPTO_BOUNCYCASTLE_PROVIDER_ENABLE = "oauth.crypto.bouncycastle.provider.enable";
-    public static final String OAUTH_CRYPTO_BOUNCYCASTLE_PROVIDER_POSITION = "oauth.crypto.bouncycastle.provider.position";
+    public static final String OAUTH_CRYPTO_PROVIDER_BOUNCYCASTLE = "oauth.crypto.provider.bouncycastle";
+    public static final String OAUTH_CRYPTO_PROVIDER_BOUNCYCASTLE_POSITION = "oauth.crypto.provider.bouncycastle.position";
 
     public ServerConfig() {
     }

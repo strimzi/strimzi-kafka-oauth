@@ -77,8 +77,8 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
         String jwksUri = config.getValue(ServerConfig.OAUTH_JWKS_ENDPOINT_URI);
 
-        boolean enableBouncy = config.getValueAsBoolean(ServerConfig.OAUTH_CRYPTO_BOUNCYCASTLE_PROVIDER_ENABLE, false);
-        int bouncyPosition = config.getValueAsInt(ServerConfig.OAUTH_CRYPTO_BOUNCYCASTLE_PROVIDER_POSITION, 0);
+        boolean enableBouncy = config.getValueAsBoolean(ServerConfig.OAUTH_CRYPTO_PROVIDER_BOUNCYCASTLE, false);
+        int bouncyPosition = config.getValueAsInt(ServerConfig.OAUTH_CRYPTO_PROVIDER_BOUNCYCASTLE_POSITION, 0);
 
         if (jwksUri != null) {
             validator = new JWTSignatureValidator(
