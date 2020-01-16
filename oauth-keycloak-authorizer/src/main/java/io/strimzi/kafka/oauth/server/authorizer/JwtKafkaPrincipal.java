@@ -9,14 +9,14 @@ import org.apache.kafka.common.security.auth.KafkaPrincipal;
 
 public class JwtKafkaPrincipal extends KafkaPrincipal {
 
-    private BearerTokenWithPayload jwt;
+    private final BearerTokenWithPayload jwt;
 
     public JwtKafkaPrincipal(String principalType, String name) {
-        super(principalType, name);
+        this(principalType, name, null);
     }
 
     public JwtKafkaPrincipal(String principalType, String name, BearerTokenWithPayload jwt) {
-        this(principalType, name);
+        super(principalType, name);
         this.jwt = jwt;
     }
 

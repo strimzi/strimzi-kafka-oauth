@@ -4,7 +4,7 @@ Once the Kafka Broker has obtained an access token by using Strimzi Kafka OAuth 
 For this Strimzi Kafka OAuth supports the use of Keycloak Authorization Services.
 
 A custom authorizer has to be configured on the Kafka Broker to take advantage of Authorization Services REST endpoints available on Keycloak, which provide a list of granted permissions on resources for authenticated users.
-The list is fetched once, and enforced locally on Kafka Broker for each user session in order to provide fast authorization decisions.
+The list is fetched once, and enforced locally on the Kafka Broker for each user session in order to provide fast authorization decisions.
 
 ## Authorization example
 
@@ -30,12 +30,12 @@ Let's start up all the containers with authorization configured, and we'll then 
     docker-compose -f compose.yml -f keycloak/compose.yml -f keycloak-import/compose.yml -f kafka-oauth-strimzi/compose-authz.yml up --build
 
 When everything starts up without errors we should have one instance of `keycloak` listening on localhost:8080.
-You can login to admin console by opening `http://localhost:8080/auth/admin` and using `admin` as both username, and a password.
+You can login to the admin console by opening `http://localhost:8080/auth/admin` and using `admin` as both username, and a password.
 
 In upper left corner under Keycloak icon you should see `Master` selected as a current realm.
 Moving the mouse pointer over it should reveal two additional realms - `Demo` and `Kafka-authz`.
 
-For this example we are interested in `kafka-authz` realm.
+For this example we are interested in the `kafka-authz` realm.
 Selecting it will open the `Realm Settings` for `kafka-authz` realm.
 Next to `Realm Settings` there are other sections we are interested in - `Groups`, `Roles`, `Clients` and `Users`.
 
@@ -330,7 +330,7 @@ Message 4
 Message 5
 ```
 
-But `team-b-client` should be able to consume messages from `x_messages` topic:
+But `team-b-client` should be able to consume messages from the `x_messages` topic:
 
     bin/kafka-console-consumer.sh --bootstrap-server kafka:9092 --topic x_messages --from-beginning --consumer.config ~/team-b-client.properties --group x_consumer_group_b
 

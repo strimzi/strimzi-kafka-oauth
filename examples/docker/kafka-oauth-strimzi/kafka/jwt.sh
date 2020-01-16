@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ "$1" == "" ]; then
+if [ "$1" == "" ] || [ "$1" == "--help" ]; then
   echo "Usage: $0 [JSON_WEB_TOKEN]"
   exit 1
 fi

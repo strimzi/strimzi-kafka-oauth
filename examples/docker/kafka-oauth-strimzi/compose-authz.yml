@@ -24,7 +24,6 @@ services:
       # KAFKA Configuration
       #
       LOG_DIR: /home/kafka/logs
-      #KAFKA_LOG_DIRS: /home/kafka/1
 
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181

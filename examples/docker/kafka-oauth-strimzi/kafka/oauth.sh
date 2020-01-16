@@ -3,6 +3,8 @@
 usage() {
   echo "Usage: $0 [USERNAME] [PASSWORD] [ARGUMENTS] ..."
   echo
+  echo "$0 is a tool for obtaining an access token or a refresh token for the user or the client."
+  echo
   echo " USERNAME    The username for user authentication"
   echo " PASSWORD    The password for user authentication (prompted for if not specified)"
   echo
@@ -80,8 +82,8 @@ if [ "$UNAME" != "" ] && [ "$PASS" == "" ]; then
     >&2 echo
 fi
 
-if [ "$UNAME" == "" ] && [ "CLIENT_ID" == "" ]; then
-    echo "Usage: $0 [USERNAME] [PASSWORD] [--insecure] [--access] [--endpoint TOKEN_ENDPOINT_URL] [--client-id CLIENT_ID] [--secret CLIENT_SECRET] [--scopes SCOPES]"
+if [ "$UNAME" == "" ] && [ "$CLIENT_ID" == "" ]; then
+    echo "USERNAME not specified. Use --client-id and --secret to authenticate with client credentials."
     exit 1
 fi
 

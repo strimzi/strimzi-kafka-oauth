@@ -112,7 +112,11 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
  */
 public class KeycloakRBACAuthorizer extends SimpleAclAuthorizer {
 
+    private static final String PRINCIPAL_BUILDER_CLASS = "io.strimzi.kafka.oauth.server.authorizer.JwtKafkaPrincipalBuilder";
+
     static final Logger log = LoggerFactory.getLogger(KeycloakRBACAuthorizer.class);
+    static final Logger GRANT_LOG = LoggerFactory.getLogger(KeycloakRBACAuthorizer.class.getName() + ".grant");
+    static final Logger DENY_LOG = LoggerFactory.getLogger(KeycloakRBACAuthorizer.class.getName() + ".deny");
 
     private URI tokenEndpointUrl;
     private String clientId;
@@ -132,6 +136,11 @@ public class KeycloakRBACAuthorizer extends SimpleAclAuthorizer {
         super.configure(configs);
 
         AuthzConfig config = convertToCommonConfig(configs);
+
+        String pbclass = (String) configs.get("principal.builder.class");
+        if (!PRINCIPAL_BUILDER_CLASS.equals(pbclass)) {
+            throw new RuntimeException("KeycloakRBACAuthorizer requires " + PRINCIPAL_BUILDER_CLASS + " as 'principal.builder.class'");
+        }
 
         String endpoint = ConfigUtil.getConfigWithFallbackLookup(config, AuthzConfig.STRIMZI_AUTHZ_TOKEN_ENDPOINT_URI,
                 ClientConfig.OAUTH_TOKEN_ENDPOINT_URI);
@@ -261,8 +270,8 @@ public class KeycloakRBACAuthorizer extends SimpleAclAuthorizer {
                     && jwtPrincipal.getName().equals(u.getName())) {
 
                 // it's a super user. super users are granted everything
-                if (log.isDebugEnabled()) {
-                    log.debug("Authorization GRANTED - user is a superuser: " + session.principal() + ", operation: " + operation + ", resource: " + resource);
+                if (GRANT_LOG.isDebugEnabled()) {
+                    GRANT_LOG.debug("Authorization GRANTED - user is a superuser: " + session.principal() + ", operation: " + operation + ", resource: " + resource);
                 }
                 return true;
             }
@@ -317,8 +326,8 @@ public class KeycloakRBACAuthorizer extends SimpleAclAuthorizer {
                                     JSONUtil.asListOfString(permission.get("scopes"))));
 
                     if (grantedScopes.isGranted(operation.name())) {
-                        if (log.isDebugEnabled()) {
-                            log.debug("Authorization GRANTED - cluster: " + clusterName + ",user: " + session.principal() + ", operation: " + operation +
+                        if (GRANT_LOG.isDebugEnabled()) {
+                            GRANT_LOG.debug("Authorization GRANTED - cluster: " + clusterName + ",user: " + session.principal() + ", operation: " + operation +
                                     ", resource: " + resource + "\nGranted scopes for resource (" + resourceSpec + "): " + grantedScopes);
                         }
                         return true;
@@ -345,15 +354,24 @@ public class KeycloakRBACAuthorizer extends SimpleAclAuthorizer {
         if (delegateToKafkaACL) {
             boolean granted = super.authorize(session, operation, resource);
 
-            if (log.isDebugEnabled()) {
+            boolean grantLogOn = granted && GRANT_LOG.isDebugEnabled();
+            boolean denyLogOn = !granted && DENY_LOG.isDebugEnabled();
+
+            if (grantLogOn || denyLogOn) {
                 String status = granted ? "GRANTED" : "DENIED";
-                log.debug("Authorization " + status + " by ACL - user: " + session.principal() + ", operation: " + operation + ", resource: " + resource);
+                String message = "Authorization " + status + " by ACL - user: " + session.principal() + ", operation: " + operation + ", resource: " + resource;
+
+                if (grantLogOn) {
+                    GRANT_LOG.debug(message);
+                } else if (denyLogOn) {
+                    DENY_LOG.debug(message);
+                }
             }
             return granted;
         }
 
-        if (log.isDebugEnabled()) {
-            log.debug("Authorization DENIED - cluster: " + clusterName + ", user: " + session.principal() + ", operation: " + operation + ", resource: " + resource + "\n permissions: " + authz);
+        if (DENY_LOG.isDebugEnabled()) {
+            DENY_LOG.debug("Authorization DENIED - cluster: " + clusterName + ", user: " + session.principal() + ", operation: " + operation + ", resource: " + resource + "\n permissions: " + authz);
         }
         return false;
     }

@@ -14,11 +14,14 @@ import org.apache.kafka.common.security.oauthbearer.internals.OAuthBearerSaslSer
 
 /**
  * This class needs to be enabled as the PrincipalBuilder on Kafka Broker.
- *
- * It ensures that the generated Principal instance
- *
+ * <p>
+ * It ensures that the generated Principal is instance of {@link io.strimzi.kafka.oauth.server.authorizer.JwtKafkaPrincipal},
+ * containing the OAuthBearerToken token produced by <em>io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler</em>.
+ * </p>
+ * <p>
  * You can use 'principal.builder.class=io.strimzi.kafka.oauth.server.authorizer.JwtKafkaPrincipalBuilder'
- * property definition in server.properties.
+ * property definition in server.properties to install it.
+ * </p>
  */
 public class JwtKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder {
 

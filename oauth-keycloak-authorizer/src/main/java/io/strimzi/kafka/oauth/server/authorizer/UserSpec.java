@@ -6,8 +6,8 @@ package io.strimzi.kafka.oauth.server.authorizer;
 
 public class UserSpec {
 
-    private String type;
-    private String name;
+    private final String type;
+    private final String name;
 
     private UserSpec(String type, String name) {
         this.type = type;
@@ -29,6 +29,6 @@ public class UserSpec {
     }
 
     public String toString() {
-        return super.toString() + type + ":" + name;
+        return super.toString() + " " + type + ":" + name;
     }
 }

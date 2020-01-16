@@ -8,16 +8,22 @@ import java.net.URI;
 
 public class HttpException extends RuntimeException {
 
-    private URI uri;
-    private int status;
-    private String response;
+    private final String method;
+    private final URI uri;
+    private final int status;
+    private final String response;
 
-    public HttpException(URI uri, int status, String response) {
-        super("Request to " + uri + " failed with status " + status + ": " + response);
+    public HttpException(String method, URI uri, int status, String response) {
+        super(method + " request to " + uri + " failed with status " + status + ": " + response);
 
+        this.method = method;
         this.uri = uri;
         this.status = status;
         this.response = response;
+    }
+
+    public String getMethod() {
+        return method;
     }
 
     public URI getUri() {
