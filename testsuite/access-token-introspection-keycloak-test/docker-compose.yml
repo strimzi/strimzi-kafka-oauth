@@ -24,7 +24,7 @@ services:
       - KEYCLOAK_PASSWORD=admin
       - KEYCLOAK_HTTPS_PORT=8443
       - PROXY_ADDRESS_FORWARDING=true
-      - KEYCLOAK_IMPORT=/opt/jboss/keycloak/realms/demo.json
+      - KEYCLOAK_IMPORT=/opt/jboss/keycloak/realms/demo-realm.json
 
   kafka:
     image: strimzi/kafka:latest-kafka-2.3.0

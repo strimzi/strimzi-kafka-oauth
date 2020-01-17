@@ -38,33 +38,45 @@ public class HttpUtil {
     private static final Logger log = LoggerFactory.getLogger(HttpUtil.class);
 
     public static <T> T get(URI uri, String authorization, Class<T> responseType) throws IOException {
-        return postOrGet(uri, null, null, authorization, null, null, responseType);
+        return request(uri, null, null, authorization, null, null, responseType);
     }
 
     public static <T> T get(URI uri, SSLSocketFactory socketFactory, String authorization, Class<T> responseType) throws IOException {
-        return postOrGet(uri, socketFactory, null, authorization, null, null, responseType);
+        return request(uri, socketFactory, null, authorization, null, null, responseType);
     }
 
     public static <T> T get(URI uri, SSLSocketFactory socketFactory, HostnameVerifier hostnameVerifier, String authorization, Class<T> responseType) throws IOException {
-        return postOrGet(uri, socketFactory, hostnameVerifier, authorization, null, null, responseType);
+        return request(uri, socketFactory, hostnameVerifier, authorization, null, null, responseType);
     }
 
     public static <T> T post(URI uri, String authorization, String contentType, String body, Class<T> responseType) throws IOException {
-        return postOrGet(uri, null, null, authorization, contentType, body, responseType);
+        return request(uri, null, null, authorization, contentType, body, responseType);
     }
 
     public static <T> T post(URI uri, SSLSocketFactory socketFactory, String authorization, String contentType, String body, Class<T> responseType) throws IOException {
-        return postOrGet(uri, socketFactory, null, authorization, contentType, body, responseType);
+        return request(uri, socketFactory, null, authorization, contentType, body, responseType);
     }
 
     public static <T> T post(URI uri, SSLSocketFactory socketFactory, HostnameVerifier verifier, String authorization, String contentType, String body, Class<T> responseType) throws IOException {
-        return postOrGet(uri, socketFactory, verifier, authorization, contentType, body, responseType);
+        return request(uri, socketFactory, verifier, authorization, contentType, body, responseType);
+    }
+
+    public static void put(URI uri, String authorization, String contentType, String body) throws IOException {
+        request(uri, null, null, authorization, contentType, body, null);
+    }
+
+    public static void put(URI uri, SSLSocketFactory socketFactory, String authorization, String contentType, String body) throws IOException {
+        request(uri, socketFactory, null, authorization, contentType, body, null);
+    }
+
+    public static void put(URI uri, SSLSocketFactory socketFactory, HostnameVerifier verifier, String authorization, String contentType, String body) throws IOException {
+        request(uri, socketFactory, verifier, authorization, contentType, body, null);
     }
 
     @SuppressWarnings("checkstyle:NPathComplexity")
     // Surpressed because of Spotbugs Java 11 bug - https://github.com/spotbugs/spotbugs/issues/756
     @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
-    public static <T> T postOrGet(URI uri, SSLSocketFactory socketFactory, HostnameVerifier hostnameVerifier, String authorization, String contentType, String body, Class<T> responseType) throws IOException {
+    public static <T> T request(URI uri, SSLSocketFactory socketFactory, HostnameVerifier hostnameVerifier, String authorization, String contentType, String body, Class<T> responseType) throws IOException {
         HttpURLConnection con;
         try {
             con = (HttpURLConnection) uri.toURL().openConnection();
@@ -89,7 +101,7 @@ public class HttpUtil {
             con.setDoOutput(true);
         }
 
-        String method = body != null ? "POST" : "GET";
+        String method = body == null ? "GET" : responseType != null ? "POST" : "PUT";
         con.setRequestMethod(method);
         if (authorization != null) {
             con.setRequestProperty("Authorization", authorization);
@@ -114,8 +126,12 @@ public class HttpUtil {
             }
         }
 
+        return handleResponse(con, method, uri, responseType);
+    }
+
+    private static <T> T handleResponse(HttpURLConnection con, String method, URI uri, Class<T> responseType) throws IOException {
         int code = con.getResponseCode();
-        if (code != 200) {
+        if (code != 200 && code != 201 && code != 204) {
             InputStream err = con.getErrorStream();
             if (err != null) {
                 ByteArrayOutputStream errbuf = new ByteArrayOutputStream(4096);
@@ -132,6 +148,10 @@ public class HttpUtil {
         }
 
         try (InputStream response = con.getInputStream()) {
+            if (responseType == null) {
+                response.close();
+                return null;
+            }
             return JSONUtil.readJSON(response, responseType);
         }
 
