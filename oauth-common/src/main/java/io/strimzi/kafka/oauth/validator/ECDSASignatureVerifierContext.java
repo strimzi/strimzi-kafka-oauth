@@ -15,7 +15,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 
 /**
- * This class provides EC signature verification support.
+ * This class provides ECDSA signature verification support.
  *
  * Adapted from: https://github.com/keycloak/keycloak/blob/8.0.1/services/src/main/java/org/keycloak/crypto/ClientECDSASignatureVerifierContext.java
  */
