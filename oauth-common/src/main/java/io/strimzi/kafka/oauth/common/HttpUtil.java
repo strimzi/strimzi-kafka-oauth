@@ -73,7 +73,6 @@ public class HttpUtil {
         request(uri, socketFactory, verifier, authorization, contentType, body, null);
     }
 
-    @SuppressWarnings("checkstyle:NPathComplexity")
     // Surpressed because of Spotbugs Java 11 bug - https://github.com/spotbugs/spotbugs/issues/756
     @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
     public static <T> T request(URI uri, SSLSocketFactory socketFactory, HostnameVerifier hostnameVerifier, String authorization, String contentType, String body, Class<T> responseType) throws IOException {
@@ -129,6 +128,8 @@ public class HttpUtil {
         return handleResponse(con, method, uri, responseType);
     }
 
+    // Surpressed because of Spotbugs Java 11 bug - https://github.com/spotbugs/spotbugs/issues/756
+    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
     private static <T> T handleResponse(HttpURLConnection con, String method, URI uri, Class<T> responseType) throws IOException {
         int code = con.getResponseCode();
         if (code != 200 && code != 201 && code != 204) {
