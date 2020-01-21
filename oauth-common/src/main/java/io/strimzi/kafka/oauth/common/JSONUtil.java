@@ -78,7 +78,12 @@ public class JSONUtil {
         ArrayList<String> result = new ArrayList<>();
         Iterator<JsonNode> it = arrayNode.iterator();
         while (it.hasNext()) {
-            result.add(it.next().asText());
+            JsonNode n = it.next();
+            if (n.isTextual()) {
+                result.add(n.asText());
+            } else {
+                result.add(n.toString());
+            }
         }
         return result;
     }
