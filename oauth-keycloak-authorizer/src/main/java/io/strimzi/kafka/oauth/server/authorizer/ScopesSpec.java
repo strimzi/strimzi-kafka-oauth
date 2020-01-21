@@ -18,7 +18,8 @@ public class ScopesSpec {
         Describe,
         AlterConfigs,
         DescribeConfigs,
-        ClusterAction
+        ClusterAction,
+        IdempotentWrite
     }
 
     private EnumSet<AuthzScope> granted;

@@ -14,7 +14,8 @@ public class ResourceSpec {
     public enum ResourceType {
         Topic,
         Group,
-        Cluster
+        Cluster,
+        TransactionalId
     }
 
     private String clusterName;
@@ -126,6 +127,8 @@ public class ResourceSpec {
                 spec.resourceType = ResourceType.Group;
             } else if (type.equals("cluster")) {
                 spec.resourceType = ResourceType.Cluster;
+            } else if (type.equals("transactionalid")) {
+                spec.resourceType = ResourceType.TransactionalId;
             } else {
                 throw new RuntimeException("Failed to parse Resource: " + name + " - unsupported segment type: " + subSpec[0]);
             }
