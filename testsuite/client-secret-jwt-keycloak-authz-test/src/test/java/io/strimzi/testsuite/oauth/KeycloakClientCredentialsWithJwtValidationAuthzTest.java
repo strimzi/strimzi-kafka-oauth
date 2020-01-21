@@ -9,6 +9,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.strimzi.kafka.oauth.client.ClientConfig;
 import io.strimzi.kafka.oauth.common.ConfigProperties;
 import io.strimzi.kafka.oauth.common.HttpUtil;
+import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -49,8 +51,23 @@ public class KeycloakClientCredentialsWithJwtValidationAuthzTest {
     private static final String TEAM_B_CLIENT = "team-b-client";
     private static final String BOB = "bob";
 
+    private static final String TOPIC_A = "a_messages";
+    private static final String TOPIC_B = "b_messages";
+    private static final String TOPIC_X = "x_messages";
+
+
+    private HashMap<String, String> tokens;
+
+    private Producer<String, String> teamAProducer;
+    private Consumer<String, String> teamAConsumer;
+
+    private Producer<String, String> teamBProducer;
+    private Consumer<String, String> teamBConsumer;
+
+
     @Test
     public void doTest() throws Exception {
+
         System.out.println("==== KeycloakClientCredentialsWithJwtValidationAuthzTest - Tests Authorization ====");
 
         Properties defaults = new Properties();
@@ -66,86 +83,281 @@ public class KeycloakClientCredentialsWithJwtValidationAuthzTest {
 
         fixBadlyImportedAuthzSettings();
 
-        String topicA = "a_messages";
-        String topicB = "b_messages";
-        String topicX = "x_messages";
+        tokens = authenticateAllActors();
 
-        HashMap<String, String> tokens = authenticateAllActors();
+        testTeamAClientPart1();
 
-        Properties teamAProducerProps = buildProducerConfig(tokens.get(TEAM_A_CLIENT));
+        testTeamBClientPart1();
 
-        Producer<String, String> teamAProducer = new KafkaProducer<>(teamAProducerProps);
+        createTopicAsClusterManager();
 
-        try {
-            teamAProducer.send(new ProducerRecord<>(topicB, "The Message")).get();
-            Assert.fail("Should not be able to send message");
-        } catch (ExecutionException e) {
-            // should get authorization exception
-            Assert.assertTrue("Should fail with TopicAuthorizationException", e.getCause() instanceof TopicAuthorizationException);
+        testTeamAClientPart2();
+
+        testTeamBClientPart2();
+
+        testClusterManager();
+    }
+
+
+    Producer<String, String> getProducer(final String name) {
+        return recycleProducer(name, true);
+    }
+
+    Producer<String, String> newProducer(final String name) {
+        return recycleProducer(name, false);
+    }
+
+    Producer<String, String> recycleProducer(final String name, boolean recycle) {
+        switch (name) {
+            case TEAM_A_CLIENT:
+                if (teamAProducer != null) {
+                    if (recycle) {
+                        return teamAProducer;
+                    } else {
+                        teamAProducer.close();
+                    }
+                }
+                break;
+            case TEAM_B_CLIENT:
+                if (teamBProducer != null) {
+                    if (recycle) {
+                        return teamBProducer;
+                    } else {
+                        teamBProducer.close();
+                    }
+                }
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported producer: " + name);
         }
+
+        Properties producerProps = buildProducerConfig(tokens.get(name));
+        Producer<String, String> producer = new KafkaProducer<>(producerProps);
+
+        if (TEAM_A_CLIENT.equals(name)) {
+            teamAProducer = producer;
+        } else {
+            teamBProducer = producer;
+        }
+        return producer;
+    }
+
+    Consumer<String, String> newConsumer(final String name, String topic) {
+        switch (name) {
+            case TEAM_A_CLIENT:
+                if (teamAConsumer != null) {
+                    teamAConsumer.close();
+                }
+                break;
+            case TEAM_B_CLIENT:
+                if (teamBConsumer != null) {
+                    teamBConsumer.close();
+                }
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported consumer: " + name);
+        }
+
+        Properties consumerProps = buildConsumerConfig(tokens.get(name));
+        consumerProps.setProperty(ConsumerConfig.GROUP_ID_CONFIG, groupFor(topic));
+        Consumer<String, String> consumer = new KafkaConsumer<>(consumerProps);
+
+        if (TEAM_A_CLIENT.equals(name)) {
+            teamAConsumer = consumer;
+        } else {
+            teamBConsumer = consumer;
+        }
+        return consumer;
+    }
+
+    void createTopicAsClusterManager() throws Exception {
+
+        Properties bobAdminProps = buildAdminClientConfig(tokens.get(BOB));
+        AdminClient admin = AdminClient.create(bobAdminProps);
+
+        //
+        // Create x_* topic
+        //
+        admin.createTopics(Arrays.asList(new NewTopic[]{
+            new NewTopic(TOPIC_X, 1, (short) 1)
+        })).all().get();
+    }
+
+    private void testClusterManager() throws Exception {
+
+        Properties bobAdminProps = buildProducerConfig(tokens.get(BOB));
+        Producer<String, String> producer = new KafkaProducer<>(bobAdminProps);
+
+        Properties consumerProps = buildConsumerConfig(tokens.get(BOB));
+        Consumer<String, String> consumer = new KafkaConsumer<>(consumerProps);
+
+        //
+        // bob should succeed producing to x_* topic
+        //
+        produce(producer, TOPIC_X);
+
+        //
+        // bob should succeed producing to a_* topic
+        //
+        produce(producer, TOPIC_A);
+
+        //
+        // bob should succeed producing to b_* topic
+        //
+        produce(producer, TOPIC_B);
+
+        //
+        // bob should succeed producing to non-existing topic
+        //
+        produce(producer, "non-existing-topic");
+
+        //
+        // bob should succeed consuming from x_* topic
+        //
+        consume(consumer, TOPIC_X);
+
+        //
+        // bob should succeed consuming from a_* topic
+        //
+        consume(consumer, TOPIC_A);
+
+        //
+        // bob should succeed consuming from b_* topic
+        //
+        consume(consumer, TOPIC_B);
+
+        //
+        // bob should succeed consuming from "non-existing-topic" - which now exists
+        //
+        consume(consumer, "non-existing-topic");
+    }
+
+
+    private void testTeamAClientPart1() throws Exception {
+
+        Producer<String, String> teamAProducer = getProducer(TEAM_A_CLIENT);
+
+        //
+        // team-a-client should fail to produce to b_* topic
+        //
+        produceFail(teamAProducer, TOPIC_B);
 
         // Re-init producer because message to topicB is stuck in the queue, and any subsequent message to another queue
         // won't be handled until first message makes it through.
-        teamAProducer.close();
-        teamAProducer = new KafkaProducer<>(teamAProducerProps);
+        teamAProducer = newProducer(TEAM_A_CLIENT);
 
-        teamAProducer.send(new ProducerRecord<>(topicA, "The Message")).get();
-        System.out.println("Produced The Message");
+        //
+        // team-a-client should succeed producing to a_* topic
+        //
+        produce(teamAProducer, TOPIC_A);
 
-        Properties teamAConsumerProps = buildConsumerConfig(tokens.get(TEAM_A_CLIENT));
+        //
+        // team-a-client should also fail producing to non-existing x_* topic (fails to create it)
+        //
+        produceFail(teamAProducer, TOPIC_X);
 
-        Consumer<String, String> teamAConsumer = new KafkaConsumer<>(teamAConsumerProps);
+        Consumer<String, String> teamAConsumer = newConsumer(TEAM_A_CLIENT, TOPIC_B);
 
-        TopicPartition partition = new TopicPartition(topicB, 0);
-        teamAConsumer.assign(Arrays.asList(partition));
+        //
+        // team-a-client should fail consuming from b_* topic
+        //
+        consumeFail(teamAConsumer, TOPIC_B);
 
-        // try read b_topic
-        try {
-            while (teamAConsumer.partitionsFor(topicB, Duration.ofSeconds(1)).size() == 0) {
-                System.out.println("No assignment yet for consumer");
-            }
-            Assert.fail("Should fail with TopicAuthorizationException");
-        } catch (TopicAuthorizationException e) {
-        }
 
         // Close and re-init consumer
-        teamAConsumer.close();
-        teamAConsumer = new KafkaConsumer<>(teamAConsumerProps);
+        teamAConsumer = newConsumer(TEAM_A_CLIENT, TOPIC_A);
 
-        // try read a_topic
-        partition = new TopicPartition(topicA, 0);
-        teamAConsumer.assign(Arrays.asList(partition));
+        //
+        // team-a-client should succeed consuming from a_* topic
+        //
+        consume(teamAConsumer, TOPIC_A);
 
-        while (teamAConsumer.partitionsFor(topicA, Duration.ofSeconds(1)).size() == 0) {
-            System.out.println("No assignment yet for consumer");
-        }
-
-        // try read a_topic
-        teamAConsumer.seekToBeginning(Arrays.asList(partition));
-
-
-        ConsumerRecords<String, String> records = teamAConsumer.poll(Duration.ofSeconds(1));
-
-        Assert.assertEquals("Got message", 1, records.count());
-        Assert.assertEquals("Is message text: 'The Message'", "The Message", records.iterator().next().value());
+        //
+        // team-a-client should fail consuming from x_* topic - it doesn't exist
+        //
+        consumeFail(teamAConsumer, TOPIC_X);
     }
 
 
-    private HashMap<String, String> authenticateAllActors() throws IOException {
+    private void testTeamBClientPart1() throws Exception {
 
-        HashMap<String, String> tokens = new HashMap<>();
-        tokens.put(TEAM_A_CLIENT, loginWithClientSecret(URI.create(TOKEN_ENDPOINT_URI), null, null,
-                TEAM_A_CLIENT, TEAM_A_CLIENT + "-secret", true).token());
-        tokens.put(TEAM_B_CLIENT, loginWithClientSecret(URI.create(TOKEN_ENDPOINT_URI), null, null,
-                TEAM_B_CLIENT, TEAM_B_CLIENT + "-secret", true).token());
-        tokens.put(BOB, loginWithUsernamePassword(URI.create(TOKEN_ENDPOINT_URI),
-                BOB, BOB + "-password", "kafka-cli"));
-        return tokens;
+        Producer<String, String> teamBProducer = getProducer(TEAM_B_CLIENT);
+
+        //
+        // team-b-client should fail to produce to a_* topic
+        //
+        produceFail(teamBProducer, TOPIC_A);
+
+        // Re-init producer because message to topicA is stuck in the queue, and any subsequent message to another queue
+        // won't be handled until first message makes it through.
+        teamBProducer = newProducer(TEAM_B_CLIENT);
+
+        //
+        // team-b-client should succeed producing to b_* topic
+        //
+        produce(teamBProducer, TOPIC_B);
+
+        //
+        // team-b-client should fail to produce to x_* topic
+        //
+        produceFail(teamBProducer, TOPIC_X);
+
+
+        Consumer<String, String> teamBConsumer = newConsumer(TEAM_B_CLIENT, TOPIC_A);
+
+        //
+        // team-b-client should fail consuming from a_* topic
+        //
+        consumeFail(teamBConsumer, TOPIC_A);
+
+        // Close and re-init consumer
+        teamBConsumer = newConsumer(TEAM_B_CLIENT, TOPIC_B);
+
+        //
+        // team-b-client should succeed consuming from b_* topic
+        //
+        consume(teamBConsumer, TOPIC_B);
+    }
+
+    private void testTeamAClientPart2() throws Exception {
+
+        //
+        // team-a-client should succeed producing to existing x_* topic
+        //
+        Producer<String, String> teamAProducer = newProducer(TEAM_A_CLIENT);
+
+        produce(teamAProducer, TOPIC_X);
+
+        //
+        // team-a-client should fail reading from x_* topic
+        //
+        Consumer<String, String> teamAConsumer = newConsumer(TEAM_A_CLIENT, TOPIC_A);
+        consumeFail(teamAConsumer, TOPIC_X);
     }
 
 
-    private void fixBadlyImportedAuthzSettings() throws IOException {
-        // Use Keycloak Admin API to update decisionStrategy on 'kafka' client to AFFIRMATIVE
+    private void testTeamBClientPart2() throws Exception {
+        //
+        // team-b-client should succeed consuming from x_* topic
+        //
+        Consumer<String, String> teamBConsumer = newConsumer(TEAM_B_CLIENT, TOPIC_B);
+        consume(teamBConsumer, TOPIC_X);
+
+
+        //
+        // team-b-client should fail producing to x_* topic
+        //
+        Producer<String, String> teamBProducer = newProducer(TEAM_B_CLIENT);
+        produceFail(teamBProducer, TOPIC_X);
+    }
+
+
+    /**
+     * Use Keycloak Admin API to update Authorization Services 'decisionStrategy' on 'kafka' client to AFFIRMATIVE
+     *
+     * @throws IOException
+     */
+    static void fixBadlyImportedAuthzSettings() throws IOException {
 
         URI masterTokenEndpoint = URI.create("http://" + HOST + ":8080/auth/realms/master/protocol/openid-connect/token");
 
@@ -187,7 +399,69 @@ public class KeycloakClientCredentialsWithJwtValidationAuthzTest {
         HttpUtil.put(authzUri, authorization, "application/json", authzConf.toString());
     }
 
-    private static Properties buildProducerConfig(String accessToken) {
+
+    static String groupFor(String topic) {
+        return topic + "-group";
+    }
+
+    static HashMap<String, String> authenticateAllActors() throws IOException {
+
+        HashMap<String, String> tokens = new HashMap<>();
+        tokens.put(TEAM_A_CLIENT, loginWithClientSecret(URI.create(TOKEN_ENDPOINT_URI), null, null,
+                TEAM_A_CLIENT, TEAM_A_CLIENT + "-secret", true).token());
+        tokens.put(TEAM_B_CLIENT, loginWithClientSecret(URI.create(TOKEN_ENDPOINT_URI), null, null,
+                TEAM_B_CLIENT, TEAM_B_CLIENT + "-secret", true).token());
+        tokens.put(BOB, loginWithUsernamePassword(URI.create(TOKEN_ENDPOINT_URI),
+                BOB, BOB + "-password", "kafka-cli"));
+        return tokens;
+    }
+
+    static void consume(Consumer<String, String> consumer, String topic) {
+        TopicPartition partition = new TopicPartition(topic, 0);
+        consumer.assign(Arrays.asList(partition));
+
+        while (consumer.partitionsFor(topic, Duration.ofSeconds(1)).size() == 0) {
+            System.out.println("No assignment yet for consumer");
+        }
+
+        consumer.seekToBeginning(Arrays.asList(partition));
+        ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(10));
+
+        Assert.assertTrue("Got message", records.count() >= 1);
+    }
+
+    static void consumeFail(Consumer<String, String> consumer, String topic) {
+        TopicPartition partition = new TopicPartition(topic, 0);
+        consumer.assign(Arrays.asList(partition));
+
+        try {
+            while (consumer.partitionsFor(topic, Duration.ofSeconds(1)).size() == 0) {
+                System.out.println("No assignment yet for consumer");
+            }
+
+            consumer.seekToBeginning(Arrays.asList(partition));
+            consumer.poll(Duration.ofSeconds(1));
+
+            Assert.fail("Should fail with TopicAuthorizationException");
+        } catch (TopicAuthorizationException e) {
+        }
+    }
+
+    static void produce(Producer<String, String> producer, String topic) throws Exception {
+        producer.send(new ProducerRecord<>(topic, "The Message")).get();
+    }
+
+    static void produceFail(Producer<String, String> producer, String topic) throws Exception {
+        try {
+            produce(producer, topic);
+            Assert.fail("Should not be able to send message");
+        } catch (ExecutionException e) {
+            // should get authorization exception
+            Assert.assertTrue("Should fail with TopicAuthorizationException", e.getCause() instanceof TopicAuthorizationException);
+        }
+    }
+
+    static Properties buildProducerConfig(String accessToken) {
         Properties p = new Properties();
         p.setProperty("security.protocol", "SASL_PLAINTEXT");
         p.setProperty("sasl.mechanism", "OAUTHBEARER");
@@ -203,8 +477,11 @@ public class KeycloakClientCredentialsWithJwtValidationAuthzTest {
         return p;
     }
 
+    static Properties buildAdminClientConfig(String accessToken) {
+        return buildProducerConfig(accessToken);
+    }
 
-    private static Properties buildConsumerConfig(String accessToken) {
+    static Properties buildConsumerConfig(String accessToken) {
         Properties p = new Properties();
         p.setProperty("security.protocol", "SASL_PLAINTEXT");
         p.setProperty("sasl.mechanism", "OAUTHBEARER");
@@ -224,7 +501,7 @@ public class KeycloakClientCredentialsWithJwtValidationAuthzTest {
     }
 
 
-    private String loginWithUsernamePassword(URI tokenEndpointUri, String username, String password, String clientId) throws IOException {
+    static String loginWithUsernamePassword(URI tokenEndpointUri, String username, String password, String clientId) throws IOException {
 
         StringBuilder body = new StringBuilder("grant_type=password&username=" + urlencode(username) +
                 "&password=" + urlencode(password) + "&client_id=" + urlencode(clientId));
@@ -242,5 +519,13 @@ public class KeycloakClientCredentialsWithJwtValidationAuthzTest {
             throw new IllegalStateException("Invalid response from authorization server: no access_token");
         }
         return token.asText();
+    }
+
+    void cleanup() throws Exception {
+        Properties bobAdminProps = buildAdminClientConfig(tokens.get(BOB));
+        AdminClient admin = AdminClient.create(bobAdminProps);
+
+        admin.deleteTopics(Arrays.asList(TOPIC_A, TOPIC_B, TOPIC_X, "non-existing-topic"));
+        admin.deleteConsumerGroups(Arrays.asList(groupFor(TOPIC_A), groupFor(TOPIC_B), groupFor(TOPIC_X), groupFor("non-existing-topic")));
     }
 }
