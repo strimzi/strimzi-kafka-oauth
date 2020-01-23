@@ -1,0 +1,37 @@
+{
+  "allowRemoteResourceManagement": true,
+  "policyEnforcementMode": "ENFORCING",
+  "scopes": [
+    {
+      "name": "Create"
+    },
+    {
+      "name": "Read"
+    },
+    {
+      "name": "Write"
+    },
+    {
+      "name": "Delete"
+    },
+    {
+      "name": "Alter"
+    },
+    {
+      "name": "Describe"
+    },
+    {
+      "name": "ClusterAction"
+    },
+    {
+      "name": "DescribeConfigs"
+    },
+    {
+      "name": "AlterConfigs"
+    },
+    {
+      "name": "IdempotentWrite"
+    }
+  ],
+  "decisionStrategy": "AFFIRMATIVE"
+}

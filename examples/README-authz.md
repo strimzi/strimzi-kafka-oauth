@@ -1,7 +1,7 @@
 ## Token Based Authorization with Keycloak Authorization Services
 
 Once the Kafka Broker has obtained an access token by using Strimzi Kafka OAuth for authentication, it is possible to use centrally managed authorization rules to enforce access restrictions onto Kafka Clients.
-For this Strimzi Kafka OAuth supports the use of Keycloak Authorization Services.
+For this Strimzi Kafka OAuth supports the use of `Keycloak Authorization Services`.
 
 A custom authorizer has to be configured on the Kafka Broker to take advantage of Authorization Services REST endpoints available on Keycloak, which provide a list of granted permissions on resources for authenticated users.
 The list is fetched once, and enforced locally on the Kafka Broker for each user session in order to provide fast authorization decisions.
@@ -20,7 +20,7 @@ Now build the project, and prepare resources:
     mvn clean install -f ../..
     mvn clean install
 
-We are now ready to start up the containers and see Keycloak Authorization Services in action.
+We are now ready to start up the containers and see `Keycloak Authorization Services` in action.
 
 
 ## Starting Up the Containers
@@ -73,6 +73,15 @@ This tab becomes visible when `Authorization Enabled` is turned on under `Settin
 
 ## Authorization Services - Resources, Authorization Scopes, Policies and Permissions
 
+`Keycloak Authorization Services` uses several concepts that together take part in defining, and applying access control to resources.
+
+`Resources` define _what_ we are protecting from unauthorized access.
+Each resource can contain a list of `authorization scopes` - actions that are available on the resource, so that permission on a resource can be granted for one or more actions only.
+`Policies` define the groups of users we want to target with permissions. Users can be targeted based on group membership, assigned roles, or individually.
+Finally, the `permissions` tie together specific `resources`, `action scopes` and `policies` to define that 'specific users U can perform certain actions A on the resource R'.
+
+You can read more about `Keycloak Authorization Services` on [project's web site](https://www.keycloak.org/docs/latest/authorization_services/index.html).
+
 If we take a look under `Resources` sub-tab of `Authorization` tab, we'll see the list of resource definitions.
 These are resource specifiers - patterns in a specific format, that are used to target policies to specific resources.
 The format is quite simple. For example:
@@ -83,10 +92,10 @@ If `kafka-cluster:XXX` segment is not present, the specifier targets any cluster
 
 - `Group:x_*` ... targets all consumer groups on any cluster with names starting with 'x_'
 
-The possible resource types mirror the Kafka authorization model (Topic, Group, Cluster).
+The possible resource types mirror the Kafka authorization model (Topic, Group, Cluster, ...).
 
-Under `Authorization Scopes` we can see a list of all the possible Kafka permissions that can be granted.
-It requires some understanding of Kafka permissions model to know which of these make sense with which resource type (Topic, Group, Cluster).
+Under `Authorization Scopes` we can see a list of all the possible actions (Kafka permissions) that can be granted on resources of different types.
+It requires some understanding of [Kafka permissions model](https://kafka.apache.org/documentation/#resources_in_kafka) to know which of these make sense with which resource type (Topic, Group, Cluster, ...).
 This list mirrors Kafka permissions and should be the same for any deployment.
 There is a `authorization-scopes.json` file that can be imported so that these don't have to be manually entered for every new security realm.
 

@@ -15,7 +15,8 @@ public class ResourceSpec {
         Topic,
         Group,
         Cluster,
-        TransactionalId
+        TransactionalId,
+        DelegationToken
     }
 
     private String clusterName;
@@ -129,6 +130,8 @@ public class ResourceSpec {
                 spec.resourceType = ResourceType.Cluster;
             } else if (type.equals("transactionalid")) {
                 spec.resourceType = ResourceType.TransactionalId;
+            } else if (type.equals("delegationtoken")) {
+                spec.resourceType = ResourceType.DelegationToken;
             } else {
                 throw new RuntimeException("Failed to parse Resource: " + name + " - unsupported segment type: " + subSpec[0]);
             }
