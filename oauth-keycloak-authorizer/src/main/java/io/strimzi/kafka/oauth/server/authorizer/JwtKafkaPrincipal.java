@@ -7,6 +7,8 @@ package io.strimzi.kafka.oauth.server.authorizer;
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
 import org.apache.kafka.common.security.auth.KafkaPrincipal;
 
+import java.util.Objects;
+
 public class JwtKafkaPrincipal extends KafkaPrincipal {
 
     private final BearerTokenWithPayload jwt;
@@ -26,12 +28,17 @@ public class JwtKafkaPrincipal extends KafkaPrincipal {
 
     @Override
     public boolean equals(Object o) {
-        // We don't care about jwt field for equals comparison
-        return super.equals(o);
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        if (!super.equals(o)) return false;
+
+        JwtKafkaPrincipal that = (JwtKafkaPrincipal) o;
+        return Objects.equals(jwt, that.jwt);
     }
 
     @Override
     public int hashCode() {
-        return super.hashCode();
+        return Objects.hash(super.hashCode(), jwt);
     }
 }
