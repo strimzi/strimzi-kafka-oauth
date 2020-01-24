@@ -401,31 +401,49 @@ public class KeycloakRBACAuthorizer extends SimpleAclAuthorizer {
 
     @Override
     public void addAcls(Set<Acl> acls, Resource resource) {
+        if (!delegateToKafkaACL) {
+            throw new RuntimeException("Simple ACL delegation not enabled");
+        }
         super.addAcls(acls, resource);
     }
 
     @Override
     public boolean removeAcls(Set<Acl> aclsTobeRemoved, Resource resource) {
+        if (!delegateToKafkaACL) {
+            throw new RuntimeException("Simple ACL delegation not enabled");
+        }
         return super.removeAcls(aclsTobeRemoved, resource);
     }
 
     @Override
     public boolean removeAcls(Resource resource) {
+        if (!delegateToKafkaACL) {
+            throw new RuntimeException("Simple ACL delegation not enabled");
+        }
         return super.removeAcls(resource);
     }
 
     @Override
     public Set<Acl> getAcls(Resource resource) {
+        if (!delegateToKafkaACL) {
+            throw new RuntimeException("Simple ACL delegation not enabled");
+        }
         return super.getAcls(resource);
     }
 
     @Override
     public scala.collection.immutable.Map<Resource, Set<Acl>> getAcls(KafkaPrincipal principal) {
+        if (!delegateToKafkaACL) {
+            throw new RuntimeException("Simple ACL delegation not enabled");
+        }
         return super.getAcls(principal);
     }
 
     @Override
     public scala.collection.immutable.Map<Resource, Set<Acl>> getAcls() {
+        if (!delegateToKafkaACL) {
+            throw new RuntimeException("Simple ACL delegation not enabled");
+        }
         return super.getAcls();
     }
 
