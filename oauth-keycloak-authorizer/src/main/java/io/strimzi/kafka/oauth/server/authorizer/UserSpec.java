@@ -24,8 +24,11 @@ public class UserSpec {
 
 
     public static UserSpec of(String principal) {
-        String[] spec = principal.split(":");
-        return new UserSpec(spec[0], spec[1]);
+        int pos = principal.indexOf(':');
+        if (pos <= 0) {
+            throw new IllegalArgumentException("Invalid user specification: " + principal);
+        }
+        return new UserSpec(principal.substring(0, pos), principal.substring(pos + 1));
     }
 
     public String toString() {
