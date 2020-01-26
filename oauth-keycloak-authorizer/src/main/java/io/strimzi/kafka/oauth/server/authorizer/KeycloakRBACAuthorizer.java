@@ -17,7 +17,6 @@ import kafka.network.RequestChannel;
 import kafka.security.auth.Acl;
 import kafka.security.auth.Operation;
 import kafka.security.auth.Resource;
-import kafka.security.auth.SimpleAclAuthorizer;
 import org.apache.kafka.common.security.auth.KafkaPrincipal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -110,7 +109,8 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
  * This authorizer honors the <em>super.users</em> configuration. Super users are automatically granted any authorization request.
  * </p>
  */
-public class KeycloakRBACAuthorizer extends SimpleAclAuthorizer {
+@SuppressWarnings("deprecation")
+public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthorizer {
 
     private static final String PRINCIPAL_BUILDER_CLASS = "io.strimzi.kafka.oauth.server.authorizer.JwtKafkaPrincipalBuilder";
 
@@ -175,6 +175,16 @@ public class KeycloakRBACAuthorizer extends SimpleAclAuthorizer {
                     .stream()
                     .map(s -> UserSpec.of(s))
                     .collect(Collectors.toList());
+        }
+
+        if (log.isDebugEnabled()) {
+            log.debug("Configured KeycloakRBACAuthorizer:\n    tokenEndpointUri: " + tokenEndpointUrl
+                    + "\n    sslSocketFactory: " + socketFactory
+                    + "\n    hostnameVerifier: " + hostnameVerifier
+                    + "\n    clientId: " + clientId
+                    + "\n    clusterName: " + clusterName
+                    + "\n    delegateToKafkaACL: " + delegateToKafkaACL
+                    + "\n    superUsers: " + superUsers);
         }
     }
 
@@ -260,14 +270,10 @@ public class KeycloakRBACAuthorizer extends SimpleAclAuthorizer {
     public boolean authorize(RequestChannel.Session session, Operation operation, Resource resource) {
 
         KafkaPrincipal principal = session.principal();
-        if (!(principal instanceof JwtKafkaPrincipal)) {
-            throw new IllegalStateException("Kafka Broker is misconfigured. KeycloakRBACAuthorizer requires io.strimzi.kafka.oauth.server.authorizer.JwtKafkaPrincipalBuilder as 'principal.builder.class'");
-        }
 
-        JwtKafkaPrincipal jwtPrincipal = (JwtKafkaPrincipal) principal;
         for (UserSpec u: superUsers) {
-            if (jwtPrincipal.getPrincipalType().equals(u.getType())
-                    && jwtPrincipal.getName().equals(u.getName())) {
+            if (principal.getPrincipalType().equals(u.getType())
+                    && principal.getName().equals(u.getName())) {
 
                 // it's a super user. super users are granted everything
                 if (GRANT_LOG.isDebugEnabled()) {
@@ -281,6 +287,12 @@ public class KeycloakRBACAuthorizer extends SimpleAclAuthorizer {
         // Check if authorization grants are available
         // If not, fetch authorization grants and store them in the token
         //
+
+        if (!(principal instanceof JwtKafkaPrincipal)) {
+            throw new IllegalStateException("Unsupported principal type: " + principal.getClass().getName());
+        }
+
+        JwtKafkaPrincipal jwtPrincipal = (JwtKafkaPrincipal) principal;
 
         BearerTokenWithPayload token = jwtPrincipal.getJwt();
         JsonNode authz = (JsonNode) token.getPayload();
