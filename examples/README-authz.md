@@ -41,7 +41,7 @@ When everything starts up without errors we should have one instance of `keycloa
  
 You can login to the Admin Console by opening `http://localhost:8080/auth/admin` and using `admin` as both username, and a password.
 
-In the upper left corner under Keycloak icon you should see `Master` selected as a current realm.
+In the upper left corner under the Keycloak icon you should see `Master` selected as a current realm.
 Moving the mouse pointer over it should reveal two additional realms - `Demo` and `Kafka-authz`.
 
 For this example we are interested in the `kafka-authz` realm.
