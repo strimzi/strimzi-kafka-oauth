@@ -1,4 +1,4 @@
-FROM strimzi/zookeeper:0.11.4-kafka-2.1.0
+FROM strimzi/kafka:latest-kafka-2.4.0
 
 COPY start.sh /opt/kafka/
 COPY simple_zk_config.sh /opt/kafka/

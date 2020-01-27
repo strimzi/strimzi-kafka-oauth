@@ -356,6 +356,18 @@
                 </plugins>
             </build>
         </profile>
+        <profile>
+            <id>kafka-2_4</id>
+            <activation>
+                <property>
+                    <name>kafka_2_4</name>
+                </property>
+            </activation>
+            <properties>
+                <kafka.version>2.4.0</kafka.version>
+                <scala.version>2.12.10</scala.version>
+            </properties>
+        </profile>
     </profiles>
 </project>
 

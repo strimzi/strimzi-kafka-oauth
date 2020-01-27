@@ -38,6 +38,7 @@
                                         <include>simple_kafka_config.sh</include>
                                         <include>Dockerfile</include>
                                         <include>config/</include>
+                                        <include>certificates/</include>
                                     </includes>
                                     <filtering>false</filtering>
                                 </resource>
