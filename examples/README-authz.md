@@ -49,26 +49,29 @@ Selecting it will open the `Realm Settings` for the `kafka-authz` realm.
 Next to `Realm Settings` there are other sections we are interested in - `Groups`, `Roles`, `Clients` and `Users`.
 
 Under `Groups` we can see several groups that can be used to mark users as having some permissions.
-In Keycloak the groups can be stored in an LDAP identity provider.
-That makes it possible to make some user a member of some group - through custom LDAP server admin UI for example, which grants them some permissions on Kafka resources.
+Groups are sets of users with name assigned. Typically they are used to geographically or organisationally compartmentalize users into organisations, organisational units, departments etc.
 
-Under `Users` click on `View all users` button to see two users defined - `alice` and `bob`. They are both members of some group. 
+In Keycloak the groups can be stored in an LDAP identity provider.
+That makes it possible to make some user a member of some group - through a custom LDAP server admin UI for example, which grants them some permissions on Kafka resources.
+
+Under `Users`, click on the `View all users` button and you will see two users defined - `alice` and `bob`. `alice` is a member of the `ClusterManager Group`, and `bob` is a member of `ClusterManager-cluster2 Group`. 
 In Keycloak the users can be stored in an LDAP identity provider.
 
 Under `Roles` we can see several realm roles which can be used to mark users or clients as having some permissions.
-Roles are a concept analogous to groups. One exception in Keycloak is that roles can not be stored in an LDAP identity provider.
+Roles are a concept analogous to groups. They are usually used to 'tag' users as playing organisational roles and having permissions that pertain to it. 
+In Keycloak the roles can not be stored in an LDAP identity provider - if that is your requirement then you should use groups instead.
 
 Under `Clients` we can see some additional clients configured - `kafka`, `kafka-cli`, `team-a-client`, `team-b-client`.
 The client with client id `kafka` is used by Kafka Brokers to perform the necessary OAuth2 communication for access token validation, 
 and to authenticate to other Kafka Broker instances using OAuth2 client authentication.
-This client also contains Authorization Services resource definitions, policies and authorization scopes used to perform authorization on Kafka Brokers.
+This client also contains Authorization Services resource definitions, policies and authorization scopes used to perform authorization on the Kafka Brokers.
 
-The client with client id `kafka-cli` is a public client that can be used by command line tools when authenticating with username and password to obtain an access token or a refresh token.
+The client with client id `kafka-cli` is a public client that can be used by the Kafka command line tools when authenticating with username and password to obtain an access token or a refresh token.
 
-Clients `team-a-client`, and `team-b-client` are confidential clients representing services with partial access to Kafka topics.
+Clients `team-a-client`, and `team-b-client` are confidential clients representing services with partial access to certain Kafka topics.
 
-The authorization configuration is defined in `kafka` client under `Authorization` tab.
-This tab becomes visible when `Authorization Enabled` is turned on under `Settings` tab.
+The authorization configuration is defined in the `kafka` client under `Authorization` tab.
+This tab becomes visible when `Authorization Enabled` is turned on under the `Settings` tab.
 
 
 ## Authorization Services - Resources, Authorization Scopes, Policies and Permissions
@@ -82,7 +85,7 @@ Finally, the `permissions` tie together specific `resources`, `action scopes` an
 
 You can read more about `Keycloak Authorization Services` on [project's web site](https://www.keycloak.org/docs/latest/authorization_services/index.html).
 
-If we take a look under `Resources` sub-tab of `Authorization` tab, we'll see the list of resource definitions.
+If we take a look under the `Resources` sub-tab of `Authorization` tab, we'll see the list of resource definitions.
 These are resource specifiers - patterns in a specific format, that are used to target policies to specific resources.
 The format is quite simple. For example:
 
@@ -92,18 +95,18 @@ If `kafka-cluster:XXX` segment is not present, the specifier targets any cluster
 
 - `Group:x_*` ... targets all consumer groups on any cluster with names starting with 'x_'
 
-The possible resource types mirror the Kafka authorization model (Topic, Group, Cluster, ...).
+The possible resource types mirror the [Kafka authorization model](https://kafka.apache.org/documentation/#security_authz_primitives) (Topic, Group, Cluster, ...).
 
 Under `Authorization Scopes` we can see a list of all the possible actions (Kafka permissions) that can be granted on resources of different types.
-It requires some understanding of [Kafka permissions model](https://kafka.apache.org/documentation/#resources_in_kafka) to know which of these make sense with which resource type (Topic, Group, Cluster, ...).
+It requires some understanding of [Kafka's permissions model](https://kafka.apache.org/documentation/#resources_in_kafka) to know which of these make sense with which resource type (Topic, Group, Cluster, ...).
 This list mirrors Kafka permissions and should be the same for any deployment.
 There is a `authorization-scopes.json` file that can be imported so that these don't have to be manually entered for every new security realm.
 
-Under `Policies` sub-tab there are filters that match sets of users.
-Users can be explicitly listed, or they can be matched based on Roles, or Groups they are assigned.
-Policies can even be programmatically defined using JavaScript where logic can take into account session context of the client session - e.g. client ip (that is client ip of the Kafka client).
+Under the `Policies` sub-tab there are filters that match sets of users.
+Users can be explicitly listed, or they can be matched based on the Roles, or Groups they are assigned.
+Policies can even be programmatically defined using JavaScript where logic can take into account the context of the client session - e.g. client ip (that is client ip of the Kafka client).
 
-Then, finally, there is `Permissions` sub-tab, which defines 'role bindings' where `resources`, `authorization scopes` and `policies` are tied together to apply a set of permissions on specific resources for certain users.
+Then, finally, there is the `Permissions` sub-tab, which defines 'role bindings' where `resources`, `authorization scopes` and `policies` are tied together to apply a set of permissions on specific resources for certain users.
 
 Each `permission` definition can have a nice descriptive name which can make it very clear what kind of access is granted to which users.
 For example:
@@ -118,9 +121,9 @@ For example:
     ClusterManager of cluster2 Group has full access to topics on cluster2
     
 If we take a closer look at the `Dev Team A can write ...` permission definition, we see that it combines a resource called `Topic:x_*`, scopes `Describe` and `Write`, and `Dev Team A` policy.
-Let's click on `Dev Team A` policy. We see that it matches all users that have a realm role called `Dev Team A`.
+If we click on the `Dev Team A` policy, we see that it matches all users that have a realm role called `Dev Team A`.
 
-Similarly, the `Dev Team B ...` permissions perform matching using `Dev Team B` policy which also uses realm role to match allowed users - in this case those with realm role `Dev Team B`.
+Similarly, the `Dev Team B ...` permissions perform matching using the `Dev Team B` policy which also uses realm role to match allowed users - in this case those with realm role `Dev Team B`.
 The `Dev Team B ...` permissions grant users `Describe` and `Read` on `Topic:x_*`, and `Group:x_*` resources, effectively giving matching users and clients the ability to read from topics, and update the consumed offsets for topics and consumer groups that have names starting with 'x_'. 
 
 ## Targeting Permissions - Clients and Roles vs. Users and Groups
@@ -145,12 +148,12 @@ Under `Clients` / `kafka` / `Authorization` / `Settings` make sure the `Decision
   
 With configuration now in place, let's create some topics, use a producer, a consumer, and try to perform some management operations using different user and service accounts. 
 
-First, we'll spin up a new docker container based on Kafka image previously built by `docker-compose` which we'll use to connect to already running Kafka Broker.
+First, we'll spin up a new docker container based on a Kafka image previously built by `docker-compose` which we'll use to connect to the already running Kafka Broker.
 
     docker run -ti --rm --name kafka-cli --network docker_default strimzi/example-kafka /bin/sh
     
 Let's try to produce some messages as client `team-a-client`.
-First, we prepare a configuration file with authentication configuration.
+First, we prepare a Kafka consumer configuration file with authentication parameters.
 
 ```
 cat > ~/team-a-client.properties << EOF
@@ -164,11 +167,11 @@ sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthL
 EOF
 ```
 
-In Keycloak Console you can find which roles are assigned to `team-a-client` service account, by selecting `team-a-client` under `Clients` section,
-and then opening `Service Account Roles` tab for the client.
-You should see `Dev Team A` realm role assigned. 
+In the Keycloak Console you can find which roles are assigned to the `team-a-client` service account, by selecting `team-a-client` in the `Clients` section.
+and then opening the `Service Account Roles` tab for the client.
+You should see the `Dev Team A` realm role assigned. 
 
-We can now use this configuration with Kafka CLI tools.
+We can now use this configuration with Kafka's CLI tools.
 
 Make sure the necessary classes are on the classpath:
 
@@ -188,7 +191,7 @@ First message
 When we press `Enter` to push the first message we receive `Not authorized to access topics: [my-topic]` error.
 
 `team-a-client` has a `Dev Team A` role which gives it permissions to do anything on topics that start with 'a_', and only write to topics that start with 'x_'.
-Topic named `my-topic` does not fall in either of these two.
+The topic named `my-topic` matches neither of those.
 
 Use CTRL-C to exit the CLI application, and let's try to write to topic `a_messages`.
 
@@ -199,7 +202,7 @@ First message
 Second message
 ```
 
-We can see some warnings but looking at Kafka container log there is DEBUG level output saying 'Authorization GRANTED'.
+Although we can see some unrelated warnings, looking at the Kafka container log there is DEBUG level output saying 'Authorization GRANTED'.
 
 Use CTRL-C to exit the CLI application.
 
@@ -219,12 +222,12 @@ Let's set custom consumer group name that starts with 'a_'
     bin/kafka-console-consumer.sh --bootstrap-server kafka:9092 --topic a_messages \
       --from-beginning --consumer.config ~/team-a-client.properties --group a_consumer_group_1
 
-We should now receive all the messages for 'a_messages' topic, after which the client blocks waiting for more to come down the stream.
+We should now receive all the messages for the 'a_messages' topic, after which the client blocks waiting for more messages.
 
 Use CTRL-C to exit.
 
 
-### Using Kafka CLI Administration Tools
+### Using Kafka's CLI Administration Tools
 
 Let's now list the topics:
 
@@ -239,7 +242,7 @@ Let's try and list the consumer groups:
 
 Similarly to listing topics, we get one consumer group listed: `a_consumer_group_1`.
 
-There are more CLI administrative tools. For example we can try get default cluster configuration:
+There are more CLI administrative tools. For example we can try to get the default cluster configuration:
 
     bin/kafka-configs.sh --bootstrap-server kafka:9092 --command-config ~/team-a-client.properties \
       --entity-type brokers --describe --entity-default
@@ -263,9 +266,9 @@ sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthL
 EOF
 ```
 
-If we look at `team-b-client` client configuration, under 'Service Account Roles' we can see that it has `Dev Team B` realm role assigned.
-Looking in Keycloak Console at `kafka` client's `Authorization` tab where `Permissions` are listed, we can see the permissions that start with 'Dev Team B ...'.
-These match the users and service accounts that have 'Dev Team B' realm role assigned to them. 
+If we look at `team-b-client` client configuration in Keycloak, under 'Service Account Roles' we can see that it has `Dev Team B` realm role assigned.
+Looking in Keycloak Console at the `kafka` client's `Authorization` tab where `Permissions` are listed, we can see the permissions that start with 'Dev Team B ...'.
+These match the users and service accounts that have the 'Dev Team B' realm role assigned to them. 
 The `Dev Team B` users have full access to topics beginning with 'b_' on Kafka cluster `cluster2` (which is the designated cluster name of the demo cluster we brought up), and read access on topics that start with 'x_'.
 
 Let's try produce some messages to topic 'a_messages' as `team-b-client`:
@@ -306,7 +309,7 @@ Message 1
 ```
 
 However, we again receive `Not authorized to access topics: [x_messages]`. What's going on?
-The reason for failure is that while `team-a-client` can write to `x_messages` topic, it does not have a permission to create one if it does not yet exist.
+The reason for failure is that while `team-a-client` can write to `x_messages` topic, it does not have a permission to create a topic if it does not yet exist.
 
 We now need a power user that can create a topic with all the proper settings - like the right number of partitions and replicas.
 
@@ -315,7 +318,7 @@ We now need a power user that can create a topic with all the proper settings - 
 
 Let's create a configuration for user `bob` who has full ability to manage everything on Kafka cluster `cluster2`.
 
-First, `bob` will authenticate to Keycloak server with username and password and get a refresh token.
+First, `bob` will authenticate to Keycloak server with his username and password and get a refresh token.
 
 ```
 export TOKEN_ENDPOINT=http://keycloak:8080/auth/realms/kafka-authz/protocol/openid-connect/token
@@ -344,11 +347,12 @@ sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthL
 EOF
 ```
 
-Note that we use `kafka-cli` public client for clientId. 
+Note that we use the `kafka-cli` public client for the `oauth.client.id` in the `sasl.jaas.config`. 
 Since that is a public client it does not require any secret.
-We can use this, because we authenticate with a token directly (in this case a refresh token is used to request an access token behind the scenes which is then sent to Kafka broker for authentication).
+We can use this because we authenticate with a token directly (in this case a refresh token is used to request an access token behind the scenes which is then sent to Kafka broker for authentication, and we already did the authentication for the refresh token).
 
-Let's now try to create `x_messages` topic:
+
+Let's now try to create the `x_messages` topic:
 
     bin/kafka-topics.sh --bootstrap-server kafka:9092 --command-config ~/bob.properties \
       --topic x_messages --create --replication-factor 1 --partitions 1

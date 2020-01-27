@@ -8,7 +8,7 @@ usage() {
   echo " USERNAME    The username for user authentication"
   echo " PASSWORD    The password for user authentication (prompted for if not specified)"
   echo
-  echo " If USERNAME and PASSWORD are not specified, client credentials will be used for authentication."
+  echo " If USERNAME and PASSWORD are not specified, client credentials as specified by --client-id and --secret will be used for authentication."
   echo
   echo " ARGUMENTS:"
   echo "   --quiet, -q                      No informational outputs"
