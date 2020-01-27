@@ -100,7 +100,10 @@ The possible resource types mirror the [Kafka authorization model](https://kafka
 Under `Authorization Scopes` we can see a list of all the possible actions (Kafka permissions) that can be granted on resources of different types.
 It requires some understanding of [Kafka's permissions model](https://kafka.apache.org/documentation/#resources_in_kafka) to know which of these make sense with which resource type (Topic, Group, Cluster, ...).
 This list mirrors Kafka permissions and should be the same for any deployment.
-There is a `authorization-scopes.json` file that can be imported so that these don't have to be manually entered for every new security realm.
+
+There is an [authorization-scopes.json](../oauth-keycloak-authorizer/etc/authorization-scopes.json) file containing the authorization scopes that can be imported, so that they don't have to be manually entered for every new `Authorization Services` enabled client.
+In order to import `authorization-scopes.json` into a new client, first make sure the new client is `Authorization Enabled` and saved. Then, click on the `Authorization` tab and use the `Import` to import the file. Afterwards, if you select the `Authorization Scopes` you will see the loaded scopes.
+For this example the authorization scopes have already been imported as part of the realm import.
 
 Under the `Policies` sub-tab there are filters that match sets of users.
 Users can be explicitly listed, or they can be matched based on the Roles, or Groups they are assigned.
