@@ -55,7 +55,7 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
  * </p>
  * <blockquote>
  * Note: The following configuration keys can be specified as properties in Kafka `server.properties` file, or as
- * ENV vars in which case an all-uppercase key name is also attempted with '.' replaced by '_' (e.g. STRIMZI_AUTHZ_TOKEN_ENDPOINT_URI).
+ * ENV vars in which case an all-uppercase key name is also attempted with '.' replaced by '_' (e.g. STRIMZI_AUTHORIZATION_TOKEN_ENDPOINT_URI).
  * They can also be specified as system properties. The priority is in reverse - system property overrides the ENV var, which overrides
  * `server.properties`.
  * </blockquote>
@@ -63,10 +63,10 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
  * Required configuration:
  * </p>
  * <ul>
- * <li><em>strimzi.authz.token.endpoint.uri</em> A URL of the Keycloak's token endpoint (e.g. https://keycloak:8443/auth/realms/master/protocol/openid-connect/token).<br>
+ * <li><em>strimzi.authorization.token.endpoint.uri</em> A URL of the Keycloak's token endpoint (e.g. https://keycloak:8443/auth/realms/master/protocol/openid-connect/token).<br>
  * If not present, <em>oauth.token.endpoint.uri</em> is used as a fallback configuration key to avoid unnecessary duplication when already present for the purpose of client authentication.
  * </li>
- * <li><em>strimzi.authz.client.id</em> A client id of the OAuth client definition in Keycloak, that has Authorization Services enabled.<br>
+ * <li><em>strimzi.authorization.client.id</em> A client id of the OAuth client definition in Keycloak, that has Authorization Services enabled.<br>
  * Typically it is called 'kafka'.
  * If not present, <em>oauth.client.id</em> is used as a fallback configuration key to avoid unnecessary duplication when already present for the purpose of client authentication.
  * </li>
@@ -75,10 +75,10 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
  * Optional configuration:
  * </p>
  * <ul>
- * <li><em>strimzi.authz.kafka.cluster.name</em> The name of this cluster, used to target permissions to specific Kafka cluster, making it possible to manage multiple clusters within the same Keycloak realm.<br>
+ * <li><em>strimzi.authorization.kafka.cluster.name</em> The name of this cluster, used to target permissions to specific Kafka cluster, making it possible to manage multiple clusters within the same Keycloak realm.<br>
  * The default value is <em>kafka-cluster</em>
  * </li>
- * <li><em>strimzi.authz.delegate.to.kafka.acl</em> Whether authorization decision should be delegated to SimpleACLAuthorizer if DENIED by Keycloak Authorization Services policies.<br>
+ * <li><em>strimzi.authorization.delegate.to.kafka.acl</em> Whether authorization decision should be delegated to SimpleACLAuthorizer if DENIED by Keycloak Authorization Services policies.<br>
  * The default value is <em>false</em>
  * </li>
  * </ul>
@@ -86,21 +86,21 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
  * TLS configuration:
  * </p>
  * <ul>
- * <li><em>strimzi.authz.ssl.truststore.location</em> The location of the truststore file on the filesystem.<br>
+ * <li><em>strimzi.authorization.ssl.truststore.location</em> The location of the truststore file on the filesystem.<br>
  * If not present, <em>oauth.ssl.truststore.location</em> is used as a fallback configuration key to avoid unnecessary duplication when already present for the purpose of client authentication.
  * </li>
- * <li><em>strimzi.authz.ssl.truststore.password</em> The password for the truststore.<br>
+ * <li><em>strimzi.authorization.ssl.truststore.password</em> The password for the truststore.<br>
  * If not present, <em>oauth.ssl.truststore.password</em> is used as a fallback configuration key to avoid unnecessary duplication when already present for the purpose of client authentication.
  * </li>
- * <li><em>strimzi.authz.ssl.truststore.type</em> The truststore type.<br>
+ * <li><em>strimzi.authorization.ssl.truststore.type</em> The truststore type.<br>
  * If not present, <em>oauth.ssl.truststore.type</em> is used as a fallback configuration key to avoid unnecessary duplication when already present for the purpose of client authentication.
  * If not set, the <a href="https://docs.oracle.com/javase/8/docs/api/java/security/KeyStore.html#getDefaultType--">Java KeyStore default type</a> is used.
  * </li>
- * <li><em>strimzi.authz.ssl.secure.random.implementation</em> The random number generator implementation. See <a href="https://docs.oracle.com/javase/8/docs/api/java/security/SecureRandom.html#getInstance-java.lang.String-">Java SDK documentation</a>.<br>
+ * <li><em>strimzi.authorization.ssl.secure.random.implementation</em> The random number generator implementation. See <a href="https://docs.oracle.com/javase/8/docs/api/java/security/SecureRandom.html#getInstance-java.lang.String-">Java SDK documentation</a>.<br>
  * If not present, <em>oauth.ssl.secure.random.implementation</em> is used as a fallback configuration key to avoid unnecessary duplication when already present for the purpose of client authentication.
  * If not set, the Java platform SDK default is used.
  * </li>
- * <li><em>strimzi.authz.ssl.endpoint.identification.algorithm</em> Specify how to perform hostname verification. If set to empty string the hostname verification is turned off.<br>
+ * <li><em>strimzi.authorization.ssl.endpoint.identification.algorithm</em> Specify how to perform hostname verification. If set to empty string the hostname verification is turned off.<br>
  * If not present, <em>oauth.ssl.endpoint.identification.algorithm</em> is used as a fallback configuration key to avoid unnecessary duplication when already present for the purpose of client authentication.
  * If not set, the default value is <em>HTTPS</em> which enforces hostname verification for server certificates.
  * </li>
@@ -142,10 +142,10 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
             throw new RuntimeException("KeycloakRBACAuthorizer requires " + PRINCIPAL_BUILDER_CLASS + " as 'principal.builder.class'");
         }
 
-        String endpoint = ConfigUtil.getConfigWithFallbackLookup(config, AuthzConfig.STRIMZI_AUTHZ_TOKEN_ENDPOINT_URI,
+        String endpoint = ConfigUtil.getConfigWithFallbackLookup(config, AuthzConfig.STRIMZI_AUTHORIZATION_TOKEN_ENDPOINT_URI,
                 ClientConfig.OAUTH_TOKEN_ENDPOINT_URI);
         if (endpoint == null) {
-            throw new RuntimeException("OAuth2 Token Endpoint ('strimzi.authz.token.endpoint.uri') not set.");
+            throw new RuntimeException("OAuth2 Token Endpoint ('strimzi.authorization.token.endpoint.uri') not set.");
         }
 
         try {
@@ -154,20 +154,20 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
             throw new RuntimeException("Specified token endpoint uri is invalid: " + endpoint);
         }
 
-        clientId = ConfigUtil.getConfigWithFallbackLookup(config, AuthzConfig.STRIMZI_AUTHZ_CLIENT_ID, ClientConfig.OAUTH_CLIENT_ID);
+        clientId = ConfigUtil.getConfigWithFallbackLookup(config, AuthzConfig.STRIMZI_AUTHORIZATION_CLIENT_ID, ClientConfig.OAUTH_CLIENT_ID);
         if (clientId == null) {
-            throw new RuntimeException("OAuth2 Client Id ('strimzi.authz.client.id') not set.");
+            throw new RuntimeException("OAuth2 Client Id ('strimzi.authorization.client.id') not set.");
         }
 
         socketFactory = createSSLFactory(config);
         hostnameVerifier = createHostnameVerifier(config);
 
-        clusterName = config.getValue(AuthzConfig.STRIMZI_AUTHZ_KAFKA_CLUSTER_NAME);
+        clusterName = config.getValue(AuthzConfig.STRIMZI_AUTHORIZATION_KAFKA_CLUSTER_NAME);
         if (clusterName == null) {
             clusterName = "kafka-cluster";
         }
 
-        delegateToKafkaACL = config.getValueAsBoolean(AuthzConfig.STRIMZI_AUTHZ_DELEGATE_TO_KAFKA_ACL, false);
+        delegateToKafkaACL = config.getValueAsBoolean(AuthzConfig.STRIMZI_AUTHORIZATION_DELEGATE_TO_KAFKA_ACL, false);
 
         String users = (String) configs.get("super.users");
         if (users != null) {
@@ -189,7 +189,7 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
     }
 
     /**
-     * This method transforms strimzi.authz.* entries into oauth.* entries in order to be able to use existing ConfigUtil
+     * This method transforms strimzi.authorization.* entries into oauth.* entries in order to be able to use existing ConfigUtil
      * methods for setting up certificate truststore and hostname verification.
      *
      * It also makes sure to copy over 'as-is' all the config keys expected in server.properties for configuring
@@ -202,21 +202,21 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
         Properties p = new Properties();
 
         String[] keys = {
-            AuthzConfig.STRIMZI_AUTHZ_DELEGATE_TO_KAFKA_ACL,
-            AuthzConfig.STRIMZI_AUTHZ_KAFKA_CLUSTER_NAME,
-            AuthzConfig.STRIMZI_AUTHZ_CLIENT_ID,
+            AuthzConfig.STRIMZI_AUTHORIZATION_DELEGATE_TO_KAFKA_ACL,
+            AuthzConfig.STRIMZI_AUTHORIZATION_KAFKA_CLUSTER_NAME,
+            AuthzConfig.STRIMZI_AUTHORIZATION_CLIENT_ID,
             AuthzConfig.OAUTH_CLIENT_ID,
-            AuthzConfig.STRIMZI_AUTHZ_TOKEN_ENDPOINT_URI,
+            AuthzConfig.STRIMZI_AUTHORIZATION_TOKEN_ENDPOINT_URI,
             ClientConfig.OAUTH_TOKEN_ENDPOINT_URI,
-            AuthzConfig.STRIMZI_AUTHZ_SSL_TRUSTSTORE_LOCATION,
+            AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_LOCATION,
             Config.OAUTH_SSL_TRUSTSTORE_LOCATION,
-            AuthzConfig.STRIMZI_AUTHZ_SSL_TRUSTSTORE_PASSWORD,
+            AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_PASSWORD,
             Config.OAUTH_SSL_TRUSTSTORE_PASSWORD,
-            AuthzConfig.STRIMZI_AUTHZ_SSL_TRUSTSTORE_TYPE,
+            AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_TYPE,
             Config.OAUTH_SSL_TRUSTSTORE_TYPE,
-            AuthzConfig.STRIMZI_AUTHZ_SSL_SECURE_RANDOM_IMPLEMENTATION,
+            AuthzConfig.STRIMZI_AUTHORIZATION_SSL_SECURE_RANDOM_IMPLEMENTATION,
             Config.OAUTH_SSL_SECURE_RANDOM_IMPLEMENTATION,
-            AuthzConfig.STRIMZI_AUTHZ_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM,
+            AuthzConfig.STRIMZI_AUTHORIZATION_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM,
             Config.OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM
         };
 
@@ -230,20 +230,20 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
 
     static SSLSocketFactory createSSLFactory(Config config) {
         String truststore = ConfigUtil.getConfigWithFallbackLookup(config,
-                AuthzConfig.STRIMZI_AUTHZ_SSL_TRUSTSTORE_LOCATION, Config.OAUTH_SSL_TRUSTSTORE_LOCATION);
+                AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_LOCATION, Config.OAUTH_SSL_TRUSTSTORE_LOCATION);
         String password = ConfigUtil.getConfigWithFallbackLookup(config,
-                AuthzConfig.STRIMZI_AUTHZ_SSL_TRUSTSTORE_PASSWORD, Config.OAUTH_SSL_TRUSTSTORE_PASSWORD);
+                AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_PASSWORD, Config.OAUTH_SSL_TRUSTSTORE_PASSWORD);
         String type = ConfigUtil.getConfigWithFallbackLookup(config,
-                AuthzConfig.STRIMZI_AUTHZ_SSL_TRUSTSTORE_TYPE, Config.OAUTH_SSL_TRUSTSTORE_TYPE);
+                AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_TYPE, Config.OAUTH_SSL_TRUSTSTORE_TYPE);
         String rnd = ConfigUtil.getConfigWithFallbackLookup(config,
-                AuthzConfig.STRIMZI_AUTHZ_SSL_SECURE_RANDOM_IMPLEMENTATION, Config.OAUTH_SSL_SECURE_RANDOM_IMPLEMENTATION);
+                AuthzConfig.STRIMZI_AUTHORIZATION_SSL_SECURE_RANDOM_IMPLEMENTATION, Config.OAUTH_SSL_SECURE_RANDOM_IMPLEMENTATION);
 
         return SSLUtil.createSSLFactory(truststore, password, type, rnd);
     }
 
     static HostnameVerifier createHostnameVerifier(Config config) {
         String hostCheck = ConfigUtil.getConfigWithFallbackLookup(config,
-                AuthzConfig.STRIMZI_AUTHZ_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM, Config.OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM);
+                AuthzConfig.STRIMZI_AUTHORIZATION_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM, Config.OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM);
 
         if (hostCheck == null) {
             hostCheck = "HTTPS";

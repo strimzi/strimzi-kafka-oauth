@@ -10,17 +10,17 @@ import java.util.Properties;
 
 public class AuthzConfig extends Config {
 
-    public static final String STRIMZI_AUTHZ_CLIENT_ID = "strimzi.authz.client.id";
-    public static final String STRIMZI_AUTHZ_TOKEN_ENDPOINT_URI = "strimzi.authz.token.endpoint.uri";
+    public static final String STRIMZI_AUTHORIZATION_CLIENT_ID = "strimzi.authorization.client.id";
+    public static final String STRIMZI_AUTHORIZATION_TOKEN_ENDPOINT_URI = "strimzi.authorization.token.endpoint.uri";
 
-    public static final String STRIMZI_AUTHZ_KAFKA_CLUSTER_NAME = "strimzi.authz.kafka.cluster.name";
-    public static final String STRIMZI_AUTHZ_DELEGATE_TO_KAFKA_ACL = "strimzi.authz.delegate.to.kafka.acl";
+    public static final String STRIMZI_AUTHORIZATION_KAFKA_CLUSTER_NAME = "strimzi.authorization.kafka.cluster.name";
+    public static final String STRIMZI_AUTHORIZATION_DELEGATE_TO_KAFKA_ACL = "strimzi.authorization.delegate.to.kafka.acl";
 
-    public static final String STRIMZI_AUTHZ_SSL_TRUSTSTORE_LOCATION = "strimzi.authz.ssl.truststore.location";
-    public static final String STRIMZI_AUTHZ_SSL_TRUSTSTORE_PASSWORD = "strimzi.authz.ssl.truststore.password";
-    public static final String STRIMZI_AUTHZ_SSL_TRUSTSTORE_TYPE = "strimzi.authz.ssl.truststore.type";
-    public static final String STRIMZI_AUTHZ_SSL_SECURE_RANDOM_IMPLEMENTATION = "strimzi.authz.ssl.secure.random.implementation";
-    public static final String STRIMZI_AUTHZ_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM = "strimzi.authz.ssl.endpoint.identification.algorithm";
+    public static final String STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_LOCATION = "strimzi.authorization.ssl.truststore.location";
+    public static final String STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_PASSWORD = "strimzi.authorization.ssl.truststore.password";
+    public static final String STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_TYPE = "strimzi.authorization.ssl.truststore.type";
+    public static final String STRIMZI_AUTHORIZATION_SSL_SECURE_RANDOM_IMPLEMENTATION = "strimzi.authorization.ssl.secure.random.implementation";
+    public static final String STRIMZI_AUTHORIZATION_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM = "strimzi.authorization.ssl.endpoint.identification.algorithm";
 
     AuthzConfig() {}
 

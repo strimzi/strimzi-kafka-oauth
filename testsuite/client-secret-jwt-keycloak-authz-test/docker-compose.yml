@@ -58,7 +58,7 @@ services:
 
       - KAFKA_AUTHORIZER_CLASS_NAME=io.strimzi.kafka.oauth.server.authorizer.KeycloakRBACAuthorizer
       - KAFKA_PRINCIPAL_BUILDER_CLASS=io.strimzi.kafka.oauth.server.authorizer.JwtKafkaPrincipalBuilder
-      - KAFKA_STRIMZI_AUTHZ_KAFKA_CLUSTER_NAME=cluster2
+      - KAFKA_STRIMZI_AUTHORIZATION_KAFKA_CLUSTER_NAME=cluster2
 
       # Authentication config
       - OAUTH_CLIENT_ID=kafka
