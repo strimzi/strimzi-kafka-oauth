@@ -184,7 +184,7 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
                     + "\n    clientId: " + clientId
                     + "\n    clusterName: " + clusterName
                     + "\n    delegateToKafkaACL: " + delegateToKafkaACL
-                    + "\n    superUsers: " + superUsers);
+                    + "\n    superUsers: " + superUsers.stream().map(u -> u.getType() + ":" + u.getName()).collect(Collectors.toList()));
         }
     }
 
@@ -283,14 +283,16 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
             }
         }
 
+        if (!(principal instanceof JwtKafkaPrincipal)) {
+            // if user wasn't authenticated over OAuth, and simple ACL delegation is enabled
+            // we delegate to simple ACL
+            return delegateIfRequested(session, operation, resource, null);
+        }
+
         //
         // Check if authorization grants are available
         // If not, fetch authorization grants and store them in the token
         //
-
-        if (!(principal instanceof JwtKafkaPrincipal)) {
-            throw new IllegalStateException("Unsupported principal type: " + principal.getClass().getName());
-        }
 
         JwtKafkaPrincipal jwtPrincipal = (JwtKafkaPrincipal) principal;
 
@@ -363,6 +365,7 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
     }
 
     boolean delegateIfRequested(RequestChannel.Session session, Operation operation, Resource resource, JsonNode authz) {
+        String nonAuthMessageFragment = session.principal() instanceof JwtKafkaPrincipal ? "" : " non-oauth";
         if (delegateToKafkaACL) {
             boolean granted = super.authorize(session, operation, resource);
 
@@ -371,7 +374,7 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
 
             if (grantLogOn || denyLogOn) {
                 String status = granted ? "GRANTED" : "DENIED";
-                String message = "Authorization " + status + " by ACL - user: " + session.principal() + ", operation: " + operation + ", resource: " + resource;
+                String message = "Authorization " + status + " by ACL -" + nonAuthMessageFragment + " user: " + session.principal() + ", operation: " + operation + ", resource: " + resource;
 
                 if (grantLogOn) {
                     GRANT_LOG.debug(message);
@@ -383,7 +386,8 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
         }
 
         if (DENY_LOG.isDebugEnabled()) {
-            DENY_LOG.debug("Authorization DENIED - cluster: " + clusterName + ", user: " + session.principal() + ", operation: " + operation + ", resource: " + resource + "\n permissions: " + authz);
+            DENY_LOG.debug("Authorization DENIED -" + nonAuthMessageFragment + " user: " + session.principal() +
+                    " cluster: " + clusterName + ", operation: " + operation + ", resource: " + resource + "\n permissions: " + authz);
         }
         return false;
     }
