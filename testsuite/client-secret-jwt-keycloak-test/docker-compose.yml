@@ -24,7 +24,7 @@ services:
       - KEYCLOAK_PASSWORD=admin
       - KEYCLOAK_HTTPS_PORT=8443
       - PROXY_ADDRESS_FORWARDING=true
-      - KEYCLOAK_IMPORT=/opt/jboss/keycloak/realms/demo.json
+      - KEYCLOAK_IMPORT=/opt/jboss/keycloak/realms/demo-ec.json
 
       # Wait for up to 90 seconds for service to be up before ARQ Cube's wait_for_it gives up
       - TIMEOUT=90
@@ -59,18 +59,19 @@ services:
       # Authentication config
       - OAUTH_CLIENT_ID=kafka-broker
       - OAUTH_CLIENT_SECRET=kafka-broker-secret
-      - OAUTH_TOKEN_ENDPOINT_URI=http://${KEYCLOAK_HOST:-keycloak}:8080/auth/realms/${REALM:-demo}/protocol/openid-connect/token
+      - OAUTH_TOKEN_ENDPOINT_URI=http://${KEYCLOAK_HOST:-keycloak}:8080/auth/realms/${REALM:-demo-ec}/protocol/openid-connect/token
 
       # Validation config
-      - OAUTH_VALID_ISSUER_URI=http://${KEYCLOAK_HOST:-keycloak}:8080/auth/realms/${REALM:-demo}
-      - OAUTH_JWKS_ENDPOINT_URI=http://${KEYCLOAK_HOST:-keycloak}:8080/auth/realms/${REALM:-demo}/protocol/openid-connect/certs
+      - OAUTH_VALID_ISSUER_URI=http://${KEYCLOAK_HOST:-keycloak}:8080/auth/realms/${REALM:-demo-ec}
+      - OAUTH_JWKS_ENDPOINT_URI=http://${KEYCLOAK_HOST:-keycloak}:8080/auth/realms/${REALM:-demo-ec}/protocol/openid-connect/certs
+      - OAUTH_CRYPTO_PROVIDER_BOUNCYCASTLE=true
 
       # username extraction from JWT token claim
       - OAUTH_USERNAME_CLAIM=preferred_username
 
       # For start.sh script to know where the keycloak is listening
       - KEYCLOAK_HOST=${KEYCLOAK_HOST:-keycloak}
-      - REALM=${REALM:-demo}
+      - REALM=${REALM:-demo-ec}
 
       # Wait for up to 90 seconds for service to be up before ARQ Cube's wait_for_it gives up
       - TIMEOUT=90

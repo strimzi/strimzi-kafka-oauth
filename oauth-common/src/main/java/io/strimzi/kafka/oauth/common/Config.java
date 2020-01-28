@@ -130,8 +130,7 @@ public class Config {
 
     private boolean isTrue(String result) {
         String val = result.toLowerCase(Locale.ENGLISH);
-        boolean tru = val.equals("true") || val.equals("yes") || val.equals("y") || val.equals("1");
-        if (true) {
+        if (val.equals("true") || val.equals("yes") || val.equals("y") || val.equals("1")) {
             return true;
         }
         if (val.equals("false") || val.equals("no") || val.equals("n") || val.equals("0")) {

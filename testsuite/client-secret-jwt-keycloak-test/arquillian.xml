@@ -11,16 +11,24 @@
               await:
                 strategy: sleeping
                 sleepTime: 5 s
+
             kafka:
               await:
                 strategy: log
                 match: '[KafkaServer id=1] started'
                 timeout: 120
+              beforeStop:
+                - log:
+                    to: ${PWD}/../kafka.log
+                    stdout: true
+                    stderr: true
+
             keycloak:
               await:
                 strategy: log
                 match: 'regexp:.* Keycloak .* started in .*'
                 timeout: 120
+
         </property>
     </extension>
 </arquillian>

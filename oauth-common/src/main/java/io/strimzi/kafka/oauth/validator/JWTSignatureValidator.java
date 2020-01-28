@@ -9,7 +9,10 @@ import io.strimzi.kafka.oauth.common.HttpUtil;
 import io.strimzi.kafka.oauth.common.TimeUtil;
 import io.strimzi.kafka.oauth.common.TokenInfo;
 import org.apache.kafka.common.utils.Time;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.keycloak.TokenVerifier;
+import org.keycloak.crypto.AsymmetricSignatureVerifierContext;
+import org.keycloak.crypto.KeyWrapper;
 import org.keycloak.exceptions.TokenSignatureInvalidException;
 import org.keycloak.jose.jwk.JSONWebKeySet;
 import org.keycloak.jose.jwk.JWK;
@@ -22,13 +25,16 @@ import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSocketFactory;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.security.Provider;
 import java.security.PublicKey;
+import java.security.Security;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.strimzi.kafka.oauth.validator.TokenValidationException.Status;
 import static org.keycloak.TokenVerifier.IS_ACTIVE;
@@ -37,6 +43,8 @@ import static org.keycloak.TokenVerifier.SUBJECT_EXISTS_CHECK;
 public class JWTSignatureValidator implements TokenValidator {
 
     private static final Logger log = LoggerFactory.getLogger(JWTSignatureValidator.class);
+
+    private static AtomicBoolean bouncyInstalled =  new AtomicBoolean(false);
 
     private final ScheduledExecutorService scheduler;
 
@@ -62,7 +70,9 @@ public class JWTSignatureValidator implements TokenValidator {
                                  int expirySeconds,
                                  boolean defaultChecks,
                                  boolean skipTypeCheck,
-                                 String audience) {
+                                 String audience,
+                                 boolean enableBouncyCastleProvider,
+                                 int bouncyCastleProviderPosition) {
 
         if (keysEndpointUri == null) {
             throw new IllegalArgumentException("keysEndpointUri == null");
@@ -97,6 +107,20 @@ public class JWTSignatureValidator implements TokenValidator {
         this.skipTypeCheck = skipTypeCheck;
         this.audience = audience;
 
+        if (enableBouncyCastleProvider && !bouncyInstalled.getAndSet(true)) {
+            int installedPosition = Security.insertProviderAt(new BouncyCastleProvider(), bouncyCastleProviderPosition);
+            log.info("BouncyCastle security provider installed at position: " + installedPosition);
+
+            if (log.isDebugEnabled()) {
+                StringBuilder sb = new StringBuilder("Installed security providers:\n");
+                for (Provider p: Security.getProviders()) {
+                    sb.append("  - " + p.toString() + "  [" + p.getClass().getName() + "]\n");
+                    sb.append("   " + p.getInfo() + "\n");
+                }
+                log.debug(sb.toString());
+            }
+        }
+
         fetchKeys();
 
         // set up periodic timer to update keys from server every refreshSeconds;
@@ -111,7 +135,9 @@ public class JWTSignatureValidator implements TokenValidator {
                     + "\n    validIssuerUri: " + validIssuerUri
                     + "\n    certsRefreshSeconds: " + refreshSeconds
                     + "\n    certsExpirySeconds: " + expirySeconds
-                    + "\n    skipTypeCheck: " + skipTypeCheck);
+                    + "\n    skipTypeCheck: " + skipTypeCheck
+                    + "\n    enableBouncyCastleProvider: " + enableBouncyCastleProvider
+                    + "\n    bouncyCastleProviderPosition: " + bouncyCastleProviderPosition);
         }
     }
 
@@ -164,7 +190,6 @@ public class JWTSignatureValidator implements TokenValidator {
             throw new TokenValidationException("Token signature validation failed: " + token, e)
                     .status(Status.INVALID_TOKEN);
         }
-        tokenVerifier.publicKey(getPublicKey(kid));
 
         if (audience != null) {
             tokenVerifier.audience(audience);
@@ -173,6 +198,20 @@ public class JWTSignatureValidator implements TokenValidator {
         AccessToken t;
 
         try {
+            KeyWrapper keywrap = new KeyWrapper();
+            PublicKey pub = getPublicKey(kid);
+            keywrap.setPublicKey(pub);
+            keywrap.setAlgorithm(tokenVerifier.getHeader().getAlgorithm().name());
+            keywrap.setKid(kid);
+
+            log.debug("Signature algorithm used: [" + pub.getAlgorithm() + "]");
+            AsymmetricSignatureVerifierContext ctx = isAlgorithmEC(pub.getAlgorithm()) ?
+                    new ECDSASignatureVerifierContext(keywrap) :
+                    new AsymmetricSignatureVerifierContext(keywrap);
+            tokenVerifier.verifierContext(ctx);
+
+            log.debug("SignatureVerifierContext set to: " + ctx);
+
             tokenVerifier.verify();
             t = tokenVerifier.getToken();
 
@@ -191,6 +230,10 @@ public class JWTSignatureValidator implements TokenValidator {
         }
 
         return new TokenInfo(t, token);
+    }
+
+    private static boolean isAlgorithmEC(String algorithm) {
+        return "EC".equals(algorithm) || "ECDSA".equals(algorithm);
     }
 
 

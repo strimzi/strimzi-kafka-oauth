@@ -30,11 +30,11 @@ import java.util.Properties;
 public class KeycloakClientCredentialsWithJwtValidationTest {
 
     private static final String HOST = "keycloak";
-    private static final String REALM = "demo";
+    private static final String REALM = "demo-ec";
 
     @Test
     public void doTest() throws Exception {
-        System.out.println("==== KeycloakClientCredentialsWithJwtValidationTest ====");
+        System.out.println("==== KeycloakClientCredentialsWithJwtValidationTest + test EC ====");
 
         Properties p = System.getProperties();
         for (Object key: p.keySet()) {
