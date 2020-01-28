@@ -1,8 +1,9 @@
-FROM strimzi/kafka:latest-kafka-2.3.0
+FROM strimzi/kafka:latest-kafka-2.4.0
 
 COPY libs/* /opt/kafka/libs/strimzi/
 COPY config/* /opt/kafka/config/
 COPY *.sh /opt/kafka/
+COPY certificates/*.p12 /tmp/kafka/
 
 USER root
 RUN chmod +x /opt/kafka/*.sh

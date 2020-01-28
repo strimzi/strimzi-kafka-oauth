@@ -89,11 +89,6 @@ public class OAuthIntrospectionValidator implements TokenValidator {
     @SuppressWarnings("checkstyle:NPathComplexity")
     public TokenInfo validate(String token) {
 
-        // TODO: remove this debug code
-        if ("ignore".equals(token)) {
-            return new TokenInfo(token, null, "ignore", System.currentTimeMillis(), System.currentTimeMillis() + 1000 * 60 * 60 * 365);
-        }
-
         String authorization = clientSecret != null ?
                 "Basic " + base64encode(clientId + ':' + clientSecret) :
                 null;

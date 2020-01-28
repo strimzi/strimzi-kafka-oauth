@@ -6,6 +6,7 @@ package io.strimzi.kafka.oauth.common;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSocketFactory;
+import java.util.Properties;
 
 public class ConfigUtil {
 
@@ -23,5 +24,19 @@ public class ConfigUtil {
 
         // Following Kafka convention for skipping hostname validation (when set to <empty>)
         return "".equals(hostCheck) ? SSLUtil.createAnyHostHostnameVerifier() : null;
+    }
+
+    public static void putIfNotNull(Properties p, String key, Object value) {
+        if (value != null) {
+            p.put(key, value);
+        }
+    }
+
+    public static String getConfigWithFallbackLookup(Config c, String key, String fallbackKey) {
+        String result = c.getValue(key);
+        if (result == null) {
+            result = c.getValue(fallbackKey);
+        }
+        return result;
     }
 }

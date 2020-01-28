@@ -1,0 +1,86 @@
+version: '3.5'
+
+services:
+
+  #################################### KAFKA BROKER ####################################
+  kafka:
+    image: strimzi/example-kafka
+    build: kafka-oauth-strimzi/kafka/target
+    container_name: kafka
+    ports:
+      - 9092:9092
+
+      # javaagent debug port
+      - 5006:5006
+
+    environment:
+
+      # Java Debug
+      KAFKA_DEBUG: y
+      DEBUG_SUSPEND_FLAG: y
+      JAVA_DEBUG_PORT: 5006
+
+      #
+      # KAFKA Configuration
+      #
+      LOG_DIR: /home/kafka/logs
+
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: REPLICATION://kafka:9091,CLIENT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: REPLICATION:SSL,CLIENT:SASL_PLAINTEXT
+      KAFKA_SASL_ENABLED_MECHANISMS: OAUTHBEARER
+      KAFKA_INTER_BROKER_LISTENER_NAME: REPLICATION
+      KAFKA_SSL_SECURE_RANDOM_IMPLEMENTATION: SHA1PRNG
+      KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: ""
+
+      KAFKA_LISTENER_NAME_REPLICATION_SSL_KEYSTORE_LOCATION: /tmp/kafka/cluster.keystore.p12
+      KAFKA_LISTENER_NAME_REPLICATION_SSL_KEYSTORE_PASSWORD: Z_pkTh9xgZovK4t34cGB2o6afT4zZg0L
+      KAFKA_LISTENER_NAME_REPLICATION_SSL_KEYSTORE_TYPE: PKCS12
+      KAFKA_LISTENER_NAME_REPLICATION_SSL_TRUSTSTORE_LOCATION: /tmp/kafka/cluster.truststore.p12
+      KAFKA_LISTENER_NAME_REPLICATION_SSL_TRUSTSTORE_PASSWORD: Z_pkTh9xgZovK4t34cGB2o6afT4zZg0L
+      KAFKA_LISTENER_NAME_REPLICATION_SSL_TRUSTSTORE_TYPE: PKCS12
+      KAFKA_LISTENER_NAME_REPLICATION_SSL_CLIENT_AUTH: required
+
+      KAFKA_LISTENER_NAME_CLIENT_OAUTHBEARER_SASL_JAAS_CONFIG: "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required;"
+      KAFKA_LISTENER_NAME_CLIENT_OAUTHBEARER_SASL_LOGIN_CALLBACK_HANDLER_CLASS: io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
+      KAFKA_LISTENER_NAME_CLIENT_OAUTHBEARER_SASL_SERVER_CALLBACK_HANDLER_CLASS: io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
+
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+      KAFKA_AUTHORIZER_CLASS_NAME: io.strimzi.kafka.oauth.server.authorizer.KeycloakRBACAuthorizer
+      KAFKA_PRINCIPAL_BUILDER_CLASS: io.strimzi.kafka.oauth.server.authorizer.JwtKafkaPrincipalBuilder
+
+      KAFKA_STRIMZI_AUTHORIZATION_KAFKA_CLUSTER_NAME: cluster2
+      KAFKA_STRIMZI_AUTHORIZATION_DELEGATE_TO_KAFKA_ACL: "true"
+      KAFKA_SUPER_USERS: User:CN=my-cluster-kafka,O=io.strimzi;User:CN=my-cluster-entity-operator,O=io.strimzi;User:CN=my-cluster-kafka-exporter,O=io.strimzi;User:service-account-kafka
+
+      #
+      # Strimzi OAuth Configuration
+      #
+
+      # Authentication config
+      OAUTH_CLIENT_ID: "kafka"
+      OAUTH_CLIENT_SECRET: "kafka-secret"
+      OAUTH_TOKEN_ENDPOINT_URI: "http://${KEYCLOAK_HOST:-keycloak}:8080/auth/realms/${REALM:-kafka-authz}/protocol/openid-connect/token"
+
+      # Validation config
+      OAUTH_VALID_ISSUER_URI: "http://${KEYCLOAK_HOST:-keycloak}:8080/auth/realms/${REALM:-kafka-authz}"
+      OAUTH_JWKS_ENDPOINT_URI: "http://${KEYCLOAK_HOST:-keycloak}:8080/auth/realms/${REALM:-kafka-authz}/protocol/openid-connect/certs"
+      #OAUTH_INTROSPECTION_ENDPOINT_URI: "http://${KEYCLOAK_HOST}:8080/auth/realms/${REALM:-demo}/protocol/openid-connect/token/introspect"
+
+      # username extraction from JWT token claim
+      OAUTH_USERNAME_CLAIM: preferred_username
+
+      # For start.sh script to know where the keycloak is listening
+      KEYCLOAK_HOST: ${KEYCLOAK_HOST:-keycloak}
+      REALM: ${REALM:-kafka-authz}
+
+  zookeeper:
+    image: strimzi/example-zookeeper
+    build: kafka-oauth-strimzi/zookeeper/target
+    container_name: zookeeper
+    ports:
+      - 2181:2181
+    environment:
+      LOG_DIR: /home/kafka/logs

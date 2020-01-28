@@ -17,6 +17,7 @@
         <module>refresh-token-jwt-keycloak-test</module>
         <module>access-token-introspection-hydra-test</module>
         <module>client-secret-jwt-hydra-test</module>
+        <module>client-secret-jwt-keycloak-authz-test</module>
     </modules>
 
     <licenses>
@@ -76,6 +77,10 @@
         <dependency>
             <groupId>io.strimzi</groupId>
             <artifactId>kafka-oauth-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.strimzi</groupId>
+            <artifactId>kafka-oauth-keycloak-authorizer</artifactId>
         </dependency>
         <dependency>
             <groupId>org.keycloak</groupId>

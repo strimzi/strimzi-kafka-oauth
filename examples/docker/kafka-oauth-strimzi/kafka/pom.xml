@@ -33,9 +33,12 @@
                                         <include>functions.sh</include>
                                         <include>start.sh</include>
                                         <include>start_with_hydra.sh</include>
+                                        <include>jwt.sh</include>
+                                        <include>oauth.sh</include>
                                         <include>simple_kafka_config.sh</include>
                                         <include>Dockerfile</include>
                                         <include>config/</include>
+                                        <include>certificates/</include>
                                     </includes>
                                     <filtering>false</filtering>
                                 </resource>
@@ -69,6 +72,10 @@
                         <artifactItem>
                             <groupId>io.strimzi</groupId>
                             <artifactId>kafka-oauth-common</artifactId>
+                        </artifactItem>
+                        <artifactItem>
+                            <groupId>io.strimzi</groupId>
+                            <artifactId>kafka-oauth-keycloak-authorizer</artifactId>
                         </artifactItem>
                         <artifactItem>
                             <groupId>org.keycloak</groupId>

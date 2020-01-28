@@ -124,13 +124,19 @@ To regenerate Root CA run the following:
 
 You also have to regenerate keycloak and hydra server certificates otherwise clients won't be able to connect any more.
 
-    cd /opt/jboss/keycloak/certificates
+    cd keycloak/certificates
     rm *.srl *.p12 cert-*
     ./gen-keycloak-certs.sh
     
     cd ../hydra/certificates 
     rm *.srl *.crt *.key *.csr
     ./gen-hydra-certs.sh
+
+And if CA has changed, then kafka broker certificates have to be regenerated as well:
+
+    cd kafka-oauth-strimzi/kafka/certificates
+    rm *.p12
+    ./gen-kafka-certs.sh
 
 And finally make sure to rebuild the docker module again and re-run `docker-compose` to ensure new keys and certificates are used everywhere.
 

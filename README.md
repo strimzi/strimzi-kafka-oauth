@@ -72,6 +72,7 @@ Copy the following jars into your Kafka libs directory:
 
     oauth-common/target/kafka-oauth-common-*.jar
     oauth-server/target/kafka-oauth-server-*.jar
+    oauth-keycloak-authorizer/target/kafka-oauth-keycloak-authorizer-*.jar
     oauth-client/target/kafka-oauth-client-*.jar
     oauth-client/target/lib/keycloak-common-*.jar
     oauth-client/target/lib/keycloak-core-*.jar

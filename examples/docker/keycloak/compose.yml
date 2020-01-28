@@ -11,3 +11,4 @@ services:
       KEYCLOAK_USER: "admin"
       KEYCLOAK_PASSWORD: "admin"
       PROXY_ADDRESS_FORWARDING: "true"
+    command: "-Dkeycloak.profile.feature.upload_scripts=enabled"
