@@ -102,6 +102,7 @@ public class OAuthAuthenticator {
             throw new IllegalStateException("Invalid response from authorization server: no expires_in");
         }
 
+        // Some OAuth2 authorization servers don't provide scope in this level
         JsonNode scope = result.get("scope");
 
         if (isJWT) {
