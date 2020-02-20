@@ -102,10 +102,9 @@ public class OAuthAuthenticator {
             throw new IllegalStateException("Invalid response from authorization server: no expires_in");
         }
 
+        // Some OAuth2 authorization servers don't provide scope in this level,
+        // therefore we don't need to make it mandatory
         JsonNode scope = result.get("scope");
-        if (scope == null) {
-            throw new IllegalStateException("Invalid response from authorization server: no scope");
-        }
 
         if (isJWT) {
             // try introspect token
@@ -116,7 +115,7 @@ public class OAuthAuthenticator {
             }
         }
 
-        return new TokenInfo(token.asText(), scope.asText(), "undefined", now, now + expiresIn.asLong() * 1000L);
+        return new TokenInfo(token.asText(), scope != null ? scope.asText() : null, "undefined", now, now + expiresIn.asLong() * 1000L);
     }
 
     public static String base64encode(String value) {
