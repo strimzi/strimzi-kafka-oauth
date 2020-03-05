@@ -69,7 +69,7 @@
 
         <kafka.version>2.3.0</kafka.version>
         <scala.version>2.12.8</scala.version>
-        <jackson.version>2.9.10.2</jackson.version>
+        <jackson.version>2.10.3</jackson.version>
         <junit.version>4.12</junit.version>
         <slf4j.version>1.7.26</slf4j.version>
         <keycloak.version>7.0.0</keycloak.version>
@@ -142,6 +142,11 @@
                 <groupId>io.strimzi</groupId>
                 <artifactId>kafka-oauth-keycloak-authorizer</artifactId>
                 <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-core</artifactId>
+                <version>${jackson.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
