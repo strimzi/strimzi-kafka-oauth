@@ -49,7 +49,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
     private String usernameClaim;
 
-    private boolean notJWT;
+    private boolean isJwt;
 
     @Override
     public void configure(Map<String, ?> configs, String saslMechanism, List<AppConfigurationEntry> jaasConfigEntries) {
@@ -67,7 +67,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         p.putAll(e.getOptions());
         config = new ServerConfig(p);
 
-        notJWT = config.getValueAsBoolean(Config.OAUTH_TOKENS_NOT_JWT, false);
+        isJwt = config.getValueAsBoolean(Config.OAUTH_ACCESS_TOKEN_IS_JWT, true);
 
         validateConfig();
 
@@ -123,8 +123,8 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
             throw new RuntimeException("OAuth validator configuration error: only one of OAUTH_JWKS_ENDPOINT_URI (for fast local signature validation) and OAUTH_INTROSPECTION_ENDPOINT_URI (for using authorization server during validation) can be specified!");
         }
 
-        if (jwksUri != null && notJWT) {
-            throw new RuntimeException("OAuth validator configuration error - OAUTH_JWKS_ENDPOINT_URI (for fast local signature validation) is not compatible with OAUTH_TOKENS_NOT_JWT");
+        if (jwksUri != null && !isJwt) {
+            throw new RuntimeException("OAuth validator configuration error - OAUTH_JWKS_ENDPOINT_URI (for fast local signature validation) is not compatible with OAUTH_ACCESS_TOKENS_IS_JWT=false");
         }
     }
 
@@ -241,7 +241,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
     }
 
     private void debugLogToken(String token) {
-        if (!log.isDebugEnabled() || notJWT) {
+        if (!log.isDebugEnabled() || !isJwt) {
             return;
         }
 

@@ -54,7 +54,7 @@ To use Hydra as authorization server set url of Hydra's token endpoint:
 
 If using Hydra with opaque tokens, also set:
 
-    export OAUTH_TOKENS_NOT_JWT=true
+    export OAUTH_ACCESS_TOKEN_IS_JWT=false
 
 If using Hydra with JWT tokens, then set:
 

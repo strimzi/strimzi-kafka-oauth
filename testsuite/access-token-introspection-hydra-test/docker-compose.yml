@@ -79,7 +79,7 @@ services:
       - OAUTH_SSL_TRUSTSTORE_TYPE=pkcs12
 
       # Skip attempts to parse tokens as JWT to locally introspect
-      - OAUTH_TOKENS_NOT_JWT=true
+      - OAUTH_ACCESS_TOKEN_IS_JWT=false
 
       # For start_with_hydra.sh script to know where hydra is listening
       - HYDRA_HOST=${HYDRA_HOST:-hydra}

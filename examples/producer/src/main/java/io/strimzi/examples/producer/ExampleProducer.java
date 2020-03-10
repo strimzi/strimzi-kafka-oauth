@@ -53,7 +53,7 @@ public class ExampleProducer {
         }
 
         // Use 'preferred_username' rather than 'sub' for principal name
-        if (!external.getValueAsBoolean(Config.OAUTH_TOKENS_NOT_JWT, false)) {
+        if (external.getValueAsBoolean(Config.OAUTH_ACCESS_TOKEN_IS_JWT, true)) {
             defaults.setProperty(Config.OAUTH_USERNAME_CLAIM, "preferred_username");
         }
 
