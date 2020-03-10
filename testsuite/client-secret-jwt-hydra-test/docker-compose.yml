@@ -74,7 +74,7 @@ services:
       - OAUTH_JWKS_ENDPOINT_URI=https://${HYDRA_HOST:-hydra}:4444/.well-known/jwks.json
 
       # Hydra JWT tokens don't contain token type claim, therefore type check has to be skipped
-      - OAUTH_VALIDATION_SKIP_TYPE_CHECK=true
+      - OAUTH_CHECK_ACCESS_TOKEN_TYPE=false
 
       # Truststore config for connecting to secured authorization server
       - OAUTH_SSL_TRUSTSTORE_LOCATION=/opt/kafka/config/strimzi/certs/ca-truststore.p12

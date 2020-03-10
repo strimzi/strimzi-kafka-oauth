@@ -89,7 +89,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                     config.getValueAsInt(ServerConfig.OAUTH_JWKS_REFRESH_SECONDS, 300),
                     config.getValueAsInt(ServerConfig.OAUTH_JWKS_EXPIRY_SECONDS, 360),
                     true,
-                    config.getValueAsBoolean(ServerConfig.OAUTH_VALIDATION_SKIP_TYPE_CHECK, false),
+                    config.getValueAsBoolean(ServerConfig.OAUTH_CHECK_ACCESS_TOKEN_TYPE, true),
                     null,
                     enableBouncy,
                     bouncyPosition

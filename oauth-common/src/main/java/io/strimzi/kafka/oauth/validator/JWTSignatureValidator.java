@@ -52,7 +52,7 @@ public class JWTSignatureValidator implements TokenValidator {
     private final String issuerUri;
     private final int maxStaleSeconds;
     private final boolean defaultChecks;
-    private final boolean skipTypeCheck;
+    private final boolean checkAccessTokenType;
     private final String audience;
     private final SSLSocketFactory socketFactory;
     private final HostnameVerifier hostnameVerifier;
@@ -69,7 +69,7 @@ public class JWTSignatureValidator implements TokenValidator {
                                  int refreshSeconds,
                                  int expirySeconds,
                                  boolean defaultChecks,
-                                 boolean skipTypeCheck,
+                                 boolean checkAccessTokenType,
                                  String audience,
                                  boolean enableBouncyCastleProvider,
                                  int bouncyCastleProviderPosition) {
@@ -104,7 +104,7 @@ public class JWTSignatureValidator implements TokenValidator {
         this.maxStaleSeconds = expirySeconds;
 
         this.defaultChecks = defaultChecks;
-        this.skipTypeCheck = skipTypeCheck;
+        this.checkAccessTokenType = checkAccessTokenType;
         this.audience = audience;
 
         if (enableBouncyCastleProvider && !bouncyInstalled.getAndSet(true)) {
@@ -135,7 +135,7 @@ public class JWTSignatureValidator implements TokenValidator {
                     + "\n    validIssuerUri: " + validIssuerUri
                     + "\n    certsRefreshSeconds: " + refreshSeconds
                     + "\n    certsExpirySeconds: " + expirySeconds
-                    + "\n    skipTypeCheck: " + skipTypeCheck
+                    + "\n    checkAccessTokenType: " + checkAccessTokenType
                     + "\n    enableBouncyCastleProvider: " + enableBouncyCastleProvider
                     + "\n    bouncyCastleProviderPosition: " + bouncyCastleProviderPosition);
         }
@@ -175,7 +175,7 @@ public class JWTSignatureValidator implements TokenValidator {
         TokenVerifier<AccessToken> tokenVerifier = TokenVerifier.create(token, AccessToken.class);
 
         if (defaultChecks) {
-            if (skipTypeCheck) {
+            if (!checkAccessTokenType) {
                 tokenVerifier.withChecks(SUBJECT_EXISTS_CHECK, IS_ACTIVE);
             } else {
                 tokenVerifier.withDefaultChecks();
