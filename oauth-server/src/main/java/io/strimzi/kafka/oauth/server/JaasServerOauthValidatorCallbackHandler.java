@@ -67,7 +67,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         p.putAll(e.getOptions());
         config = new ServerConfig(p);
 
-        isJwt = config.getValueAsBoolean(Config.OAUTH_ACCESS_TOKEN_IS_JWT, true);
+        isJwt = isAccessTokenJwt(config);
 
         validateConfig();
 
@@ -89,7 +89,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                     config.getValueAsInt(ServerConfig.OAUTH_JWKS_REFRESH_SECONDS, 300),
                     config.getValueAsInt(ServerConfig.OAUTH_JWKS_EXPIRY_SECONDS, 360),
                     true,
-                    config.getValueAsBoolean(ServerConfig.OAUTH_CHECK_ACCESS_TOKEN_TYPE, true),
+                    isCheckAccessTokenType(config),
                     null,
                     enableBouncy,
                     bouncyPosition
@@ -113,6 +113,26 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         }
     }
 
+    @SuppressWarnings("deprecation")
+    private static boolean isAccessTokenJwt(Config config) {
+        String legacy = config.getValue(Config.OAUTH_TOKENS_NOT_JWT);
+        if (legacy != null) {
+            log.warn("OAUTH_TOKENS_NOT_JWT is deprecated. Use OAUTH_ACCESS_TOKEN_IS_JWT (with reverse meaning) instead.");
+        }
+        return legacy != null ? !Config.isTrue(legacy) :
+                config.getValueAsBoolean(Config.OAUTH_ACCESS_TOKEN_IS_JWT, true);
+    }
+
+    @SuppressWarnings("deprecation")
+    private static boolean isCheckAccessTokenType(Config config) {
+        String legacy = config.getValue(ServerConfig.OAUTH_VALIDATION_SKIP_TYPE_CHECK);
+        if (legacy != null) {
+            log.warn("OAUTH_VALIDATION_SKIP_TYPE_CHECK is deprecated. Use OAUTH_CHECK_ACCESS_TOKEN_TYPE (with reverse meaning) instead.");
+        }
+        return legacy != null ? !Config.isTrue(legacy) :
+                config.getValueAsBoolean(ServerConfig.OAUTH_CHECK_ACCESS_TOKEN_TYPE, true);
+    }
+
     private void validateConfig() {
         String jwksUri = config.getValue(ServerConfig.OAUTH_JWKS_ENDPOINT_URI);
         String introspectUri = config.getValue(ServerConfig.OAUTH_INTROSPECTION_ENDPOINT_URI);
@@ -124,7 +144,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         }
 
         if (jwksUri != null && !isJwt) {
-            throw new RuntimeException("OAuth validator configuration error - OAUTH_JWKS_ENDPOINT_URI (for fast local signature validation) is not compatible with OAUTH_ACCESS_TOKENS_IS_JWT=false");
+            throw new RuntimeException("OAuth validator configuration error - OAUTH_JWKS_ENDPOINT_URI (for fast local signature validation) is not compatible with OAUTH_ACCESS_TOKEN_IS_JWT=false");
         }
     }
 

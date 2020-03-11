@@ -53,7 +53,7 @@ public class ExampleProducer {
         }
 
         // Use 'preferred_username' rather than 'sub' for principal name
-        if (external.getValueAsBoolean(Config.OAUTH_ACCESS_TOKEN_IS_JWT, true)) {
+        if (isAccessTokenJwt(external)) {
             defaults.setProperty(Config.OAUTH_USERNAME_CLAIM, "preferred_username");
         }
 
@@ -84,6 +84,16 @@ public class ExampleProducer {
                 throw new RuntimeException("Interrupted while sleeping!");
             }
         }
+    }
+
+    @SuppressWarnings("deprecation")
+    private static boolean isAccessTokenJwt(Config config) {
+        String legacy = config.getValue(Config.OAUTH_TOKENS_NOT_JWT);
+        if (legacy != null) {
+            System.out.println("[WARN] OAUTH_TOKENS_NOT_JWT is deprecated. Use OAUTH_ACCESS_TOKEN_IS_JWT (with reverse meaning) instead.");
+        }
+        return legacy != null ? !Config.isTrue(legacy) :
+                config.getValueAsBoolean(Config.OAUTH_ACCESS_TOKEN_IS_JWT, true);
     }
 
     /**

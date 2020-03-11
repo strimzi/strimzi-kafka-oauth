@@ -19,6 +19,9 @@ public class ServerConfig extends Config {
     public static final String OAUTH_CRYPTO_PROVIDER_BOUNCYCASTLE = "oauth.crypto.provider.bouncycastle";
     public static final String OAUTH_CRYPTO_PROVIDER_BOUNCYCASTLE_POSITION = "oauth.crypto.provider.bouncycastle.position";
 
+    @Deprecated
+    public static final String OAUTH_VALIDATION_SKIP_TYPE_CHECK = "oauth.validation.skip.type.check";
+
     public ServerConfig() {
     }
 
