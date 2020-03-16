@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
+import static io.strimzi.kafka.oauth.common.DeprecationUtil.isAccessTokenJwt;
 import static io.strimzi.kafka.oauth.common.JSONUtil.getClaimFromJWT;
 import static io.strimzi.kafka.oauth.common.LogUtil.mask;
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithAccessToken;
@@ -99,7 +100,7 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
             usernameClaim = null;
         }
 
-        isJwt = isAccessTokenJwt(config);
+        isJwt = isAccessTokenJwt(config, log, null);
         if (!isJwt && usernameClaim != null) {
             throw new RuntimeException("Custom username claim (OAUTH_USERNAME_CLAIM) not available, when tokens are configured as opaque (OAUTH_ACCESS_TOKEN_IS_JWT=false)");
         }
@@ -119,16 +120,6 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
                     + "\n    maxTokenExpirySeconds: " + maxTokenExpirySeconds
                     + "\n    usernameClaim: " + usernameClaim);
         }
-    }
-
-    @SuppressWarnings("deprecation")
-    private static boolean isAccessTokenJwt(Config config) {
-        String legacy = config.getValue(Config.OAUTH_TOKENS_NOT_JWT);
-        if (legacy != null) {
-            log.warn("OAUTH_TOKENS_NOT_JWT is deprecated. Use OAUTH_ACCESS_TOKEN_IS_JWT (with reverse meaning) instead.");
-        }
-        return legacy != null ? !Config.isTrue(legacy) :
-                config.getValueAsBoolean(Config.OAUTH_ACCESS_TOKEN_IS_JWT, true);
     }
 
     @Override

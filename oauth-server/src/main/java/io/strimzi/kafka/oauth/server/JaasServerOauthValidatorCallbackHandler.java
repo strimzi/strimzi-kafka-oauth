@@ -27,7 +27,6 @@ import javax.net.ssl.SSLSocketFactory;
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.login.AppConfigurationEntry;
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -36,6 +35,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
+import static io.strimzi.kafka.oauth.common.DeprecationUtil.isAccessTokenJwt;
 import static io.strimzi.kafka.oauth.common.JSONUtil.getClaimFromJWT;
 import static io.strimzi.kafka.oauth.common.LogUtil.mask;
 
@@ -67,7 +67,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         p.putAll(e.getOptions());
         config = new ServerConfig(p);
 
-        isJwt = isAccessTokenJwt(config);
+        isJwt = isAccessTokenJwt(config, log, "OAuth validator configuration error: ");
 
         validateConfig();
 
@@ -114,20 +114,13 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
     }
 
     @SuppressWarnings("deprecation")
-    private static boolean isAccessTokenJwt(Config config) {
-        String legacy = config.getValue(Config.OAUTH_TOKENS_NOT_JWT);
-        if (legacy != null) {
-            log.warn("OAUTH_TOKENS_NOT_JWT is deprecated. Use OAUTH_ACCESS_TOKEN_IS_JWT (with reverse meaning) instead.");
-        }
-        return legacy != null ? !Config.isTrue(legacy) :
-                config.getValueAsBoolean(Config.OAUTH_ACCESS_TOKEN_IS_JWT, true);
-    }
-
-    @SuppressWarnings("deprecation")
     private static boolean isCheckAccessTokenType(Config config) {
         String legacy = config.getValue(ServerConfig.OAUTH_VALIDATION_SKIP_TYPE_CHECK);
         if (legacy != null) {
             log.warn("OAUTH_VALIDATION_SKIP_TYPE_CHECK is deprecated. Use OAUTH_CHECK_ACCESS_TOKEN_TYPE (with reverse meaning) instead.");
+            if (config.getValue(ServerConfig.OAUTH_CHECK_ACCESS_TOKEN_TYPE) != null) {
+                throw new RuntimeException("OAuth validator configuration error: can't use both OAUTH_CHECK_ACCESS_TOKEN_TYPE and OAUTH_VALIDATION_SKIP_TYPE_CHECK");
+            }
         }
         return legacy != null ? !Config.isTrue(legacy) :
                 config.getValueAsBoolean(ServerConfig.OAUTH_CHECK_ACCESS_TOKEN_TYPE, true);
@@ -144,7 +137,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         }
 
         if (jwksUri != null && !isJwt) {
-            throw new RuntimeException("OAuth validator configuration error - OAUTH_JWKS_ENDPOINT_URI (for fast local signature validation) is not compatible with OAUTH_ACCESS_TOKEN_IS_JWT=false");
+            throw new RuntimeException("OAuth validator configuration error: OAUTH_JWKS_ENDPOINT_URI (for fast local signature validation) is not compatible with OAUTH_ACCESS_TOKEN_IS_JWT=false");
         }
     }
 
@@ -154,7 +147,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
     }
 
     @Override
-    public void handle(Callback[] callbacks) throws IOException, UnsupportedCallbackException {
+    public void handle(Callback[] callbacks) throws UnsupportedCallbackException {
         for (Callback callback : callbacks) {
             if (callback instanceof OAuthBearerValidatorCallback) {
                 handleCallback((OAuthBearerValidatorCallback) callback);
