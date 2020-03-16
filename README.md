@@ -49,7 +49,7 @@ Kafka comes with an implementation of ACL based authorization mechanism where ac
 Authorization in Kafka is implemented completely separately and independently of authentication.
 Thus, it is possible to configure Kafka brokers to use OAuth2 based authentication, and at the same time the default ACL authorization. 
 
-At this time Strimzi Kafka OAuth doesn't provide authorization that would integrate with JWT token claims or UMA authorization services.
+Since version 0.3.0 Strimzi Kafka OAuth provides token-based authorization using Keycloak as authorization server, and taking advantage of [Keycloak's Authorization Services](https://www.keycloak.org/docs/latest/authorization_services/). See [examples/README-authz.md](examples/README-authz.md) for a demonstration on how to install, and use [KeycloakRBACAuthorizer](https://github.com/mstruk/strimzi-kafka-oauth/blob/fix-readme/oauth-keycloak-authorizer/src/main/java/io/strimzi/kafka/oauth/server/authorizer/KeycloakRBACAuthorizer.java) which implements this functionality.
 
 
 Kafka OAuth2 Support
