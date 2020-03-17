@@ -51,13 +51,13 @@ In order to connect to Keycloak Admin Console you need an ip address and a port 
 The actual IP address and port to use in order to reach Keycloak Admin Console from your host machine depends on your Kubernetes installation.
 
 
-#### Kubernetes Kind
+#### Minishift
 
-In order to connect to Keycloak Admin Console you have to create a TCP tunnel:
+    KEYCLOAK_HOST=$(minishift ip)
+    KEYCLOAK_PORT=$(kubectl get svc | grep keycloak | awk -F '8080:' '{print $2}' | awk -F '/' '{print $1}')
+    echo http://$KEYCLOAK_HOST:$KEYCLOAK_PORT/auth/admin
 
-    kubectl port-forward svc/keycloak 8080:8080
-    
-You can then open: http://localhost:8080/auth/admin and login with admin:admin.    
+You can then open the printed URL and login with admin:admin.
 
 
 #### Minikube
@@ -71,17 +71,16 @@ You can connect directly to Kubernetes Node IP using a NodePort port:
 You can then open the printed URL and login with admin:admin.
 
 
-#### Minishift
+#### Kubernetes Kind
 
-    KEYCLOAK_HOST=$(minishift ip)
-    KEYCLOAK_PORT=$(kubectl get svc | grep keycloak | awk -F '8080:' '{print $2}' | awk -F '/' '{print $1}')
-    echo http://$KEYCLOAK_HOST:$KEYCLOAK_PORT/auth/admin
+In order to connect to Keycloak Admin Console you have to create a TCP tunnel:
 
-You can then open the printed URL and login with admin:admin.
+    kubectl port-forward svc/keycloak 8080:8080
+    
+You can then open: http://localhost:8080/auth/admin and login with admin:admin.    
 
 
-
-### Importing example realms that work with example Kafka Cluster configurations
+### Importing example realms
 
 This step depends on your development environment because we have to build a custom docker image, and deploy it as a Kubernetes pod, for which we have to push it to the Docker Registry first.
 
@@ -111,9 +110,9 @@ Remove the `keycloak-import` deployment:
     kubectl delete deployment keycloak-import
 
 
-### Deploying the Kafka cluster where Kafka Brokers are protected with OAuth2
+### Deploying the Kafka cluster
 
-Assuming you have already installed Strimzi Kafka Operator, you can now simply deploy one of the `kafka-oatuh-*` yaml files.
+Assuming you have already installed Strimzi Kafka Operator, you can now simply deploy one of the `kafka-oatuh-*` yaml files. All examples are configured with OAuth2 for authentication.
 
 For example:
 
