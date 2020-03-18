@@ -203,7 +203,7 @@ Let's make sure we can deploy a Kubernetes Pod using an image from a local Docke
     kubectl create deployment hello-server --image=$REGISTRY_IP:$REGISTRY_PORT/hello-app:1.0
     kubectl get pod
 
-By repeating the last command we should after a few seconds see it turn to `Running` status for `hello-server-*`.
+By repeating the last command we should, after a few seconds, see it turn to `Running` status for `hello-server-*`.
 If there is an error status, see [Troubleshooting](#troubleshooting) chapter.
 
 You can now remove the deployment:
