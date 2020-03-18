@@ -468,6 +468,6 @@ The `kind-control-plane` container may simply be stopped, and you can restart it
 
     docker start kind-control-plane
 
-If you're in an environment where your local network ip changes (moving around with a laptop for examnple) it's safest to just remove the cluster and then create it from scratch:
+If you're in an environment where your local network ip changes (moving around with a laptop for example) it's safest to just remove the cluster and then create it from scratch:
 
     kind delete cluster
