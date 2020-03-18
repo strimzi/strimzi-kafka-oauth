@@ -249,7 +249,7 @@ kubectl get ns
 docker ps
 ```
 
-Also, let's make sure that we can push to local Docker Registry from Strimzi Dev CLI:
+Also, let's make sure that we can push to the local Docker Registry from Strimzi Dev CLI:
 
 ```
 # Set REGISTRY_IP to the same value it has in the other Terminal session
