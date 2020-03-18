@@ -153,7 +153,7 @@ On MacOS the most convenient way to install is to use Homebrew:
 Starting up the environment
 ---------------------------
 
-The rest of what we do is platform independent. All we need are working `docker`, `kind`, and `kubectl`.
+The rest of what we do is platform independent. All we need are a working `docker`, `kind`, and `kubectl`.
 
 Everytime you start a new Terminal shell, make sure to set the following ENV variables:
 
