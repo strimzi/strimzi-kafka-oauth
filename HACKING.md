@@ -91,7 +91,7 @@ On MacOS the most convenient option for Docker is to use [Docker Desktop](https:
 #### Configuring Docker daemon
 
 Using Docker Desktop for Mac, first make sure to assign enough memory.
-Double-click on Docker icon in tool bar and select 'Preferences', then 'Resources'.
+Double-click on the Docker icon in tool bar and select 'Preferences', then 'Resources'.
 
 The actual requirements for resources dependends on what exactly you'll be doing but the following configuration should be enough if you want to do small cluster deployments with Strimzi.
 
