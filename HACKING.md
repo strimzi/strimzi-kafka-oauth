@@ -97,7 +97,7 @@ The actual requirements for resources dependends on what exactly you'll be doing
 
 Under Memory select 5 GB. For swap size select at least 2 GB. For CPUs select at least 2 (that's quite important).
 
-Click `Apply & Restart` button.
+Click the `Apply & Restart` button.
 
 We'll setup Kind to use a local Docker Registry deployed as a Docker container.
 In order to allow non-tls connectivity between Docker daemon and Docker Registry we need configure Docker daemon. 
