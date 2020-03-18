@@ -239,7 +239,7 @@ Note: If you exit the container or it gets shut down, as long as it's not manual
     docker start strimzi-dev-cli
     docker attach strimzi-dev-cli
 
-Having starterd the interactive session you are now in the development environment where you have all the necessary tools including `docker`, `kind`, `kubectl`, `git`, 'mvn' and all the rest you need to build Strimzi Kafka Operator components.
+Having started the interactive session you are now in the development environment where you have all the necessary tools including `docker`, `kind`, `kubectl`, `git`, `mvn` and all the rest you need to build Strimzi Kafka Operator components.
 
 Let's make sure that `docker`, and `kubectl` work:
 
