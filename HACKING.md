@@ -197,7 +197,7 @@ EOF
 
 Note, how we use `http` in `endpoint` value, which does the trick.
 
-Let's make sure we can deploy Kubernetes Pod using image from a local Docker Registry:
+Let's make sure we can deploy a Kubernetes Pod using an image from a local Docker Registry:
 
     docker tag gcr.io/google-samples/hello-app:1.0 $REGISTRY_IP:$REGISTRY_PORT/hello-app:1.0
     kubectl create deployment hello-server --image=$REGISTRY_IP:$REGISTRY_PORT/hello-app:1.0
