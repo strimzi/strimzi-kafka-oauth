@@ -13,7 +13,7 @@ If you also want to try them out, deploying the Kafka Cluster Operator, and runn
 
 There are several locally running options for Kubernetes: [Kubernetes Kind](https://github.com/kubernetes-sigs/kind), [Minikube](https://github.com/kubernetes/minikube), [Minishift](https://github.com/minishift/minishift), possibly others ...
 
-Here are instructions for setting up several different host environments with Docker and Kubernetes Kind so that you can then use strimzi-dev-cli shell session to build and deploy Strimzi Kafka Operator using locally built images containing latest locally built Strimzi Kafka OAuth libraries.
+Here are instructions for setting up several different host environments with Docker and Kubernetes Kind so that you can then use a strimzi-dev-cli shell session to build and deploy Strimzi Kafka Operator using locally built images containing the latest, locally built, Strimzi Kafka OAuth libraries.
 
 
 Preparing the host environment
