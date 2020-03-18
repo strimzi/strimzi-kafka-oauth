@@ -182,7 +182,7 @@ docker push $REGISTRY_IP:$REGISTRY_PORT/hello-app:1.0
 
 ### Creating and validating the Kind Kubernetes cluster
 
-When starting Kind we need to pass some extra configuration to allow Kubernetes instance to connect to insecure Docker Registry from a previous step.
+When starting Kind we need to pass some extra configuration to allow the Kubernetes instance to connect to the insecure Docker Registry from a previous step.
 
 ```
 cat << EOF | kind create cluster --name "${KIND_CLUSTER_NAME}" --config=-
