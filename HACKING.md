@@ -130,7 +130,7 @@ For example:
 }
 ``` 
 
-Click `Apply & Restart` button again.
+Click the `Apply & Restart` button again.
 
 
 #### Installing `kubectl`
