@@ -443,7 +443,7 @@ You get an error like:
  
     Get https://192.168.1.86:5000/v2/: http: server gave HTTP response to HTTPS client
 
-The reason is that Docker Daemon hasn't been configured to treat Docker Registry with the specified IP as insecure repository.
+The reason is that Docker Daemon hasn't been configured to treat Docker Registry with the specified IP as an insecure repository.
 
 If you are switching between WiFis, your local network IP keeps changing. If using Kind, the mirror configuration used when starting Kind to allow access to insecure registry over http may be out of sync with your current local network IP.
 Removing current Kind cluster and creating a new one should solve the issue. 
