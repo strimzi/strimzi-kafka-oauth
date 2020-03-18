@@ -118,7 +118,7 @@ There is a Docker Engine configuration file. Its current content typically looks
 }
 ``` 
 
-We'll add another array attribute called `insecure-registries` that will contain our $REGISTRY_IP and port.
+Add another array attribute called `insecure-registries` that will contain our $REGISTRY_IP and port.
 For example:
 ```
 {
