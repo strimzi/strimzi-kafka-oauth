@@ -23,7 +23,7 @@ Preparing the host environment
 
 #### Installing and configuring Docker daemon
 
-Run the following commands to install Docker package from Ubuntu repository:
+Run the following commands to install the Docker package from the Ubuntu repository:
 
     sudo apt-get update
     sudo apt-get remove docker docker-engine docker.io
