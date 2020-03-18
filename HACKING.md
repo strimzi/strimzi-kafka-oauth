@@ -180,7 +180,7 @@ docker tag gcr.io/google-samples/hello-app:1.0 $REGISTRY_IP:$REGISTRY_PORT/hello
 docker push $REGISTRY_IP:$REGISTRY_PORT/hello-app:1.0
 ```
 
-### Creating and validating Kind Kubernetes cluster
+### Creating and validating the Kind Kubernetes cluster
 
 When starting Kind we need to pass some extra configuration to allow Kubernetes instance to connect to insecure Docker Registry from a previous step.
 
