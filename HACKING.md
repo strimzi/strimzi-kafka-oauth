@@ -223,7 +223,7 @@ In a new Terminal shell execute the following:
 # Get internal configuration for access from within the container:
 kind get kubeconfig --internal > ~/.kube/internal-kubeconfig
 
-# Make sure to use latest version of image
+# Make sure to use latest version of the image
 docker pull quay.io/mstruk/strimzi-dev-cli
 
 # set DEV_DIR to directory where you have your cloned git repositories
