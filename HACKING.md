@@ -100,7 +100,7 @@ Under Memory select 5 GB. For swap size select at least 2 GB. For CPUs select at
 Click the `Apply & Restart` button.
 
 We'll setup Kind to use a local Docker Registry deployed as a Docker container.
-In order to allow non-tls connectivity between Docker daemon and Docker Registry we need configure Docker daemon. 
+In order to allow non-tls connectivity between Docker daemon and Docker Registry we need configure the Docker daemon. 
 
 Open a Terminal and type:
 
