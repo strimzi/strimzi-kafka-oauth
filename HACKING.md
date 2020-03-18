@@ -404,7 +404,7 @@ Make sure the `kafka-oauth-*` libraries are present:
     
 You can follow the Kafka broker log:
 
-    kubectl logs my-cluster-kafka-0 -c kafka
+    kubectl logs my-cluster-kafka-0 -c kafka -f
 
 
 ### Deploying a Kafka cluster configured with OAuth 2 authentication
