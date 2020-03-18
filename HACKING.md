@@ -220,7 +220,7 @@ One important thing before deploying Strimzi Kafka Operator on Kind is to give t
 In a new Terminal shell execute the following:
 
 ```
-# Get internal configuration for access from within container:
+# Get internal configuration for access from within the container:
 kind get kubeconfig --internal > ~/.kube/internal-kubeconfig
 
 # Make sure to use latest version of image
