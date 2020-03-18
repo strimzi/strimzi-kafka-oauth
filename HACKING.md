@@ -226,7 +226,7 @@ kind get kubeconfig --internal > ~/.kube/internal-kubeconfig
 # Make sure to use latest version of the image
 docker pull quay.io/mstruk/strimzi-dev-cli
 
-# set DEV_DIR to directory where you have your cloned git repositories
+# set DEV_DIR to a directory where you have your cloned git repositories
 # You'll be able to access this directory from within Strimzi Dev CLI container
 export DEV_DIR=$HOME/devel
 
