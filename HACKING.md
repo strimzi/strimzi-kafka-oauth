@@ -170,7 +170,7 @@ Execute the following:
 
     docker run -d --restart=always -p "$REGISTRY_PORT:$REGISTRY_PORT" --name "$REGISTRY_NAME" registry:2
 
-The registry should be up an running within a few second.
+The registry should be up an running within a few seconds.
 
 Let's make sure that we can push images to the registry using $REGISTRY_IP:
 
