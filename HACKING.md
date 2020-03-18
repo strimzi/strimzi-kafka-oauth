@@ -109,7 +109,7 @@ Open a Terminal and type:
 
 Move on to 'Preferences' / 'Docker Engine' tab.
 
-There is a Docker Engine configuration file. It's current content typically looks something like:
+There is a Docker Engine configuration file. Its current content typically looks something like:
 
 ```
 {
