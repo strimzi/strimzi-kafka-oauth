@@ -390,7 +390,7 @@ You can then deploy an example Kafka cluster:
 
     kubectl apply -f examples/kafka/kafka-ephemeral-single.yaml
 
-Make sure the kafka-oauth-* libraries are present:
+Make sure the `kafka-oauth-*` libraries are present:
 
     kubectl exec my-cluster-kafka-0 /bin/sh -c 'ls libs/oauth'
     
