@@ -446,7 +446,7 @@ You get an error like:
 The reason is that Docker Daemon hasn't been configured to treat Docker Registry with the specified IP as an insecure repository.
 
 If you are switching between WiFis, your local network IP keeps changing. If using Kind, the mirror configuration used when starting Kind to allow access to insecure registry over http may be out of sync with your current local network IP.
-Removing current Kind cluster and creating a new one should solve the issue. 
+Removing the current Kind cluster and creating a new one should solve the issue. 
 
 You may also have to update your Docker Desktop or Docker Daemon configuration to add the new IP to `insecure-registries`.
 
