@@ -456,7 +456,7 @@ See [Configuring Docker daemon](#configuring-docker-daemon) for how to configure
 ### Error message: node(s) already exist for a cluster with the name "kind"
 
 When creating a new Kubernetes cluster with Kind you can get this error.
-It means that the cluster exists already, but you may not see when you do:
+It means that the cluster exists already, but you may not see it when you do:
 
     docker ps
 
