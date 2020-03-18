@@ -135,7 +135,7 @@ Click the `Apply & Restart` button again.
 
 #### Installing `kubectl`
 
-Simplest way to install `kubectl` on MacOS is to use Homebrew:
+The simplest way to install `kubectl` on MacOS is to use Homebrew:
 
     brew install kubectl
     kubectl version
