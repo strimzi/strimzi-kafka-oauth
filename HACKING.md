@@ -349,7 +349,7 @@ Any step you can shorten can cumulatively save you a lot of time, and building t
 
 You can follow the instructions in the previous chapter to build the initial local version of Strimzi Kafka Operator and Strimzi Kafka images. The 'override' images can then be based on ones you built from source.
 
-Alternatively, you can avoid cloning and building the Strimzi Kafka Operator project altogether by basing the 'override' image on existing publicly available Strimzi Kafka image. 
+Alternatively, you can avoid cloning and building the Strimzi Kafka Operator project altogether by basing the 'override' image on an existing, publicly available, Strimzi Kafka image. 
 
 In `examples/docker/strimzi-kafka-image` there is a build project that takes the latest strimzi/kafka image, and adds another layer to it where it copies latest SNAPSHOT kafka-oauth libraries into the image, and prepends the directory containing them to the CLASSPATH thus making sure they override the previously packaged versions, and their dependencies. 
 
