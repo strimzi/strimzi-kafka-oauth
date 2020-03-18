@@ -30,7 +30,7 @@ Run the following commands to install the Docker package from the Ubuntu reposit
     sudo apt install docker.io
 
 
-Run the following to configure Docker daemon to trust a local Docker Registry listening on port 5000:
+Run the following to configure the Docker daemon to trust a local Docker Registry listening on port 5000:
 
 ```
 export REGISTRY_IP=$(ifconfig docker0 | grep 'inet ' | awk '{print $2}') && echo $REGISTRY_IP
