@@ -358,7 +358,7 @@ See [README.md](examples/docker/strimzi-kafka-image/README.md) for instructions 
 
 ### Configuring Kubernetes permissions
 
-Make sure to give strimzi-cluster-operator service account the necessary permissions. It depends on Kubernetes implementation you're using how to achieve that.
+Make sure to give the strimzi-cluster-operator service account the necessary permissions. It depends on the Kubernetes implementation you're using how to achieve that.
 
 Using `Kind` you can do:
 
