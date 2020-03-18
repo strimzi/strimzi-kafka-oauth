@@ -358,9 +358,17 @@ See [README.md](examples/docker/strimzi-kafka-image/README.md) for instructions 
 
 ### Configuring Kubernetes permissions
 
-Make sure to give the strimzi-cluster-operator service account the necessary permissions. It depends on the Kubernetes implementation you're using how to achieve that.
+Make sure to give the `strimzi-cluster-operator` service account the necessary permissions. 
+It depends on the Kubernetes implementation you're using how to achieve that.
 
-Using `Kind` you can do:
+Some permissions issues may be due to a mismatch between `namespace` values in `install/cluster-operator/*RoleBinding*` files, and the namespace used when deploying the Kafka operator.
+You can either address namespace mismatch by editing `*RoleBindig*` files, or deploy into a different namespace using `kubectl apply -n NAMESPACE ...`, possibly both.
+
+For example, on `Minikube` and `Kind` the simplest approach is to change the namespace to `default` and keep deploying to `default` namespace:
+
+    sed -Ei -e 's/namespace: .*/namespace: default/' install/cluster-operator/*RoleBinding*.yaml
+
+Or you can grant sweeping permissions to the `strimzi-cluster-operator` service account:
 
     kubectl create clusterrolebinding strimzi-cluster-operator-cluster-admin --clusterrole=cluster-admin --serviceaccount=default:strimzi-cluster-operator
 
