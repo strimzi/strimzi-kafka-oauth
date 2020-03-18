@@ -234,7 +234,7 @@ export DEV_DIR=$HOME/devel
 docker run -ti --name strimzi-dev-cli -v /var/run/docker.sock:/var/run/docker.sock -v $HOME/.kube:/root/.kube -v $DEV_DIR:/root/devel -v $HOME/.m2:/root/.m2:cached quay.io/mstruk/strimzi-dev-cli /bin/sh
 ```
 
-Note: If you exit the container or it gets shut down, as long as it's not manually deleted you can reattach and continue interactive session:
+Note: If you exit the container or it gets shut down, as long as it's not manually deleted you can reattach and continue your interactive session:
 
     docker start strimzi-dev-cli
     docker attach strimzi-dev-cli
