@@ -4,7 +4,7 @@ Building and deploying Strimzi Kafka OAuth
 You only need Java 8, and Maven to build this project. 
 
 However, you may want to rebuild Strimzi Kafka Operator project components and images to try your changes on Kubernetes.
-Setting up build environment for that is not trivial, so we have prepared a docker image with all the necessary build tools.
+Setting up a build environment for that is not trivial, so we have prepared a docker image with all the necessary build tools.
 
 We call it Strimzi Dev CLI Image.
 
