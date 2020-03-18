@@ -6,7 +6,7 @@ They assume Keycloak is used as an authorization server, with properly configure
 
 * `kafka-oauth-singe.yaml`
 
-A single node Kafka cluster using Apache Kafka 2.3.1 with OAuth 2 authentication using 'demo' realm, and fast local signature validation (with keys loaded from JWKS endpoint) for validating access tokens.
+A single node Kafka cluster using Apache Kafka 2.3.1 with OAuth 2 authentication using the 'demo' realm, and fast local signature validation (with keys loaded from the JWKS endpoint) for validating access tokens.
 
 * `kafka-oauth-single-2_4.yaml`
 
@@ -14,11 +14,11 @@ Same as `kafka-oauth-single.yaml` except using Apache Kafka 2.4.0.
 
 * `kafka-oauth-single-introspect.yaml`
 
-A single node Kafka cluster using Apache Kafka 2.3.1 with OAuth 2 authentication using `demo` realm, and introspection endpoint for access token validation.
+A single node Kafka cluster using Apache Kafka 2.3.1 with OAuth 2 authentication using the `demo` realm, and introspection endpoint for access token validation.
 
 * `kafka-oauth-single-authz.yaml`
 
-A single node Kafka cluster using Apache Kafka 2.3.1 with OAuth 2 authentication using `kafka-authz` realm, a fast local signature validation, and Keycloak Authorization Services for token-based authorization.
+A single node Kafka cluster using Apache Kafka 2.3.1 with OAuth 2 authentication using the `kafka-authz` realm, a fast local signature validation, and Keycloak Authorization Services for token-based authorization.
 
 * `kafka-oauth-single-2_4.authz.yaml`
 
@@ -33,7 +33,7 @@ A Keycloak pod you can use to start an ephemeral instance of Keycloak. Any chang
 
 Before deploying any of the Kafka cluster definitions, you need to deploy a Keycloak instance, and configure the realms with the necessary client definitions.
 
-Deploy Keycloak server:
+Deploy the Keycloak server:
 
     kubectl apply -f keycloak.yaml 
 
@@ -42,7 +42,7 @@ Wait for Keycloak to start up:
     kubectl get pod
     kubectl logs $(kubectl get pod | grep keycloak | awk '{print $1}')
 
-In order to connect to Keycloak Admin Console you need an ip address and a port where it is listening. From the point of view of Keycloak pod it is listening on port 8080 on all the interfaces. The NodePort service also exposes a port at Kubernetes Node's IP:
+In order to connect to Keycloak Admin Console you need an ip address and a port where it is listening. From the point of view of the Keycloak pod it is listening on port 8080 on all the interfaces. The `NodePort` service also exposes a port on the Kubernetes Node's IP:
 
     kubectl get svc | grep keycloak
     KEYCLOAK_PORT=$(kubectl get svc | grep keycloak | awk -F '8080:' '{print $2}' | awk -F '/' '{print $1}')
@@ -89,7 +89,7 @@ First we build the `keycloak-import` docker image:
     cd examples/docker/keycloak-import
     docker build . -t strimzi/keycloak-import
 
-Then we tag and push it to Docker Registry:
+Then we tag and push it to the Docker Registry:
 
     docker tag strimzi/keycloak-import $REGISTRY_IP:$REGISTRY_PORT/strimzi/keycloak-import
     docker push $REGISTRY_IP:$REGISTRY_PORT/strimzi/keycloak-import
@@ -103,7 +103,7 @@ Now deploy it as a Kubernetes pod:
 
     kubectl run -ti --attach keycloak-import --image=$REGISTRY_IP:$REGISTRY_PORT/strimzi/keycloak-import
 
-The continer will perform the imports of realms into Keycloak server, and exit. If you run `kubectl get pod` you'll see it CrashLoopBackOff because as soon as it's done, the Kubernetes will restart the pod in the background, which will try to execute the same imports again, and fail. You'll also see errors in Keycloak log, but as long as the initial realm import was successful, you can safely ignore them.
+The continer will perform the imports of realms into the Keycloak server, and exit. If you run `kubectl get pod` you'll see it CrashLoopBackOff because as soon as it's done, Kubernetes will restart the pod in the background, which will try to execute the same imports again, and fail. You'll also see errors in the Keycloak log, but as long as the initial realm import was successful, you can safely ignore them.
 
 Remove the `keycloak-import` deployment:
 
@@ -117,7 +117,6 @@ Assuming you have already installed Strimzi Kafka Operator, you can now simply d
 For example:
 
     kubectl apply -f kafka-oauth-single-authz.yaml
-
 
 
 

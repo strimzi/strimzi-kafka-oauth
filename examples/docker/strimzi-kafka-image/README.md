@@ -6,7 +6,7 @@ This is a build of a Docker image based on `strimzi/kafka:latest-kafka-2.4.0` wi
 This image adds a `/opt/kafka/libs/oauth` directory, and copies the latest jars for OAuth support in it.
 Then it puts this directory as the first directory on the classpath.
 
-The result is that most recent Strimzi Kafka OAuth jars and their dependencies are used, because they appear on the classpath before the ones that are part of `strimzi/kafka:latest-kafka-2.4.0` which are located in `/opt/kafka/libs` directory.
+The result is that the most recent Strimzi Kafka OAuth jars and their dependencies are used, because they appear on the classpath before the ones that are part of `strimzi/kafka:latest-kafka-2.4.0` which are located in the `/opt/kafka/libs` directory.
 
 
 Building
@@ -32,7 +32,7 @@ For example, if you want to base your image on Strimzi Kafka 2.3.1 use `FROM str
 Validating
 ----------
 
-You can start interactive shell container and confirm that the jars are there.
+You can start an interactive shell container and confirm that the jars are there.
 
     docker run --rm -ti strimzi/kafka:latest-kafka-2.4.0-oauth /bin/sh
     ls -la libs/oauth/
@@ -46,7 +46,7 @@ You achieve that by running the docker session as `root` user:
 
 
 
-Pushing the image to Docker Repository
+Pushing the image to a Docker Repository
 --------------------------------------
 
 For Kubernetes to be able to use our image it needs to be pushed to either a public repository or to the private Docker Repository used by your Kubernetes distro.
@@ -70,13 +70,13 @@ You need to retag the built image before so you can push it to Docker Registry:
 Deploying
 ---------
 
-In order for operator to use your Kafka image, you have to replace Kafka image coordinates in `install/cluster-operator/050-Deployment-strimzi-cluster-operator.yaml` in your `strimzi-kafka-operator` project.
+In order for the operator to use your Kafka image, you have to replace the Kafka image coordinates in `install/cluster-operator/050-Deployment-strimzi-cluster-operator.yaml` in your `strimzi-kafka-operator` project.
 
 This image is based on `strimzi/kafka:latest-kafka-2.4.0`, so we need to replace all occurrences of that with the proper coordinates to our image:
 
     sed -Ei 's#strimzi/kafka:latest-kafka-2.4.0#strimzi/kafka:latest-kafka-2.4.0-oauth#g' install/cluster-operator/050-Deployment-strimzi-cluster-operator.yaml
 
-You also have to push the image to Docker Registry trusted by you Kubernetes cluster, and you need to adjust `050-Deployment-strimzi-cluster-operator.yaml` for changed coordinates due to that.
+You also have to push the image to the Docker Registry trusted by your Kubernetes cluster, and you need to adjust `050-Deployment-strimzi-cluster-operator.yaml` for changed coordinates due to that.
 
 For example:
 ```
@@ -91,5 +91,4 @@ It's best to check the `050-Deployment-strimzi-cluster-operator.yaml` file manua
 
 
 You can now deploy Strimzi Kafka Operator following instructions in [HACKING.md](../../../HACKING.md)
-
 
