@@ -257,7 +257,7 @@ export REGISTRY_IP=<enter-the-ip-of-your-en0>
 
 export REGISTRY_PORT=5000
 
-# test docker push to local repository
+# test docker push to the local repository
 docker tag gcr.io/google-samples/hello-app:1.0 $REGISTRY_IP:$REGISTRY_PORT/hello-app:1.0
 docker push $REGISTRY_IP:$REGISTRY_PORT/hello-app:1.0
 
