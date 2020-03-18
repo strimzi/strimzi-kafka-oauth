@@ -347,7 +347,7 @@ Instead of rebuilding the whole Strimzi Kafka Operator project to produce initia
 We can simply use a `docker build` command with a custom Dockerfile. This is very convenient for quick iterative development.
 Any step you can shorten can cumulatively save you a lot of time, and building the whole Strimzi Kafka Operator project, for example, takes quite some time.
 
-You can follow the instructions in a previous chapter to build the initial local version of Strimzi Kafka Operator and Strimzi Kafka images. The 'override' images can then be based on ones you built from source.
+You can follow the instructions in the previous chapter to build the initial local version of Strimzi Kafka Operator and Strimzi Kafka images. The 'override' images can then be based on ones you built from source.
 
 Alternatively, you can avoid cloning and building the Strimzi Kafka Operator project altogether by basing the 'override' image on existing publicly available Strimzi Kafka image. 
 
