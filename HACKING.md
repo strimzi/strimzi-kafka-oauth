@@ -340,7 +340,7 @@ This executes a `ls` command inside a new Kafka container, which it removes afte
 The deployed version should be 1.0.0-SNAPSHOT.
 
 
-### Building custom Strimzi Kafka 'override' image based on existing one
+### Building a custom Strimzi Kafka 'override' image based on existing one
 
 Instead of rebuilding the whole Strimzi Kafka Operator project to produce initial Kafka images, we can simply adjust an existing image so that our newly built libraries are used instead of the ones already present in the image.
 
