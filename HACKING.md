@@ -50,7 +50,7 @@ Start or restart the daemon:
 
     sudo systemctl restart docker
 
-Enable the daemon so it's automatically started when system boots up:
+Enable the daemon so it's automatically started when the system boots up:
 
     sudo systemctl enable docker
 
