@@ -172,7 +172,7 @@ Execute the following:
 
 The registry should be up an running within a few seconds.
 
-Let's make sure that we can push images to the registry using $REGISTRY_IP:
+Let's make sure that we can push images to the registry using the $REGISTRY_IP:
 
 ```
 docker pull gcr.io/google-samples/hello-app:1.0
