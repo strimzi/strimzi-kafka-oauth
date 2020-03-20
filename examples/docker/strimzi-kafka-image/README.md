@@ -16,7 +16,7 @@ Use `docker build` to build the image:
 
     docker build -t strimzi/kafka:latest-kafka-2.4.0-oauth .
 
-You can chose a different tag if you want.
+You can choose a different tag if you want.
 
 Also, take a look at Dockerfile:
 
@@ -66,6 +66,9 @@ You need to retag the built image before so you can push it to Docker Registry:
     docker tag strimzi/kafka:latest-kafka-2.4.0-oauth $DOCKER_REG/strimzi/kafka:latest-kafka-2.4.0-oauth
     docker push $DOCKER_REG/strimzi/kafka:latest-kafka-2.4.0-oauth
 
+Actually, Kubernetes Kind supports an even simpler option how to make an image available to Kubernetes:
+
+    kind load docker-image strimzi/kafka:latest-kafka-2.4.0-oauth 
 
 Deploying
 ---------
