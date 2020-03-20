@@ -6,27 +6,27 @@ They assume Keycloak is used as an authorization server, with properly configure
 
 * `keycloak.yaml`
 
-A Keycloak pod you can use to start an ephemeral instance of Keycloak. Any changes to realms will be lost when the pod shuts down. This is the first yaml you'll want to deploy.
+  A Keycloak pod you can use to start an ephemeral instance of Keycloak. Any changes to realms will be lost when the pod shuts down. This is the first yaml you'll want to deploy.
 
 * `kafka-oauth-singe.yaml`
 
-A single node Kafka cluster using Apache Kafka 2.3.1 with OAuth 2 authentication using the 'demo' realm, and fast local signature validation (with keys loaded from the JWKS endpoint) for validating access tokens.
+  A single node Kafka cluster using Apache Kafka 2.3.1 with OAuth 2 authentication using the 'demo' realm, and fast local signature validation (with keys loaded from the JWKS endpoint) for validating access tokens.
 
 * `kafka-oauth-single-2_4.yaml`
 
-Same as `kafka-oauth-single.yaml` except using Apache Kafka 2.4.0.
+  Same as `kafka-oauth-single.yaml` except using Apache Kafka 2.4.0.
 
 * `kafka-oauth-single-introspect.yaml`
 
-A single node Kafka cluster using Apache Kafka 2.3.1 with OAuth 2 authentication using the `demo` realm, and introspection endpoint for access token validation.
+  A single node Kafka cluster using Apache Kafka 2.3.1 with OAuth 2 authentication using the `demo` realm, and introspection endpoint for access token validation.
 
 * `kafka-oauth-single-authz.yaml`
 
-A single node Kafka cluster using Apache Kafka 2.3.1 with OAuth 2 authentication using the `kafka-authz` realm, a fast local signature validation, and Keycloak Authorization Services for token-based authorization.
+  A single node Kafka cluster using Apache Kafka 2.3.1 with OAuth 2 authentication using the `kafka-authz` realm, a fast local signature validation, and Keycloak Authorization Services for token-based authorization.
 
 * `kafka-oauth-single-2_4.authz.yaml`
 
-Same as `kafka-oauth-single-authz.yaml` except using Apache Kafka 2.4.0.
+  Same as `kafka-oauth-single-authz.yaml` except using Apache Kafka 2.4.0.
 
 ### Deploying Keycloak and accessing the Keycloak Admin Console
 
