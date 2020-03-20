@@ -3,18 +3,42 @@ Building and deploying Strimzi Kafka OAuth
 
 You only need Java 8, and Maven to build this project. 
 
-However, you may want to rebuild Strimzi Kafka Operator project components and images to try your changes on Kubernetes.
+However, you may want to rebuild [Strimzi Kafka Operator](https://github.com/strimzi/strimzi-kafka-operator) project components and images to try your changes on Kubernetes.
 Setting up a build environment for that is not trivial, so we have prepared a docker image with all the necessary build tools.
 
-We call it Strimzi Dev CLI Image.
+We call it `Strimzi Development CLI Image`. You can find instructions for how to use it [here](https://github.com/mstruk/strimzi-kafka-operator/blob/hacking/HACKING-cli-image.md).
 
-In order to build Strimzi Kafka Operator images you need a running Docker daemon.
+In order to build `Strimzi Kafka Operator` images you need a running Docker daemon.
 If you also want to try them out, deploying the Kafka Cluster Operator, and running a test cluster on Kubernetes, you need access to Kubernetes API server.
 
-There are several locally running options for Kubernetes: [Kubernetes Kind](https://github.com/kubernetes-sigs/kind), [Minikube](https://github.com/kubernetes/minikube), [Minishift](https://github.com/minishift/minishift), possibly others ...
+There are several locally running options for Kubernetes: [Minikube](https://github.com/kubernetes/minikube), [Minishift](https://github.com/minishift/minishift), [Kubernetes Kind](https://github.com/kubernetes-sigs/kind), possibly others ...
 
-Here are instructions for setting up several different host environments with Docker and Kubernetes Kind so that you can then use a strimzi-dev-cli shell session to build and deploy Strimzi Kafka Operator using locally built images containing the latest, locally built, Strimzi Kafka OAuth libraries.
+You can read more about quickly setting up the local Kubernetes cluster of your choice in our [Quickstarts](https://strimzi.io/quickstarts/).
 
+However, if you're starting completely from scratch, and are using Ubuntu 18.04 LTS, or MacOS you may prefer a thorough step-by-step procedure for installing Docker, Kubernetes Kind, and using Strimzi Developer CLI Image shell session to run a Strimzi managed Kafka cluster with latest source build of Strimzi Kafka OAuth.
+
+In that case follow instructions that apply to your environment in the following chapter.
+
+<!-- TOC depthFrom:2 -->
+
+- [Preparing the host environment](#preparing-the-host-environment)
+  - [Ubuntu 18.04 LTS](#ubuntu-18.04-lts)
+  - [Docker Desktop for Mac](#docker-desktop-for-mac)
+- [Starting up the environment](#starting-up-the-environment)
+  - [Deploying and validating Docker Registry](#deploying-and-validating-docker-registry)
+  - [Creating and validating the Kind Kubernetes cluster](#creating-and-validating-the-kind-kubernetes-cluster)
+  - [Starting and validating Strimzi Dev CLI](#starting-and-validating-strimzi-dev-cli)
+- [Building Strimzi Kafka OAuth](#building-strimzi-kafka-oauth)
+- [Deploying development builds with Strimzi Kafka Operator](#deploying-development-builds-with-strimzi-kafka-operator)
+  - [Building Strimzi Kafka images with SNAPSHOT version of Strimzi Kafka OAuth](#building-strimzi-kafka-images-with-snapshot-version-of-strimzi-kafka-oauth)
+  - [Building a custom Strimzi Kafka 'override' image based on existing one](#building-a-custom-strimiz-kafka-oveeide-omage-based-on-existing-one)
+  - [Configuring Kubernetes permissions](#configuring-kubernetes-permissions)
+  - [Deploying Kafka operator and Kafka cluster](#deploying-kafka-operator-and-kafka-cluster)
+  - [Deploying a Kafka cluster configured with OAuth 2 authentication](#deploying-a-kafka-cluster-configured-with-oauth-2-authentication)
+  - [Exploring the Kafka container](#exploring-the-kafka-container)
+- [Troubleshooting](#troubleshooting)
+
+<!-- /TOC -->
 
 Preparing the host environment
 ------------------------------
@@ -214,7 +238,6 @@ One important thing before deploying Strimzi Kafka Operator on Kind is to give t
 
     kubectl create clusterrolebinding strimzi-cluster-operator-cluster-admin --clusterrole=cluster-admin --serviceaccount=default:strimzi-cluster-operator
 
-
 ### Starting and validating Strimzi Dev CLI
 
 In a new Terminal shell execute the following:
@@ -378,7 +401,6 @@ Using `Minishift` you can run:
     oc adm policy add-cluster-role-to-user cluster-admin developer
     oc login -u developer
 
- 
 ### Deploying Kafka operator and Kafka cluster
 
 You can deploy Strimzi Cluster Operator the usual way:
@@ -406,13 +428,11 @@ You can follow the Kafka broker log:
 
     kubectl logs my-cluster-kafka-0 -c kafka -f
 
-
 ### Deploying a Kafka cluster configured with OAuth 2 authentication
 
 Rather than using a basic Kafka cluster without any authentication you'll need one with OAuth 2 authentication and / or authorization in order to test Strimzi Kafka OAuth.
 
 For examples of deploying such a cluster see [/examples/kubernetes/README.md](examples/kubernetes/README.md)
-
 
 ### Exploring the Kafka container
 
