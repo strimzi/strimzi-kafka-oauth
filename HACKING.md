@@ -22,7 +22,7 @@ In that case follow instructions that apply to your environment in the following
 <!-- TOC depthFrom:2 -->
 
 - [Preparing the host environment](#preparing-the-host-environment)
-  - [Ubuntu 18.04 LTS](#ubuntu-18.04-lts)
+  - [Ubuntu 18.04 LTS](#ubuntu-1804-lts)
   - [Docker Desktop for Mac](#docker-desktop-for-mac)
 - [Starting up the environment](#starting-up-the-environment)
   - [Deploying and validating Docker Registry](#deploying-and-validating-docker-registry)
@@ -31,7 +31,7 @@ In that case follow instructions that apply to your environment in the following
 - [Building Strimzi Kafka OAuth](#building-strimzi-kafka-oauth)
 - [Deploying development builds with Strimzi Kafka Operator](#deploying-development-builds-with-strimzi-kafka-operator)
   - [Building Strimzi Kafka images with SNAPSHOT version of Strimzi Kafka OAuth](#building-strimzi-kafka-images-with-snapshot-version-of-strimzi-kafka-oauth)
-  - [Building a custom Strimzi Kafka 'override' image based on existing one](#building-a-custom-strimiz-kafka-oveeide-omage-based-on-existing-one)
+  - [Building a custom Strimzi Kafka 'override' image based on existing one](#building-a-custom-strimzi-kafka-oveeide-omage-based-on-existing-one)
   - [Configuring Kubernetes permissions](#configuring-kubernetes-permissions)
   - [Deploying Kafka operator and Kafka cluster](#deploying-kafka-operator-and-kafka-cluster)
   - [Deploying a Kafka cluster configured with OAuth 2 authentication](#deploying-a-kafka-cluster-configured-with-oauth-2-authentication)
