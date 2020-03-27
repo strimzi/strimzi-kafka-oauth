@@ -30,14 +30,14 @@ See: Hacking on OAuth and deploying with Strimzi Kafka Operator PR ([#34](https:
 
 ### Improvements to examples and documentation
 
-Fixed enabled remote debugging mode in example `compose-authz.yml` ([#36](https://github.com/strimzi/strimzi-kafka-oauth/pull/36))
+Fixed enabled remote debugging mode in example `compose-authz.yml` ([#39](https://github.com/strimzi/strimzi-kafka-oauth/pull/39))
 
 0.3.0
 -----
 
 ### Token-based authorization with Keycloak Authorization Services
 
-It is now possible to use Keycloak Authorization Services to centrally manage access control to resources on Kafka Brokers ([#36](https://github.com/strimzi/strimzi-kafka-oauth/pull/36))
+It is now possible to use Keycloak Authorization Services to centrally manage access control to resources on Kafka Brokers ([#24](https://github.com/strimzi/strimzi-kafka-oauth/pull/24))
 See the [tutorial](examples/README-authz.md) which explains many concepts.
 For configuration details also see [KeycloakRBACAuthorizer JavaDoc](oauth-keycloak-authorizer/src/main/java/io/strimzi/kafka/oauth/server/authorizer/KeycloakRBACAuthorizer.java). 
 
