@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
+import static io.strimzi.kafka.oauth.common.DeprecationUtil.isAccessTokenJwt;
 import static io.strimzi.kafka.oauth.common.JSONUtil.getClaimFromJWT;
 import static io.strimzi.kafka.oauth.common.LogUtil.mask;
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithAccessToken;
@@ -45,7 +46,7 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
     private String clientSecret;
     private URI tokenEndpoint;
     private String usernameClaim;
-    private boolean isJWT;
+    private boolean isJwt;
     private int maxTokenExpirySeconds;
 
     private SSLSocketFactory socketFactory;
@@ -99,9 +100,9 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
             usernameClaim = null;
         }
 
-        isJWT = !config.getValueAsBoolean(Config.OAUTH_TOKENS_NOT_JWT, false);
-        if (!isJWT && usernameClaim != null) {
-            throw new RuntimeException("Custom username claim (OAUTH_USERNAME_CLAIM) not available, when tokens are configured as opaque (OAUTH_TOKENS_NOT_JWT)");
+        isJwt = isAccessTokenJwt(config, log, null);
+        if (!isJwt && usernameClaim != null) {
+            throw new RuntimeException("Custom username claim (OAUTH_USERNAME_CLAIM) not available, when tokens are configured as opaque (OAUTH_ACCESS_TOKEN_IS_JWT=false)");
         }
 
         maxTokenExpirySeconds = config.getValueAsInt(ClientConfig.OAUTH_MAX_TOKEN_EXPIRY_SECONDS, -1);
@@ -115,7 +116,7 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
                     + "\n    tokenEndpointUri: " + tokenEndpoint
                     + "\n    clientId: " + clientId
                     + "\n    clientSecret: " + mask(clientSecret)
-                    + "\n    notJWT: " + !isJWT
+                    + "\n    isJwt: " + isJwt
                     + "\n    maxTokenExpirySeconds: " + maxTokenExpirySeconds
                     + "\n    usernameClaim: " + usernameClaim);
         }
@@ -146,11 +147,11 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
 
         if (token != null) {
             // we could check if it's a JWT - in that case we could check if it's expired
-            result = loginWithAccessToken(token, isJWT);
+            result = loginWithAccessToken(token, isJwt);
         } else if (refreshToken != null) {
-            result = loginWithRefreshToken(tokenEndpoint, socketFactory, hostnameVerifier, refreshToken, clientId, clientSecret, isJWT);
+            result = loginWithRefreshToken(tokenEndpoint, socketFactory, hostnameVerifier, refreshToken, clientId, clientSecret, isJwt);
         } else if (clientSecret != null) {
-            result = loginWithClientSecret(tokenEndpoint, socketFactory, hostnameVerifier, clientId, clientSecret, isJWT);
+            result = loginWithClientSecret(tokenEndpoint, socketFactory, hostnameVerifier, clientId, clientSecret, isJwt);
         } else {
             throw new IllegalStateException("Invalid oauth client configuration - no credentials");
         }

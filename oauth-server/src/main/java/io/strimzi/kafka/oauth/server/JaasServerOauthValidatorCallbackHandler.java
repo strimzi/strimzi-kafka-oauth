@@ -27,7 +27,6 @@ import javax.net.ssl.SSLSocketFactory;
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.login.AppConfigurationEntry;
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -36,6 +35,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
+import static io.strimzi.kafka.oauth.common.DeprecationUtil.isAccessTokenJwt;
 import static io.strimzi.kafka.oauth.common.JSONUtil.getClaimFromJWT;
 import static io.strimzi.kafka.oauth.common.LogUtil.mask;
 
@@ -49,7 +49,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
     private String usernameClaim;
 
-    private boolean notJWT;
+    private boolean isJwt;
 
     @Override
     public void configure(Map<String, ?> configs, String saslMechanism, List<AppConfigurationEntry> jaasConfigEntries) {
@@ -67,7 +67,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         p.putAll(e.getOptions());
         config = new ServerConfig(p);
 
-        notJWT = config.getValueAsBoolean(Config.OAUTH_TOKENS_NOT_JWT, false);
+        isJwt = isAccessTokenJwt(config, log, "OAuth validator configuration error: ");
 
         validateConfig();
 
@@ -89,7 +89,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                     config.getValueAsInt(ServerConfig.OAUTH_JWKS_REFRESH_SECONDS, 300),
                     config.getValueAsInt(ServerConfig.OAUTH_JWKS_EXPIRY_SECONDS, 360),
                     true,
-                    config.getValueAsBoolean(ServerConfig.OAUTH_VALIDATION_SKIP_TYPE_CHECK, false),
+                    isCheckAccessTokenType(config),
                     null,
                     enableBouncy,
                     bouncyPosition
@@ -113,6 +113,19 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         }
     }
 
+    @SuppressWarnings("deprecation")
+    private static boolean isCheckAccessTokenType(Config config) {
+        String legacy = config.getValue(ServerConfig.OAUTH_VALIDATION_SKIP_TYPE_CHECK);
+        if (legacy != null) {
+            log.warn("OAUTH_VALIDATION_SKIP_TYPE_CHECK is deprecated. Use OAUTH_CHECK_ACCESS_TOKEN_TYPE (with reverse meaning) instead.");
+            if (config.getValue(ServerConfig.OAUTH_CHECK_ACCESS_TOKEN_TYPE) != null) {
+                throw new RuntimeException("OAuth validator configuration error: can't use both OAUTH_CHECK_ACCESS_TOKEN_TYPE and OAUTH_VALIDATION_SKIP_TYPE_CHECK");
+            }
+        }
+        return legacy != null ? !Config.isTrue(legacy) :
+                config.getValueAsBoolean(ServerConfig.OAUTH_CHECK_ACCESS_TOKEN_TYPE, true);
+    }
+
     private void validateConfig() {
         String jwksUri = config.getValue(ServerConfig.OAUTH_JWKS_ENDPOINT_URI);
         String introspectUri = config.getValue(ServerConfig.OAUTH_INTROSPECTION_ENDPOINT_URI);
@@ -123,8 +136,8 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
             throw new RuntimeException("OAuth validator configuration error: only one of OAUTH_JWKS_ENDPOINT_URI (for fast local signature validation) and OAUTH_INTROSPECTION_ENDPOINT_URI (for using authorization server during validation) can be specified!");
         }
 
-        if (jwksUri != null && notJWT) {
-            throw new RuntimeException("OAuth validator configuration error - OAUTH_JWKS_ENDPOINT_URI (for fast local signature validation) is not compatible with OAUTH_TOKENS_NOT_JWT");
+        if (jwksUri != null && !isJwt) {
+            throw new RuntimeException("OAuth validator configuration error: OAUTH_JWKS_ENDPOINT_URI (for fast local signature validation) is not compatible with OAUTH_ACCESS_TOKEN_IS_JWT=false");
         }
     }
 
@@ -134,7 +147,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
     }
 
     @Override
-    public void handle(Callback[] callbacks) throws IOException, UnsupportedCallbackException {
+    public void handle(Callback[] callbacks) throws UnsupportedCallbackException {
         for (Callback callback : callbacks) {
             if (callback instanceof OAuthBearerValidatorCallback) {
                 handleCallback((OAuthBearerValidatorCallback) callback);
@@ -241,7 +254,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
     }
 
     private void debugLogToken(String token) {
-        if (!log.isDebugEnabled() || notJWT) {
+        if (!log.isDebugEnabled() || !isJwt) {
             return;
         }
 

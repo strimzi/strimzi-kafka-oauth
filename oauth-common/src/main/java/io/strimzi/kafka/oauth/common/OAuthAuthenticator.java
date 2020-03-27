@@ -28,12 +28,12 @@ public class OAuthAuthenticator {
         return loginWithAccessToken(token, true);
     }
 
-    public static TokenInfo loginWithAccessToken(String token, boolean isJWT) {
+    public static TokenInfo loginWithAccessToken(String token, boolean isJwt) {
         if (log.isDebugEnabled()) {
             log.debug("loginWithAccessToken() - pass-through access_token: {}", mask(token));
         }
 
-        if (isJWT) {
+        if (isJwt) {
             // try introspect token
             try {
                 return introspectAccessToken(token);
@@ -47,7 +47,7 @@ public class OAuthAuthenticator {
 
     public static TokenInfo loginWithClientSecret(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
                                                   HostnameVerifier hostnameVerifier,
-                                                  String clientId, String clientSecret, boolean isJWT) throws IOException {
+                                                  String clientId, String clientSecret, boolean isJwt) throws IOException {
         if (log.isDebugEnabled()) {
             log.debug("loginWithClientSecret() - tokenEndpointUrl: {}, clientId: {}, clientSecret: {}",
                     tokenEndpointUrl, clientId, mask(clientSecret));
@@ -57,12 +57,12 @@ public class OAuthAuthenticator {
 
         StringBuilder body = new StringBuilder("grant_type=client_credentials");
 
-        return post(tokenEndpointUrl, socketFactory, hostnameVerifier, authorization, body.toString(), isJWT);
+        return post(tokenEndpointUrl, socketFactory, hostnameVerifier, authorization, body.toString(), isJwt);
     }
 
     public static TokenInfo loginWithRefreshToken(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
                                                   HostnameVerifier hostnameVerifier, String refreshToken,
-                                                  String clientId, String clientSecret, boolean isJWT) throws IOException {
+                                                  String clientId, String clientSecret, boolean isJwt) throws IOException {
         if (log.isDebugEnabled()) {
             log.debug("loginWithRefreshToken() - tokenEndpointUrl: {}, refreshToken: {}, clientId: {}, clientSecret: {}",
                     tokenEndpointUrl, refreshToken, clientId, mask(clientSecret));
@@ -76,11 +76,11 @@ public class OAuthAuthenticator {
                 .append("&refresh_token=").append(urlencode(refreshToken))
                 .append("&client_id=").append(urlencode(clientId));
 
-        return post(tokenEndpointUrl, socketFactory, hostnameVerifier, authorization, body.toString(), isJWT);
+        return post(tokenEndpointUrl, socketFactory, hostnameVerifier, authorization, body.toString(), isJwt);
     }
 
     private static TokenInfo post(URI tokenEndpointUri, SSLSocketFactory socketFactory, HostnameVerifier hostnameVerifier,
-                                  String authorization, String body, boolean isJWT) throws IOException {
+                                  String authorization, String body, boolean isJwt) throws IOException {
 
         long now = System.currentTimeMillis();
 
@@ -106,7 +106,7 @@ public class OAuthAuthenticator {
         // therefore we don't need to make it mandatory
         JsonNode scope = result.get("scope");
 
-        if (isJWT) {
+        if (isJwt) {
             // try introspect token
             try {
                 return introspectAccessToken(token.asText());

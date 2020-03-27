@@ -17,6 +17,9 @@ public class Config {
     public static final String OAUTH_SSL_TRUSTSTORE_TYPE = "oauth.ssl.truststore.type";
     public static final String OAUTH_SSL_SECURE_RANDOM_IMPLEMENTATION = "oauth.ssl.secure.random.implementation";
     public static final String OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM = "oauth.ssl.endpoint.identification.algorithm";
+    public static final String OAUTH_ACCESS_TOKEN_IS_JWT = "oauth.access.token.is.jwt";
+
+    @Deprecated
     public static final String OAUTH_TOKENS_NOT_JWT = "oauth.tokens.not.jwt";
 
     private Properties defaults;
@@ -128,7 +131,7 @@ public class Config {
         }
     }
 
-    private boolean isTrue(String result) {
+    public static boolean isTrue(String result) {
         String val = result.toLowerCase(Locale.ENGLISH);
         if (val.equals("true") || val.equals("yes") || val.equals("y") || val.equals("1")) {
             return true;

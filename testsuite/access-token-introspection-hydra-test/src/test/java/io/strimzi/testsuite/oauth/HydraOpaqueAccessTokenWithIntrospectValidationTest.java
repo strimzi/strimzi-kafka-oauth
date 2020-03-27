@@ -47,7 +47,7 @@ public class HydraOpaqueAccessTokenWithIntrospectValidationTest {
 
         Properties defaults = new Properties();
         defaults.setProperty(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, tokenEndpointUri);
-        defaults.setProperty(ClientConfig.OAUTH_TOKENS_NOT_JWT, "true");
+        defaults.setProperty(ClientConfig.OAUTH_ACCESS_TOKEN_IS_JWT, "false");
 
         defaults.setProperty(ClientConfig.OAUTH_SSL_TRUSTSTORE_LOCATION, "../docker/target/kafka/certs/ca-truststore.p12");
         defaults.setProperty(ClientConfig.OAUTH_SSL_TRUSTSTORE_PASSWORD, "changeit");
