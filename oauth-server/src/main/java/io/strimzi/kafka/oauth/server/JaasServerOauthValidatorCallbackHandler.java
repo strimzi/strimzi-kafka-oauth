@@ -269,7 +269,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
         try {
             AccessToken t = parser.readJsonContent(AccessToken.class);
-            log.debug("Access token expires at (UTC): " + LocalDateTime.ofEpochSecond(t.getExpiration(), 0, ZoneOffset.UTC).format(DateTimeFormatter.ISO_DATE_TIME));
+            log.debug("Access token expires at (UTC): " + LocalDateTime.ofEpochSecond(t.getExp() == null ? 0 : t.getExp(), 0, ZoneOffset.UTC).format(DateTimeFormatter.ISO_DATE_TIME));
         } catch (JWSInputException e) {
             // Try parse as refresh token:
             log.debug("[IGNORED] Failed to parse JWT token's payload", e);

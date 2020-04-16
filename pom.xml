@@ -72,7 +72,7 @@
         <jackson.version>2.10.3</jackson.version>
         <junit.version>4.12</junit.version>
         <slf4j.version>1.7.26</slf4j.version>
-        <keycloak.version>7.0.0</keycloak.version>
+        <keycloak.version>9.0.3</keycloak.version>
         <bouncycastle.version>1.60</bouncycastle.version>
     </properties>
 
