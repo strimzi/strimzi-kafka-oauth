@@ -23,8 +23,8 @@ public class TokenInfo {
         this(token,
                 payload.getScope(),
                 payload.getSubject(),
-                payload.getIssuedAt() * 1000L,
-                payload.getExpiration() * 1000L);
+                payload.getIat() == null ? 0 : payload.getIat() * 1000L,
+                payload.getExp() == null ? 0 : payload.getExp() * 1000L);
         this.payload = payload;
     }
 
