@@ -1,0 +1,7 @@
+security:
+  oauth2:
+    authorization:
+      check-token-access: isAuthenticated()
+    client:
+      client-id: kafka
+      client-secret: kafkasecret
