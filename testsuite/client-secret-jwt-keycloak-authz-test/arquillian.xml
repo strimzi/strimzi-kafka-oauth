@@ -16,6 +16,11 @@
                 strategy: log
                 match: '[KafkaServer id=1] started'
                 timeout: 120
+              beforeStop:
+                - log:
+                    to: ${PWD}/../kafka.log
+                    stdout: true
+                    stderr: true
             keycloak:
               await:
                 strategy: log
