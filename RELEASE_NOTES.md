@@ -1,6 +1,27 @@
 Release Notes
 =============
 
+0.5.0
+-----
+
+### Improved compatibility with authorization servers
+
+Additional options were added to improve interoperability with authorization servers.
+
+The following options were added:
+* `oauth.scope`
+  Scope can now be specified for the Token endpoint on the Kafka clients and on the Kafka broker for inter-broker communication.
+* `oauth.check.issuer`
+  Issuer check can now be disabled when configuring token validation on the Kafka broker - some authorization servers don't provide `iss` claim.  
+* `oauth.fallback.username.claim`
+  Principal can now be extracted from JWT token or Introspection endpoint response by using multiple claims.
+  First `oauth.username.claim` is attempted (if configured). If the value is not present, then the fallback claim is attempted.
+  If neither `oauth.username.claim` nor `oauth.fallback.username.claim` is specified or its value present, `sub` claim is used.
+* `oauth.fallback.username.prefix`
+  If principal is set by `oauth.fallback.username.claim` then its value will be prefixed by the value of `oauth.fallback.username.prefix` if specified.
+* `oauth.userinfo.endpoint.uri`
+  Sometimes the introspection endpoint doesn't provide any claim that could be used for the principal. In such a case User Info Endpoint is used, if configured, and configuration of `oauth.username.claim`, `oauth.fallback.username.claim`, and `oauth.fallback.username.prefix` is taken into account.
+
 0.4.0
 -----
 

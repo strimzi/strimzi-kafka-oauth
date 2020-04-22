@@ -46,7 +46,7 @@ public class KeycloakAccessTokenWithIntrospectValidationTest {
         final String tokenEndpointUri = "http://" + HOST + ":8080/auth/realms/" + REALM + "/protocol/openid-connect/token";
 
         // first, request access token using client id and secret
-        TokenInfo info = OAuthAuthenticator.loginWithClientSecret(URI.create(tokenEndpointUri), null, null, CLIENT_ID, CLIENT_SECRET, true);
+        TokenInfo info = OAuthAuthenticator.loginWithClientSecret(URI.create(tokenEndpointUri), null, null, CLIENT_ID, CLIENT_SECRET, true, null, null);
 
 
         Properties defaults = new Properties();

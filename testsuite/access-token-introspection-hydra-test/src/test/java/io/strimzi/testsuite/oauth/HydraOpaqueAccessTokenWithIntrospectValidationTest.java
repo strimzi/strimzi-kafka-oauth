@@ -58,7 +58,7 @@ public class HydraOpaqueAccessTokenWithIntrospectValidationTest {
         // Request access token using client id and secret, and trustore configuration
         TokenInfo info = OAuthAuthenticator.loginWithClientSecret(URI.create(tokenEndpointUri),
                 ConfigUtil.createSSLFactory(new ClientConfig()),
-                null, CLIENT_ID, CLIENT_SECRET, true);
+                null, CLIENT_ID, CLIENT_SECRET, true, null, null);
 
         // Configure received token for Kafka client auth
         defaults.setProperty(ClientConfig.OAUTH_ACCESS_TOKEN, info.token());

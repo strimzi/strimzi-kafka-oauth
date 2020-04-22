@@ -5,6 +5,8 @@
 package io.strimzi.kafka.oauth.validator;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.strimzi.kafka.oauth.common.JSONUtil;
+import io.strimzi.kafka.oauth.common.PrincipalExtractor;
 import io.strimzi.kafka.oauth.common.TimeUtil;
 import io.strimzi.kafka.oauth.common.TokenInfo;
 import org.apache.kafka.common.utils.Time;
@@ -28,20 +30,24 @@ public class OAuthIntrospectionValidator implements TokenValidator {
 
     private final URI introspectionURI;
     private final String validIssuerURI;
+    private final String userInfoURI;
+    private final boolean checkTokenType;
     private final String clientId;
     private final String clientSecret;
-    private final boolean defaultChecks;
     private final String audience;
     private final SSLSocketFactory socketFactory;
     private final HostnameVerifier hostnameVerifier;
+    private final PrincipalExtractor principalExtractor;
 
     public OAuthIntrospectionValidator(String introspectionEndpointUri,
                                        SSLSocketFactory socketFactory,
                                        HostnameVerifier verifier,
+                                       PrincipalExtractor principalExtractor,
                                        String issuerUri,
+                                       String userInfoUri,
+                                       boolean checkTokenType,
                                        String clientId,
                                        String clientSecret,
-                                       boolean defaultChecks,
                                        String audience) {
 
         if (introspectionEndpointUri == null) {
@@ -64,23 +70,39 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         }
         this.hostnameVerifier = verifier;
 
-        try {
-            new URI(issuerUri);
-        } catch (URISyntaxException e) {
-            throw new IllegalArgumentException("Invalid issuer uri: " + issuerUri, e);
+        this.principalExtractor = principalExtractor;
+
+        if (issuerUri != null) {
+            try {
+                new URI(issuerUri);
+            } catch (URISyntaxException e) {
+                throw new IllegalArgumentException("Invalid issuer uri: " + issuerUri, e);
+            }
         }
         this.validIssuerURI = issuerUri;
 
+        if (userInfoUri != null) {
+            try {
+                new URI(userInfoUri);
+            } catch (URISyntaxException e) {
+                throw new IllegalArgumentException("Invalid userInfo uri: " + userInfoUri, e);
+            }
+        }
+        this.userInfoURI = userInfoUri;
+
+        this.checkTokenType = checkTokenType;
         this.clientId = clientId;
         this.clientSecret = clientSecret;
-        this.defaultChecks = defaultChecks;
         this.audience = audience;
 
         if (log.isDebugEnabled()) {
-            log.debug("Configured OAuthIntrospectionValidator:\n    introspectionEndpointUri: " + introspectionEndpointUri
+            log.debug("Configured OAuthIntrospectionValidator:\n    introspectionEndpointUri: " + introspectionURI
                     + "\n    sslSocketFactory: " + socketFactory
                     + "\n    hostnameVerifier: " + hostnameVerifier
+                    + "\n    principalExtractor: " + principalExtractor
                     + "\n    validIssuerUri: " + validIssuerURI
+                    + "\n    userInfoUri: " + userInfoURI
+                    + "\n    checkTokenType: " + checkTokenType
                     + "\n    clientId: " + clientId
                     + "\n    clientSecret: " + mask(clientSecret));
         }
@@ -127,17 +149,49 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         }
 
         value = response.get("iat");
-        if (value == null) {
-            throw new IllegalStateException("Introspection response contains no issued time information (\"iat\"): " + response);
+        long iat = value == null ? 0 : 1000 * value.asLong();
+
+        String principal = principalExtractor.getPrincipal(response);
+        if (principal == null) {
+            if (userInfoURI != null) {
+                authorization = "Bearer " + token;
+                try {
+                    response = post(introspectionURI, socketFactory, hostnameVerifier, authorization,
+                            "application/x-www-form-urlencoded", body.toString(), JsonNode.class);
+                } catch (IOException e) {
+                    throw new RuntimeException("Failed to introspect token - send, fetch or parse failed: ", e);
+                }
+                // apply principalExtractor
+                principal = principalExtractor.getPrincipal(response);
+            }
+            if (principal == null) {
+                throw new RuntimeException("Failed to extract principal: principal == null    (check usernameClaim, fallbackUsernameClaim configuration)");
+            }
         }
-        long iat = 1000 * value.asLong();
+        performOptionalChecks(response);
 
+        value = response.get("scope");
+        String scopes = value != null ? String.join(" ", JSONUtil.asListOfString(value)) : null;
 
-        value = response.get("sub");
-        String subject = value != null ? value.asText() : null;
+        return new TokenInfo(token, scopes, principal, iat, expiresMillis);
+    }
 
-        if (defaultChecks) {
-            performDefaultChecks(response, subject);
+    private void performOptionalChecks(JsonNode response) {
+        JsonNode value;
+        if (validIssuerURI != null) {
+            value = response.get("iss");
+            if (value == null || !validIssuerURI.equals(value.asText())) {
+                throw new TokenValidationException("Token check failed - invalid issuer: " + value)
+                        .status(Status.INVALID_TOKEN);
+            }
+        }
+
+        if (checkTokenType) {
+            value = response.get("token_type");
+            if (value != null && !"Bearer".equalsIgnoreCase(value.asText())) {
+                throw new TokenValidationException("Token check failed - invalid token type: " + value + " (should be 'Bearer')" + (value == null ? ". Consider setting OAUTH_CHECK_ACCESS_TOKEN_TYPE to false." : ""))
+                        .status(Status.UNSUPPORTED_TOKEN_TYPE);
+            }
         }
 
         if (audience != null) {
@@ -146,31 +200,6 @@ public class OAuthIntrospectionValidator implements TokenValidator {
                 throw new TokenValidationException("Token check failed - invalid audience: " + value)
                         .status(Status.INVALID_TOKEN);
             }
-        }
-
-        value = response.get("scope");
-        String scopes = value != null ? value.asText() : null;
-
-        return new TokenInfo(token, scopes, subject, iat, expiresMillis);
-    }
-
-    private void performDefaultChecks(JsonNode response, String subject) {
-        JsonNode value;
-        value = response.get("iss");
-        if (value == null || !validIssuerURI.equals(value.asText())) {
-            throw new TokenValidationException("Token check failed - invalid issuer: " + value)
-                    .status(Status.INVALID_TOKEN);
-        }
-
-        if (subject == null) {
-            throw new TokenValidationException("Token check failed - invalid subject: null")
-                    .status(Status.INVALID_TOKEN);
-        }
-
-        value = response.get("token_type");
-        if (value != null && !"access_token".equals(value.asText())) {
-            throw new TokenValidationException("Token check failed - invalid token type: " + value)
-                    .status(Status.UNSUPPORTED_TOKEN_TYPE);
         }
     }
 }

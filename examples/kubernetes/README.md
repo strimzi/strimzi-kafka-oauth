@@ -39,7 +39,7 @@ Deploy the Keycloak server:
 Wait for Keycloak to start up:
 
     kubectl get pod
-    kubectl logs $(kubectl get pod | grep keycloak | awk '{print $1}')
+    kubectl logs $(kubectl get pod | grep keycloak | awk '{print $1}') -f
 
 In order to connect to Keycloak Admin Console you need an ip address and a port where it is listening. From the point of view of the Keycloak pod it is listening on port 8080 on all the interfaces. The `NodePort` service also exposes a port on the Kubernetes Node's IP:
 

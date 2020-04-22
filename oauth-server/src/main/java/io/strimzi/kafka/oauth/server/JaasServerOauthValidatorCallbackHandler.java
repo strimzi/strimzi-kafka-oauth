@@ -7,6 +7,7 @@ package io.strimzi.kafka.oauth.server;
 import io.strimzi.kafka.oauth.common.Config;
 import io.strimzi.kafka.oauth.common.ConfigUtil;
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
+import io.strimzi.kafka.oauth.common.PrincipalExtractor;
 import io.strimzi.kafka.oauth.validator.JWTSignatureValidator;
 import io.strimzi.kafka.oauth.validator.OAuthIntrospectionValidator;
 import io.strimzi.kafka.oauth.common.TokenInfo;
@@ -36,7 +37,6 @@ import java.util.Properties;
 import java.util.Set;
 
 import static io.strimzi.kafka.oauth.common.DeprecationUtil.isAccessTokenJwt;
-import static io.strimzi.kafka.oauth.common.JSONUtil.getClaimFromJWT;
 import static io.strimzi.kafka.oauth.common.LogUtil.mask;
 
 public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCallbackHandler {
@@ -46,8 +46,6 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
     private TokenValidator validator;
 
     private ServerConfig config;
-
-    private String usernameClaim;
 
     private boolean isJwt;
 
@@ -80,16 +78,29 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         boolean enableBouncy = config.getValueAsBoolean(ServerConfig.OAUTH_CRYPTO_PROVIDER_BOUNCYCASTLE, false);
         int bouncyPosition = config.getValueAsInt(ServerConfig.OAUTH_CRYPTO_PROVIDER_BOUNCYCASTLE_POSITION, 0);
 
+        String validIssuerUri = config.getValue(ServerConfig.OAUTH_VALID_ISSUER_URI);
+
+        if (validIssuerUri == null && config.getValueAsBoolean(ServerConfig.OAUTH_CHECK_ISSUER, true)) {
+            throw new RuntimeException("OAuth validator configuration error: OAUTH_VALID_ISSUER_URI must be set or OAUTH_CHECK_ISSUER has to be set to 'false'");
+        }
+
+        boolean checkTokenType = isCheckAccessTokenType(config);
+
+        PrincipalExtractor principalExtractor = new PrincipalExtractor(
+                config.getValue(Config.OAUTH_USERNAME_CLAIM),
+                config.getValue(Config.OAUTH_FALLBACK_USERNAME_CLAIM),
+                config.getValue(Config.OAUTH_FALLBACK_USERNAME_PREFIX));
+
         if (jwksUri != null) {
             validator = new JWTSignatureValidator(
                     config.getValue(ServerConfig.OAUTH_JWKS_ENDPOINT_URI),
                     socketFactory,
                     verifier,
-                    config.getValue(ServerConfig.OAUTH_VALID_ISSUER_URI),
+                    principalExtractor,
+                    validIssuerUri,
                     config.getValueAsInt(ServerConfig.OAUTH_JWKS_REFRESH_SECONDS, 300),
                     config.getValueAsInt(ServerConfig.OAUTH_JWKS_EXPIRY_SECONDS, 360),
-                    true,
-                    isCheckAccessTokenType(config),
+                    checkTokenType,
                     null,
                     enableBouncy,
                     bouncyPosition
@@ -99,17 +110,14 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                     config.getValue(ServerConfig.OAUTH_INTROSPECTION_ENDPOINT_URI),
                     socketFactory,
                     verifier,
-                    config.getValue(ServerConfig.OAUTH_VALID_ISSUER_URI),
+                    principalExtractor,
+                    validIssuerUri,
+                    config.getValue(ServerConfig.OAUTH_USERINFO_ENDPOINT_URI),
+                    checkTokenType,
                     config.getValue(Config.OAUTH_CLIENT_ID),
                     config.getValue(Config.OAUTH_CLIENT_SECRET),
-                    true,
                     null
             );
-        }
-
-        usernameClaim = config.getValue(Config.OAUTH_USERNAME_CLAIM, "sub");
-        if ("sub".equals(usernameClaim)) {
-            usernameClaim = null;
         }
     }
 
@@ -200,14 +208,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
                 @Override
                 public String principalName() {
-                    if (usernameClaim != null) {
-                        if (ti.payload() != null) {
-                            return getClaimFromJWT(usernameClaim, ti.payload());
-                        } else {
-                            throw new IllegalStateException("Username claim extraction not supported by validator: " + validator.getClass());
-                        }
-                    }
-                    return ti.subject();
+                    return ti.principal();
                 }
 
                 @Override
@@ -250,7 +251,11 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
     }
 
     private TokenInfo validateToken(String token) {
-        return validator.validate(token);
+        TokenInfo result = validator.validate(token);
+        if (log.isDebugEnabled()) {
+            log.debug("User validated (Principal:" + result.principal() + ")");
+        }
+        return result;
     }
 
     private void debugLogToken(String token) {

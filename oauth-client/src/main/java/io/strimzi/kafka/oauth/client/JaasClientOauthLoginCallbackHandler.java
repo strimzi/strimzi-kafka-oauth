@@ -6,6 +6,7 @@ package io.strimzi.kafka.oauth.client;
 
 import io.strimzi.kafka.oauth.common.Config;
 import io.strimzi.kafka.oauth.common.ConfigUtil;
+import io.strimzi.kafka.oauth.common.PrincipalExtractor;
 import io.strimzi.kafka.oauth.common.TokenInfo;
 import org.apache.kafka.common.security.auth.AuthenticateCallbackHandler;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule;
@@ -28,7 +29,6 @@ import java.util.Properties;
 import java.util.Set;
 
 import static io.strimzi.kafka.oauth.common.DeprecationUtil.isAccessTokenJwt;
-import static io.strimzi.kafka.oauth.common.JSONUtil.getClaimFromJWT;
 import static io.strimzi.kafka.oauth.common.LogUtil.mask;
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithAccessToken;
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithClientSecret;
@@ -44,10 +44,12 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
     private String refreshToken;
     private String clientId;
     private String clientSecret;
+    private String scope;
     private URI tokenEndpoint;
-    private String usernameClaim;
+
     private boolean isJwt;
     private int maxTokenExpirySeconds;
+    private PrincipalExtractor principalExtractor;
 
     private SSLSocketFactory socketFactory;
     private HostnameVerifier hostnameVerifier;
@@ -91,18 +93,19 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
                 throw new RuntimeException("No access token, refresh token, nor client secret specified");
             }
 
+            scope = config.getValue(Config.OAUTH_SCOPE);
             socketFactory = ConfigUtil.createSSLFactory(config);
             hostnameVerifier = ConfigUtil.createHostnameVerifier(config);
         }
 
-        usernameClaim = config.getValue(Config.OAUTH_USERNAME_CLAIM, "sub");
-        if ("sub".equals(usernameClaim)) {
-            usernameClaim = null;
-        }
+        principalExtractor = new PrincipalExtractor(
+                config.getValue(Config.OAUTH_USERNAME_CLAIM),
+                config.getValue(Config.OAUTH_FALLBACK_USERNAME_CLAIM),
+                config.getValue(Config.OAUTH_FALLBACK_USERNAME_PREFIX));
 
         isJwt = isAccessTokenJwt(config, log, null);
-        if (!isJwt && usernameClaim != null) {
-            throw new RuntimeException("Custom username claim (OAUTH_USERNAME_CLAIM) not available, when tokens are configured as opaque (OAUTH_ACCESS_TOKEN_IS_JWT=false)");
+        if (!isJwt && principalExtractor.isConfigured()) {
+            log.warn("Token is not JWT (OAUTH_ACCESS_TOKEN_IS_JWT=false) - custom username claim configuration will be ignored (OAUTH_USERNAME_CLAIM, OAUTH_FALLBACK_USERNAME_CLAIM, OAUTH_FALLBACK_USERNAME_PREFIX)");
         }
 
         maxTokenExpirySeconds = config.getValueAsInt(ClientConfig.OAUTH_MAX_TOKEN_EXPIRY_SECONDS, -1);
@@ -116,9 +119,10 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
                     + "\n    tokenEndpointUri: " + tokenEndpoint
                     + "\n    clientId: " + clientId
                     + "\n    clientSecret: " + mask(clientSecret)
+                    + "\n    scope: " + scope
                     + "\n    isJwt: " + isJwt
                     + "\n    maxTokenExpirySeconds: " + maxTokenExpirySeconds
-                    + "\n    usernameClaim: " + usernameClaim);
+                    + "\n    principalExtractor: " + principalExtractor);
         }
     }
 
@@ -147,11 +151,11 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
 
         if (token != null) {
             // we could check if it's a JWT - in that case we could check if it's expired
-            result = loginWithAccessToken(token, isJwt);
+            result = loginWithAccessToken(token, isJwt, principalExtractor);
         } else if (refreshToken != null) {
-            result = loginWithRefreshToken(tokenEndpoint, socketFactory, hostnameVerifier, refreshToken, clientId, clientSecret, isJwt);
+            result = loginWithRefreshToken(tokenEndpoint, socketFactory, hostnameVerifier, refreshToken, clientId, clientSecret, isJwt, principalExtractor);
         } else if (clientSecret != null) {
-            result = loginWithClientSecret(tokenEndpoint, socketFactory, hostnameVerifier, clientId, clientSecret, isJwt);
+            result = loginWithClientSecret(tokenEndpoint, socketFactory, hostnameVerifier, clientId, clientSecret, isJwt, principalExtractor, scope);
         } else {
             throw new IllegalStateException("Invalid oauth client configuration - no credentials");
         }
@@ -180,9 +184,7 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
 
             @Override
             public String principalName() {
-                return usernameClaim != null ?
-                        getClaimFromJWT(usernameClaim, finalResult.payload()) :
-                        finalResult.subject();
+                return finalResult.principal();
             }
 
             @Override

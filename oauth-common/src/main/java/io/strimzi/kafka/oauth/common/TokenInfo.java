@@ -15,22 +15,22 @@ public class TokenInfo {
     private String token;
     private Set<String> scopes = new HashSet<>();
     private long expiresAt;
-    private String subject;
+    private String principal;
     private long issuedAt;
     private AccessToken payload;
 
-    public TokenInfo(AccessToken payload, String token) {
+    public TokenInfo(AccessToken payload, String token, String principal) {
         this(token,
                 payload.getScope(),
-                payload.getSubject(),
+                principal,
                 payload.getIat() == null ? 0 : payload.getIat() * 1000L,
                 payload.getExp() == null ? 0 : payload.getExp() * 1000L);
         this.payload = payload;
     }
 
-    public TokenInfo(String token, String scope, String subject, long issuedAtMs, long expiresAtMs) {
+    public TokenInfo(String token, String scope, String principal, long issuedAtMs, long expiresAtMs) {
         this.token = token;
-        this.subject = subject;
+        this.principal = principal;
         this.issuedAt = issuedAtMs;
         this.expiresAt = expiresAtMs;
 
@@ -53,8 +53,8 @@ public class TokenInfo {
         return expiresAt;
     }
 
-    public String subject() {
-        return subject;
+    public String principal() {
+        return principal;
     }
 
     public long issuedAtMs() {
