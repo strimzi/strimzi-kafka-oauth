@@ -19,13 +19,14 @@ Building
 Preparing
 ---------
 
-Make sure that the following ports on your host machine are free: 9092, 2181 (Kafka), 8080, 8443 (Keycloak), 4444, 4445 (Hydra).
+Make sure that the following ports on your host machine are free: 9092, 2181 (Kafka), 8080 (Spring or Keycloak), 8443 (Keycloak), 4444, 4445 (Hydra).
 
 Then, you have to add some entries to your `/etc/hosts` file:
 
     127.0.0.1            keycloak
     127.0.0.1            hydra
     127.0.0.1            kafka
+    127.0.0.1            spring
 
 That's needed for host resolution, because Kafka brokers and Kafka clients connecting to Keycloak / Hydra have to use the 
 same hostname to ensure compatibility of generated access tokens.
@@ -40,7 +41,7 @@ All the following docker-compose commands should be run from this directory.
 
 You may want to remove any old containers to start clean:
 
-    docker rm -f kafka zookeeper keycloak
+    docker rm -f kafka zookeeper keycloak spring
 
 
 Running with Keycloak without SSL
@@ -105,6 +106,19 @@ Or, you can have multiple terminal windows and start individual component in eac
     docker-compose -f hydra/compose-with-jwt.yml up
 
     docker-compose -f compose.yml -f hydra-import/compose.yml up --build
+
+
+Running with Spring using opaque tokens
+---------------------------------------
+
+Start spring authorization server first:
+
+    docker-compose -f compose.yml -f spring/compose.yml up
+
+Then start the Kafka broker:
+    
+    docker-compose -f compose.yml -f kafka-oauth-strimzi/compose-spring.yml up --build
+
 
 
 Rebuilding certificates
