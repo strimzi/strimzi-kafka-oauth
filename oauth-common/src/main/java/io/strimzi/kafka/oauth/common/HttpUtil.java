@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -153,7 +154,15 @@ public class HttpUtil {
                 response.close();
                 return null;
             }
-            return JSONUtil.readJSON(response, responseType);
+            InputStream is = response;
+            if (log.isTraceEnabled()) {
+                ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+                IOUtil.copy(response, buffer);
+                log.trace("Response body: " + buffer.toString("utf-8"));
+
+                is = new ByteArrayInputStream(buffer.toByteArray());
+            }
+            return JSONUtil.readJSON(is, responseType);
         }
 
         // Don't call con.disconnect() in order to allow connection reuse.
