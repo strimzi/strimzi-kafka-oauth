@@ -6,6 +6,11 @@ Release Notes
 
 ### Improved compatibility with authorization servers
 
+Some claims are no longer required in token or Introspection Endpoint response (`iat`).
+Others can be configured to not be required:
+* `iss` claim is not required if `oauth.check.issuer` is set to `false`
+* `sub` claim is no longer required if `oauth.username.claim` is configured since then it is no longer used to extract principal. 
+
 Additional options were added to improve interoperability with authorization servers.
 
 The following options were added:
@@ -23,7 +28,7 @@ The following options were added:
   Sometimes the introspection endpoint doesn't provide any claim that could be used for the principal. In such a case User Info Endpoint is used, if configured, and configuration of `oauth.username.claim`, `oauth.fallback.username.claim`, and `oauth.fallback.username.prefix` is taken into account.
 * `oauth.valid.token.type`
   When using the Introspection Endpoint, some servers use custom values for `token_type`.
-  If this configuration parameter is set then the `token_type` attribute has to be present in Introspection Token response, and has to have the same value.
+  If this configuration parameter is set then the `token_type` attribute has to be present in Introspection Token response, and has to have the specified value.
 
 ### Fixed a non-standard `token_type` enforcement when using the Introspection Endpoint
 
