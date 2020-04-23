@@ -32,7 +32,7 @@ public class PrincipalExtractor {
                 throw new RuntimeException("Failed to parse access token", e);
             }
         }
-        return token.getSubject();
+        return null;
     }
 
     public String getPrincipal(JsonNode json) {
@@ -52,6 +52,14 @@ public class PrincipalExtractor {
             }
         }
 
+        return null;
+    }
+
+    public String getSub(AccessToken token) {
+        return token.getSubject();
+    }
+
+    public String getSub(JsonNode json) {
         return getClaimFromJWT(json, "sub");
     }
 

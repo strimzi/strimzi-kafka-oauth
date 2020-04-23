@@ -220,17 +220,17 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
         } catch (TokenValidationException e) {
             if (log.isDebugEnabled()) {
-                log.debug("Validation failed for token: " + mask(token), e);
+                log.debug("Token validation failed for token: " + mask(token), e);
             }
             callback.error(e.status(), null, null);
 
         } catch (RuntimeException e) {
             // Kafka ignores cause inside thrown exception, and doesn't log it
             if (log.isDebugEnabled()) {
-                log.debug("Validation failed due to runtime exception (network issue or misconfiguration): ", e);
+                log.debug("Token validation failed due to runtime exception (network issue or misconfiguration): ", e);
             }
             // Extract cause and include it in a message string in order for it to be in the server log
-            throw new AuthenticationException("Validation failed due to runtime exception: " + getCauseMessage(e), e);
+            throw new AuthenticationException("Token validation failed due to runtime exception: " + getCauseMessage(e), e);
 
         } catch (Exception e) {
             // Log cause, because Kafka doesn't

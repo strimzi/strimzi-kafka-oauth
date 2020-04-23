@@ -158,7 +158,7 @@ public class HttpUtil {
             if (log.isTraceEnabled()) {
                 ByteArrayOutputStream buffer = new ByteArrayOutputStream();
                 IOUtil.copy(response, buffer);
-                log.trace("Response body: " + buffer.toString("utf-8"));
+                log.trace("Response body for " + method + " " + uri + ": " + buffer.toString("utf-8"));
 
                 is = new ByteArrayInputStream(buffer.toByteArray());
             }

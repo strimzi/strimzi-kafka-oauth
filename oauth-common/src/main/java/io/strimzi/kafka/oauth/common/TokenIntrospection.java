@@ -25,7 +25,11 @@ public class TokenIntrospection {
                 principalExtractor = new PrincipalExtractor();
             }
 
-            return new TokenInfo(parsed, token, principalExtractor.getPrincipal(parsed, jws));
+            String principal = principalExtractor.getPrincipal(parsed, jws);
+            if (principal == null) {
+                principal = principalExtractor.getSub(parsed);
+            }
+            return new TokenInfo(parsed, token, principal);
 
         } catch (Exception e) {
             throw new RuntimeException("Failed to read payload from JWT access token", e);

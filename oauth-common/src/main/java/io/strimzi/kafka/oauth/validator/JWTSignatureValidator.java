@@ -234,9 +234,15 @@ public class JWTSignatureValidator implements TokenValidator {
                     TimeUtil.formatIsoDateTimeUTC(expiresMillis) + ")");
         }
 
-        String principal = principalExtractor.getPrincipal(JSONUtil.asJson(t));
+        String principal = null;
+        if (principalExtractor.isConfigured()) {
+            principal = principalExtractor.getPrincipal(JSONUtil.asJson(t));
+        }
+        if (principal == null && !principalExtractor.isConfigured()) {
+            principal = principalExtractor.getSub(t);
+        }
         if (principal == null) {
-            throw new RuntimeException("Failed to extract principal: principal == null    (check usernameClaim, fallbackUsernameClaim configuration)");
+            throw new RuntimeException("Failed to extract principal - check usernameClaim, fallbackUsernameClaim configuration");
         }
         return new TokenInfo(t, token, principal);
     }
