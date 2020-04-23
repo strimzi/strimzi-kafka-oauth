@@ -176,47 +176,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
         try {
             TokenInfo ti = validateToken(token);
-
-            callback.token(new BearerTokenWithPayload() {
-
-                private Object payload;
-
-                @Override
-                public Object getPayload() {
-                    return payload;
-                }
-
-                @Override
-                public void setPayload(Object value) {
-                    payload = value;
-                }
-
-                @Override
-                public String value() {
-                    return ti.token();
-                }
-
-                @Override
-                public Set<String> scope() {
-                    return ti.scope();
-                }
-
-                @Override
-                public long lifetimeMs() {
-                    return ti.expiresAtMs();
-                }
-
-                @Override
-                public String principalName() {
-                    return ti.principal();
-                }
-
-                @Override
-                public Long startTimeMs() {
-                    return ti.issuedAtMs();
-                }
-
-            });
+            callback.token(new BearerTokenWithPayloadImpl(ti));
 
         } catch (TokenValidationException e) {
             if (log.isDebugEnabled()) {
@@ -278,6 +238,51 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         } catch (JWSInputException e) {
             // Try parse as refresh token:
             log.debug("[IGNORED] Failed to parse JWT token's payload", e);
+        }
+    }
+
+    static class BearerTokenWithPayloadImpl implements BearerTokenWithPayload {
+
+        private final TokenInfo ti;
+        private Object payload;
+
+        BearerTokenWithPayloadImpl(TokenInfo ti) {
+            this.ti = ti;
+        }
+
+        @Override
+        public Object getPayload() {
+            return payload;
+        }
+
+        @Override
+        public void setPayload(Object value) {
+            payload = value;
+        }
+
+        @Override
+        public String value() {
+            return ti.token();
+        }
+
+        @Override
+        public Set<String> scope() {
+            return ti.scope();
+        }
+
+        @Override
+        public long lifetimeMs() {
+            return ti.expiresAtMs();
+        }
+
+        @Override
+        public String principalName() {
+            return ti.principal();
+        }
+
+        @Override
+        public Long startTimeMs() {
+            return ti.issuedAtMs();
         }
     }
 }
