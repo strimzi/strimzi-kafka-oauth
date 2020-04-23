@@ -305,6 +305,7 @@ You can fallback to a secondary attribute, which allows you to map multiple acco
 
 If `oauth.username.claim` is specified but value does not exist in the Introspection Endpoint response, then `oauth.fallback.username.claim` is used. If value for that doesn't exist either, the `sub` attribute is used.
 When `oauth.fallback.username.prefix` is specified and the attribute specified by `oauth.fallback.username.claim` contains a non-null value the resulting principal will be equal to concatenation of the prefix, and the value.
+If none of the `oauth.*.username.*` attributes is specified, `sub` claim will be used automatically.
 
 For example, if the following configuration is set:
 
@@ -315,7 +316,14 @@ For example, if the following configuration is set:
 It means that if the response contains `"username": "alice"` then the principal will be `User:alice`.
 Otherwise, if the response contains `"client_id": "my-producer"` then the principal will be `User:client-account-my-producer`. 
 
-If you have a DEBUG logging configured for the `io.strimzi` category you may need to specify the following to prevent warnings about access token not being JWT:
+Sometimes the Introspection Endpoint does not provide any useful identifying information that we can use for principal.
+In that case you can configure User Info Endpoint:
+ 
+- `oauth.userinfo.endpoint.uri` (e.g.: "https://localhost:8443/auth/realms/demo/protocol/openid-connect/userinfo")
+
+If the principal name could not be extracted from Introspection Endpoint response, then the same rules (`oauth.username.claim`, `oauth.fallback.username.claim`, `oauth.fallback.username.prefix`) will be used to try extract the principal name from User Info Endpoint response.
+
+When you have a DEBUG logging configured for the `io.strimzi` category you may need to specify the following to prevent warnings about access token not being JWT:
 - `oauth.access.token.is.jwt` (e.g.: "false")
 
 ##### Configuring the client side of inter-broker communication
