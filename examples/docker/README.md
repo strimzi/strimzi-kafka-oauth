@@ -3,7 +3,7 @@ Demo services
 
 This module provides docker containers for the demo. It includes Keycloak, realm import service for Keycloak, and a preconfigured Kafka broker.
 
-Alternative option is to use included Hydra project as authorization server.
+Alternative option is to use included 'hydra' or 'spring' project as authorization server.
 
 
 Building
@@ -55,7 +55,7 @@ Or, you can have multiple terminal windows and start individual component in eac
 
     docker-compose -f compose.yml -f kafka-oauth-strimzi/compose.yml up --build 
 
-    docker-compose -f keycloak/compose.yml up
+    docker-compose -f compose.yml -f keycloak/compose.yml up
 
     docker-compose -f compose.yml -f keycloak-import/compose.yml up --build
 
@@ -71,7 +71,7 @@ Or, you can have multiple terminal windows and start individual component in eac
 
     docker-compose -f compose.yml -f kafka-oauth-strimzi/compose-ssl.yml up --build 
 
-    docker-compose -f keycloak/compose-ssl.yml up
+    docker-compose -f compose.yml -f keycloak/compose-ssl.yml up
 
     docker-compose -f compose.yml -f keycloak-import/compose-ssl.yml up --build
 
@@ -87,7 +87,7 @@ Or, you can have multiple terminal windows and start individual component in eac
 
     docker-compose -f compose.yml -f kafka-oauth-strimzi/compose-hydra.yml up --build 
 
-    docker-compose -f hydra/compose.yml up
+    docker-compose -f compose.yml -f hydra/compose.yml up
 
     docker-compose -f compose.yml -f hydra-import/compose.yml up --build
 
@@ -103,7 +103,7 @@ Or, you can have multiple terminal windows and start individual component in eac
 
     docker-compose -f compose.yml -f kafka-oauth-strimzi/compose-hydra.yml up --build 
 
-    docker-compose -f hydra/compose-with-jwt.yml up
+    docker-compose -f compose.yml -f hydra/compose-with-jwt.yml up
 
     docker-compose -f compose.yml -f hydra-import/compose.yml up --build
 
@@ -118,7 +118,6 @@ Start spring authorization server first:
 Then start the Kafka broker:
     
     docker-compose -f compose.yml -f kafka-oauth-strimzi/compose-spring.yml up --build
-
 
 
 Rebuilding certificates

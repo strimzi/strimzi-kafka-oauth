@@ -113,7 +113,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                     principalExtractor,
                     validIssuerUri,
                     config.getValue(ServerConfig.OAUTH_USERINFO_ENDPOINT_URI),
-                    checkTokenType,
+                    config.getValue(ServerConfig.OAUTH_VALID_TOKEN_TYPE),
                     config.getValue(Config.OAUTH_CLIENT_ID),
                     config.getValue(Config.OAUTH_CLIENT_SECRET),
                     null

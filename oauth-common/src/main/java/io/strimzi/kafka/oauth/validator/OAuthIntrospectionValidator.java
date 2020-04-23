@@ -31,7 +31,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
     private final URI introspectionURI;
     private final String validIssuerURI;
     private final String userInfoURI;
-    private final boolean checkTokenType;
+    private final String validTokenType;
     private final String clientId;
     private final String clientSecret;
     private final String audience;
@@ -45,7 +45,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
                                        PrincipalExtractor principalExtractor,
                                        String issuerUri,
                                        String userInfoUri,
-                                       boolean checkTokenType,
+                                       String validTokenType,
                                        String clientId,
                                        String clientSecret,
                                        String audience) {
@@ -90,7 +90,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         }
         this.userInfoURI = userInfoUri;
 
-        this.checkTokenType = checkTokenType;
+        this.validTokenType = validTokenType;
         this.clientId = clientId;
         this.clientSecret = clientSecret;
         this.audience = audience;
@@ -102,7 +102,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
                     + "\n    principalExtractor: " + principalExtractor
                     + "\n    validIssuerUri: " + validIssuerURI
                     + "\n    userInfoUri: " + userInfoURI
-                    + "\n    checkTokenType: " + checkTokenType
+                    + "\n    validTokenType: " + validTokenType
                     + "\n    clientId: " + clientId
                     + "\n    clientSecret: " + mask(clientSecret));
         }
@@ -186,10 +186,10 @@ public class OAuthIntrospectionValidator implements TokenValidator {
             }
         }
 
-        if (checkTokenType) {
+        if (validTokenType != null) {
             value = response.get("token_type");
-            if (value != null && !"Bearer".equalsIgnoreCase(value.asText())) {
-                throw new TokenValidationException("Token check failed - invalid token type: " + value + " (should be 'Bearer')" + (value == null ? ". Consider setting OAUTH_CHECK_ACCESS_TOKEN_TYPE to false." : ""))
+            if (value == null || !validTokenType.equals(value.asText())) {
+                throw new TokenValidationException("Token check failed - invalid token type: " + value + " (should be '" + validTokenType + "')" + (value == null ? ". Consider not setting OAUTH_VALID_TOKEN_TYPE." : ""))
                         .status(Status.UNSUPPORTED_TOKEN_TYPE);
             }
         }

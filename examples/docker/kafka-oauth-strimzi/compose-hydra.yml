@@ -58,6 +58,7 @@ services:
       # Validation config
       OAUTH_VALID_ISSUER_URI: "https://${HYDRA_HOST:-hydra}:4444/"
       OAUTH_INTROSPECTION_ENDPOINT_URI: "https://${HYDRA_HOST:-hydra}:4445/oauth2/introspect"
+      OAUTH_VALID_TOKEN_TYPE: "access_token"
 
       # Truststore config for connecting to secured authorization server
       OAUTH_SSL_TRUSTSTORE_LOCATION: /opt/kafka/config/ca-truststore.p12

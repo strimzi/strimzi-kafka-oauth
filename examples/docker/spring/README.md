@@ -68,4 +68,3 @@ Configure your Kafka client by obtaining the token as user `user`:
     oauth.scope=any
     oauth.access.token.is.jwt=false
 
-    

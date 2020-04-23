@@ -341,7 +341,7 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
 
                     if (grantedScopes.isGranted(operation.name())) {
                         if (GRANT_LOG.isDebugEnabled()) {
-                            GRANT_LOG.debug("Authorization GRANTED - cluster: " + clusterName + ",user: " + session.principal() + ", operation: " + operation +
+                            GRANT_LOG.debug("Authorization GRANTED - cluster: " + clusterName + ", user: " + session.principal() + ", operation: " + operation +
                                     ", resource: " + resource + "\nGranted scopes for resource (" + resourceSpec + "): " + grantedScopes);
                         }
                         return true;
@@ -387,7 +387,7 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
 
         if (DENY_LOG.isDebugEnabled()) {
             DENY_LOG.debug("Authorization DENIED -" + nonAuthMessageFragment + " user: " + session.principal() +
-                    " cluster: " + clusterName + ", operation: " + operation + ", resource: " + resource + "\n permissions: " + authz);
+                    ", cluster: " + clusterName + ", operation: " + operation + ", resource: " + resource + ",\n permissions: " + authz);
         }
         return false;
     }
