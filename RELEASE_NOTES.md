@@ -14,6 +14,7 @@ Others can be configured to not be required:
 Additional options were added to improve interoperability with authorization servers.
 
 The following options were added:
+
 * `oauth.scope`
 
   Scope can now be specified for the Token endpoint on the Kafka clients and on the Kafka broker for inter-broker communication.

@@ -21,7 +21,6 @@
         <plugins.resources.version>3.1.0</plugins.resources.version>
         <plugins.spotify.version>1.4.13</plugins.spotify.version>
         <spring.boot.version>2.2.6.RELEASE</spring.boot.version>
-        <spring.oauth2.version>2.4.0.RELEASE</spring.oauth2.version>
     </properties>
 
     <licenses>
@@ -34,18 +33,8 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>org.springframework.security.oauth</groupId>
-                <artifactId>spring-security-oauth2</artifactId>
-                <version>${spring.oauth2.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot</artifactId>
-                <version>${spring.boot.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-autoconfigure</artifactId>
+                <groupId>org.springframework.security.oauth.boot</groupId>
+                <artifactId>spring-security-oauth2-autoconfigure</artifactId>
                 <version>${spring.boot.version}</version>
             </dependency>
         </dependencies>
@@ -53,16 +42,12 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot</artifactId>
+            <groupId>org.springframework.security.oauth.boot</groupId>
+            <artifactId>spring-security-oauth2-autoconfigure</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-autoconfigure</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.security.oauth</groupId>
-            <artifactId>spring-security-oauth2</artifactId>
+            <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
     </dependencies>
 
