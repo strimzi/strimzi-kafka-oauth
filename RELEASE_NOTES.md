@@ -25,16 +25,16 @@ The following options were added:
 * `oauth.fallback.username.claim`
 
   Principal can now be extracted from JWT token or Introspection endpoint response by using multiple claims.
-  First `oauth.username.claim` is attempted (if configured). If the value is not present, then the fallback claim is attempted.
+  First `oauth.username.claim` is attempted (if configured). If the value is not present, the fallback claim is attempted.
   If neither `oauth.username.claim` nor `oauth.fallback.username.claim` is specified or its value present, `sub` claim is used.
 
 * `oauth.fallback.username.prefix`
 
-  If principal is set by `oauth.fallback.username.claim` then its value will be prefixed by the value of `oauth.fallback.username.prefix` if specified.
+  If principal is set by `oauth.fallback.username.claim` then its value will be prefixed by the value of `oauth.fallback.username.prefix`, if specified.
 
 * `oauth.userinfo.endpoint.uri`
 
-  Sometimes the introspection endpoint doesn't provide any claim that could be used for the principal. In such a case User Info Endpoint is used, if configured, and configuration of `oauth.username.claim`, `oauth.fallback.username.claim`, and `oauth.fallback.username.prefix` is taken into account.
+  Sometimes the introspection endpoint doesn't provide any claim that could be used for the principal. In such a case User Info Endpoint can be used, and configuration of `oauth.username.claim`, `oauth.fallback.username.claim`, and `oauth.fallback.username.prefix` is taken into account.
 
 * `oauth.valid.token.type`
 
@@ -49,6 +49,7 @@ Token type check is now disabled unless the newly introduced `oauth.valid.token.
 ### Improved examples
 
 * Fixed an issue with `keycloak` and `hydra` containers not visible when starting services in separate shells.
+
   The instructions for running `keycloak` / `hydra` separately omitted the required `-f compose.yml` as a first compose file, resulting in a separate bridge network being used.
 
 * Added Spring Security Authorization Server
@@ -56,7 +57,7 @@ Token type check is now disabled unless the newly introduced `oauth.valid.token.
 ### Improved logging to facilitate troubleshooting
 
 There is now some TRACE logging support which should only ever be used in development / testing environment because it outputs secrets into the log.
-When integrating with your authorization server, enabling TRACE logging on 'io.strimzi.kafka.oauth' logger will output the authorization server responses which can point you to how to correctly configure 'oauth.*' parameters to make the integration work. 
+When integrating with your authorization server, enabling TRACE logging on `io.strimzi.kafka.oauth` logger will output the authorization server responses which can point you to how to correctly configure `oauth.*` parameters to make the integration work. 
 
 0.4.0
 -----
