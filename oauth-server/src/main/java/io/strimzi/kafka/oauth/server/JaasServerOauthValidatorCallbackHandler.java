@@ -86,10 +86,22 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
         boolean checkTokenType = isCheckAccessTokenType(config);
 
+        String usernameClaim = config.getValue(Config.OAUTH_USERNAME_CLAIM);
+        String fallbackUsernameClaim = config.getValue(Config.OAUTH_FALLBACK_USERNAME_CLAIM);
+        String fallbackUsernamePrefix = config.getValue(Config.OAUTH_FALLBACK_USERNAME_PREFIX);
+
+        if (fallbackUsernameClaim != null && usernameClaim == null) {
+            throw new RuntimeException("OAuth validator configuration error: OAUTH_USERNAME_CLAIM must be set when OAUTH_FALLBACK_USERNAME_CLAIM is set");
+        }
+
+        if (fallbackUsernamePrefix != null && fallbackUsernameClaim == null) {
+            throw new RuntimeException("OAuth validator configuration error: OAUTH_FALLBACK_USERNAME_CLAIM must be set when OAUTH_FALLBACK_USERNAME_PREFIX is set");
+        }
+
         PrincipalExtractor principalExtractor = new PrincipalExtractor(
-                config.getValue(Config.OAUTH_USERNAME_CLAIM),
-                config.getValue(Config.OAUTH_FALLBACK_USERNAME_CLAIM),
-                config.getValue(Config.OAUTH_FALLBACK_USERNAME_PREFIX));
+                usernameClaim,
+                fallbackUsernameClaim,
+                fallbackUsernamePrefix);
 
         if (jwksUri != null) {
             validator = new JWTSignatureValidator(
