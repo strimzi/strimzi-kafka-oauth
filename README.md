@@ -237,7 +237,7 @@ Some authorization servers don't provide the `iss` claim. In that case you would
 - `oauth.check.issuer` (e.g. "false")
 
 JWT tokens contain unique user identification in `sub` claim. However, this is often a long number or a UUID, but we usually prefer to use human readable usernames, which may also be present in JWT token.
-Use `oauth.username.claim` to map the claim (attribute) where the username is stored:
+Use `oauth.username.claim` to map the claim (attribute) where the value you want to use as used id is stored:
 - `oauth.username.claim` (e.g.: "preferred_username")
 
 If `oauth.username.claim` is specified the value of that claim is used instead, but if not set, the fallback is still the `sub` claim.
@@ -247,7 +247,7 @@ You can fallback to a secondary claim, which allows you to map multiple account 
 - `oauth.fallback.username.prefix` (e.g.: "client-account-")
 
 If `oauth.username.claim` is specified but value does not exist in the token, then `oauth.fallback.username.claim` is used. If value for that doesn't exist either, the `sub` claim is used.
-When `oauth.fallback.username.prefix` is specified and the claim specified by `oauth.fallback.username.claim` contains a non-null value the resulting principal will be equal to concatenation of the prefix, and the value.
+When `oauth.fallback.username.prefix` is specified and the claim specified by `oauth.fallback.username.claim` contains a non-null value the resulting user id will be equal to concatenation of the prefix, and the value.
 
 For example, if the following configuration is set:
 
@@ -292,19 +292,19 @@ Some authorization servers use a non-standard `token_type` value. To give the mo
 
 When this is specified the Introspection Endpoint response has to contain `token_type`, and its value has to be equal to the value specified by `oauth.valid.token.type`.
 
-Introspection Endpoint may or may not return identifying information which we could use to construct a principal for the user (the 'username').
+Introspection Endpoint may or may not return identifying information which we could use as user id to construct a principal for the user.
 
-If the information is available we need to extract the username from attributes contained in Introspection Endpoint response.
+If the information is available we attempt to extract the user id from Introspection Endpoint response.
 
-Use `oauth.username.claim` to map the attribute where the username is stored:
+Use `oauth.username.claim` to map the attribute where the user id is stored:
 - `oauth.username.claim` (e.g.: "preferred_username")
 
-You can fallback to a secondary attribute, which allows you to map multiple account types into the same principal namespace: 
+You can fallback to a secondary attribute, which allows you to map multiple account types into the same user id namespace: 
 - `oauth.fallback.username.claim` (e.g.: "client_id")
 - `oauth.fallback.username.prefix` (e.g.: "client-account-")
 
 If `oauth.username.claim` is specified but value does not exist in the Introspection Endpoint response, then `oauth.fallback.username.claim` is used. If value for that doesn't exist either, the `sub` attribute is used.
-When `oauth.fallback.username.prefix` is specified and the attribute specified by `oauth.fallback.username.claim` contains a non-null value the resulting principal will be equal to concatenation of the prefix, and the value.
+When `oauth.fallback.username.prefix` is specified and the attribute specified by `oauth.fallback.username.claim` contains a non-null value the resulting user id will be equal to concatenation of the prefix, and the value.
 If none of the `oauth.*.username.*` attributes is specified, `sub` claim will be used automatically.
 
 For example, if the following configuration is set:
@@ -316,12 +316,12 @@ For example, if the following configuration is set:
 It means that if the response contains `"username": "alice"` then the principal will be `User:alice`.
 Otherwise, if the response contains `"client_id": "my-producer"` then the principal will be `User:client-account-my-producer`. 
 
-Sometimes the Introspection Endpoint does not provide any useful identifying information that we can use for principal.
+Sometimes the Introspection Endpoint does not provide any useful identifying information that we can use for the user id.
 In that case you can configure User Info Endpoint:
  
 - `oauth.userinfo.endpoint.uri` (e.g.: "https://localhost:8443/auth/realms/demo/protocol/openid-connect/userinfo")
 
-If the principal name could not be extracted from Introspection Endpoint response, then the same rules (`oauth.username.claim`, `oauth.fallback.username.claim`, `oauth.fallback.username.prefix`) will be used to try extract the principal name from User Info Endpoint response.
+If the user id could not be extracted from Introspection Endpoint response, then the same rules (`oauth.username.claim`, `oauth.fallback.username.claim`, `oauth.fallback.username.prefix`) will be used to try extract the user id from User Info Endpoint response.
 
 When you have a DEBUG logging configured for the `io.strimzi` category you may need to specify the following to prevent warnings about access token not being JWT:
 - `oauth.access.token.is.jwt` (e.g.: "false")
@@ -336,7 +336,7 @@ Specify the following `oauth.*` properties:
 - `oauth.client.secret` (e.g.: "kafka-secret")
 - `oauth.username.claim` (e.g.: "preferred_username")
 
-Also specify the username corresponding to client account identified by `oauth.client.id` in `super.users` property in `server.properties` file:
+Also specify the principal corresponding to the client account identified by `oauth.client.id` in `super.users` property in `server.properties` file:
 - `super.users` (e.g.: "User:service-account-kafka") 
 
 This is not a full set of available `oauth.*` properties. All the `oauth.*` properties described in the next chapter about [configuring the Kafka clients](#configuring-the-kafka-client) also apply to configuring the client side of inter-broker communication. 
@@ -381,7 +381,7 @@ For example, to add the account representing Kafka Broker in Keycloak to `super.
 
     super.users=User:service-account-kafka
 
-This assumes that you configured alternative user principal extrantion from the token by adding to JAAS configuration the parameter:
+This assumes that you configured alternative user id extraction from the token by adding to JAAS configuration the parameter:
 
     oauth.username.claim="preferred_username"
 
@@ -470,22 +470,21 @@ Some authorization servers require that scope is specified:
 
 Scope is sent to the Token Endpoint when obtaining the access token.
 
-For debug purposes you may want to properly configure which JWT token attribute contains the username of the account used to obtain the access token:
+For debug purposes you may want to properly configure which JWT token attribute contains the user id of the account used to obtain the access token:
 
 - `oauth.username.claim` (e.g.: "preferred_username")
 
 This does not affect how Kafka client is presented to the Kafka Broker.
-The broker performs username extraction from the token once again or it uses the Introspection Endpoint or the User Info Endpoint to get the username.
+The broker performs user id extraction from the token once again or it uses the Introspection Endpoint or the User Info Endpoint to get the user id.
 
-By default the username on the Kafka client is obtained from `sub` claim in the token - only if token is JWT. 
+By default the user id on the Kafka client is obtained from `sub` claim in the token - only if token is JWT. 
+Client side user id extraction is not possible when token is an opaque token - not JWT.
 
-You may want to explicitly specify the period the access token is considered valid.
-This may be necessary if using opaque tokens do not contain expiry info. 
-This also allows you to shorten the token's lifespan.
+You may want to explicitly specify the period the access token is considered valid. This allows you to shorten the token's lifespan.
 
 On the client the access token is reused for multiple connections with the Kafka Broker.
 Before it expires the token is refreshed in the background so that a valid token is always available for all the connections.
-You can make the token refresh more often than strictly necessary based on when it expires:
+You can make the token refresh more often than strictly necessary by shortening its lifespan:
 
 - `oauth.max.token.expiry.seconds` (e.g.: "600" - set token expiry to 10 minutes)  
 
