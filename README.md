@@ -233,20 +233,20 @@ Specify the following `oauth.*` properties:
 - `oauth.jwks.endpoint.uri` (e.g.: "https://localhost:8443/auth/realms/demo/protocol/openid-connect/certs")
 - `oauth.valid.issuer.uri` (e.g.: "https://localhost:8443/auth/realms/demo" - only access tokens issued by this issuer will be accepted)
 
-Some authorization servers don't provide the `iss` claim. In that case you would not set `oauth.valid.issuer.uri`, and you would explicilty turn off issuer checking by setting the following option to `false`:
+Some authorization servers don't provide the `iss` claim. In that case you would not set `oauth.valid.issuer.uri`, and you would explicitly turn off issuer checking by setting the following option to `false`:
 - `oauth.check.issuer` (e.g. "false")
 
 JWT tokens contain unique user identification in `sub` claim. However, this is often a long number or a UUID, but we usually prefer to use human readable usernames, which may also be present in JWT token.
-Use `oauth.username.claim` to map the claim (attribute) where the value you want to use as used id is stored:
+Use `oauth.username.claim` to map the claim (attribute) where the value you want to use as user id is stored:
 - `oauth.username.claim` (e.g.: "preferred_username")
 
-If `oauth.username.claim` is specified the value of that claim is used instead, but if not set, the fallback is still the `sub` claim.
+If `oauth.username.claim` is specified the value of that claim is used instead, but if not set, the automatic fallback claim is the `sub` claim.
 
-You can fallback to a secondary claim, which allows you to map multiple account types into the same principal namespace: 
+You can specify the secondary claim to fallback to, which allows you to map multiple account types into the same principal namespace: 
 - `oauth.fallback.username.claim` (e.g.: "client_id")
 - `oauth.fallback.username.prefix` (e.g.: "client-account-")
 
-If `oauth.username.claim` is specified but value does not exist in the token, then `oauth.fallback.username.claim` is used. If value for that doesn't exist either, the `sub` claim is used.
+If `oauth.username.claim` is specified but value does not exist in the token, then `oauth.fallback.username.claim` is used. If value for that doesn't exist either, the exception is thrown.`
 When `oauth.fallback.username.prefix` is specified and the claim specified by `oauth.fallback.username.claim` contains a non-null value the resulting user id will be equal to concatenation of the prefix, and the value.
 
 For example, if the following configuration is set:
@@ -283,7 +283,7 @@ Specify the following `oauth.*` properties:
  
 Introspection endpoint should be protected. The `oauth.client.id` and `oauth.client.secret` specify Kafka Broker credentials for authenticating to access the introspection endpoint. 
 
-Some authorization servers don't provide the `iss` claim. In that case you would not set `oauth.valid.issuer.uri`, and you would explicilty turn off issuer checking by setting the following option to `false`:
+Some authorization servers don't provide the `iss` claim. In that case you would not set `oauth.valid.issuer.uri`, and you would explicitly turn off issuer checking by setting the following option to `false`:
 - `oauth.check.issuer` (e.g.: "false")
 
 By default, if the Introspection Endpoint response contains `token_type` claim, there is no checking performed on it.
@@ -374,7 +374,7 @@ You can integrate KeycloakRBACAuthorizer with SimpleAclAuthorizer:
 - `strimzi.authorization.delegate.to.kafka.acl` (e.g.: "true" - if enabled, then when action is not granted based on Keycloak Authorization Services grant it is delegated to SimpleACLAuthorizer which can still grant it.)
 
 If you turn on authorization support in Kafka brokers, you need to properly set `super.users` property. 
-By default, access token's 'sub' claim is used as user id.
+By default, access token's `sub` claim is used as user id.
 You may want to use another claim provided in access token as an alternative user id (username, email ...). 
 
 For example, to add the account representing Kafka Broker in Keycloak to `super.users` add the following to your `server.properties` file:
@@ -519,7 +519,7 @@ sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginMo
 sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
 ```
 
-When you have a Kafka Client connecting to a single Kafka cluster it only need one set of credentials - in such a situation it is sometimes more convenient to just use ENV vars.
+When you have a Kafka Client connecting to a single Kafka cluster it only needs one set of credentials - in such a situation it is sometimes more convenient to just use ENV vars.
 In that case you could simplify `my.properties` file:
 
 ```
