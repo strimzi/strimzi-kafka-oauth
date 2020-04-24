@@ -246,7 +246,7 @@ You can specify the secondary claim to fallback to, which allows you to map mult
 - `oauth.fallback.username.claim` (e.g.: "client_id")
 - `oauth.fallback.username.prefix` (e.g.: "client-account-")
 
-If `oauth.username.claim` is specified but value does not exist in the token, then `oauth.fallback.username.claim` is used. If value for that doesn't exist either, the exception is thrown.`
+If `oauth.username.claim` is specified but value does not exist in the token, then `oauth.fallback.username.claim` is used. If value for that doesn't exist either, the exception is thrown.
 When `oauth.fallback.username.prefix` is specified and the claim specified by `oauth.fallback.username.claim` contains a non-null value the resulting user id will be equal to concatenation of the prefix, and the value.
 
 For example, if the following configuration is set:
@@ -303,8 +303,9 @@ You can fallback to a secondary attribute, which allows you to map multiple acco
 - `oauth.fallback.username.claim` (e.g.: "client_id")
 - `oauth.fallback.username.prefix` (e.g.: "client-account-")
 
-If `oauth.username.claim` is specified but value does not exist in the Introspection Endpoint response, then `oauth.fallback.username.claim` is used. If value for that doesn't exist either, the `sub` attribute is used.
+If `oauth.username.claim` is specified but value does not exist in the Introspection Endpoint response, then `oauth.fallback.username.claim` is used. If value for that doesn't exist either, the exception is thrown.
 When `oauth.fallback.username.prefix` is specified and the attribute specified by `oauth.fallback.username.claim` contains a non-null value the resulting user id will be equal to concatenation of the prefix, and the value.
+
 If none of the `oauth.*.username.*` attributes is specified, `sub` claim will be used automatically.
 
 For example, if the following configuration is set:
