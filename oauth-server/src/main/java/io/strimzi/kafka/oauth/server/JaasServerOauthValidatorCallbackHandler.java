@@ -7,6 +7,7 @@ package io.strimzi.kafka.oauth.server;
 import io.strimzi.kafka.oauth.common.Config;
 import io.strimzi.kafka.oauth.common.ConfigUtil;
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
+import io.strimzi.kafka.oauth.common.PrincipalExtractor;
 import io.strimzi.kafka.oauth.validator.JWTSignatureValidator;
 import io.strimzi.kafka.oauth.validator.OAuthIntrospectionValidator;
 import io.strimzi.kafka.oauth.common.TokenInfo;
@@ -36,7 +37,6 @@ import java.util.Properties;
 import java.util.Set;
 
 import static io.strimzi.kafka.oauth.common.DeprecationUtil.isAccessTokenJwt;
-import static io.strimzi.kafka.oauth.common.JSONUtil.getClaimFromJWT;
 import static io.strimzi.kafka.oauth.common.LogUtil.mask;
 
 public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCallbackHandler {
@@ -46,8 +46,6 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
     private TokenValidator validator;
 
     private ServerConfig config;
-
-    private String usernameClaim;
 
     private boolean isJwt;
 
@@ -80,16 +78,41 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         boolean enableBouncy = config.getValueAsBoolean(ServerConfig.OAUTH_CRYPTO_PROVIDER_BOUNCYCASTLE, false);
         int bouncyPosition = config.getValueAsInt(ServerConfig.OAUTH_CRYPTO_PROVIDER_BOUNCYCASTLE_POSITION, 0);
 
+        String validIssuerUri = config.getValue(ServerConfig.OAUTH_VALID_ISSUER_URI);
+
+        if (validIssuerUri == null && config.getValueAsBoolean(ServerConfig.OAUTH_CHECK_ISSUER, true)) {
+            throw new RuntimeException("OAuth validator configuration error: OAUTH_VALID_ISSUER_URI must be set or OAUTH_CHECK_ISSUER has to be set to 'false'");
+        }
+
+        boolean checkTokenType = isCheckAccessTokenType(config);
+
+        String usernameClaim = config.getValue(Config.OAUTH_USERNAME_CLAIM);
+        String fallbackUsernameClaim = config.getValue(Config.OAUTH_FALLBACK_USERNAME_CLAIM);
+        String fallbackUsernamePrefix = config.getValue(Config.OAUTH_FALLBACK_USERNAME_PREFIX);
+
+        if (fallbackUsernameClaim != null && usernameClaim == null) {
+            throw new RuntimeException("OAuth validator configuration error: OAUTH_USERNAME_CLAIM must be set when OAUTH_FALLBACK_USERNAME_CLAIM is set");
+        }
+
+        if (fallbackUsernamePrefix != null && fallbackUsernameClaim == null) {
+            throw new RuntimeException("OAuth validator configuration error: OAUTH_FALLBACK_USERNAME_CLAIM must be set when OAUTH_FALLBACK_USERNAME_PREFIX is set");
+        }
+
+        PrincipalExtractor principalExtractor = new PrincipalExtractor(
+                usernameClaim,
+                fallbackUsernameClaim,
+                fallbackUsernamePrefix);
+
         if (jwksUri != null) {
             validator = new JWTSignatureValidator(
                     config.getValue(ServerConfig.OAUTH_JWKS_ENDPOINT_URI),
                     socketFactory,
                     verifier,
-                    config.getValue(ServerConfig.OAUTH_VALID_ISSUER_URI),
+                    principalExtractor,
+                    validIssuerUri,
                     config.getValueAsInt(ServerConfig.OAUTH_JWKS_REFRESH_SECONDS, 300),
                     config.getValueAsInt(ServerConfig.OAUTH_JWKS_EXPIRY_SECONDS, 360),
-                    true,
-                    isCheckAccessTokenType(config),
+                    checkTokenType,
                     null,
                     enableBouncy,
                     bouncyPosition
@@ -99,17 +122,14 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                     config.getValue(ServerConfig.OAUTH_INTROSPECTION_ENDPOINT_URI),
                     socketFactory,
                     verifier,
-                    config.getValue(ServerConfig.OAUTH_VALID_ISSUER_URI),
+                    principalExtractor,
+                    validIssuerUri,
+                    config.getValue(ServerConfig.OAUTH_USERINFO_ENDPOINT_URI),
+                    config.getValue(ServerConfig.OAUTH_VALID_TOKEN_TYPE),
                     config.getValue(Config.OAUTH_CLIENT_ID),
                     config.getValue(Config.OAUTH_CLIENT_SECRET),
-                    true,
                     null
             );
-        }
-
-        usernameClaim = config.getValue(Config.OAUTH_USERNAME_CLAIM, "sub");
-        if ("sub".equals(usernameClaim)) {
-            usernameClaim = null;
         }
     }
 
@@ -168,68 +188,21 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
         try {
             TokenInfo ti = validateToken(token);
-
-            callback.token(new BearerTokenWithPayload() {
-
-                private Object payload;
-
-                @Override
-                public Object getPayload() {
-                    return payload;
-                }
-
-                @Override
-                public void setPayload(Object value) {
-                    payload = value;
-                }
-
-                @Override
-                public String value() {
-                    return ti.token();
-                }
-
-                @Override
-                public Set<String> scope() {
-                    return ti.scope();
-                }
-
-                @Override
-                public long lifetimeMs() {
-                    return ti.expiresAtMs();
-                }
-
-                @Override
-                public String principalName() {
-                    if (usernameClaim != null) {
-                        if (ti.payload() != null) {
-                            return getClaimFromJWT(usernameClaim, ti.payload());
-                        } else {
-                            throw new IllegalStateException("Username claim extraction not supported by validator: " + validator.getClass());
-                        }
-                    }
-                    return ti.subject();
-                }
-
-                @Override
-                public Long startTimeMs() {
-                    return ti.issuedAtMs();
-                }
-
-            });
+            callback.token(new BearerTokenWithPayloadImpl(ti));
 
         } catch (TokenValidationException e) {
             if (log.isDebugEnabled()) {
-                log.debug("Validation failed for token: " + mask(token), e);
+                log.debug("Token validation failed for token: " + mask(token), e);
             }
             callback.error(e.status(), null, null);
 
         } catch (RuntimeException e) {
             // Kafka ignores cause inside thrown exception, and doesn't log it
             if (log.isDebugEnabled()) {
-                log.debug("Validation failed due to runtime exception (network issue or misconfiguration): ", e);
+                log.debug("Token validation failed due to runtime exception (network issue or misconfiguration): ", e);
             }
             // Extract cause and include it in a message string in order for it to be in the server log
-            throw new AuthenticationException("Validation failed due to runtime exception: " + getCauseMessage(e), e);
+            throw new AuthenticationException("Token validation failed due to runtime exception: " + getCauseMessage(e), e);
 
         } catch (Exception e) {
             // Log cause, because Kafka doesn't
@@ -250,7 +223,11 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
     }
 
     private TokenInfo validateToken(String token) {
-        return validator.validate(token);
+        TokenInfo result = validator.validate(token);
+        if (log.isDebugEnabled()) {
+            log.debug("User validated (Principal:" + result.principal() + ")");
+        }
+        return result;
     }
 
     private void debugLogToken(String token) {
@@ -269,10 +246,55 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
         try {
             AccessToken t = parser.readJsonContent(AccessToken.class);
-            log.debug("Access token expires at (UTC): " + LocalDateTime.ofEpochSecond(t.getExpiration(), 0, ZoneOffset.UTC).format(DateTimeFormatter.ISO_DATE_TIME));
+            log.debug("Access token expires at (UTC): " + LocalDateTime.ofEpochSecond(t.getExp() == null ? 0 : t.getExp(), 0, ZoneOffset.UTC).format(DateTimeFormatter.ISO_DATE_TIME));
         } catch (JWSInputException e) {
             // Try parse as refresh token:
             log.debug("[IGNORED] Failed to parse JWT token's payload", e);
+        }
+    }
+
+    static class BearerTokenWithPayloadImpl implements BearerTokenWithPayload {
+
+        private final TokenInfo ti;
+        private Object payload;
+
+        BearerTokenWithPayloadImpl(TokenInfo ti) {
+            this.ti = ti;
+        }
+
+        @Override
+        public Object getPayload() {
+            return payload;
+        }
+
+        @Override
+        public void setPayload(Object value) {
+            payload = value;
+        }
+
+        @Override
+        public String value() {
+            return ti.token();
+        }
+
+        @Override
+        public Set<String> scope() {
+            return ti.scope();
+        }
+
+        @Override
+        public long lifetimeMs() {
+            return ti.expiresAtMs();
+        }
+
+        @Override
+        public String principalName() {
+            return ti.principal();
+        }
+
+        @Override
+        public Long startTimeMs() {
+            return ti.issuedAtMs();
         }
     }
 }

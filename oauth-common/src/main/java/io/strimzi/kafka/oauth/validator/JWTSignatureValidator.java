@@ -6,6 +6,8 @@ package io.strimzi.kafka.oauth.validator;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.strimzi.kafka.oauth.common.HttpUtil;
+import io.strimzi.kafka.oauth.common.JSONUtil;
+import io.strimzi.kafka.oauth.common.PrincipalExtractor;
 import io.strimzi.kafka.oauth.common.TimeUtil;
 import io.strimzi.kafka.oauth.common.TokenInfo;
 import org.apache.kafka.common.utils.Time;
@@ -18,6 +20,7 @@ import org.keycloak.jose.jwk.JSONWebKeySet;
 import org.keycloak.jose.jwk.JWK;
 import org.keycloak.representations.AccessToken;
 import org.keycloak.util.JWKSUtils;
+import org.keycloak.util.TokenUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,8 +40,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.strimzi.kafka.oauth.validator.TokenValidationException.Status;
-import static org.keycloak.TokenVerifier.IS_ACTIVE;
-import static org.keycloak.TokenVerifier.SUBJECT_EXISTS_CHECK;
 
 public class JWTSignatureValidator implements TokenValidator {
 
@@ -46,16 +47,18 @@ public class JWTSignatureValidator implements TokenValidator {
 
     private static AtomicBoolean bouncyInstalled =  new AtomicBoolean(false);
 
+    private static final TokenVerifier.TokenTypeCheck TOKEN_TYPE_CHECK = new TokenVerifier.TokenTypeCheck(TokenUtil.TOKEN_TYPE_BEARER);
+
     private final ScheduledExecutorService scheduler;
 
     private final URI keysUri;
     private final String issuerUri;
     private final int maxStaleSeconds;
-    private final boolean defaultChecks;
     private final boolean checkAccessTokenType;
     private final String audience;
     private final SSLSocketFactory socketFactory;
     private final HostnameVerifier hostnameVerifier;
+    private final PrincipalExtractor principalExtractor;
 
     private long lastFetchTime;
 
@@ -65,10 +68,10 @@ public class JWTSignatureValidator implements TokenValidator {
     public JWTSignatureValidator(String keysEndpointUri,
                                  SSLSocketFactory socketFactory,
                                  HostnameVerifier verifier,
+                                 PrincipalExtractor principalExtractor,
                                  String validIssuerUri,
                                  int refreshSeconds,
                                  int expirySeconds,
-                                 boolean defaultChecks,
                                  boolean checkAccessTokenType,
                                  String audience,
                                  boolean enableBouncyCastleProvider,
@@ -93,8 +96,14 @@ public class JWTSignatureValidator implements TokenValidator {
         }
         this.hostnameVerifier = verifier;
 
-        if (validIssuerUri == null) {
-            throw new IllegalArgumentException("validIssuerUri == null");
+        this.principalExtractor = principalExtractor;
+
+        if (validIssuerUri != null) {
+            try {
+                new URI(validIssuerUri);
+            } catch (URISyntaxException e) {
+                throw new IllegalArgumentException("Value of validIssuerUri not a valid URI: " + validIssuerUri, e);
+            }
         }
         this.issuerUri = validIssuerUri;
 
@@ -103,7 +112,6 @@ public class JWTSignatureValidator implements TokenValidator {
         }
         this.maxStaleSeconds = expirySeconds;
 
-        this.defaultChecks = defaultChecks;
         this.checkAccessTokenType = checkAccessTokenType;
         this.audience = audience;
 
@@ -132,6 +140,7 @@ public class JWTSignatureValidator implements TokenValidator {
             log.debug("Configured JWTSignatureValidator:\n    keysEndpointUri: " + keysEndpointUri
                     + "\n    sslSocketFactory: " + socketFactory
                     + "\n    hostnameVerifier: " + hostnameVerifier
+                    + "\n    principalExtractor: " + principalExtractor
                     + "\n    validIssuerUri: " + validIssuerUri
                     + "\n    certsRefreshSeconds: " + refreshSeconds
                     + "\n    certsExpirySeconds: " + expirySeconds
@@ -174,13 +183,14 @@ public class JWTSignatureValidator implements TokenValidator {
     public TokenInfo validate(String token) {
         TokenVerifier<AccessToken> tokenVerifier = TokenVerifier.create(token, AccessToken.class);
 
-        if (defaultChecks) {
-            if (!checkAccessTokenType) {
-                tokenVerifier.withChecks(SUBJECT_EXISTS_CHECK, IS_ACTIVE);
-            } else {
-                tokenVerifier.withDefaultChecks();
-            }
+        if (issuerUri != null) {
             tokenVerifier.realmUrl(issuerUri);
+        }
+        if (checkAccessTokenType) {
+            tokenVerifier.withChecks(TOKEN_TYPE_CHECK);
+        }
+        if (audience != null) {
+            tokenVerifier.audience(audience);
         }
 
         String kid = null;
@@ -189,10 +199,6 @@ public class JWTSignatureValidator implements TokenValidator {
         } catch (Exception e) {
             throw new TokenValidationException("Token signature validation failed: " + token, e)
                     .status(Status.INVALID_TOKEN);
-        }
-
-        if (audience != null) {
-            tokenVerifier.audience(audience);
         }
 
         AccessToken t;
@@ -222,14 +228,23 @@ public class JWTSignatureValidator implements TokenValidator {
             throw new TokenValidationException("Token validation failed:", e);
         }
 
-
         long expiresMillis = t.getExpiration() * 1000L;
         if (Time.SYSTEM.milliseconds() > expiresMillis) {
             throw new TokenExpiredException("Token expired at: " + expiresMillis + " (" +
                     TimeUtil.formatIsoDateTimeUTC(expiresMillis) + ")");
         }
 
-        return new TokenInfo(t, token);
+        String principal = null;
+        if (principalExtractor.isConfigured()) {
+            principal = principalExtractor.getPrincipal(JSONUtil.asJson(t));
+        }
+        if (principal == null && !principalExtractor.isConfigured()) {
+            principal = principalExtractor.getSub(t);
+        }
+        if (principal == null) {
+            throw new RuntimeException("Failed to extract principal - check usernameClaim, fallbackUsernameClaim configuration");
+        }
+        return new TokenInfo(t, token, principal);
     }
 
     private static boolean isAlgorithmEC(String algorithm) {

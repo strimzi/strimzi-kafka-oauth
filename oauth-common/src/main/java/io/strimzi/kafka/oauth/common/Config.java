@@ -11,7 +11,10 @@ public class Config {
 
     public static final String OAUTH_CLIENT_ID = "oauth.client.id";
     public static final String OAUTH_CLIENT_SECRET = "oauth.client.secret";
+    public static final String OAUTH_SCOPE = "oauth.scope";
     public static final String OAUTH_USERNAME_CLAIM = "oauth.username.claim";
+    public static final String OAUTH_FALLBACK_USERNAME_CLAIM = "oauth.fallback.username.claim";
+    public static final String OAUTH_FALLBACK_USERNAME_PREFIX = "oauth.fallback.username.prefix";
     public static final String OAUTH_SSL_TRUSTSTORE_LOCATION = "oauth.ssl.truststore.location";
     public static final String OAUTH_SSL_TRUSTSTORE_PASSWORD = "oauth.ssl.truststore.password";
     public static final String OAUTH_SSL_TRUSTSTORE_TYPE = "oauth.ssl.truststore.type";

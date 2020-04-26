@@ -11,6 +11,7 @@ import org.keycloak.util.JsonSerialization;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
@@ -72,19 +73,27 @@ public class JSONUtil {
     }
 
     public static List<String> asListOfString(JsonNode arrayNode) {
-        if (!arrayNode.isArray()) {
-            throw new IllegalArgumentException("JsonNode not an array node: " + arrayNode);
-        }
+
         ArrayList<String> result = new ArrayList<>();
-        Iterator<JsonNode> it = arrayNode.iterator();
-        while (it.hasNext()) {
-            JsonNode n = it.next();
-            if (n.isTextual()) {
-                result.add(n.asText());
-            } else {
-                result.add(n.toString());
+
+        if (arrayNode.isTextual()) {
+            result.addAll(Arrays.asList(arrayNode.asText().split(" ")));
+        } else {
+            if (!arrayNode.isArray()) {
+                throw new IllegalArgumentException("JsonNode not a text node, nor an array node: " + arrayNode);
+            }
+
+            Iterator<JsonNode> it = arrayNode.iterator();
+            while (it.hasNext()) {
+                JsonNode n = it.next();
+                if (n.isTextual()) {
+                    result.add(n.asText());
+                } else {
+                    result.add(n.toString());
+                }
             }
         }
+
         return result;
     }
 }

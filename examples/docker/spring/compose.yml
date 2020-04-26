@@ -1,0 +1,9 @@
+version: '3.5'
+
+services:
+
+  spring:
+    image: strimzi/example-spring
+    container_name: strimzi
+    ports:
+      -  8080:8080

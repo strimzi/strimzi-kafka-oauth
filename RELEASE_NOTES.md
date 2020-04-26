@@ -1,6 +1,65 @@
 Release Notes
 =============
 
+0.5.0
+-----
+
+### Improved compatibility with authorization servers
+
+Some claims are no longer required in token or Introspection Endpoint response (`iat`).
+Others can be configured to not be required:
+* `iss` claim is not required if `oauth.check.issuer` is set to `false`
+* `sub` claim is no longer required if `oauth.username.claim` is configured since then it is no longer used to extract principal. 
+
+Additional options were added to improve interoperability with authorization servers.
+
+The following options were added:
+
+* `oauth.scope`
+
+  Scope can now be specified for the Token endpoint on the Kafka clients and on the Kafka broker for inter-broker communication.
+
+* `oauth.check.issuer`
+
+  Issuer check can now be disabled when configuring token validation on the Kafka broker - some authorization servers don't provide `iss` claim.
+  
+* `oauth.fallback.username.claim`
+
+  Principal can now be extracted from JWT token or Introspection endpoint response by using multiple claims.
+  First `oauth.username.claim` is attempted (if configured). If the value is not present, the fallback claim is attempted.
+  If neither `oauth.username.claim` nor `oauth.fallback.username.claim` is specified or its value present, `sub` claim is used.
+
+* `oauth.fallback.username.prefix`
+
+  If principal is set by `oauth.fallback.username.claim` then its value will be prefixed by the value of `oauth.fallback.username.prefix`, if specified.
+
+* `oauth.userinfo.endpoint.uri`
+
+  Sometimes the introspection endpoint doesn't provide any claim that could be used for the principal. In such a case User Info Endpoint can be used, and configuration of `oauth.username.claim`, `oauth.fallback.username.claim`, and `oauth.fallback.username.prefix` is taken into account.
+
+* `oauth.valid.token.type`
+
+  When using the Introspection Endpoint, some servers use custom values for `token_type`.
+  If this configuration parameter is set then the `token_type` attribute has to be present in Introspection Token response, and has to have the specified value.
+
+### Fixed a non-standard `token_type` enforcement when using the Introspection Endpoint
+
+If `token_type` was present it was expected to be equal to `access_token` which is not an OAuth 2.0 spec compliant value.
+Token type check is now disabled unless the newly introduced `oauth.valid.token.type` configuration option is set. 
+
+### Improved examples
+
+* Fixed an issue with `keycloak` and `hydra` containers not visible when starting services in separate shells.
+
+  The instructions for running `keycloak` / `hydra` separately omitted the required `-f compose.yml` as a first compose file, resulting in a separate bridge network being used.
+
+* Added Spring Security Authorization Server
+
+### Improved logging to facilitate troubleshooting
+
+There is now some TRACE logging support which should only ever be used in development / testing environment because it outputs secrets into the log.
+When integrating with your authorization server, enabling TRACE logging on `io.strimzi.kafka.oauth` logger will output the authorization server responses which can point you to how to correctly configure `oauth.*` parameters to make the integration work. 
+
 0.4.0
 -----
 

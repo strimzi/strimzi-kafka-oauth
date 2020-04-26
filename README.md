@@ -233,9 +233,30 @@ Specify the following `oauth.*` properties:
 - `oauth.jwks.endpoint.uri` (e.g.: "https://localhost:8443/auth/realms/demo/protocol/openid-connect/certs")
 - `oauth.valid.issuer.uri` (e.g.: "https://localhost:8443/auth/realms/demo" - only access tokens issued by this issuer will be accepted)
 
+Some authorization servers don't provide the `iss` claim. In that case you would not set `oauth.valid.issuer.uri`, and you would explicitly turn off issuer checking by setting the following option to `false`:
+- `oauth.check.issuer` (e.g. "false")
+
 JWT tokens contain unique user identification in `sub` claim. However, this is often a long number or a UUID, but we usually prefer to use human readable usernames, which may also be present in JWT token.
-Use `oauth.username.claim` to map the claim (attribute) where the username is stored:
+Use `oauth.username.claim` to map the claim (attribute) where the value you want to use as user id is stored:
 - `oauth.username.claim` (e.g.: "preferred_username")
+
+If `oauth.username.claim` is specified the value of that claim is used instead, but if not set, the automatic fallback claim is the `sub` claim.
+
+You can specify the secondary claim to fallback to, which allows you to map multiple account types into the same principal namespace: 
+- `oauth.fallback.username.claim` (e.g.: "client_id")
+- `oauth.fallback.username.prefix` (e.g.: "client-account-")
+
+If `oauth.username.claim` is specified but value does not exist in the token, then `oauth.fallback.username.claim` is used. If value for that doesn't exist either, the exception is thrown.
+When `oauth.fallback.username.prefix` is specified and the claim specified by `oauth.fallback.username.claim` contains a non-null value the resulting user id will be equal to concatenation of the prefix, and the value.
+
+For example, if the following configuration is set:
+
+    oauth.username.claim="username"
+    oauth.fallback.username.claim="client_id"
+    oauth.fallback.username.prefix="client-account-"
+
+Then, if the token contains `"username": "alice"` claim then the principal will be `User:alice`.
+Otherwise, if the token contains `"client_id": "my-producer"` claim then the principal will be `User:client-account-my-producer`. 
 
 If your authorization server uses ECDSA encryption then you need to enable the BouncyCastle JCE crypto provider:
 - `oauth.crypto.provider.bouncycastle` (e.g.: "true")
@@ -259,10 +280,51 @@ Specify the following `oauth.*` properties:
 - `oauth.valid.issuer.uri` (e.g.: "https://localhost:8443/auth/realms/demo" - only access tokens issued by this issuer will be accepted)
 - `oauth.client.id` (e.g.: "kafka" - this is the client configuration id for Kafka Broker)
 - `oauth.client.secret` (e.g.: "kafka-secret")
-
+ 
 Introspection endpoint should be protected. The `oauth.client.id` and `oauth.client.secret` specify Kafka Broker credentials for authenticating to access the introspection endpoint. 
 
-If you have a DEBUG logging configured for the `io.strimzi` category you may need to specify the following to prevent warnings about access token not being JWT:
+Some authorization servers don't provide the `iss` claim. In that case you would not set `oauth.valid.issuer.uri`, and you would explicitly turn off issuer checking by setting the following option to `false`:
+- `oauth.check.issuer` (e.g.: "false")
+
+By default, if the Introspection Endpoint response contains `token_type` claim, there is no checking performed on it.
+Some authorization servers use a non-standard `token_type` value. To give the most flexibility, you can specify the valid `token_type` for your authorization server:
+- `oauth.valid.token.type` (e.g.: "access_token")
+
+When this is specified the Introspection Endpoint response has to contain `token_type`, and its value has to be equal to the value specified by `oauth.valid.token.type`.
+
+Introspection Endpoint may or may not return identifying information which we could use as user id to construct a principal for the user.
+
+If the information is available we attempt to extract the user id from Introspection Endpoint response.
+
+Use `oauth.username.claim` to map the attribute where the user id is stored:
+- `oauth.username.claim` (e.g.: "preferred_username")
+
+You can fallback to a secondary attribute, which allows you to map multiple account types into the same user id namespace: 
+- `oauth.fallback.username.claim` (e.g.: "client_id")
+- `oauth.fallback.username.prefix` (e.g.: "client-account-")
+
+If `oauth.username.claim` is specified but value does not exist in the Introspection Endpoint response, then `oauth.fallback.username.claim` is used. If value for that doesn't exist either, the exception is thrown.
+When `oauth.fallback.username.prefix` is specified and the attribute specified by `oauth.fallback.username.claim` contains a non-null value the resulting user id will be equal to concatenation of the prefix, and the value.
+
+If none of the `oauth.*.username.*` attributes is specified, `sub` claim will be used automatically.
+
+For example, if the following configuration is set:
+
+    oauth.username.claim="username"
+    oauth.fallback.username.claim="client_id"
+    oauth.fallback.username.prefix="client-account-"
+
+It means that if the response contains `"username": "alice"` then the principal will be `User:alice`.
+Otherwise, if the response contains `"client_id": "my-producer"` then the principal will be `User:client-account-my-producer`. 
+
+Sometimes the Introspection Endpoint does not provide any useful identifying information that we can use for the user id.
+In that case you can configure User Info Endpoint:
+ 
+- `oauth.userinfo.endpoint.uri` (e.g.: "https://localhost:8443/auth/realms/demo/protocol/openid-connect/userinfo")
+
+If the user id could not be extracted from Introspection Endpoint response, then the same rules (`oauth.username.claim`, `oauth.fallback.username.claim`, `oauth.fallback.username.prefix`) will be used to try extract the user id from User Info Endpoint response.
+
+When you have a DEBUG logging configured for the `io.strimzi` category you may need to specify the following to prevent warnings about access token not being JWT:
 - `oauth.access.token.is.jwt` (e.g.: "false")
 
 ##### Configuring the client side of inter-broker communication
@@ -275,10 +337,10 @@ Specify the following `oauth.*` properties:
 - `oauth.client.secret` (e.g.: "kafka-secret")
 - `oauth.username.claim` (e.g.: "preferred_username")
 
-Also specify the username corresponding to client account identified by `oauth.client.id` in `super.users` property in `server.properties` file:
+Also specify the principal corresponding to the client account identified by `oauth.client.id` in `super.users` property in `server.properties` file:
 - `super.users` (e.g.: "User:service-account-kafka") 
 
-This is not a full set of available `oauth.*` properties. All the `oauth.*` properties described in the next chapter about configuring the Kafka clients also apply to configuring the client side of inter-broker communication. 
+This is not a full set of available `oauth.*` properties. All the `oauth.*` properties described in the next chapter about [configuring the Kafka clients](#configuring-the-kafka-client) also apply to configuring the client side of inter-broker communication. 
 
 ### Configuring the Kafka Broker authorization
 
@@ -313,14 +375,14 @@ You can integrate KeycloakRBACAuthorizer with SimpleAclAuthorizer:
 - `strimzi.authorization.delegate.to.kafka.acl` (e.g.: "true" - if enabled, then when action is not granted based on Keycloak Authorization Services grant it is delegated to SimpleACLAuthorizer which can still grant it.)
 
 If you turn on authorization support in Kafka brokers, you need to properly set `super.users` property. 
-By default, access token's 'sub' claim is used as user id.
+By default, access token's `sub` claim is used as user id.
 You may want to use another claim provided in access token as an alternative user id (username, email ...). 
 
 For example, to add the account representing Kafka Broker in Keycloak to `super.users` add the following to your `server.properties` file:
 
     super.users=User:service-account-kafka
 
-This assumes that you configured alternative user principal extrantion from the token by adding to JAAS configuration the parameter:
+This assumes that you configured alternative user id extraction from the token by adding to JAAS configuration the parameter:
 
     oauth.username.claim="preferred_username"
 
@@ -403,20 +465,27 @@ The third way is to manually obtain and set an access token:
 Access tokens are supposed to be short-lived in order to prevent unauthorized access if the token leaks.
 It is up to you, your environment, and how you plan to run your Kafka client application to consider if using long-lived access tokens is appropriate.
 
-For debug purposes you may want to properly configure which JWT token attribute contains the username of the account used to obtain the access token:
+Some authorization servers require that scope is specified:
+
+- `oauth.scope`
+
+Scope is sent to the Token Endpoint when obtaining the access token.
+
+For debug purposes you may want to properly configure which JWT token attribute contains the user id of the account used to obtain the access token:
 
 - `oauth.username.claim` (e.g.: "preferred_username")
 
 This does not affect how Kafka client is presented to the Kafka Broker.
-The broker performs username extraction from the token once again.
+The broker performs user id extraction from the token once again or it uses the Introspection Endpoint or the User Info Endpoint to get the user id.
 
-You may want to explicitly specify the period the access token is considered valid.
-This may be necessary if using opaque tokens do not contain expiry info. 
-This also allows you to shorten the token's lifespan.
+By default the user id on the Kafka client is obtained from `sub` claim in the token - only if token is JWT. 
+Client side user id extraction is not possible when token is an opaque token - not JWT.
+
+You may want to explicitly specify the period the access token is considered valid. This allows you to shorten the token's lifespan.
 
 On the client the access token is reused for multiple connections with the Kafka Broker.
 Before it expires the token is refreshed in the background so that a valid token is always available for all the connections.
-You can make the token refresh more often than strictly necessary based on when it expires:
+You can make the token refresh more often than strictly necessary by shortening its lifespan:
 
 - `oauth.max.token.expiry.seconds` (e.g.: "600" - set token expiry to 10 minutes)  
 
@@ -451,7 +520,7 @@ sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginMo
 sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
 ```
 
-When you have a Kafka Client connecting to a single Kafka cluster it only need one set of credentials - in such a situation it is sometimes more convenient to just use ENV vars.
+When you have a Kafka Client connecting to a single Kafka cluster it only needs one set of credentials - in such a situation it is sometimes more convenient to just use ENV vars.
 In that case you could simplify `my.properties` file:
 
 ```

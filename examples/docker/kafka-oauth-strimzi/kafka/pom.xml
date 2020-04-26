@@ -33,6 +33,7 @@
                                         <include>functions.sh</include>
                                         <include>start.sh</include>
                                         <include>start_with_hydra.sh</include>
+                                        <include>start_with_spring.sh</include>
                                         <include>jwt.sh</include>
                                         <include>oauth.sh</include>
                                         <include>simple_kafka_config.sh</include>

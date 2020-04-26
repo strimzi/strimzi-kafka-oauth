@@ -217,7 +217,7 @@ Let's now try to consume the messages we have produced.
     bin/kafka-console-consumer.sh --bootstrap-server kafka:9092 --topic a_messages \
       --from-beginning --consumer.config ~/team-a-client.properties
 
-This gives us an error like: 'Not authorized to access group: console-consumer-55841'.
+This gives us an error like: `Not authorized to access group: console-consumer-55841`.
 
 The reason is that we have to override the default consumer group name - `Dev Team A` only has access to consumer groups that have names starting with 'a_'.
 Let's set custom consumer group name that starts with 'a_'
@@ -236,7 +236,7 @@ Let's now list the topics:
 
     bin/kafka-topics.sh --bootstrap-server kafka:9092 --command-config ~/team-a-client.properties --list
     
-We get one topic listed: 'a_messages'.
+We get one topic listed: `a_messages`.
 
 Let's try and list the consumer groups:
 
@@ -269,12 +269,12 @@ sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthL
 EOF
 ```
 
-If we look at `team-b-client` client configuration in Keycloak, under 'Service Account Roles' we can see that it has `Dev Team B` realm role assigned.
+If we look at `team-b-client` client configuration in Keycloak, under `Service Account Roles` we can see that it has `Dev Team B` realm role assigned.
 Looking in Keycloak Console at the `kafka` client's `Authorization` tab where `Permissions` are listed, we can see the permissions that start with 'Dev Team B ...'.
-These match the users and service accounts that have the 'Dev Team B' realm role assigned to them. 
+These match the users and service accounts that have the `Dev Team B` realm role assigned to them. 
 The `Dev Team B` users have full access to topics beginning with 'b_' on Kafka cluster `cluster2` (which is the designated cluster name of the demo cluster we brought up), and read access on topics that start with 'x_'.
 
-Let's try produce some messages to topic 'a_messages' as `team-b-client`:
+Let's try produce some messages to topic `a_messages` as `team-b-client`:
 
 ```
 bin/kafka-console-producer.sh --broker-list kafka:9092 --topic a_messages \
@@ -360,7 +360,8 @@ Let's now try to create the `x_messages` topic:
     bin/kafka-topics.sh --bootstrap-server kafka:9092 --command-config ~/bob.properties \
       --topic x_messages --create --replication-factor 1 --partitions 1
 
-The operation should succeed. We can list the topics:
+The operation should succeed (you can ignore the warning about periods and underscores).
+We can list the topics:
 
     bin/kafka-topics.sh --bootstrap-server kafka:9092 --command-config ~/bob.properties --list
 
@@ -391,6 +392,8 @@ bin/kafka-console-producer.sh --broker-list kafka:9092 --topic x_messages \
 Message 4
 Message 5
 ```
+
+We get an error - `Not authorized to access topics: [x_messages]`.
 
 But `team-b-client` should be able to consume messages from the `x_messages` topic:
 

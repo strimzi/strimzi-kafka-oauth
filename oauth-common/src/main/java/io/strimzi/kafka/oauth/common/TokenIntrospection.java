@@ -10,7 +10,7 @@ import org.keycloak.representations.AccessToken;
 
 public class TokenIntrospection {
 
-    public static TokenInfo introspectAccessToken(String token) {
+    public static TokenInfo introspectAccessToken(String token, PrincipalExtractor principalExtractor) {
         JWSInput jws;
         try {
             jws = new JWSInput(token);
@@ -20,7 +20,16 @@ public class TokenIntrospection {
 
         try {
             AccessToken parsed = jws.readJsonContent(AccessToken.class);
-            return new TokenInfo(parsed, token);
+
+            if (principalExtractor == null) {
+                principalExtractor = new PrincipalExtractor();
+            }
+
+            String principal = principalExtractor.getPrincipal(parsed, jws);
+            if (principal == null) {
+                principal = principalExtractor.getSub(parsed);
+            }
+            return new TokenInfo(parsed, token, principal);
 
         } catch (Exception e) {
             throw new RuntimeException("Failed to read payload from JWT access token", e);
