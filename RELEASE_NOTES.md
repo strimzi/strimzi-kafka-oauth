@@ -42,6 +42,10 @@ The following options were added:
   When using the Introspection Endpoint, some servers use custom values for `token_type`.
   If this configuration parameter is set then the `token_type` attribute has to be present in Introspection Token response, and has to have the specified value.
 
+### Fixed JWKS keys refresh bug
+
+The job that refreshes the keys would be cancelled if fetching of keys failed due to network error or authorization server glitch.
+
 ### Fixed a non-standard `token_type` enforcement when using the Introspection Endpoint
 
 If `token_type` was present it was expected to be equal to `access_token` which is not an OAuth 2.0 spec compliant value.
