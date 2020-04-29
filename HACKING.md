@@ -249,13 +249,27 @@ kind get kubeconfig --internal > ~/.kube/internal-kubeconfig
 # Make sure to use latest version of the image
 docker pull quay.io/mstruk/strimzi-dev-cli
 
+# Now run the container
+docker run -ti --name strimzi-dev-cli -v /var/run/docker.sock:/var/run/docker.sock -v $HOME/.kube:/root/.kube quay.io/mstruk/strimzi-dev-cli /bin/sh
+```
+
+You may want to share your existing cloned project directory between your local host and the docker container.
+For example, you could run the container as follows:
+
+```
 # set DEV_DIR to a directory where you have your cloned git repositories
 # You'll be able to access this directory from within Strimzi Dev CLI container
-export DEV_DIR=$HOME/devel
+export DEV_DIR=$HOME/devel 
 
-# Now run the container
+# Now run the container - with slooow I/O
 docker run -ti --name strimzi-dev-cli -v /var/run/docker.sock:/var/run/docker.sock -v $HOME/.kube:/root/.kube -v $DEV_DIR:/root/devel -v $HOME/.m2:/root/.m2:cached quay.io/mstruk/strimzi-dev-cli /bin/sh
 ```
+
+In this case you would not clone the repositories as described in the next steps, but only enter the directory and run the build.
+
+Beware though, that using volume mounts for sources or local maven repository significantly slows down the build, which can take double the usual time due to much slower I/O performance.
+If you want to have your IDE open, and work on the code, then rebuild, you'll find it more effective to have a separate cloned repository on your local disk, and the separate one in container. 
+You can synchronize between the two via pushing to GitHub from your IDE, and pulling from inside the container.
 
 Note: If you exit the container or it gets shut down, as long as it's not manually deleted you can reattach and continue your interactive session:
 
