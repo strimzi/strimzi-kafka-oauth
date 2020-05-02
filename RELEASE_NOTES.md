@@ -60,6 +60,10 @@ Token type check is now disabled unless the newly introduced `oauth.valid.token.
 There is now some TRACE logging support which should only ever be used in development / testing environment because it outputs secrets into the log.
 When integrating with your authorization server, enabling TRACE logging on `io.strimzi.kafka.oauth` logger will output the authorization server responses which can point you to how to correctly configure `oauth.*` parameters to make the integration work. 
 
+### Bumped keycloak-core library version
+
+The helper library used for JWT / JWKS handling was bumped to version 9.0.3
+
 0.4.0
 -----
 
