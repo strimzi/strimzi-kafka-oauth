@@ -131,10 +131,7 @@ public class JWTSignatureValidator implements TokenValidator {
 
         fetchKeys();
 
-        // set up periodic timer to update keys from server every refreshSeconds;
-        scheduler = Executors.newSingleThreadScheduledExecutor(new DaemonThreadFactory());
-
-        scheduler.scheduleAtFixedRate(() -> fetchKeys(), refreshSeconds, refreshSeconds, TimeUnit.SECONDS);
+        scheduler = setupRefreshKeysJob(refreshSeconds);
 
         if (log.isDebugEnabled()) {
             log.debug("Configured JWTSignatureValidator:\n    keysEndpointUri: " + keysEndpointUri
@@ -148,6 +145,22 @@ public class JWTSignatureValidator implements TokenValidator {
                     + "\n    enableBouncyCastleProvider: " + enableBouncyCastleProvider
                     + "\n    bouncyCastleProviderPosition: " + bouncyCastleProviderPosition);
         }
+    }
+
+    private ScheduledExecutorService setupRefreshKeysJob(int refreshSeconds) {
+        // set up periodic timer to update keys from server every refreshSeconds;
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(new DaemonThreadFactory());
+
+        scheduler.scheduleAtFixedRate(() -> {
+            try {
+                fetchKeys();
+            } catch (Exception e) {
+                // Log, but don't rethrow the exception to prevent scheduler cancelling the scheduled job.
+                log.error(e.getMessage(), e);
+            }
+        }, refreshSeconds, refreshSeconds, TimeUnit.SECONDS);
+
+        return scheduler;
     }
 
     private PublicKey getPublicKey(String id) {
