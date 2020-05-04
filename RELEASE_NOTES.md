@@ -66,7 +66,7 @@ When integrating with your authorization server, enabling TRACE logging on `io.s
 
 ### Bumped keycloak-core library version
 
-The helper library used for JWT / JWKS handling was bumped to version 9.0.3
+The helper library used for JWT / JWKS handling was bumped to version 10.0.0
 
 0.4.0
 -----

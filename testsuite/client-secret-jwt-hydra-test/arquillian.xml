@@ -15,7 +15,7 @@
               await:
                 strategy: log
                 match: 'OAuth 2.0 Client ID: kafka-consumer-client'
-                timeout: 20
+                timeout: 60
             zookeeper:
               await:
                 strategy: sleeping
