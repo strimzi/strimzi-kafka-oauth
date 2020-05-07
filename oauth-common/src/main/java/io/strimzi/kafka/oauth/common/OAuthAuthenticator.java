@@ -46,8 +46,8 @@ public class OAuthAuthenticator {
                                                   String clientId, String clientSecret, boolean isJwt,
                                                   PrincipalExtractor principalExtractor, String scope) throws IOException {
         if (log.isDebugEnabled()) {
-            log.debug("loginWithClientSecret() - tokenEndpointUrl: {}, clientId: {}, clientSecret: {}",
-                    tokenEndpointUrl, clientId, mask(clientSecret));
+            log.debug("loginWithClientSecret() - tokenEndpointUrl: {}, clientId: {}, clientSecret: {}, scope: {}",
+                    tokenEndpointUrl, clientId, mask(clientSecret), scope);
         }
 
         String authorization = "Basic " + base64encode(clientId + ':' + clientSecret);
@@ -63,10 +63,10 @@ public class OAuthAuthenticator {
     public static TokenInfo loginWithRefreshToken(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
                                                   HostnameVerifier hostnameVerifier, String refreshToken,
                                                   String clientId, String clientSecret, boolean isJwt,
-                                                  PrincipalExtractor principalExtractor) throws IOException {
+                                                  PrincipalExtractor principalExtractor, String scope) throws IOException {
         if (log.isDebugEnabled()) {
-            log.debug("loginWithRefreshToken() - tokenEndpointUrl: {}, refreshToken: {}, clientId: {}, clientSecret: {}",
-                    tokenEndpointUrl, refreshToken, clientId, mask(clientSecret));
+            log.debug("loginWithRefreshToken() - tokenEndpointUrl: {}, refreshToken: {}, clientId: {}, clientSecret: {}, scope: {}",
+                    tokenEndpointUrl, refreshToken, clientId, mask(clientSecret), scope);
         }
 
         String authorization = clientSecret != null ?
@@ -76,6 +76,10 @@ public class OAuthAuthenticator {
         StringBuilder body = new StringBuilder("grant_type=refresh_token")
                 .append("&refresh_token=").append(urlencode(refreshToken))
                 .append("&client_id=").append(urlencode(clientId));
+
+        if (scope != null) {
+            body.append("&scope=").append(urlencode(scope));
+        }
 
         return post(tokenEndpointUrl, socketFactory, hostnameVerifier, authorization, body.toString(), isJwt, principalExtractor);
     }

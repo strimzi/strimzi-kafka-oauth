@@ -153,7 +153,7 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
             // we could check if it's a JWT - in that case we could check if it's expired
             result = loginWithAccessToken(token, isJwt, principalExtractor);
         } else if (refreshToken != null) {
-            result = loginWithRefreshToken(tokenEndpoint, socketFactory, hostnameVerifier, refreshToken, clientId, clientSecret, isJwt, principalExtractor);
+            result = loginWithRefreshToken(tokenEndpoint, socketFactory, hostnameVerifier, refreshToken, clientId, clientSecret, isJwt, principalExtractor, scope);
         } else if (clientSecret != null) {
             result = loginWithClientSecret(tokenEndpoint, socketFactory, hostnameVerifier, clientId, clientSecret, isJwt, principalExtractor, scope);
         } else {

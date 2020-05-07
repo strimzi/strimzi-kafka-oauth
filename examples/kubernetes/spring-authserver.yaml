@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: spring
+  labels:
+    app: spring
+spec:
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+  selector:
+    app: spring
+  type: NodePort
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spring
+  template:
+    metadata:
+      labels:
+        app: spring
+    spec:
+      containers:
+        - name: spring
+          image: strimzi/example-spring
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /oauth/error
+              port: 8080
