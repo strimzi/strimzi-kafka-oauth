@@ -19,9 +19,11 @@ spec:
 ---
 
 apiVersion: v1
-kind: Pod
+kind: Pod 
 metadata:
   name: keycloak
+  labels:
+    app: keycloak
 spec:
   containers:
   - name: keycloak
@@ -36,6 +38,16 @@ spec:
       value: admin
     - name: PROXY_ADDRESS_FORWARDING
       value: "true"
+    - name: KEYCLOAK_LOGLEVEL
+      value: TRACE
+    - name: DB_ADDR
+      value: postgres.myproject.svc.cluster.local:5432
+    - name: DB_DATABASE
+      value: keycloak
+    - name: DB_USER
+      value: kcuser
+    - name: DB_PASSWORD
+      value: kcuserpass
     ports:
     - name: http
       containerPort: 8080

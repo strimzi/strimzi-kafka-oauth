@@ -32,7 +32,9 @@ They assume Keycloak is used as an authorization server, with properly configure
 
 Before deploying any of the Kafka cluster definitions, you need to deploy a Keycloak instance, and configure the realms with the necessary client definitions.
 
-Deploy the Keycloak server:
+#### Deploying the ephemeral Keycloak instance
+
+Deploy the simple Keycloak server with in-memory database that does not survive container restart:
 
     kubectl apply -f keycloak.yaml 
 
@@ -49,6 +51,21 @@ In order to connect to Keycloak Admin Console you need an ip address and a port 
 
 The actual IP address and port to use in order to reach Keycloak Admin Console from your host machine depends on your Kubernetes installation.
 
+
+#### Deploying the Postgres and Keycloak that stores state to Postgres
+
+First, we need a stable filesystem that is remounted if Postgres pod is deleted, and restored:
+
+    kubectl apply -f postgres-pv.yaml
+    
+Then, we need to start Postgres:
+
+    kubectl apply -f postgres.yaml
+
+And finally, start a Keycloak pod that uses Postgres:
+
+    kubectl apply -f keycloak-postgres.yaml
+ 
 
 #### Minishift
 
@@ -85,7 +102,7 @@ This step depends on your development environment because we have to build a cus
 
 First we build the `keycloak-import` docker image:
 
-    cd examples/docker/keycloak-import
+    cd ../docker/keycloak-import
     docker build . -t strimzi/keycloak-import
 
 Then we tag and push it to the Docker Registry:

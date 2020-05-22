@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  labels:
+    app: postgres
+spec:
+  type: NodePort
+  ports:
+    - port: 5432
+  selector:
+    app: postgres
+
+---
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: postgres
+  labels:
+    app: postgres
+spec:
+  containers:
+  - name: postgres
+    image: postgres
+    ports:
+      - containerPort: 5432
+    env:
+    - name: POSTGRES_DB
+      value: keycloak
+    - name: POSTGRES_USER
+      value: kcuser
+    - name: POSTGRES_PASSWORD
+      value: kcuserpass
+    volumeMounts:
+    - mountPath: /var/lib/postgresql
+      name: pg-volume
+  volumes:
+  - name: pg-volume
+    persistentVolumeClaim:
+      claimName: postgres-pv-claim
