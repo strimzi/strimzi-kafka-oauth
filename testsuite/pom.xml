@@ -35,6 +35,7 @@
         <maven.resources.version>3.1.0</maven.resources.version>
         <maven.dependency.version>3.1.1</maven.dependency.version>
         <maven.checkstyle.version>3.1.0</maven.checkstyle.version>
+        <maven.surefire.version>2.22.1</maven.surefire.version>
         <version.arquillian_universe>1.2.0.2</version.arquillian_universe>
         <version.junit>4.12</version.junit>
         <bouncycastle.version>1.60</bouncycastle.version>
@@ -42,6 +43,8 @@
         <spotbugs.version>3.1.12</spotbugs.version>
         <strimzi-oauth.version>1.0.0-SNAPSHOT</strimzi-oauth.version>
         <checkstyle.dir>..</checkstyle.dir>
+
+        <kafka.docker.image>strimzi/kafka:latest-kafka-2.5.0</kafka.docker.image>
     </properties>
 
     <dependencyManagement>
@@ -266,6 +269,42 @@
                     <excludeFilterFile>${checkstyle.dir}/.spotbugs/spotbugs-exclude.xml</excludeFilterFile>
                 </configuration>
             </plugin>
+            <plugin>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven.surefire.version}</version>
+                <configuration>
+                    <systemPropertyVariables>
+                        <KAFKA_DOCKER_IMAGE>${kafka.docker.image}</KAFKA_DOCKER_IMAGE>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>kafka-2_3_0</id>
+            <properties>
+                <kafka.docker.image>strimzi/kafka:latest-kafka-2.3.0</kafka.docker.image>
+            </properties>
+        </profile>
+        <profile>
+            <id>kafka-2_4_0</id>
+            <properties>
+                <kafka.docker.image>strimzi/kafka:latest-kafka-2.4.0</kafka.docker.image>
+            </properties>
+        </profile>
+        <profile>
+            <id>kafka-2_4_1</id>
+            <properties>
+                <kafka.docker.image>strimzi/kafka:latest-kafka-2.4.1</kafka.docker.image>
+            </properties>
+        </profile>
+        <profile>
+            <id>kafka-2_5_0</id>
+            <properties>
+                <kafka.docker.image>strimzi/kafka:latest-kafka-2.5.0</kafka.docker.image>
+            </properties>
+        </profile>
+    </profiles>
 </project>

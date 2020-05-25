@@ -30,7 +30,7 @@ services:
       - TIMEOUT=90
 
   kafka:
-    image: strimzi/kafka:latest-kafka-2.3.0
+    image: ${KAFKA_DOCKER_IMAGE}
     container_name: kafka
     ports:
       - 9092:9092
@@ -77,7 +77,7 @@ services:
       - TIMEOUT=90
 
   zookeeper:
-    image: strimzi/zookeeper:0.11.4-kafka-2.1.0
+    image: ${KAFKA_DOCKER_IMAGE}
     container_name: zookeeper
     ports:
       - 2181:2181
