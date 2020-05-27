@@ -14,9 +14,6 @@ import io.strimzi.kafka.oauth.common.JSONUtil;
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
 import io.strimzi.kafka.oauth.common.SSLUtil;
 import kafka.network.RequestChannel;
-import kafka.security.auth.Acl;
-import kafka.security.auth.Operation;
-import kafka.security.auth.Resource;
 import org.apache.kafka.common.security.auth.KafkaPrincipal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -267,7 +264,7 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
      * @return true if permission is granted
      */
     @Override
-    public boolean authorize(RequestChannel.Session session, Operation operation, Resource resource) {
+    public boolean authorize(RequestChannel.Session session, kafka.security.auth.Operation operation, kafka.security.auth.Resource resource) {
 
         KafkaPrincipal principal = session.principal();
 
@@ -364,7 +361,7 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
         return enumScopes;
     }
 
-    boolean delegateIfRequested(RequestChannel.Session session, Operation operation, Resource resource, JsonNode authz) {
+    boolean delegateIfRequested(RequestChannel.Session session, kafka.security.auth.Operation operation, kafka.security.auth.Resource resource, JsonNode authz) {
         String nonAuthMessageFragment = session.principal() instanceof JwtKafkaPrincipal ? "" : " non-oauth";
         if (delegateToKafkaACL) {
             boolean granted = super.authorize(session, operation, resource);
@@ -416,7 +413,7 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
     }
 
     @Override
-    public void addAcls(Set<Acl> acls, Resource resource) {
+    public void addAcls(Set<kafka.security.auth.Acl> acls, kafka.security.auth.Resource resource) {
         if (!delegateToKafkaACL) {
             throw new RuntimeException("Simple ACL delegation not enabled");
         }
@@ -424,7 +421,7 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
     }
 
     @Override
-    public boolean removeAcls(Set<Acl> aclsTobeRemoved, Resource resource) {
+    public boolean removeAcls(Set<kafka.security.auth.Acl> aclsTobeRemoved, kafka.security.auth.Resource resource) {
         if (!delegateToKafkaACL) {
             throw new RuntimeException("Simple ACL delegation not enabled");
         }
@@ -432,7 +429,7 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
     }
 
     @Override
-    public boolean removeAcls(Resource resource) {
+    public boolean removeAcls(kafka.security.auth.Resource resource) {
         if (!delegateToKafkaACL) {
             throw new RuntimeException("Simple ACL delegation not enabled");
         }
@@ -440,7 +437,7 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
     }
 
     @Override
-    public Set<Acl> getAcls(Resource resource) {
+    public Set<kafka.security.auth.Acl> getAcls(kafka.security.auth.Resource resource) {
         if (!delegateToKafkaACL) {
             throw new RuntimeException("Simple ACL delegation not enabled");
         }
@@ -448,7 +445,7 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
     }
 
     @Override
-    public scala.collection.immutable.Map<Resource, Set<Acl>> getAcls(KafkaPrincipal principal) {
+    public scala.collection.immutable.Map<kafka.security.auth.Resource, Set<kafka.security.auth.Acl>> getAcls(KafkaPrincipal principal) {
         if (!delegateToKafkaACL) {
             throw new RuntimeException("Simple ACL delegation not enabled");
         }
@@ -456,7 +453,7 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
     }
 
     @Override
-    public scala.collection.immutable.Map<Resource, Set<Acl>> getAcls() {
+    public scala.collection.immutable.Map<kafka.security.auth.Resource, Set<kafka.security.auth.Acl>> getAcls() {
         if (!delegateToKafkaACL) {
             throw new RuntimeException("Simple ACL delegation not enabled");
         }
