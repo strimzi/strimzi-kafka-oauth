@@ -34,7 +34,7 @@ Before deploying any of the Kafka cluster definitions, you need to deploy a Keyc
 
 #### Deploying the ephemeral Keycloak instance
 
-Deploy the simple Keycloak server with in-memory database that does not survive container restart:
+Deploy the simple Keycloak server with an in-memory database that does not survive container restart:
 
     kubectl apply -f keycloak.yaml 
 
@@ -54,7 +54,7 @@ The actual IP address and port to use in order to reach Keycloak Admin Console f
 
 #### Deploying the Postgres and Keycloak that stores state to Postgres
 
-First, we need a stable filesystem that is remounted if Postgres pod is deleted, and restored:
+First, we need a stable filesystem that is remounted if the Postgres pod is deleted, and recreated:
 
     kubectl apply -f postgres-pv.yaml
     
@@ -133,6 +133,5 @@ Assuming you have already installed Strimzi Kafka Operator, you can now simply d
 For example:
 
     kubectl apply -f kafka-oauth-single-authz.yaml
-
 
 
