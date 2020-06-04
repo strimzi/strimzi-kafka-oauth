@@ -32,7 +32,7 @@ pop_value() {
 #
 unescape() {
   if [[ "$1" != "" ]]; then
-    echo "$1" | sed 's/__/\%/g' | sed "s@+@ @g;s@%@\\\\x@g" | xargs -0 printf "%b"
+    echo "$1" | sed -e "s@__@\%@g" -e "s@+@ @g;s@%@\\\\x@g" | xargs -0 printf "%b"
   fi
 }
 
@@ -43,8 +43,7 @@ for var in $(compgen -e); do
     case $var in
       KAFKA_DEBUG|KAFKA_OPTS|KAFKA_VERSION|KAFKA_HOME|KAFKA_CHECKSUM|KAFKA_LOG4J_OPTS|KAFKA_HEAP_OPTS|KAFKA_JVM_PERFORMANCE_OPTS|KAFKA_GC_LOG_OPTS|KAFKA_JMX_OPTS) ;;
       *)
-        unescaped=`unescape $var`
-        props[`to_property_name $unescaped`]=${!var}
+        props[$(to_property_name $(unescape $var))]=${!var}
       ;;
     esac
   fi
