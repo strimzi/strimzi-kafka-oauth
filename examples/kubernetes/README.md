@@ -56,7 +56,7 @@ The actual IP address and port to use in order to reach Keycloak Admin Console f
 
 First, we need a stable filesystem that is remounted if the Postgres pod is deleted, and recreated:
 
-    kubectl apply -f postgres-pv.yaml
+    kubectl apply -f postgres-pvc.yaml
     
 Then, we need to start Postgres:
 
