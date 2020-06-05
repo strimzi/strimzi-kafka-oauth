@@ -266,87 +266,100 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
     @Override
     public boolean authorize(RequestChannel.Session session, kafka.security.auth.Operation operation, kafka.security.auth.Resource resource) {
 
-        KafkaPrincipal principal = session.principal();
+        JsonNode authz = null;
 
-        for (UserSpec u: superUsers) {
-            if (principal.getPrincipalType().equals(u.getType())
-                    && principal.getName().equals(u.getName())) {
+        try {
+            KafkaPrincipal principal = session.principal();
 
-                // it's a super user. super users are granted everything
-                if (GRANT_LOG.isDebugEnabled()) {
-                    GRANT_LOG.debug("Authorization GRANTED - user is a superuser: " + session.principal() + ", operation: " + operation + ", resource: " + resource);
-                }
-                return true;
-            }
-        }
+            for (UserSpec u : superUsers) {
+                if (principal.getPrincipalType().equals(u.getType())
+                        && principal.getName().equals(u.getName())) {
 
-        if (!(principal instanceof JwtKafkaPrincipal)) {
-            // if user wasn't authenticated over OAuth, and simple ACL delegation is enabled
-            // we delegate to simple ACL
-            return delegateIfRequested(session, operation, resource, null);
-        }
-
-        //
-        // Check if authorization grants are available
-        // If not, fetch authorization grants and store them in the token
-        //
-
-        JwtKafkaPrincipal jwtPrincipal = (JwtKafkaPrincipal) principal;
-
-        BearerTokenWithPayload token = jwtPrincipal.getJwt();
-        JsonNode authz = (JsonNode) token.getPayload();
-
-        if (authz == null) {
-            // fetch authorization grants
-            try {
-                authz = fetchAuthorizationGrants(token.value());
-                if (authz == null) {
-                    authz = new ObjectNode(JSONUtil.MAPPER.getNodeFactory());
-                }
-            } catch (HttpException e) {
-                if (e.getStatus() == 403) {
-                    authz = new ObjectNode(JSONUtil.MAPPER.getNodeFactory());
-                } else {
-                    log.warn("Unexpected status while fetching authorization data - will retry next time: " + e.getMessage());
+                    // it's a super user. super users are granted everything
+                    if (GRANT_LOG.isDebugEnabled()) {
+                        GRANT_LOG.debug("Authorization GRANTED - user is a superuser: " + session.principal() + ", operation: " + operation + ", resource: " + resource);
+                    }
+                    return true;
                 }
             }
+
+            if (!(principal instanceof JwtKafkaPrincipal)) {
+                // if user wasn't authenticated over OAuth, and simple ACL delegation is enabled
+                // we delegate to simple ACL
+                return delegateIfRequested(session, operation, resource, null);
+            }
+
+            //
+            // Check if authorization grants are available
+            // If not, fetch authorization grants and store them in the token
+            //
+
+            JwtKafkaPrincipal jwtPrincipal = (JwtKafkaPrincipal) principal;
+
+            BearerTokenWithPayload token = jwtPrincipal.getJwt();
+            authz = (JsonNode) token.getPayload();
+
+            if (authz == null) {
+                // fetch authorization grants
+                try {
+                    authz = fetchAuthorizationGrants(token.value());
+                    if (authz == null) {
+                        authz = new ObjectNode(JSONUtil.MAPPER.getNodeFactory());
+                    }
+                } catch (HttpException e) {
+                    if (e.getStatus() == 403) {
+                        authz = new ObjectNode(JSONUtil.MAPPER.getNodeFactory());
+                    } else {
+                        log.warn("Unexpected status while fetching authorization data - will retry next time: " + e.getMessage());
+                    }
+                }
+                if (authz != null) {
+                    // store authz grants in the token so they are available for subsequent requests
+                    token.setPayload(authz);
+                }
+            }
+
+            if (log.isDebugEnabled()) {
+                log.debug("authorize(): " + authz);
+            }
+
+            //
+            // Iterate authorization rules and try to find a match
+            //
+
             if (authz != null) {
-                // store authz grants in the token so they are available for subsequent requests
-                token.setPayload(authz);
-            }
-        }
+                Iterator<JsonNode> it = authz.iterator();
+                while (it.hasNext()) {
+                    JsonNode permission = it.next();
+                    String name = permission.get("rsname").asText();
+                    ResourceSpec resourceSpec = ResourceSpec.of(name);
+                    if (resourceSpec.match(clusterName, resource.resourceType().name(), resource.name())) {
 
-        if (log.isDebugEnabled()) {
-            log.debug("authorize(): " + authz);
-        }
+                        ScopesSpec grantedScopes = ScopesSpec.of(
+                                validateScopes(
+                                        JSONUtil.asListOfString(permission.get("scopes"))));
 
-        //
-        // Iterate authorization rules and try to find a match
-        //
-
-        if (authz != null) {
-            Iterator<JsonNode> it = authz.iterator();
-            while (it.hasNext()) {
-                JsonNode permission = it.next();
-                String name = permission.get("rsname").asText();
-                ResourceSpec resourceSpec = ResourceSpec.of(name);
-                if (resourceSpec.match(clusterName, resource.resourceType().name(), resource.name())) {
-
-                    ScopesSpec grantedScopes = ScopesSpec.of(
-                            validateScopes(
-                                    JSONUtil.asListOfString(permission.get("scopes"))));
-
-                    if (grantedScopes.isGranted(operation.name())) {
-                        if (GRANT_LOG.isDebugEnabled()) {
-                            GRANT_LOG.debug("Authorization GRANTED - cluster: " + clusterName + ", user: " + session.principal() + ", operation: " + operation +
-                                    ", resource: " + resource + "\nGranted scopes for resource (" + resourceSpec + "): " + grantedScopes);
+                        if (grantedScopes.isGranted(operation.name())) {
+                            if (GRANT_LOG.isDebugEnabled()) {
+                                GRANT_LOG.debug("Authorization GRANTED - cluster: " + clusterName + ", user: " + session.principal() + ", operation: " + operation +
+                                        ", resource: " + resource + "\nGranted scopes for resource (" + resourceSpec + "): " + grantedScopes);
+                            }
+                            return true;
                         }
-                        return true;
                     }
                 }
             }
+
+            return delegateIfRequested(session, operation, resource, authz);
+
+        } catch (Throwable t) {
+            log.error("An unexpected exception has occurred: ", t);
+            if (DENY_LOG.isDebugEnabled()) {
+                DENY_LOG.debug("Authorization DENIED due to error - user: " + session.principal() +
+                        ", cluster: " + clusterName + ", operation: " + operation + ", resource: " + resource + ",\n permissions: " + authz);
+            }
+            return false;
         }
-        return delegateIfRequested(session, operation, resource, authz);
     }
 
     static List<ScopesSpec.AuthzScope> validateScopes(List<String> scopes) {
