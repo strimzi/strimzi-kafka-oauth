@@ -41,6 +41,23 @@ Or if you are in strimzi-kafka-oauth project root directory:
 
     mvn clean install -f testsuite
 
+By using `clean` you make sure that the latest project jars are included into the kafka image.
+
+There are several profiles available to test with a specific version of Kafka images:
+
+- kafka-2_3_0
+- kafka-2_4_0
+- kafka-2_4_1
+- kafka-2_5_0
+
+Only one at a time can be applied. For example:
+ 
+    mvn clean install -f testsuite -Pkafka-2_4_1
+
+If you want to run only a single test, you first have to build the whole testsuite:
+
+    mvn clean install -f testsuite -DskipTests
+    mvn test -f testsuite/client-secret-jwt-keycloak-test
 
 Troubleshooting
 ===============

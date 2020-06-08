@@ -29,7 +29,9 @@ if [ ${JAVA_MAJOR_VERSION} -eq 1 ] ; then
   docker pull oryd/hydra:v1.0.0
   mvn test-compile spotbugs:check -e -V -B -f testsuite
   set +e
-  mvn -e -V -B install -f testsuite
+  mvn -e -V -B clean install -f testsuite
+  mvn -e -V -B test -f testsuite -Pkafka-2_4_1
+  mvn -e -V -B test -f testsuite -Pkafka-2_4_0
 
   EXIT=$?
   FILE=testsuite/kafka.log
