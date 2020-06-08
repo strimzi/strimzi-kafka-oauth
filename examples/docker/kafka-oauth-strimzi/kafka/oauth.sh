@@ -105,17 +105,29 @@ fi
 
 if [ "$CLIENT_SECRET" != "" ]; then
     AUTH_VALUE=$(echo -n "$CLIENT_ID:$CLIENT_SECRET" | base64)
-    AUTHORIZATION="-H 'Authorization: Basic ""$AUTH_VALUE'"
+    AUTHORIZATION="Authorization: Basic $AUTH_VALUE"
 fi
 
-[ "$QUIET" == "" ] && >&2 echo curl -s -X POST $TOKEN_ENDPOINT \
-    $AUTHORIZATION \
-    -H 'Content-Type: application/x-www-form-urlencoded' \
-    -d "grant_type=${GRANT_TYPE}${USER_PASS_CLIENT}&scope=${SCOPES}"
+cmd=()
+cmd+=(curl)
+cmd+=(-s)
+cmd+=(-X)
+cmd+=(POST)
+cmd+=($TOKEN_ENDPOINT)
+if [[ "$AUTHORIZATION" != "" ]]; then cmd+=(-H); cmd+=("$AUTHORIZATION"); fi
+cmd+=(-H)
+cmd+=("Content-Type: application/x-www-form-urlencoded")
+cmd+=(-d)
+if [[ "$SCOPES" != "" ]]; then
+  cmd+=("grant_type=${GRANT_TYPE}${USER_PASS_CLIENT}&scope=${SCOPES}")
+else
+  cmd+=("grant_type=${GRANT_TYPE}${USER_PASS_CLIENT}")
+fi
 
-result=$(curl -s -X POST $TOKEN_ENDPOINT \
-    $AUTHORIZATION \
-    -H 'Content-Type: application/x-www-form-urlencoded' \
-    -d "grant_type=${GRANT_TYPE}${USER_PASS_CLIENT}&scope=${SCOPES}")
+[ "$QUIET" == "" ] && >&2 echo $(printf "'%s' " "${cmd[@]}")
+
+result=`"${cmd[@]}"`
+
+if [[ $(echo $result | grep $CLAIM) == "" ]]; then echo "Error: $result"; exit 1; fi
 
 echo $result | awk -F "$CLAIM\":\"" '{printf $2}' | awk -F "\"" '{printf $1}'

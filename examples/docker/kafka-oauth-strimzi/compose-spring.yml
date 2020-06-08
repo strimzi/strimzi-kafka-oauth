@@ -9,7 +9,7 @@ services:
     container_name: kafka
     command:
       - /bin/bash
-      - /opt/kafka/start_with_spring.sh
+      - /opt/kafka/start_without_wait.sh
     ports:
       - 9092:9092
 
