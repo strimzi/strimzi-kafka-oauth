@@ -244,7 +244,7 @@ public class JWTSignatureValidator implements TokenValidator {
         long expiresMillis = t.getExpiration() * 1000L;
         if (Time.SYSTEM.milliseconds() > expiresMillis) {
             throw new TokenExpiredException("Token expired at: " + expiresMillis + " (" +
-                    TimeUtil.formatIsoDateTimeUTC(expiresMillis) + ")");
+                    TimeUtil.formatIsoDateTimeUTC(expiresMillis) + " UTC)");
         }
 
         String principal = null;

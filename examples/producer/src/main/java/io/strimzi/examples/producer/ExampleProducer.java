@@ -11,6 +11,8 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.errors.AuthenticationException;
+import org.apache.kafka.common.errors.AuthorizationException;
 import org.apache.kafka.common.serialization.StringSerializer;
 
 import java.util.Properties;
@@ -75,7 +77,13 @@ public class ExampleProducer {
                 throw new RuntimeException("Interrupted while sending!");
 
             } catch (ExecutionException e) {
-                throw new RuntimeException("Failed to send message: " + i, e);
+                if (e.getCause() instanceof AuthenticationException
+                        || e.getCause() instanceof AuthorizationException) {
+                    producer.close();
+                    producer = new KafkaProducer<>(props);
+                } else {
+                    throw new RuntimeException("Failed to send message: " + i, e);
+                }
             }
 
             try {
