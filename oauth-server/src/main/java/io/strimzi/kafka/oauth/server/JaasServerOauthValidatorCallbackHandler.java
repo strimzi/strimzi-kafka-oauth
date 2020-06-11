@@ -8,6 +8,7 @@ import io.strimzi.kafka.oauth.common.Config;
 import io.strimzi.kafka.oauth.common.ConfigUtil;
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
 import io.strimzi.kafka.oauth.common.PrincipalExtractor;
+import io.strimzi.kafka.oauth.server.services.Services;
 import io.strimzi.kafka.oauth.validator.JWTSignatureValidator;
 import io.strimzi.kafka.oauth.validator.OAuthIntrospectionValidator;
 import io.strimzi.kafka.oauth.common.TokenInfo;
@@ -130,6 +131,10 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                     config.getValue(Config.OAUTH_CLIENT_SECRET),
                     null
             );
+        }
+
+        if (!Services.isAvailable()) {
+            Services.configure(configs);
         }
     }
 
