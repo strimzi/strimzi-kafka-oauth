@@ -357,6 +357,7 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
     }
 
     private boolean denyIfTokenInvalid(BearerTokenWithPayload token) {
+        log.trace("Current token: " + token.value());
         if (denyWhenTokenInvalid && token.lifetimeMs() <= System.currentTimeMillis()) {
             if (DENY_LOG.isDebugEnabled()) {
                 DENY_LOG.debug("Authorization DENIED due to token expiry - The token expired at: "

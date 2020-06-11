@@ -87,7 +87,7 @@ public class ExampleProducer {
             }
 
             try {
-                Thread.sleep(2000);
+                Thread.sleep(20000);
             } catch (InterruptedException e) {
                 throw new RuntimeException("Interrupted while sleeping!");
             }
@@ -124,6 +124,10 @@ public class ExampleProducer {
         p.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
 
         p.setProperty(ProducerConfig.ACKS_CONFIG, "all");
+        p.setProperty("sasl.login.refresh.buffer.seconds", "30");
+        p.setProperty("sasl.login.refresh.min.period.seconds", "30");
+        p.setProperty("sasl.login.refresh.window.factor", "0.8");
+        p.setProperty("sasl.login.refresh.window.jitter", "0.01");
 
         return ConfigProperties.resolve(p);
     }
