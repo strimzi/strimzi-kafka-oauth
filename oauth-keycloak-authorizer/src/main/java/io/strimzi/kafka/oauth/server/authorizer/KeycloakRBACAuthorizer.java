@@ -11,11 +11,13 @@ import io.strimzi.kafka.oauth.common.Config;
 import io.strimzi.kafka.oauth.common.ConfigUtil;
 import io.strimzi.kafka.oauth.common.HttpException;
 import io.strimzi.kafka.oauth.common.JSONUtil;
-import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
 import io.strimzi.kafka.oauth.common.SSLUtil;
 import io.strimzi.kafka.oauth.common.TimeUtil;
+import io.strimzi.kafka.oauth.server.services.Services;
+import io.strimzi.kafka.oauth.server.services.SessionInfo;
 import kafka.network.RequestChannel;
 import org.apache.kafka.common.security.auth.KafkaPrincipal;
+import org.apache.kafka.common.security.oauthbearer.OAuthBearerToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.collection.immutable.Set;
@@ -110,7 +112,7 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
 @SuppressWarnings("deprecation")
 public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthorizer {
 
-    private static final String PRINCIPAL_BUILDER_CLASS = "io.strimzi.kafka.oauth.server.authorizer.JwtKafkaPrincipalBuilder";
+    private static final String PRINCIPAL_BUILDER_CLASS = "io.strimzi.kafka.oauth.server.services.StrimziKafkaPrincipalBuilder";
 
     static final Logger log = LoggerFactory.getLogger(KeycloakRBACAuthorizer.class);
     static final Logger GRANT_LOG = LoggerFactory.getLogger(KeycloakRBACAuthorizer.class.getName() + ".grant");
@@ -271,7 +273,7 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
     @Override
     public boolean authorize(RequestChannel.Session session, kafka.security.auth.Operation operation, kafka.security.auth.Resource resource) {
 
-        JsonNode authz = null;
+        JsonNode grants = null;
 
         try {
             KafkaPrincipal principal = session.principal();
@@ -288,7 +290,8 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
                 }
             }
 
-            if (!(principal instanceof JwtKafkaPrincipal)) {
+            SessionInfo sessionInfo = Services.getInstance().getSessions().get(principal);
+            if (sessionInfo == null) {
                 // if user wasn't authenticated over OAuth, and simple ACL delegation is enabled
                 // we delegate to simple ACL
                 return delegateIfRequested(session, operation, resource, null);
@@ -299,30 +302,28 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
             // If not, fetch authorization grants and store them in the token
             //
 
-            JwtKafkaPrincipal jwtPrincipal = (JwtKafkaPrincipal) principal;
-
-            BearerTokenWithPayload token = jwtPrincipal.getJwt();
+            OAuthBearerToken token = sessionInfo.getToken();
 
             if (denyIfTokenInvalid(token)) {
                 return false;
             }
 
-            authz = (JsonNode) token.getPayload();
+            grants = sessionInfo.getGrants();
 
-            if (authz == null) {
-                authz = handleFetchingGrants(token);
+            if (grants == null) {
+                grants = handleFetchingGrants(sessionInfo);
             }
 
             if (log.isDebugEnabled()) {
-                log.debug("authorize(): " + authz);
+                log.debug("authorize(): " + grants);
             }
 
             //
             // Iterate authorization rules and try to find a match
             //
 
-            if (authz != null) {
-                Iterator<JsonNode> it = authz.iterator();
+            if (grants != null) {
+                Iterator<JsonNode> it = grants.iterator();
                 while (it.hasNext()) {
                     JsonNode permission = it.next();
                     String name = permission.get("rsname").asText();
@@ -344,19 +345,19 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
                 }
             }
 
-            return delegateIfRequested(session, operation, resource, authz);
+            return delegateIfRequested(session, operation, resource, grants);
 
         } catch (Throwable t) {
             log.error("An unexpected exception has occurred: ", t);
             if (DENY_LOG.isDebugEnabled()) {
                 DENY_LOG.debug("Authorization DENIED due to error - user: " + session.principal() +
-                        ", cluster: " + clusterName + ", operation: " + operation + ", resource: " + resource + ",\n permissions: " + authz);
+                        ", cluster: " + clusterName + ", operation: " + operation + ", resource: " + resource + ",\n permissions: " + grants);
             }
             return false;
         }
     }
 
-    private boolean denyIfTokenInvalid(BearerTokenWithPayload token) {
+    private boolean denyIfTokenInvalid(OAuthBearerToken token) {
         log.trace("Current token: " + token.value());
         if (denyWhenTokenInvalid && token.lifetimeMs() <= System.currentTimeMillis()) {
             if (DENY_LOG.isDebugEnabled()) {
@@ -368,26 +369,26 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
         return false;
     }
 
-    private JsonNode handleFetchingGrants(BearerTokenWithPayload token) {
+    private JsonNode handleFetchingGrants(SessionInfo sessionInfo) {
         // fetch authorization grants
-        JsonNode authz = null;
+        JsonNode grants = null;
         try {
-            authz = fetchAuthorizationGrants(token.value());
-            if (authz == null) {
-                authz = new ObjectNode(JSONUtil.MAPPER.getNodeFactory());
+            grants = fetchAuthorizationGrants(sessionInfo.getToken().value());
+            if (grants == null) {
+                grants = new ObjectNode(JSONUtil.MAPPER.getNodeFactory());
             }
         } catch (HttpException e) {
             if (e.getStatus() == 403) {
-                authz = new ObjectNode(JSONUtil.MAPPER.getNodeFactory());
+                grants = new ObjectNode(JSONUtil.MAPPER.getNodeFactory());
             } else {
                 log.warn("Unexpected status while fetching authorization data - will retry next time: " + e.getMessage());
             }
         }
-        if (authz != null) {
+        if (grants != null) {
             // store authz grants in the token so they are available for subsequent requests
-            token.setPayload(authz);
+            sessionInfo.setGrants(grants);
         }
-        return authz;
+        return grants;
     }
 
     static List<ScopesSpec.AuthzScope> validateScopes(List<String> scopes) {

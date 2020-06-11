@@ -62,7 +62,7 @@ public class StrimziKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder i
             try {
                 return new SetAccessibleAction(DefaultKafkaPrincipalBuilder.class.getDeclaredField("sslPrincipalMapper"));
             } catch (NoSuchFieldException e) {
-                throw new IllegalStateException("Failed to install JwtKafkaPrincipalBuilder. This Kafka version does not seem to be supported", e);
+                throw new IllegalStateException("Failed to install StrimziKafkaPrincipalBuilder. This Kafka version does not seem to be supported", e);
             }
         }
     }
@@ -102,13 +102,13 @@ public class StrimziKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder i
             SET_PRINCIPAL_MAPPER.invoke(this, sslPrincipalMapper);
 
         } catch (RuntimeException e) {
-            throw new RuntimeException("Failed to initialize JwtKafkaPrincioalBuilder", e);
+            throw new RuntimeException("Failed to initialize StrimziKafkaPrincipalBuilder", e);
 
         } catch (ClassNotFoundException
                 | NoSuchMethodException
                 | IllegalAccessException
                 | InvocationTargetException e) {
-            throw new RuntimeException("Failed to initialize JwtKafkaPrincioalBuilder", e);
+            throw new RuntimeException("Failed to initialize StrimziKafkaPrincipalBuilder", e);
         }
     }
 
@@ -120,12 +120,11 @@ public class StrimziKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder i
                 KafkaPrincipal kafkaPrincipal = new KafkaPrincipal(KafkaPrincipal.USER_TYPE,
                         server.getAuthorizationID());
 
-                if (Services.isAvailable()) {
-                    BearerTokenWithPayload token = (BearerTokenWithPayload) server.getNegotiatedProperty("OAUTHBEARER.token");
-                    SessionInfo info = new SessionInfo();
-                    info.setToken(token);
-                    Services.getInstance().getSessions().put(kafkaPrincipal, info);
-                }
+                BearerTokenWithPayload token = (BearerTokenWithPayload) server.getNegotiatedProperty("OAUTHBEARER.token");
+                SessionInfo info = new SessionInfo();
+                info.setToken(token);
+                Services.getInstance().getSessions().put(kafkaPrincipal, info);
+
                 return kafkaPrincipal;
             }
         }

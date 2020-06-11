@@ -25,6 +25,9 @@ public class Services {
     }
 
     public static Services getInstance() {
+        if (services == null) {
+            throw new IllegalStateException("Services object has not been properly initialised");
+        }
         return services;
     }
 
