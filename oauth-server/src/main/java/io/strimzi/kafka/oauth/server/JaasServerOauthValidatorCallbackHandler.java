@@ -9,9 +9,10 @@ import io.strimzi.kafka.oauth.common.ConfigUtil;
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
 import io.strimzi.kafka.oauth.common.PrincipalExtractor;
 import io.strimzi.kafka.oauth.server.services.Services;
+import io.strimzi.kafka.oauth.server.services.ValidatorKey;
 import io.strimzi.kafka.oauth.validator.JWTSignatureValidator;
-import io.strimzi.kafka.oauth.validator.OAuthIntrospectionValidator;
 import io.strimzi.kafka.oauth.common.TokenInfo;
+import io.strimzi.kafka.oauth.validator.OAuthIntrospectionValidator;
 import io.strimzi.kafka.oauth.validator.TokenValidator;
 import io.strimzi.kafka.oauth.validator.TokenValidationException;
 import org.apache.kafka.common.errors.SaslAuthenticationException;
@@ -36,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import static io.strimzi.kafka.oauth.common.DeprecationUtil.isAccessTokenJwt;
 import static io.strimzi.kafka.oauth.common.LogUtil.mask;
@@ -104,38 +106,93 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                 fallbackUsernameClaim,
                 fallbackUsernamePrefix);
 
-        if (jwksUri != null) {
-            validator = new JWTSignatureValidator(
-                    config.getValue(ServerConfig.OAUTH_JWKS_ENDPOINT_URI),
-                    socketFactory,
-                    verifier,
-                    principalExtractor,
-                    validIssuerUri,
-                    config.getValueAsInt(ServerConfig.OAUTH_JWKS_REFRESH_SECONDS, 300),
-                    config.getValueAsInt(ServerConfig.OAUTH_JWKS_EXPIRY_SECONDS, 360),
-                    checkTokenType,
-                    null,
-                    enableBouncy,
-                    bouncyPosition
-            );
-        } else {
-            validator = new OAuthIntrospectionValidator(
-                    config.getValue(ServerConfig.OAUTH_INTROSPECTION_ENDPOINT_URI),
-                    socketFactory,
-                    verifier,
-                    principalExtractor,
-                    validIssuerUri,
-                    config.getValue(ServerConfig.OAUTH_USERINFO_ENDPOINT_URI),
-                    config.getValue(ServerConfig.OAUTH_VALID_TOKEN_TYPE),
-                    config.getValue(Config.OAUTH_CLIENT_ID),
-                    config.getValue(Config.OAUTH_CLIENT_SECRET),
-                    null
-            );
-        }
-
         if (!Services.isAvailable()) {
             Services.configure(configs);
         }
+
+        String sslTruststore = config.getValue(Config.OAUTH_SSL_TRUSTSTORE_LOCATION);
+        String sslPassword = config.getValue(Config.OAUTH_SSL_TRUSTSTORE_PASSWORD);
+        String sslType = config.getValue(Config.OAUTH_SSL_TRUSTSTORE_TYPE);
+        String sslRnd = config.getValue(Config.OAUTH_SSL_SECURE_RANDOM_IMPLEMENTATION);
+
+        ValidatorKey vkey;
+        Supplier<TokenValidator> factory;
+
+        if (jwksUri != null) {
+
+            int jwksRefreshSeconds = config.getValueAsInt(ServerConfig.OAUTH_JWKS_REFRESH_SECONDS, 300);
+            int jwksExpirySeconds = config.getValueAsInt(ServerConfig.OAUTH_JWKS_EXPIRY_SECONDS, 360);
+
+            vkey = ValidatorKey.forJwtValidator()
+                    .validIssuerUri(validIssuerUri)
+                    .usernameClaim(usernameClaim)
+                    .fallbackUsernameClaim(fallbackUsernameClaim)
+                    .fallbackUsernamePrefix(fallbackUsernamePrefix)
+                    .sslTruststore(sslTruststore)
+                    .sslStorePassword(sslPassword)
+                    .sslStoreType(sslType)
+                    .sslRandom(sslRnd)
+                    .hasHostnameVerifier(verifier != null)
+                    .jwksEndpointUri(jwksUri)
+                    .jwksRefreshSeconds(jwksRefreshSeconds)
+                    .jwksExpirySeconds(jwksExpirySeconds)
+                    .checkAccessTokenType(checkTokenType)
+                    .enableBouncy(enableBouncy)
+                    .bouncyPosition(bouncyPosition)
+                    .build();
+
+            factory = () -> new JWTSignatureValidator(
+                    jwksUri,
+                    socketFactory,
+                    verifier,
+                    principalExtractor,
+                    validIssuerUri,
+                    jwksRefreshSeconds,
+                    jwksExpirySeconds,
+                    checkTokenType,
+                    null,
+                    enableBouncy,
+                    bouncyPosition);
+
+        } else {
+
+            String introspectionEndpoint = config.getValue(ServerConfig.OAUTH_INTROSPECTION_ENDPOINT_URI);
+            String userInfoEndpoint = config.getValue(ServerConfig.OAUTH_USERINFO_ENDPOINT_URI);
+            String validTokenType = config.getValue(ServerConfig.OAUTH_VALID_TOKEN_TYPE);
+            String clientId = config.getValue(Config.OAUTH_CLIENT_ID);
+            String clientSecret = config.getValue(Config.OAUTH_CLIENT_SECRET);
+
+            vkey = ValidatorKey.forIntrospectionValidator()
+                    .validIssuerUri(validIssuerUri)
+                    .usernameClaim(usernameClaim)
+                    .fallbackUsernameClaim(fallbackUsernameClaim)
+                    .fallbackUsernamePrefix(fallbackUsernamePrefix)
+                    .sslTruststore(sslTruststore)
+                    .sslStorePassword(sslPassword)
+                    .sslStoreType(sslType)
+                    .sslRandom(sslRnd)
+                    .hasHostnameVerifier(verifier != null)
+                    .introspectionEndpoint(introspectionEndpoint)
+                    .userInfoEndpoint(userInfoEndpoint)
+                    .validTokenType(validTokenType)
+                    .clientId(clientId)
+                    .clientSecret(clientSecret)
+                    .build();
+
+            factory = () -> new OAuthIntrospectionValidator(
+                    introspectionEndpoint,
+                    socketFactory,
+                    verifier,
+                    principalExtractor,
+                    validIssuerUri,
+                    userInfoEndpoint,
+                    validTokenType,
+                    clientId,
+                    clientSecret,
+                    null);
+        }
+
+        validator = Services.getInstance().getValidators().get(vkey, factory);
     }
 
     @SuppressWarnings("deprecation")

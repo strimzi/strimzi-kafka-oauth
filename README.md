@@ -358,7 +358,7 @@ Strimzi Kafka OAuth provides an alternative authorizer - `io.strimzi.kafka.oauth
 Add the following to `server.properties` file:
 
     authorizer.class.name=io.strimzi.kafka.oauth.server.authorizer.KeycloakRBACAuthorizer
-    principal.builder.class=io.strimzi.kafka.oauth.server.authorizer.JwtKafkaPrincipalBuilder
+    principal.builder.class=io.strimzi.kafka.oauth.server.services.StrimziKafkaPrincipalBuilder
 
 #### Configuring the KeycloakRBACAuthorizer
 

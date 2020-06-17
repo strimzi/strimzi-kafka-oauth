@@ -15,6 +15,7 @@ import io.strimzi.kafka.oauth.common.SSLUtil;
 import io.strimzi.kafka.oauth.common.TimeUtil;
 import io.strimzi.kafka.oauth.server.services.Services;
 import io.strimzi.kafka.oauth.server.services.SessionInfo;
+import io.strimzi.kafka.oauth.server.services.StrimziKafkaPrincipalBuilder;
 import kafka.network.RequestChannel;
 import org.apache.kafka.common.security.auth.KafkaPrincipal;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerToken;
@@ -41,14 +42,14 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
 /**
  * An authorizer that grants access based on security policies managed in Keycloak Authorization Services.
  * It works in conjunction with JaasServerOauthValidatorCallbackHandler, and requires
- * {@link io.strimzi.kafka.oauth.server.authorizer.JwtKafkaPrincipalBuilder} to be configured as
+ * {@link io.strimzi.kafka.oauth.server.services.StrimziKafkaPrincipalBuilder} to be configured as
  * 'principal.builder.class' in 'server.properties' file.
  * <p>
  * To install this authorizer in Kafka, specify the following in your 'server.properties':
  * </p>
  * <pre>
  *     authorizer.class.name=io.strimzi.kafka.oauth.server.authorizer.KeycloakRBACAuthorizer
- *     principal.builder.class=io.strimzi.kafka.oauth.server.authorizer.JwtKafkaPrincipalBuilder
+ *     principal.builder.class=io.strimzi.kafka.oauth.server.services.StrimziKafkaPrincipalBuilder
  * </pre>
  * <p>
  * There is additional configuration that needs to be specified in order for this authorizer to work.
@@ -112,7 +113,8 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
 @SuppressWarnings("deprecation")
 public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthorizer {
 
-    private static final String PRINCIPAL_BUILDER_CLASS = "io.strimzi.kafka.oauth.server.services.StrimziKafkaPrincipalBuilder";
+    private static final String PRINCIPAL_BUILDER_CLASS = StrimziKafkaPrincipalBuilder.class.getName();
+    private static final String DEPRECATED_PRINCIPAL_BUILDER_CLASS = JwtKafkaPrincipalBuilder.class.getName();
 
     static final Logger log = LoggerFactory.getLogger(KeycloakRBACAuthorizer.class);
     static final Logger GRANT_LOG = LoggerFactory.getLogger(KeycloakRBACAuthorizer.class.getName() + ".grant");
@@ -142,8 +144,12 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
         AuthzConfig config = convertToCommonConfig(configs);
 
         String pbclass = (String) configs.get("principal.builder.class");
-        if (!PRINCIPAL_BUILDER_CLASS.equals(pbclass)) {
+        if (!PRINCIPAL_BUILDER_CLASS.equals(pbclass) && !DEPRECATED_PRINCIPAL_BUILDER_CLASS.equals(pbclass)) {
             throw new RuntimeException("KeycloakRBACAuthorizer requires " + PRINCIPAL_BUILDER_CLASS + " as 'principal.builder.class'");
+        }
+
+        if (DEPRECATED_PRINCIPAL_BUILDER_CLASS.equals(pbclass)) {
+            log.warn("The '" + DEPRECATED_PRINCIPAL_BUILDER_CLASS + "' class has been deprecated, and may be removed in the future. Please use '" + PRINCIPAL_BUILDER_CLASS + "' as 'principal.builder.class' instead.");
         }
 
         String endpoint = ConfigUtil.getConfigWithFallbackLookup(config, AuthzConfig.STRIMZI_AUTHORIZATION_TOKEN_ENDPOINT_URI,
@@ -315,7 +321,7 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
             }
 
             if (log.isDebugEnabled()) {
-                log.debug("authorize(): " + grants);
+                log.debug("Authorization grants: " + grants);
             }
 
             //

@@ -8,9 +8,11 @@ import org.apache.kafka.common.security.auth.KafkaPrincipal;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.function.Consumer;
 
 /**
@@ -35,7 +37,7 @@ public class Sessions {
         return activeSessions.get(session);
     }
 
-    public void executeTask(Consumer<SessionInfo> task) {
+    public List<Future> executeTask(Consumer<SessionInfo> task) {
 
         // In order to prevent the possible ConcurrentModificationException in the middle of using an iterator
         // we first make a local copy, then iterate over the copy
@@ -44,8 +46,12 @@ public class Sessions {
             values = new ArrayList<>(activeSessions.values());
         }
 
+        List<Future> results = new ArrayList<>(values.size());
         for (SessionInfo w: values) {
-            executor.submit(() -> task.accept(w));
+            Future current = executor.submit(() -> task.accept(w));
+            results.add(current);
         }
+
+        return results;
     }
 }

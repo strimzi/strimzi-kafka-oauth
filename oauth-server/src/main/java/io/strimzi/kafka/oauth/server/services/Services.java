@@ -17,6 +17,8 @@ public class Services {
 
     private Sessions sessions;
 
+    private Validators validators = new Validators();
+
     public static void configure(Map<String, ?> configs) {
         ExecutorService executorService = Executors.newFixedThreadPool(5);
         Sessions sessions = new Sessions(executorService);
@@ -29,6 +31,10 @@ public class Services {
             throw new IllegalStateException("Services object has not been properly initialised");
         }
         return services;
+    }
+
+    public Validators getValidators() {
+        return validators;
     }
 
     public static boolean isAvailable() {

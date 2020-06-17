@@ -27,7 +27,8 @@ import java.util.Map;
  * This class needs to be enabled as the PrincipalBuilder on Kafka Broker.
  * <p>
  * It ensures that additional session info is associated with the current session to allow enforcing access token lifetime,
- * and for re-authentication to operate properly. The extra information is in the form of <em>SessionInfo</em> object containing
+ * for re-authentication to operate properly, and for custom authorizers to have access to additional session state -
+ * i.e. the parsed access token. The extra information is in the form of <em>SessionInfo</em> object containing
  * the OAuthBearerToken token produced by <em>io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler</em>.
  * </p>
  * <p>
