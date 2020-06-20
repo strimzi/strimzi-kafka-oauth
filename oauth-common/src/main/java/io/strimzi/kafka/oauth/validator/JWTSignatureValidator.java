@@ -31,6 +31,7 @@ import java.net.URISyntaxException;
 import java.security.Provider;
 import java.security.PublicKey;
 import java.security.Security;
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -49,7 +50,8 @@ public class JWTSignatureValidator implements TokenValidator {
 
     private static final TokenVerifier.TokenTypeCheck TOKEN_TYPE_CHECK = new TokenVerifier.TokenTypeCheck(TokenUtil.TOKEN_TYPE_BEARER);
 
-    private final ScheduledExecutorService scheduler;
+    private final ScheduledExecutorService periodicScheduler;
+    private final BackOffTaskScheduler fastScheduler;
 
     private final URI keysUri;
     private final String issuerUri;
@@ -62,7 +64,8 @@ public class JWTSignatureValidator implements TokenValidator {
 
     private long lastFetchTime;
 
-    private Map<String, PublicKey> cache = new ConcurrentHashMap<>();
+    private Map<String, PublicKey> cache = Collections.emptyMap();
+    private Map<String, PublicKey> oldCache = Collections.emptyMap();
 
 
     public JWTSignatureValidator(String keysEndpointUri,
@@ -131,7 +134,10 @@ public class JWTSignatureValidator implements TokenValidator {
 
         fetchKeys();
 
-        scheduler = setupRefreshKeysJob(refreshSeconds);
+        periodicScheduler = setupRefreshKeysJob(refreshSeconds);
+
+        fastScheduler = new BackOffTaskScheduler(periodicScheduler, () -> fetchKeys());
+        fastScheduler.setCutoffIntervalSeconds(refreshSeconds);
 
         if (log.isDebugEnabled()) {
             log.debug("Configured JWTSignatureValidator:\n    keysEndpointUri: " + keysEndpointUri
@@ -183,7 +189,12 @@ public class JWTSignatureValidator implements TokenValidator {
     private void fetchKeys() {
         try {
             JSONWebKeySet jwks = HttpUtil.get(keysUri, socketFactory, hostnameVerifier, null, JSONWebKeySet.class);
-            cache = JWKSUtils.getKeysForUse(jwks, JWK.Use.SIG);
+            Map<String, PublicKey> newCache = JWKSUtils.getKeysForUse(jwks, JWK.Use.SIG);
+            newCache = Collections.unmodifiableMap(newCache);
+            if (!cache.equals(newCache)) {
+                oldCache = cache;
+                cache = newCache;
+            }
             lastFetchTime = System.currentTimeMillis();
         } catch (Exception ex) {
             throw new RuntimeException("Failed to fetch public keys needed to validate JWT signatures: " + keysUri, ex);
@@ -219,6 +230,15 @@ public class JWTSignatureValidator implements TokenValidator {
         try {
             KeyWrapper keywrap = new KeyWrapper();
             PublicKey pub = getPublicKey(kid);
+            if (pub == null) {
+                if (oldCache.get(kid) != null) {
+                    throw new TokenValidationException("Token validation failed: The signing key is no longer valid (kid:" + kid + ")");
+                } else {
+                    // Refresh keys asap but within reasonable non-flooding confines
+                    fastScheduler.scheduleTask();
+                    throw new TokenValidationException("Token validation failed: Unknown signing key (kid:" + kid + ")");
+                }
+            }
             keywrap.setPublicKey(pub);
             keywrap.setAlgorithm(tokenVerifier.getHeader().getAlgorithm().name());
             keywrap.setKid(kid);
@@ -236,7 +256,9 @@ public class JWTSignatureValidator implements TokenValidator {
 
         } catch (TokenSignatureInvalidException e) {
             throw new TokenSignatureException("Signature check failed:", e);
-
+        } catch (TokenValidationException e) {
+            // just rethrow
+            throw e;
         } catch (Exception e) {
             throw new TokenValidationException("Token validation failed:", e);
         }
