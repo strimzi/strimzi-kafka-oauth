@@ -33,7 +33,6 @@ import java.security.PublicKey;
 import java.security.Security;
 import java.util.Collections;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
@@ -234,7 +233,7 @@ public class JWTSignatureValidator implements TokenValidator {
                 if (oldCache.get(kid) != null) {
                     throw new TokenValidationException("Token validation failed: The signing key is no longer valid (kid:" + kid + ")");
                 } else {
-                    // Refresh keys asap but within reasonable non-flooding confines
+                    // Refresh keys asap with flood protection
                     fastScheduler.scheduleTask();
                     throw new TokenValidationException("Token validation failed: Unknown signing key (kid:" + kid + ")");
                 }

@@ -1,6 +1,6 @@
 {
   "realm": "kafka-authz",
-  "accessTokenLifespan": 120,
+  "accessTokenLifespan": 240,
   "ssoSessionIdleTimeout": 864000,
   "ssoSessionMaxLifespan": 864000,
   "enabled": true,

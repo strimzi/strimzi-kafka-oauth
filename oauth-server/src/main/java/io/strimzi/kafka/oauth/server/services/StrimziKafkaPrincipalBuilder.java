@@ -125,7 +125,8 @@ public class StrimziKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder i
                 SessionInfo info = new SessionInfo();
                 info.setToken(token);
                 Services.getInstance().getSessions().put(kafkaPrincipal, info);
-
+                System.out.println("New KafkaPrincipal for token: " + token.value());
+                System.out.println("Principal: " + kafkaPrincipal);
                 return kafkaPrincipal;
             }
         }

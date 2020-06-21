@@ -1,3 +1,7 @@
+/*
+ * Copyright 2017-2020, Strimzi authors.
+ * License: Apache License 2.0 (see the file LICENSE or http://apache.org/licenses/LICENSE-2.0.html).
+ */
 package io.strimzi.kafka.oauth.validator;
 
 import org.junit.Assert;
@@ -208,6 +212,35 @@ public class BackOffTaskSchedulerTest {
         Assert.assertFalse("Has no more entries", it.hasNext());
     }
 
+    @Test
+    public void testFloodRequests() {
+        MockScheduledExecutorService executor = new MockScheduledExecutorService();
+
+        AtomicInteger counter = new AtomicInteger();
+
+        Runnable task = () -> {
+            counter.incrementAndGet();
+
+            try {
+                // Simulate the task taking some time
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                throw new RuntimeException("Interrupted");
+            }
+        };
+
+        BackOffTaskScheduler scheduler = new BackOffTaskScheduler(executor, task);
+
+        // Flood with schedule requests
+        for (int i = 0; i < 100; i++) {
+            scheduler.scheduleTask();
+        }
+
+        Assert.assertEquals("Executor log should have 1 entry", 1, executor.invocationLog.size());
+
+        MockScheduledExecutorLog entry = executor.invocationLog.getFirst();
+        assertLogEntry(entry, MockExecutorLogActionType.SCHEDULE, 1, TimeUnit.MILLISECONDS);
+    }
 
     private static void assertLogEntry(MockScheduledExecutorLog entry, MockExecutorLogActionType type, int delayOrPeriod, TimeUnit delayUnit) {
         Assert.assertEquals("Entry is of type " + type, type, entry.type);
@@ -297,7 +330,7 @@ public class BackOffTaskSchedulerTest {
             for (Future<T> f: result) {
                 try {
                     f.get();
-                } catch (Exception ignored) {}
+                } catch (Exception ignored) { }
             }
             return result;
         }
@@ -505,7 +538,7 @@ public class BackOffTaskSchedulerTest {
 
         @Override
         public String toString() {
-            switch(type) {
+            switch (type) {
                 case EXECUTE:
                     return formatDateTime() + " " + type;
                 case SCHEDULE:
@@ -545,7 +578,7 @@ public class BackOffTaskSchedulerTest {
         @Override
         public long getDelay(TimeUnit unit) {
             long remaining = scheduledAt - System.currentTimeMillis();
-            switch(unit) {
+            switch (unit) {
                 case MILLISECONDS:
                     return remaining;
                 case SECONDS:
