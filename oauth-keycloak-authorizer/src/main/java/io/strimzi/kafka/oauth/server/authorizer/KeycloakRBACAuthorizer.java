@@ -5,7 +5,6 @@
 package io.strimzi.kafka.oauth.server.authorizer;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.strimzi.kafka.oauth.client.ClientConfig;
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
 import io.strimzi.kafka.oauth.common.Config;
@@ -14,11 +13,11 @@ import io.strimzi.kafka.oauth.common.HttpException;
 import io.strimzi.kafka.oauth.common.JSONUtil;
 import io.strimzi.kafka.oauth.common.SSLUtil;
 import io.strimzi.kafka.oauth.common.TimeUtil;
-import io.strimzi.kafka.oauth.server.services.JwtKafkaPrincipal;
+import io.strimzi.kafka.oauth.server.services.OAuthKafkaPrincipal;
 import io.strimzi.kafka.oauth.server.services.Services;
 import io.strimzi.kafka.oauth.server.services.SessionFuture;
 import io.strimzi.kafka.oauth.server.services.Sessions;
-import io.strimzi.kafka.oauth.server.services.StrimziKafkaPrincipalBuilder;
+import io.strimzi.kafka.oauth.server.services.OAuthKafkaPrincipalBuilder;
 import io.strimzi.kafka.oauth.validator.DaemonThreadFactory;
 import kafka.network.RequestChannel;
 import org.apache.kafka.common.security.auth.KafkaPrincipal;
@@ -53,7 +52,7 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
 /**
  * An authorizer that grants access based on security policies managed in Keycloak Authorization Services.
  * It works in conjunction with JaasServerOauthValidatorCallbackHandler, and requires
- * {@link io.strimzi.kafka.oauth.server.services.StrimziKafkaPrincipalBuilder} to be configured as
+ * {@link OAuthKafkaPrincipalBuilder} to be configured as
  * 'principal.builder.class' in 'server.properties' file.
  * <p>
  * To install this authorizer in Kafka, specify the following in your 'server.properties':
@@ -124,7 +123,7 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
 @SuppressWarnings("deprecation")
 public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthorizer {
 
-    private static final String PRINCIPAL_BUILDER_CLASS = StrimziKafkaPrincipalBuilder.class.getName();
+    private static final String PRINCIPAL_BUILDER_CLASS = OAuthKafkaPrincipalBuilder.class.getName();
     private static final String DEPRECATED_PRINCIPAL_BUILDER_CLASS = JwtKafkaPrincipalBuilder.class.getName();
 
     static final Logger log = LoggerFactory.getLogger(KeycloakRBACAuthorizer.class);
@@ -312,7 +311,7 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
                 }
             }
 
-            if (!(principal instanceof JwtKafkaPrincipal)) {
+            if (!(principal instanceof OAuthKafkaPrincipal)) {
                 // If user wasn't authenticated over OAuth, and simple ACL delegation is enabled
                 // we delegate to simple ACL
                 return delegateIfRequested(session, operation, resource, null);
@@ -323,7 +322,7 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
             // If not, fetch authorization grants and store them in the token
             //
 
-            JwtKafkaPrincipal jwtPrincipal = (JwtKafkaPrincipal) principal;
+            OAuthKafkaPrincipal jwtPrincipal = (OAuthKafkaPrincipal) principal;
 
             BearerTokenWithPayload token = jwtPrincipal.getJwt();
 
@@ -426,7 +425,7 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
     }
 
     private boolean delegateIfRequested(RequestChannel.Session session, kafka.security.auth.Operation operation, kafka.security.auth.Resource resource, JsonNode authz) {
-        String nonAuthMessageFragment = session.principal() instanceof JwtKafkaPrincipal ? "" : " non-oauth";
+        String nonAuthMessageFragment = session.principal() instanceof OAuthKafkaPrincipal ? "" : " non-oauth";
         if (delegateToKafkaACL) {
             boolean granted = super.authorize(session, operation, resource);
 

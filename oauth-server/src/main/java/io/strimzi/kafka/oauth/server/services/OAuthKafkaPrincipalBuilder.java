@@ -36,7 +36,7 @@ import java.util.Map;
  * property definition in server.properties to install it.
  * </p>
  */
-public class StrimziKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder implements Configurable {
+public class OAuthKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder implements Configurable {
 
     private static final SetAccessibleAction SET_PRINCIPAL_MAPPER = SetAccessibleAction.newInstance();
 
@@ -69,7 +69,7 @@ public class StrimziKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder i
     }
 
 
-    public StrimziKafkaPrincipalBuilder() {
+    public OAuthKafkaPrincipalBuilder() {
         super(null, null);
     }
 
@@ -121,7 +121,7 @@ public class StrimziKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder i
                 BearerTokenWithPayload token = (BearerTokenWithPayload) server.getNegotiatedProperty("OAUTHBEARER.token");
                 Services.getInstance().getSessions().put(token);
 
-                JwtKafkaPrincipal kafkaPrincipal = new JwtKafkaPrincipal(KafkaPrincipal.USER_TYPE,
+                OAuthKafkaPrincipal kafkaPrincipal = new OAuthKafkaPrincipal(KafkaPrincipal.USER_TYPE,
                         server.getAuthorizationID(), token);
 
                 return kafkaPrincipal;

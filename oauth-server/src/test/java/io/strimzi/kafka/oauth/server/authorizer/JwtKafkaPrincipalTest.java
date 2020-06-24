@@ -5,7 +5,7 @@
 package io.strimzi.kafka.oauth.server.authorizer;
 
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
-import io.strimzi.kafka.oauth.server.services.JwtKafkaPrincipal;
+import io.strimzi.kafka.oauth.server.services.OAuthKafkaPrincipal;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -16,17 +16,17 @@ public class JwtKafkaPrincipalTest {
 
         BearerTokenWithPayload token = new MockBearerTokenWithPayload("service-account-my-client",
                 System.currentTimeMillis(), System.currentTimeMillis() + 60000, null, "BEARER-TOKEN-9823eh982u", "Whatever");
-        JwtKafkaPrincipal principal = new JwtKafkaPrincipal("User", "service-account-my-client", token);
+        OAuthKafkaPrincipal principal = new OAuthKafkaPrincipal("User", "service-account-my-client", token);
 
 
         BearerTokenWithPayload token2 = new MockBearerTokenWithPayload("bob",
                 System.currentTimeMillis(), System.currentTimeMillis() + 60000, null, "BEARER-TOKEN-0000dd0000", null);
-        JwtKafkaPrincipal principal2 = new JwtKafkaPrincipal("User", "service-account-my-client", token2);
+        OAuthKafkaPrincipal principal2 = new OAuthKafkaPrincipal("User", "service-account-my-client", token2);
 
 
-        JwtKafkaPrincipal principal3 = new JwtKafkaPrincipal("User", "service-account-my-client");
+        OAuthKafkaPrincipal principal3 = new OAuthKafkaPrincipal("User", "service-account-my-client");
 
-        JwtKafkaPrincipal principal4 = new JwtKafkaPrincipal("User", "bob");
+        OAuthKafkaPrincipal principal4 = new OAuthKafkaPrincipal("User", "bob");
 
 
         Assert.assertTrue("principal should be equal to principal2", principal.equals(principal2));

@@ -4,7 +4,7 @@
  */
 package io.strimzi.kafka.oauth.server.authorizer;
 
-import io.strimzi.kafka.oauth.server.services.StrimziKafkaPrincipalBuilder;
+import io.strimzi.kafka.oauth.server.services.OAuthKafkaPrincipalBuilder;
 
 /**
  * This class needs to be enabled as the PrincipalBuilder on Kafka Broker.
@@ -20,5 +20,5 @@ import io.strimzi.kafka.oauth.server.services.StrimziKafkaPrincipalBuilder;
  * @deprecated Use <em>io.strimzi.kafka.oauth.server.services.StrimziKafkaPrincipalBuilder</em> class instead.
  */
 @Deprecated
-public class JwtKafkaPrincipalBuilder extends StrimziKafkaPrincipalBuilder {
+public class JwtKafkaPrincipalBuilder extends OAuthKafkaPrincipalBuilder {
 }

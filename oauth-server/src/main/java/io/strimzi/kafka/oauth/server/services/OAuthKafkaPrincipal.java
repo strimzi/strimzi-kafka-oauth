@@ -18,15 +18,15 @@ import static io.strimzi.kafka.oauth.common.LogUtil.mask;
  * Any additional fields should not be included in equals / hashcode check. If they are, that will break re-authentication.
  */
 @SuppressFBWarnings("EQ_DOESNT_OVERRIDE_EQUALS")
-public final class JwtKafkaPrincipal extends KafkaPrincipal {
+public final class OAuthKafkaPrincipal extends KafkaPrincipal {
 
     private final BearerTokenWithPayload jwt;
 
-    public JwtKafkaPrincipal(String principalType, String name) {
+    public OAuthKafkaPrincipal(String principalType, String name) {
         this(principalType, name, null);
     }
 
-    public JwtKafkaPrincipal(String principalType, String name, BearerTokenWithPayload jwt) {
+    public OAuthKafkaPrincipal(String principalType, String name, BearerTokenWithPayload jwt) {
         super(principalType, name);
         this.jwt = jwt;
     }
