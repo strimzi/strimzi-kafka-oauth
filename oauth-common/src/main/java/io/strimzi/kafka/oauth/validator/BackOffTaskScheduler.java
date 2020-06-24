@@ -115,7 +115,7 @@ public class BackOffTaskScheduler {
                 log.debug("Released taskSchedule lock");
 
             } catch (Throwable t) {
-                log.error("Scheduled task execution failed", t);
+                log.error("Scheduled task execution failed:", t);
 
                 // If things went wrong, reschedule next repetition
                 // in exponential backoff fashion (1,2,4,8,16,32)

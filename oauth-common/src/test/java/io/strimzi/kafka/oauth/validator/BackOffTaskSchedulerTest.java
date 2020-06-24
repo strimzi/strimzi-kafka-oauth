@@ -6,6 +6,8 @@ package io.strimzi.kafka.oauth.validator;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.time.ZoneId;
@@ -28,7 +30,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * Tests for BackOffTaskScheduler
+ *
+ * If you want to see logging output change log level in src/test/resources/simplelogger.properties
+ * from OFF to DEBUG.
+ */
 public class BackOffTaskSchedulerTest {
+
+    private static final Logger log = LoggerFactory.getLogger(BackOffTaskSchedulerTest.class);
 
     @Test
     public void testSuccessfulTask() {
@@ -46,12 +56,12 @@ public class BackOffTaskSchedulerTest {
 
         scheduler.scheduleTask();
 
-        // Test that exactly one task is scheduled, and scheduled immediately
-        System.out.println("Executor log: ");
+        log.debug("Executor log: ");
         for (MockScheduledExecutorLog e: executor.invocationLog) {
-            System.out.println(e);
+            log.debug("" + e);
         }
 
+        // Test that exactly one task is scheduled, and scheduled immediately
         Assert.assertEquals("Executor log should have 1 entry", 1, executor.invocationLog.size());
 
         MockScheduledExecutorLog entry = executor.invocationLog.getFirst();
@@ -79,7 +89,7 @@ public class BackOffTaskSchedulerTest {
 
         scheduler.scheduleTask();
 
-        // wait for the max of 5 seconds until the task was scheduled an expected number of times
+        // Wait for the max of 5 seconds until the task was scheduled an expected number of times
         int expected = 6;
         for (int timeout = 10; counter.get() < expected && timeout > 0; timeout--) {
             try {
@@ -89,9 +99,9 @@ public class BackOffTaskSchedulerTest {
             }
         }
 
-        System.out.println("Executor log: ");
+        log.debug("Executor log: ");
         for (MockScheduledExecutorLog e: executor.invocationLog) {
-            System.out.println(e);
+            log.debug("" + e);
         }
 
         // Test that the failing task is re-scheduled with exponential backoff
@@ -139,9 +149,9 @@ public class BackOffTaskSchedulerTest {
             }
         }
 
-        System.out.println("Executor log: ");
+        log.debug("Executor log: ");
         for (MockScheduledExecutorLog e: executor.invocationLog) {
-            System.out.println(e);
+            log.debug("" + e);
         }
 
         // Test that the failing task is re-scheduled with exponential backoff until the delay reaches 240 seconds
@@ -190,9 +200,9 @@ public class BackOffTaskSchedulerTest {
             }
         }
 
-        System.out.println("Executor log: ");
+        log.debug("Executor log: ");
         for (MockScheduledExecutorLog e: executor.invocationLog) {
-            System.out.println(e);
+            log.debug("" + e);
         }
 
         // Test that the failing task is re-scheduled with exponential backoff until the delay reaches 240 seconds
@@ -266,7 +276,7 @@ public class BackOffTaskSchedulerTest {
 
         @Override
         public void shutdown() {
-            System.out.println("shutdown()");
+            // noop
         }
 
         @Override
