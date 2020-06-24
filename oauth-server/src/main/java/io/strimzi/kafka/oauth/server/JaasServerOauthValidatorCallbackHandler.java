@@ -35,6 +35,7 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -357,6 +358,19 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         @Override
         public Long startTimeMs() {
             return ti.issuedAtMs();
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            BearerTokenWithPayloadImpl that = (BearerTokenWithPayloadImpl) o;
+            return Objects.equals(ti, that.ti);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(ti);
         }
     }
 }

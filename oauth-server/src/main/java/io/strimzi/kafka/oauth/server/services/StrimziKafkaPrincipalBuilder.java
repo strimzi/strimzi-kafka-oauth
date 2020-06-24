@@ -118,15 +118,12 @@ public class StrimziKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder i
         if (context instanceof SaslAuthenticationContext) {
             OAuthBearerSaslServer server = (OAuthBearerSaslServer) ((SaslAuthenticationContext) context).server();
             if (OAuthBearerLoginModule.OAUTHBEARER_MECHANISM.equals(server.getMechanismName())) {
-                KafkaPrincipal kafkaPrincipal = new KafkaPrincipal(KafkaPrincipal.USER_TYPE,
-                        server.getAuthorizationID());
-
                 BearerTokenWithPayload token = (BearerTokenWithPayload) server.getNegotiatedProperty("OAUTHBEARER.token");
-                SessionInfo info = new SessionInfo();
-                info.setToken(token);
-                Services.getInstance().getSessions().put(kafkaPrincipal, info);
-                System.out.println("New KafkaPrincipal for token: " + token.value());
-                System.out.println("Principal: " + kafkaPrincipal);
+                Services.getInstance().getSessions().put(token);
+
+                JwtKafkaPrincipal kafkaPrincipal = new JwtKafkaPrincipal(KafkaPrincipal.USER_TYPE,
+                        server.getAuthorizationID(), token);
+
                 return kafkaPrincipal;
             }
         }

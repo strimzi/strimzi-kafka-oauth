@@ -4,7 +4,7 @@
  */
 package io.strimzi.kafka.oauth.server.services;
 
-import org.apache.kafka.common.security.auth.KafkaPrincipal;
+import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -12,8 +12,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 /**
  * Sessions entries should automatically get cleared as KafkaPrincipals for the sessions get garbage collected by JVM.
@@ -21,37 +21,65 @@ import java.util.function.Consumer;
  */
 public class Sessions {
 
+    private static final Object NONE = new Object();
+
     private ExecutorService executor;
 
-    private Map<KafkaPrincipal, SessionInfo> activeSessions = Collections.synchronizedMap(new WeakHashMap<>());
+    private Map<BearerTokenWithPayload, Object> activeSessions = Collections.synchronizedMap(new WeakHashMap<>());
 
     public Sessions(ExecutorService executor) {
         this.executor = executor;
     }
 
-    public void put(KafkaPrincipal session, SessionInfo token) {
-        activeSessions.put(session, token);
+    public void put(BearerTokenWithPayload token) {
+        activeSessions.put(token, NONE);
     }
 
-    public SessionInfo get(KafkaPrincipal session) {
-        return activeSessions.get(session);
+    public void remove(BearerTokenWithPayload token) {
+        activeSessions.remove(token);
     }
 
-    public List<Future> executeTask(Consumer<SessionInfo> task) {
+    public List<SessionFuture> executeTask(Consumer<BearerTokenWithPayload> task) {
+        return executeTask(task, ignored -> true);
+    }
+
+    public List<SessionFuture> executeTask(Consumer<BearerTokenWithPayload> task, Predicate<BearerTokenWithPayload> filter) {
+
+        cleanupExpired();
 
         // In order to prevent the possible ConcurrentModificationException in the middle of using an iterator
         // we first make a local copy, then iterate over the copy
-        ArrayList<SessionInfo> values;
+        ArrayList<BearerTokenWithPayload> values;
         synchronized (activeSessions) {
-            values = new ArrayList<>(activeSessions.values());
+            values = new ArrayList<>(activeSessions.keySet());
         }
 
-        List<Future> results = new ArrayList<>(values.size());
-        for (SessionInfo w: values) {
-            Future current = executor.submit(() -> task.accept(w));
-            results.add(current);
+        List<SessionFuture> results = new ArrayList<>(values.size());
+        for (BearerTokenWithPayload w: values) {
+            if (filter.test(w)) {
+                SessionFuture<?> current = new SessionFuture<>(w, executor.submit(() -> task.accept(w)));
+                results.add(current);
+            }
         }
 
         return results;
+    }
+
+    public void cleanupExpired() {
+        // In order to prevent the possible ConcurrentModificationException in the middle of using an iterator
+        // we first make a local copy, then iterate over the copy
+        ArrayList<BearerTokenWithPayload> values;
+        synchronized (activeSessions) {
+            values = new ArrayList<>(activeSessions.keySet());
+        }
+
+        long now = System.currentTimeMillis();
+
+        // Remove expired
+        for (BearerTokenWithPayload token: values) {
+            if (token.lifetimeMs() <= now) {
+                activeSessions.remove(token);
+            }
+        }
     }
 }

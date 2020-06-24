@@ -35,7 +35,6 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -191,6 +190,7 @@ public class JWTSignatureValidator implements TokenValidator {
             Map<String, PublicKey> newCache = JWKSUtils.getKeysForUse(jwks, JWK.Use.SIG);
             newCache = Collections.unmodifiableMap(newCache);
             if (!cache.equals(newCache)) {
+                log.info("JWKS keys change detected!");
                 oldCache = cache;
                 cache = newCache;
             }
@@ -233,7 +233,7 @@ public class JWTSignatureValidator implements TokenValidator {
                 if (oldCache.get(kid) != null) {
                     throw new TokenValidationException("Token validation failed: The signing key is no longer valid (kid:" + kid + ")");
                 } else {
-                    // Refresh keys asap with flood protection
+                    // Schedule quick keys refresh with flood protection
                     fastScheduler.scheduleTask();
                     throw new TokenValidationException("Token validation failed: Unknown signing key (kid:" + kid + ")");
                 }
@@ -286,15 +286,4 @@ public class JWTSignatureValidator implements TokenValidator {
     }
 
 
-    /**
-     * Use daemon thread for refresh job
-     */
-    static class DaemonThreadFactory implements ThreadFactory {
-
-        public Thread newThread(Runnable r) {
-            Thread t = Executors.defaultThreadFactory().newThread(r);
-            t.setDaemon(true);
-            return t;
-        }
-    }
 }

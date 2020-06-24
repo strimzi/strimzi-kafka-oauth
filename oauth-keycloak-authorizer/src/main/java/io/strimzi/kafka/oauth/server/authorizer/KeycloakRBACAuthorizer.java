@@ -7,18 +7,21 @@ package io.strimzi.kafka.oauth.server.authorizer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.strimzi.kafka.oauth.client.ClientConfig;
+import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
 import io.strimzi.kafka.oauth.common.Config;
 import io.strimzi.kafka.oauth.common.ConfigUtil;
 import io.strimzi.kafka.oauth.common.HttpException;
 import io.strimzi.kafka.oauth.common.JSONUtil;
 import io.strimzi.kafka.oauth.common.SSLUtil;
 import io.strimzi.kafka.oauth.common.TimeUtil;
+import io.strimzi.kafka.oauth.server.services.JwtKafkaPrincipal;
 import io.strimzi.kafka.oauth.server.services.Services;
-import io.strimzi.kafka.oauth.server.services.SessionInfo;
+import io.strimzi.kafka.oauth.server.services.SessionFuture;
+import io.strimzi.kafka.oauth.server.services.Sessions;
 import io.strimzi.kafka.oauth.server.services.StrimziKafkaPrincipalBuilder;
+import io.strimzi.kafka.oauth.validator.DaemonThreadFactory;
 import kafka.network.RequestChannel;
 import org.apache.kafka.common.security.auth.KafkaPrincipal;
-import org.apache.kafka.common.security.oauthbearer.OAuthBearerToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.collection.immutable.Set;
@@ -34,9 +37,17 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static io.strimzi.kafka.oauth.common.HttpUtil.post;
+import static io.strimzi.kafka.oauth.common.LogUtil.mask;
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
 
 /**
@@ -130,7 +141,8 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
     private boolean denyWhenTokenInvalid = true;
 
     // Less or equal zero means to never check
-    private int checkGrantsPeriodSeconds = -1;
+    private int checkGrantsPeriodSeconds = 60;
+    private ScheduledExecutorService periodicScheduler;
 
 
     public KeycloakRBACAuthorizer() {
@@ -187,6 +199,10 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
                     .collect(Collectors.toList());
         }
 
+        if (checkGrantsPeriodSeconds >= 0) {
+            periodicScheduler = setupRefreshGrantsJob(checkGrantsPeriodSeconds);
+        }
+
         if (log.isDebugEnabled()) {
             log.debug("Configured KeycloakRBACAuthorizer:\n    tokenEndpointUri: " + tokenEndpointUrl
                     + "\n    sslSocketFactory: " + socketFactory
@@ -230,7 +246,7 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
             Config.OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM
         };
 
-        // copy over the keys
+        // Copy over the keys
         for (String key: keys) {
             ConfigUtil.putIfNotNull(p, key, configs.get(key));
         }
@@ -288,7 +304,7 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
                 if (principal.getPrincipalType().equals(u.getType())
                         && principal.getName().equals(u.getName())) {
 
-                    // it's a super user. super users are granted everything
+                    // It's a super user. super users are granted everything
                     if (GRANT_LOG.isDebugEnabled()) {
                         GRANT_LOG.debug("Authorization GRANTED - user is a superuser: " + session.principal() + ", operation: " + operation + ", resource: " + resource);
                     }
@@ -296,9 +312,8 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
                 }
             }
 
-            SessionInfo sessionInfo = Services.getInstance().getSessions().get(principal);
-            if (sessionInfo == null) {
-                // if user wasn't authenticated over OAuth, and simple ACL delegation is enabled
+            if (!(principal instanceof JwtKafkaPrincipal)) {
+                // If user wasn't authenticated over OAuth, and simple ACL delegation is enabled
                 // we delegate to simple ACL
                 return delegateIfRequested(session, operation, resource, null);
             }
@@ -308,20 +323,22 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
             // If not, fetch authorization grants and store them in the token
             //
 
-            OAuthBearerToken token = sessionInfo.getToken();
+            JwtKafkaPrincipal jwtPrincipal = (JwtKafkaPrincipal) principal;
+
+            BearerTokenWithPayload token = jwtPrincipal.getJwt();
 
             if (denyIfTokenInvalid(token)) {
                 return false;
             }
 
-            grants = sessionInfo.getGrants();
+            grants = (JsonNode) token.getPayload();
 
             if (grants == null) {
-                grants = handleFetchingGrants(sessionInfo);
+                grants = handleFetchingGrants(token);
             }
 
             if (log.isDebugEnabled()) {
-                log.debug("Authorization grants: " + grants);
+                log.debug("Authorization grants for user: " + principal + ": " + grants);
             }
 
             //
@@ -363,36 +380,35 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
         }
     }
 
-    private boolean denyIfTokenInvalid(OAuthBearerToken token) {
-        log.trace("Current token: " + token.value());
+    private boolean denyIfTokenInvalid(BearerTokenWithPayload token) {
         if (denyWhenTokenInvalid && token.lifetimeMs() <= System.currentTimeMillis()) {
             if (DENY_LOG.isDebugEnabled()) {
                 DENY_LOG.debug("Authorization DENIED due to token expiry - The token expired at: "
-                        + token.lifetimeMs() + " (" + TimeUtil.formatIsoDateTimeUTC(token.lifetimeMs()) + " UTC)");
+                        + token.lifetimeMs() + " (" + TimeUtil.formatIsoDateTimeUTC(token.lifetimeMs()) + " UTC), for token: " + mask(token.value()));
             }
             return true;
         }
         return false;
     }
 
-    private JsonNode handleFetchingGrants(SessionInfo sessionInfo) {
-        // fetch authorization grants
+    private JsonNode handleFetchingGrants(BearerTokenWithPayload token) {
+        // Fetch authorization grants
         JsonNode grants = null;
         try {
-            grants = fetchAuthorizationGrants(sessionInfo.getToken().value());
+            grants = fetchAuthorizationGrants(token.value());
             if (grants == null) {
-                grants = new ObjectNode(JSONUtil.MAPPER.getNodeFactory());
+                grants = JSONUtil.newObjectNode();
             }
         } catch (HttpException e) {
             if (e.getStatus() == 403) {
-                grants = new ObjectNode(JSONUtil.MAPPER.getNodeFactory());
+                grants = JSONUtil.newObjectNode();
             } else {
                 log.warn("Unexpected status while fetching authorization data - will retry next time: " + e.getMessage());
             }
         }
         if (grants != null) {
-            // store authz grants in the token so they are available for subsequent requests
-            sessionInfo.setGrants(grants);
+            // Store authz grants in the token so they are available for subsequent requests
+            token.setPayload(grants);
         }
         return grants;
     }
@@ -458,6 +474,104 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
         }
 
         return response;
+    }
+
+    private ScheduledExecutorService setupRefreshGrantsJob(int refreshSeconds) {
+        // Set up periodic timer to update keys from server every refreshSeconds;
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(new DaemonThreadFactory());
+
+        scheduler.scheduleAtFixedRate(() -> {
+            refreshGrants();
+        }, refreshSeconds, refreshSeconds, TimeUnit.SECONDS);
+
+        return scheduler;
+    }
+
+    private void refreshGrants() {
+        try {
+            log.info("Refreshing authorization grants ...");
+            // Multiple sessions can be authenticated with the same access token
+            // Only make one grants request for one unique access_token,
+            // but update all sessions for the same token
+            ConcurrentHashMap<String, ConcurrentLinkedQueue<BearerTokenWithPayload>> tokens = new ConcurrentHashMap<>();
+
+            Predicate<BearerTokenWithPayload> filter = token -> {
+                ConcurrentLinkedQueue<BearerTokenWithPayload> queue = tokens.computeIfAbsent(token.value(), k -> {
+                    ConcurrentLinkedQueue<BearerTokenWithPayload> q = new ConcurrentLinkedQueue<>();
+                    q.add(token);
+                    return q;
+                });
+
+                // If we are the first for the access_token return true
+                // if not, add the token to the queue, and return false
+                if (token != queue.peek()) {
+                    queue.add(token);
+                    return false;
+                }
+                return true;
+            };
+
+            Sessions sessions = Services.getInstance().getSessions();
+            List<SessionFuture> scheduled = sessions.executeTask(token -> {
+                if (log.isTraceEnabled()) {
+                    log.trace("Fetch grants for session: " + token.getSessionId() + ", token: " + mask(token.value()));
+                }
+                JsonNode grants = fetchAuthorizationGrants(token.value());
+                if (!grants.equals(token.getPayload())) {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Grants have changed for session: " + token.getSessionId() + ", token: " + mask(token.value()));
+                    }
+                    token.setPayload(grants);
+                }
+            }, filter);
+
+            for (SessionFuture f: scheduled) {
+                try {
+                    f.get();
+                } catch (ExecutionException e) {
+                    log.warn("[IGNORED] Failed to fetch grants for token: " + e.getMessage(), e);
+                    if (e.getCause() instanceof HttpException) {
+                        if (401 == ((HttpException) e.getCause()).getStatus()) {
+                            JsonNode emptyGrants = JSONUtil.newObjectNode();
+                            ConcurrentLinkedQueue<BearerTokenWithPayload> queue = tokens.get(f.getToken().value());
+                            for (BearerTokenWithPayload token: queue) {
+                                token.setPayload(emptyGrants);
+                                sessions.remove(token);
+                                log.debug("Removed invalid session from sessions map (session: " + f.getToken().getSessionId() + ", token: " + mask(f.getToken().value()) + "). Will not refresh its grants any more.");
+                            }
+                        }
+                    }
+                } catch (Throwable e) {
+                    log.warn("[IGNORED] Failed to fetch grants for token: " + e.getMessage(), e);
+                }
+            }
+
+            // Go over tokens, and copy the grants from the first session
+            // for same access token to all the others
+            for (ConcurrentLinkedQueue<BearerTokenWithPayload> q: tokens.values()) {
+                BearerTokenWithPayload refreshed = null;
+                for (BearerTokenWithPayload t: q) {
+                    if (refreshed == null) {
+                        refreshed = t;
+                        continue;
+                    }
+                    if (refreshed.getPayload().equals(t.getPayload())) {
+                        // Grants refreshed, but no change - no need to copy over to all sessions
+                        break;
+                    }
+                    if (log.isDebugEnabled()) {
+                        log.debug("Grants have changed for session: " + t.getSessionId() + ", token: " + mask(t.value()));
+                    }
+                    t.setPayload(refreshed.getPayload());
+                }
+            }
+
+        } catch (Throwable t) {
+            // Log, but don't rethrow the exception to prevent scheduler cancelling the scheduled job.
+            log.error(t.getMessage(), t);
+        } finally {
+            log.info("Done refreshing grants");
+        }
     }
 
     @Override

@@ -5,6 +5,7 @@
 package io.strimzi.kafka.oauth.server.authorizer;
 
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
+import io.strimzi.kafka.oauth.server.services.JwtKafkaPrincipal;
 import org.junit.Assert;
 import org.junit.Test;
 
