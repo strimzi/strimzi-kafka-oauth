@@ -529,8 +529,9 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
                     f.get();
                 } catch (ExecutionException e) {
                     log.warn("[IGNORED] Failed to fetch grants for token: " + e.getMessage(), e);
-                    if (e.getCause() instanceof HttpException) {
-                        if (401 == ((HttpException) e.getCause()).getStatus()) {
+                    final Throwable cause = e.getCause();
+                    if (cause instanceof HttpException) {
+                        if (401 == ((HttpException) cause).getStatus()) {
                             JsonNode emptyGrants = JSONUtil.newObjectNode();
                             ConcurrentLinkedQueue<BearerTokenWithPayload> queue = tokens.get(f.getToken().value());
                             for (BearerTokenWithPayload token: queue) {
