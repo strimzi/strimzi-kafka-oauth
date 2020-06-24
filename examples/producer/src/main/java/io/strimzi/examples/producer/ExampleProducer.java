@@ -124,6 +124,9 @@ public class ExampleProducer {
         p.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
 
         p.setProperty(ProducerConfig.ACKS_CONFIG, "all");
+
+        // Adjust re-authentication options
+        // See: strimzi-kafka-oauth/README.md
         p.setProperty("sasl.login.refresh.buffer.seconds", "30");
         p.setProperty("sasl.login.refresh.min.period.seconds", "30");
         p.setProperty("sasl.login.refresh.window.factor", "0.8");

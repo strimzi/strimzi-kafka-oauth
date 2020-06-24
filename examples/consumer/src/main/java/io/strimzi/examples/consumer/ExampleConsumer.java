@@ -12,6 +12,9 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.errors.AuthenticationException;
+import org.apache.kafka.common.errors.AuthorizationException;
+import org.apache.kafka.common.errors.InterruptException;
 import org.apache.kafka.common.serialization.StringDeserializer;
 
 import java.time.Duration;
@@ -65,12 +68,22 @@ public class ExampleConsumer {
         Properties props = buildConsumerConfig();
         Consumer<String, String> consumer = new KafkaConsumer<>(props);
 
-        consumer.subscribe(Arrays.asList(topic));
+        for (int i = 0; ; i++) {
+            try {
+                consumer.subscribe(Arrays.asList(topic));
 
-        while (true) {
-            ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(1));
-            for (ConsumerRecord<String, String> record : records) {
-                System.out.println("Consumed message: " + record.value());
+                while (true) {
+                    ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(1));
+                    for (ConsumerRecord<String, String> record : records) {
+                        System.out.println("Consumed message - " + i + ": " + record.value());
+                    }
+                }
+            } catch (InterruptException e) {
+                throw new RuntimeException("Interrupted while consuming message - " + i + "!");
+
+            } catch (AuthenticationException | AuthorizationException e) {
+                consumer.close();
+                consumer = new KafkaConsumer<>(props);
             }
         }
     }
