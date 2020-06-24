@@ -157,6 +157,10 @@ public class JWTSignatureValidator implements TokenValidator {
 
         scheduler.scheduleAtFixedRate(() -> {
             try {
+                if (fastScheduler != null) {
+                    // This is to maintain minPauseSeconds of fastScheduler in relation to regular scheduler as well
+                    fastScheduler.updateLastExecutionTime();
+                }
                 fetchKeys();
             } catch (Exception e) {
                 // Log, but don't rethrow the exception to prevent scheduler cancelling the scheduled job.

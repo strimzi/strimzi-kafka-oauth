@@ -87,6 +87,15 @@ public class BackOffTaskScheduler {
         return false;
     }
 
+    /**
+     * Update the time of last execution attempt to current time.
+     * This is handy when multiple schedulers work the same task on a single thread.
+     * It affects
+     */
+    public void updateLastExecutionTime() {
+        lastExecutionAttempt = System.currentTimeMillis();
+    }
+
 
     class RunnableTask implements Runnable {
 
