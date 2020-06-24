@@ -13,11 +13,11 @@ import io.strimzi.kafka.oauth.common.HttpException;
 import io.strimzi.kafka.oauth.common.JSONUtil;
 import io.strimzi.kafka.oauth.common.SSLUtil;
 import io.strimzi.kafka.oauth.common.TimeUtil;
-import io.strimzi.kafka.oauth.server.services.OAuthKafkaPrincipal;
-import io.strimzi.kafka.oauth.server.services.Services;
-import io.strimzi.kafka.oauth.server.services.SessionFuture;
-import io.strimzi.kafka.oauth.server.services.Sessions;
-import io.strimzi.kafka.oauth.server.services.OAuthKafkaPrincipalBuilder;
+import io.strimzi.kafka.oauth.server.OAuthKafkaPrincipal;
+import io.strimzi.kafka.oauth.services.Services;
+import io.strimzi.kafka.oauth.services.SessionFuture;
+import io.strimzi.kafka.oauth.services.Sessions;
+import io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder;
 import io.strimzi.kafka.oauth.validator.DaemonThreadFactory;
 import kafka.network.RequestChannel;
 import org.apache.kafka.common.security.auth.KafkaPrincipal;
@@ -59,7 +59,7 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
  * </p>
  * <pre>
  *     authorizer.class.name=io.strimzi.kafka.oauth.server.authorizer.KeycloakRBACAuthorizer
- *     principal.builder.class=io.strimzi.kafka.oauth.server.services.StrimziKafkaPrincipalBuilder
+ *     principal.builder.class=io.strimzi.kafka.oauth.services.StrimziKafkaPrincipalBuilder
  * </pre>
  * <p>
  * There is additional configuration that needs to be specified in order for this authorizer to work.

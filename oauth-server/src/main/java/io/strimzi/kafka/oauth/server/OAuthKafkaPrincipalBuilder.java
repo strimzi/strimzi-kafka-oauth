@@ -2,9 +2,10 @@
  * Copyright 2017-2020, Strimzi authors.
  * License: Apache License 2.0 (see the file LICENSE or http://apache.org/licenses/LICENSE-2.0.html).
  */
-package io.strimzi.kafka.oauth.server.services;
+package io.strimzi.kafka.oauth.server;
 
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
+import io.strimzi.kafka.oauth.services.Services;
 import org.apache.kafka.common.Configurable;
 import org.apache.kafka.common.config.internals.BrokerSecurityConfigs;
 import org.apache.kafka.common.security.auth.AuthenticationContext;
@@ -32,7 +33,7 @@ import java.util.Map;
  * the OAuthBearerToken token produced by <em>io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler</em>.
  * </p>
  * <p>
- * You can use 'principal.builder.class=io.strimzi.kafka.oauth.server.services.StrimziKafkaPrincipalBuilder'
+ * You can use 'principal.builder.class=io.strimzi.kafka.oauth.services.StrimziKafkaPrincipalBuilder'
  * property definition in server.properties to install it.
  * </p>
  */

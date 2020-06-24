@@ -49,8 +49,7 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
 
       KAFKA_AUTHORIZER_CLASS_NAME: io.strimzi.kafka.oauth.server.authorizer.KeycloakRBACAuthorizer
-      KAFKA_PRINCIPAL_BUILDER_CLASS: io.strimzi.kafka.oauth.server.authorizer.JwtKafkaPrincipalBuilder
-      #KAFKA_PRINCIPAL_BUILDER_CLASS: io.strimzi.kafka.oauth.server.services.StrimziKafkaPrincipalBuilder
+      KAFKA_PRINCIPAL_BUILDER_CLASS: io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder
 
       KAFKA_STRIMZI_AUTHORIZATION_KAFKA_CLUSTER_NAME: cluster2
       KAFKA_STRIMZI_AUTHORIZATION_DELEGATE_TO_KAFKA_ACL: "true"

@@ -2,14 +2,13 @@
  * Copyright 2017-2019, Strimzi authors.
  * License: Apache License 2.0 (see the file LICENSE or http://apache.org/licenses/LICENSE-2.0.html).
  */
-package io.strimzi.kafka.oauth.server.authorizer;
+package io.strimzi.kafka.oauth.server;
 
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
-import io.strimzi.kafka.oauth.server.services.OAuthKafkaPrincipal;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class JwtKafkaPrincipalTest {
+public class OAuthKafkaPrincipalTest {
 
     @Test
     public void testEquals() {
