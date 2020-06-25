@@ -33,7 +33,7 @@ import java.util.Map;
  * the OAuthBearerToken token produced by <em>io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler</em>.
  * </p>
  * <p>
- * You can use 'principal.builder.class=io.strimzi.kafka.oauth.services.StrimziKafkaPrincipalBuilder'
+ * You can use 'principal.builder.class=io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder'
  * property definition in server.properties to install it.
  * </p>
  */
@@ -64,7 +64,7 @@ public class OAuthKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder imp
             try {
                 return new SetAccessibleAction(DefaultKafkaPrincipalBuilder.class.getDeclaredField("sslPrincipalMapper"));
             } catch (NoSuchFieldException e) {
-                throw new IllegalStateException("Failed to install StrimziKafkaPrincipalBuilder. This Kafka version does not seem to be supported", e);
+                throw new IllegalStateException("Failed to install OAuthKafkaPrincipalBuilder. This Kafka version does not seem to be supported", e);
             }
         }
     }
@@ -104,13 +104,13 @@ public class OAuthKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder imp
             SET_PRINCIPAL_MAPPER.invoke(this, sslPrincipalMapper);
 
         } catch (RuntimeException e) {
-            throw new RuntimeException("Failed to initialize StrimziKafkaPrincipalBuilder", e);
+            throw new RuntimeException("Failed to initialize OAuthKafkaPrincipalBuilder", e);
 
         } catch (ClassNotFoundException
                 | NoSuchMethodException
                 | IllegalAccessException
                 | InvocationTargetException e) {
-            throw new RuntimeException("Failed to initialize StrimziKafkaPrincipalBuilder", e);
+            throw new RuntimeException("Failed to initialize OAuthKafkaPrincipalBuilder", e);
         }
     }
 

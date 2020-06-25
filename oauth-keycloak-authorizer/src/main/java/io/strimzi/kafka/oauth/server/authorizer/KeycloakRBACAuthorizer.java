@@ -59,7 +59,7 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
  * </p>
  * <pre>
  *     authorizer.class.name=io.strimzi.kafka.oauth.server.authorizer.KeycloakRBACAuthorizer
- *     principal.builder.class=io.strimzi.kafka.oauth.services.StrimziKafkaPrincipalBuilder
+ *     principal.builder.class=io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder
  * </pre>
  * <p>
  * There is additional configuration that needs to be specified in order for this authorizer to work.

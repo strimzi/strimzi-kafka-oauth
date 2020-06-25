@@ -22,6 +22,8 @@ public class ServerConfig extends Config {
     public static final String OAUTH_CRYPTO_PROVIDER_BOUNCYCASTLE_POSITION = "oauth.crypto.provider.bouncycastle.position";
     public static final String OAUTH_VALID_TOKEN_TYPE = "oauth.valid.token.type";
 
+    public static final String STRIMZI_AUTHORIZER_DELEGATE_CLASS_NAME = "strimzi.authorizer.delegate.class.name";
+
     @Deprecated
     public static final String OAUTH_VALIDATION_SKIP_TYPE_CHECK = "oauth.validation.skip.type.check";
 
