@@ -23,13 +23,7 @@ public class Sessions {
 
     private static final Object NONE = new Object();
 
-    private ExecutorService executor;
-
     private Map<BearerTokenWithPayload, Object> activeSessions = Collections.synchronizedMap(new WeakHashMap<>());
-
-    public Sessions(ExecutorService executor) {
-        this.executor = executor;
-    }
 
     public void put(BearerTokenWithPayload token) {
         activeSessions.put(token, NONE);
@@ -39,12 +33,8 @@ public class Sessions {
         activeSessions.remove(token);
     }
 
-    public List<SessionFuture> executeTask(Consumer<BearerTokenWithPayload> task) {
-        return executeTask(task, ignored -> true);
-    }
-
-    public List<SessionFuture> executeTask(Consumer<BearerTokenWithPayload> task, Predicate<BearerTokenWithPayload> filter) {
-
+    public List<SessionFuture> executeTask(ExecutorService executor, Predicate<BearerTokenWithPayload> filter,
+                                           Consumer<BearerTokenWithPayload> task) {
         cleanupExpired();
 
         // In order to prevent the possible ConcurrentModificationException in the middle of using an iterator

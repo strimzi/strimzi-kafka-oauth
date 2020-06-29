@@ -39,6 +39,7 @@ import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -93,6 +94,14 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
  * The default value is <em>false</em>
  * </li>
  * </ul>
+ * <ul>
+ * <li><em>strimzi.authorization.refresh.grants.period.seconds</em> The time interval for refreshing the grants of the active sessions. The scheduled job iterates over active sessions and fetches a fresh list of grants for each.<br>
+ * The default value is <em>60</em>
+ * </li>
+ * <li><em>strimzi.authorization.refresh.grants.pool.size</em> The number of threads that can fetch grants from token endpoint at the same time (in parallel).<br>
+ * The default value is <em>5</em>
+ * </li>
+ * </ul> *
  * <p>
  * TLS configuration:
  * </p>
@@ -137,11 +146,18 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
     private HostnameVerifier hostnameVerifier;
     private List<UserSpec> superUsers = Collections.emptyList();
     private boolean delegateToKafkaACL = false;
+
+    // Turning it to false will not enforce access token expiry time (only for debugging purposes during development)
     private boolean denyWhenTokenInvalid = true;
 
     // Less or equal zero means to never check
-    private int checkGrantsPeriodSeconds = 60;
+    private int checkGrantsPeriodSeconds;
+
+    // Number of threads that can perform token endpoint requests at the same time
+    private int poolSize;
+
     private ScheduledExecutorService periodicScheduler;
+    private ExecutorService workerPool;
 
 
     public KeycloakRBACAuthorizer() {
@@ -198,8 +214,19 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
                     .collect(Collectors.toList());
         }
 
-        if (checkGrantsPeriodSeconds >= 0) {
+        poolSize = config.getValueAsInt(AuthzConfig.STRIMZI_AUTHORIZATION_REFRESH_GRANTS_POOL_SIZE, 5);
+        if (poolSize < 1) {
+            throw new RuntimeException("Invalid value of 'strimzi.authorization.refresh.grants.pool.size': " + poolSize + ". Has to be >= 1.");
+        }
+        checkGrantsPeriodSeconds = config.getValueAsInt(AuthzConfig.STRIMZI_AUTHORIZATION_REFRESH_GRANTS_PERIOD_SECONDS, 60);
+
+        if (checkGrantsPeriodSeconds > 0) {
+            workerPool = Executors.newFixedThreadPool(poolSize);
             periodicScheduler = setupRefreshGrantsJob(checkGrantsPeriodSeconds);
+        }
+
+        if (!Services.isAvailable()) {
+            Services.configure(configs);
         }
 
         if (log.isDebugEnabled()) {
@@ -209,7 +236,10 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
                     + "\n    clientId: " + clientId
                     + "\n    clusterName: " + clusterName
                     + "\n    delegateToKafkaACL: " + delegateToKafkaACL
-                    + "\n    superUsers: " + superUsers.stream().map(u -> u.getType() + ":" + u.getName()).collect(Collectors.toList()));
+                    + "\n    superUsers: " + superUsers.stream().map(u -> u.getType() + ":" + u.getName()).collect(Collectors.toList())
+                    + "\n    checkGrantsPeriodSeconds: " + checkGrantsPeriodSeconds
+                    + "\n    poolSize: " + poolSize
+            );
         }
     }
 
@@ -476,7 +506,7 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
     }
 
     private ScheduledExecutorService setupRefreshGrantsJob(int refreshSeconds) {
-        // Set up periodic timer to update keys from server every refreshSeconds;
+        // Set up periodic timer to fetch grants for active sessions every refresh seconds
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(new DaemonThreadFactory());
 
         scheduler.scheduleAtFixedRate(() -> {
@@ -511,10 +541,11 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
             };
 
             Sessions sessions = Services.getInstance().getSessions();
-            List<SessionFuture> scheduled = sessions.executeTask(token -> {
+            List<SessionFuture> scheduled = sessions.executeTask(workerPool, filter, token -> {
                 if (log.isTraceEnabled()) {
                     log.trace("Fetch grants for session: " + token.getSessionId() + ", token: " + mask(token.value()));
                 }
+
                 JsonNode grants = fetchAuthorizationGrants(token.value());
                 if (!grants.equals(token.getPayload())) {
                     if (log.isDebugEnabled()) {
@@ -522,7 +553,7 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
                     }
                     token.setPayload(grants);
                 }
-            }, filter);
+            });
 
             for (SessionFuture f: scheduled) {
                 try {

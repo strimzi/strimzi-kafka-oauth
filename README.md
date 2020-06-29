@@ -29,6 +29,8 @@ Strimzi Kafka OAuth modules provide support for OAuth2 as authentication mechani
         - [Validation using the JWKS endpoint](#validation-using-the-jwks-endpoint)
         - [Validation using the introspection endpoint](#validation-using-the-introspection-endpoint)
       - [Configuring the client side of inter-broker communication](#configuring-the-client-side-of-inter-broker-communication)
+    - [Enabling the re-authentication](#enabling-the-re-authentication)
+    - [Enforcing the session timeout](#enforcing-the-session-timeout)  
   - [Configuring the Kafka Broker authorization](#configuring-the-kafka-broker-authorization)
     - [Enabling the KeycloakRBACAuthorizer](#enabling-the-keycloakrbacauthorizer)
     - [Configuring the KeycloakRBACAuthorizer](#configuring-the-keycloakrbacauthorizer)
@@ -37,7 +39,9 @@ Strimzi Kafka OAuth modules provide support for OAuth2 as authentication mechani
   - [Configuring the JAAS login module](#configuring-the-jaas-login-module-client)
   - [Enabling the custom callbacks](#enabling-the-custom-callbacks-client)
   - [Configuring the OAuth2](#configuring-the-oauth2-client)
+  - [Configuring the re-authentication on the client](#configuring-the-re-authentication-on-the-client)
   - [Client config example](#client-config-example)
+  - [Handling expired or invalid tokens gracefully](#handling-expired-or-invalid-tokens-gracefully)
 - [Configuring the TLS truststore](#configuring-the-tls-truststore)
 - [Demo](#demo)
   
@@ -342,6 +346,30 @@ Also specify the principal corresponding to the client account identified by `oa
 
 This is not a full set of available `oauth.*` properties. All the `oauth.*` properties described in the next chapter about [configuring the Kafka clients](#configuring-the-kafka-client) also apply to configuring the client side of inter-broker communication. 
 
+#### Enabling the re-authentication
+
+Access tokens expire after some time. The token validation for the purpose of session authentication is only performed immediately after the new connection from the client is established. 
+If using SimpleACLAuthorizer or no authorizer at all, then there is no further need for the access token after the validation, and by default the expiry of the token will not result in session closure or denial of access within existing session.
+
+Since Kafka version 2.2 Kafka brokers support a [re-authentication mechanism](https://cwiki.apache.org/confluence/display/KAFKA/KIP-368%3A+Allow+SASL+Connections+to+Periodically+Re-Authenticate) for clients to be able to update the token mid-session, without having to drop and re-establish the connection. 
+When client sends the new access token, validation is performed on the broker as if a new connection was established.
+
+The mechanism has to be explicitly enabled on the Kafka broker by using the `connections.max.reauth.ms` property in `server.properties`:
+
+    connection.max.reauth.ms=3600000
+
+In this example the maximum time until next re-authentication is set to one hour.
+If the access token expires sooner than that, the re-authentication will be triggered sooner.
+
+#### Enforcing the session timeout 
+
+If re-authentication is enabled, then session timeout is enforced as the expiry time of the access token. 
+Multiple 'lightweight' sessions can follow one another over the same network connection for as long the connection isn't
+closed or interrupted due to process restarts or network issues. Since each re-authentication has to start with a valid token
+the client has to
+
+If for 
+
 ### Configuring the Kafka Broker authorization
 
 Strimzi Kafka OAuth provides support to centrally manage not only users and clients, but also permissions to Kafka broker resources - topics, consumer groups, configurations ...
@@ -492,19 +520,29 @@ You can make the token refresh more often than strictly necessary by shortening 
 If expiry is set to more that actual token expiry, this setting will have no effect.
 Note that this does not make any change to the token itself - the original token is still passed to the server.
 
-There are a few other settings that control the access token refresh behaviour.
-You can read about them in [Kafka Documentation](https://kafka.apache.org/documentation/).
-The properties of interest are:
-- `sasl.login.refresh.buffer.seconds`
-- `sasl.login.refresh.min.period.seconds`
-- `sasl.login.refresh.window.factor`
-- `sasl.login.refresh.window.jitter`
-
 If you have DEBUG logging turned on for `io.strimzi`, and are using opaque (non JWT) tokens, you can avoid parsing error warnings in the logs by specifying:
 
 - `oauth.access.token.is.jwt` (e.g.: "false")
 
 When setting this to `false` the client library will not attempt to parse and introspect the token as if it was JWT.
+
+#### Configuring the re-authentication on the client
+
+Java based clients using Kafka client library 2.2 or later are automatically configured to use re-authentication.
+
+There are several Kafka client properties that control how the client refreshes the access token based on token's expiry:
+
+- [sasl.login.refresh.buffer.seconds](https://kafka.apache.org/documentation/#sasl.login.refresh.buffer.seconds)   
+- [sasl.login.refresh.min.period.seconds](https://kafka.apache.org/documentation/#sasl.login.refresh.min.period.seconds)
+- [sasl.login.refresh.window.factor](https://kafka.apache.org/documentation/#sasl.login.refresh.window.factor)
+- [sasl.login.refresh.window.jitter](https://kafka.apache.org/documentation/#sasl.login.refresh.window.jitter)
+
+Also keep in mind that if configuring the client token by using `oauth.access.token` property (manually obtaining it), there is no way to refresh such a token, and thus the re-authentication will use the already expired token one more time, resulting in authentication failure, and closure of the connection.
+
+Note, that client-side token refresh works independently from re-authentication in the sense that it refreshes the token as necessary based on token's expiry information.
+Once the token is obtained by the client, it is cached and reused for multiple authentication attempts across multiple connections.
+If AuthenticationException occurs, that does not trigger the token refresh on the client.
+The only way to force the client library to perform token refresh is to re-initialise the KafkaProducer / KafkaConsumer. 
 
 ### Client config example
 
@@ -530,7 +568,7 @@ sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginMo
 sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
 ```
 
-And pass the configuration as ENV vars:
+And pass additional configuration as ENV vars:
 ```
 export OAUTH_CLIENT_ID="team-a-client"
 export OAUTH_CLIENT_SECRET="team-a-client-secret"
@@ -538,6 +576,70 @@ export OAUTH_TOKEN_ENDPOINT_URI="http://keycloak:8080/auth/realms/kafka-authz/pr
 ```
 
 Note that if you have JAAS config parameters with the same names (lowercase with dots) they would not take effect - ENV vars will override them.
+
+### Handling expired or invalid tokens gracefully
+
+When using Java Kafka Client library, you can distinguish between exceptions that occur as a result of authentication or authorization issues.
+
+From client's point of view there usually isn't much to do when the exception occurs but to either try again the operation or exit.
+
+Inside the cloud deployment it is a valid reaction to simply exit the process and let the cloud infrastructure start a new instance of the client service.
+But more often than not, a more effective strategy is to repeat again the last operation which can take advantage of current state loaded in memory.
+
+If there is a problem during authentication the client will receive `org.apache.kafka.common.errors.AuthenticationException`.
+Once the session is authenticated if some authorizer is configured, the failed authorization will result in `org.apache.kafka.common.errors.AuthenticationException`.
+
+In order to retry the operation you'll want to close the current producer or consumer, and create a new one from scratch in order to force the client to obtain a new access token.
+You'll also maybe want to make a slight pause when this happens, to prevent flooding the authorization server too much.
+
+```
+String topic = "my-topic";
+KafkaConsumer<String, String> consumer = new KafkaConsumer<>(config);
+
+try {
+    consumer.subscribe(Arrays.asList(topic));
+
+    while (true) {
+        ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(1));
+        for (ConsumerRecord<String, String> record : records) {
+            System.out.println("Consumed message - " + i + ": " + record.value());
+        }
+    }
+} catch (AuthenticationException | AuthorizationException e) {
+    consumer.close();
+    consumer = new KafkaConsumer<>(config);
+} catch (InterruptedException e) {
+    throw new RuntimeException("Interrupted while consuming message - " + i + "!");
+}
+```
+
+Similarly for asynchronous API:
+
+```
+Producer<String, String> producer = new KafkaProducer<>(props);
+
+for (int i = 0; ; i++) {
+    try {
+
+        producer.send(new ProducerRecord<>(topic, "Message " + i))
+                .get();
+
+        System.out.println("Produced Message " + i);
+
+    } catch (InterruptedException e) {
+        throw new RuntimeException("Interrupted while sending!");
+    } catch (ExecutionException e) {
+        final Throwable cause = e.getCause(); 
+        if (cause instanceof AuthenticationException
+                || cause instanceof AuthorizationException) {
+            producer.close();
+            producer = new KafkaProducer<>(props);
+        } else {
+            throw new RuntimeException("Failed to send message: " + i, e);
+        }
+    }
+}
+```
 
 Configuring the TLS truststore
 ------------------------------

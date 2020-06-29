@@ -16,7 +16,7 @@ import org.apache.kafka.common.security.oauthbearer.OAuthBearerToken;
  * Successful re-authentication starts a new session without disconnecting the current connection, avoiding the need to re-establish
  * any existing TLS connection for example.
  *
- * Token is instanciated during authentication, but the 'payload' methods can be accessed later by custom extensions.
+ * Token is instantiated during authentication, but the 'payload' methods can be accessed later by custom extensions.
  * For example, it can be used by a custom authorizer to cache a parsed JWT token payload or to cache authorization grants for current session.
  */
 public interface BearerTokenWithPayload extends OAuthBearerToken {

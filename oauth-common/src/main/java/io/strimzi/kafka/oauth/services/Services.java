@@ -5,8 +5,6 @@
 package io.strimzi.kafka.oauth.services;
 
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * This class contains singleton components shared among Kafka Broker sessions
@@ -15,15 +13,12 @@ public class Services {
 
     private static Services services;
 
-    private Sessions sessions;
+    private Sessions sessions = new Sessions();
 
     private Validators validators = new Validators();
 
     public static void configure(Map<String, ?> configs) {
-        ExecutorService executorService = Executors.newFixedThreadPool(5);
-        Sessions sessions = new Sessions(executorService);
-
-        services = new Services(sessions);
+        services = new Services();
     }
 
     public static Services getInstance() {
@@ -41,8 +36,7 @@ public class Services {
         return services != null;
     }
 
-    private Services(Sessions sessions) {
-        this.sessions = sessions;
+    private Services() {
     }
 
     public Sessions getSessions() {

@@ -29,18 +29,24 @@ import static io.strimzi.kafka.oauth.common.LogUtil.mask;
  *     authorizer.class.name=io.strimzi.kafka.oauth.server.OAuthSessionAuthorizer
  *     principal.builder.class=io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder
  * </pre>
- * You also need to specify the delegate authorizer using the <em>strimzi.authorizer.delegate.class.name</em> configuration property.
+ * When you would otherwise configure another authorizer, you'll need to specify that other authorizer as the delegate
+ * authorizer using the <em>strimzi.authorizer.delegate.class.name</em> configuration property.
  * For example:
  * <pre>
  *     strimzi.authorizer.delegate.class.name=kafka.security.auth.SimpleAclAuthorizer
  * </pre>
  * The specified delegate authorizer should be configured according to its documentation, as if it was installed as the
  * main authorizer (using <em>authorizer.class.name</em>).
+ * <p>
+ * If the `strimzi.authorizer.delegate.class.name` is not set, any operation will be granted as long as the the access token
+ * has not yet expired.
+ * </p>
  */
 @SuppressWarnings("deprecation")
 public class OAuthSessionAuthorizer implements kafka.security.auth.Authorizer {
 
     static final Logger log = LoggerFactory.getLogger(OAuthSessionAuthorizer.class);
+    static final Logger GRANT_LOG = LoggerFactory.getLogger(OAuthSessionAuthorizer.class.getName() + ".grant");
     static final Logger DENY_LOG = LoggerFactory.getLogger(OAuthSessionAuthorizer.class.getName() + ".deny");
 
     private kafka.security.auth.Authorizer delegate;
@@ -49,19 +55,21 @@ public class OAuthSessionAuthorizer implements kafka.security.auth.Authorizer {
     public void configure(java.util.Map<String, ?> configs) {
         String className = (String) configs.get(ServerConfig.STRIMZI_AUTHORIZER_DELEGATE_CLASS_NAME);
 
-        try {
-            Class delegateClass = Thread.currentThread().getContextClassLoader().loadClass(className);
-            if (!kafka.security.auth.Authorizer.class.isAssignableFrom(delegateClass)) {
-                throw new IllegalArgumentException("The class specified by " + ServerConfig.STRIMZI_AUTHORIZER_DELEGATE_CLASS_NAME + " is not an instance of kafka.security.auth.Authorizer");
+        if (className != null) {
+            try {
+                Class delegateClass = Thread.currentThread().getContextClassLoader().loadClass(className);
+                if (!kafka.security.auth.Authorizer.class.isAssignableFrom(delegateClass)) {
+                    throw new IllegalArgumentException("The class specified by " + ServerConfig.STRIMZI_AUTHORIZER_DELEGATE_CLASS_NAME + " is not an instance of kafka.security.auth.Authorizer");
+                }
+
+                delegate = (kafka.security.auth.Authorizer) delegateClass.<kafka.security.auth.Authorizer>newInstance();
+
+                // Configure the delegate
+                delegate.configure(configs);
+
+            } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+                throw new RuntimeException("Failed to instantiate and configure the delegate authorizer: " + className, e);
             }
-
-            delegate = (kafka.security.auth.Authorizer) delegateClass.<kafka.security.auth.Authorizer>newInstance();
-
-            // Configure the delegate
-            delegate.configure(configs);
-
-        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
-            throw new RuntimeException("Failed to instanciate and configure the delegate authorizer: " + className, e);
         }
 
         if (log.isDebugEnabled()) {
@@ -77,13 +85,27 @@ public class OAuthSessionAuthorizer implements kafka.security.auth.Authorizer {
 
         if (!(principal instanceof OAuthKafkaPrincipal)) {
             // If user wasn't authenticated over OAuth, there's nothing for us to check
-            return delegate.authorize(session, operation, resource);
+            if (delegate != null) {
+                return delegate.authorize(session, operation, resource);
+            } else {
+                if (GRANT_LOG.isDebugEnabled()) {
+                    GRANT_LOG.debug("Authorization GRANTED - no access token: " + session.principal() + ", operation: " + operation + ", resource: " + resource);
+                }
+                return true;
+            }
         }
 
         BearerTokenWithPayload token = ((OAuthKafkaPrincipal) principal).getJwt();
 
         if (denyIfTokenInvalid(token)) {
             return false;
+        }
+
+        if (delegate == null) {
+            if (GRANT_LOG.isDebugEnabled()) {
+                GRANT_LOG.debug("Authorization GRANTED - access token still valid: " + session.principal() + ", operation: " + operation + ", resource: " + resource + ", token: " + mask(token.value()));
+            }
+            return true;
         }
 
         return delegate.authorize(session, operation, resource);
