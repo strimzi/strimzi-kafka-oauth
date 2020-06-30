@@ -100,6 +100,46 @@ public class OAuthSessionAuthorizerTest {
         Assert.assertEquals("Call args should be equal - operation", op, lastEntry.operation);
         Assert.assertEquals("Call args should be equals - resource", resource, lastEntry.resource);
         Assert.assertFalse("Should be denied", granted);
+
+        // Test authorizer without the delegate
+        config.remove("strimzi.authorizer.delegate.class.name");
+        Assert.assertEquals("Properties contain exactly 2 keys", 2, config.size());
+
+        authorizer = new OAuthSessionAuthorizer();
+        authorizer.configure(config);
+
+        // Prepare arguments for authorize() call
+        session = new RequestChannel.Session(new KafkaPrincipal("User", "CN=admin"), InetAddress.getLocalHost());
+        op = Operation.fromString("READ");
+        resource = new Resource(ResourceType.fromString("TOPIC"), "my-topic");
+
+        // authorize() call should return true
+        granted = authorizer.authorize(session, op, resource);
+        Assert.assertTrue("Should be granted", granted);
+
+        // Prepare condition after mock OAuth athentication with valid token
+        tokenInfo = new TokenInfo("accesstoken123", null, "User:bob",
+                System.currentTimeMillis() - 100000,
+                System.currentTimeMillis() + 100000);
+        token = new JaasServerOauthValidatorCallbackHandler.BearerTokenWithPayloadImpl(tokenInfo);
+        principal = new OAuthKafkaPrincipal("User", "bob", token);
+        session = new RequestChannel.Session(principal, InetAddress.getLocalHost());
+
+        // authorize() call should return true
+        granted = authorizer.authorize(session, op, resource);
+        Assert.assertTrue("Should be granted", granted);
+
+        // Make it so that the token is expired
+        tokenInfo = new TokenInfo("accesstoken234", null, "User:bob",
+                System.currentTimeMillis() - 200000,
+                System.currentTimeMillis() - 100000);
+        token = new JaasServerOauthValidatorCallbackHandler.BearerTokenWithPayloadImpl(tokenInfo);
+        principal = new OAuthKafkaPrincipal("User", "bob", token);
+        session = new RequestChannel.Session(principal, InetAddress.getLocalHost());
+
+        // authorize() call should return true
+        granted = authorizer.authorize(session, op, resource);
+        Assert.assertFalse("Should be denied", granted);
     }
 
     public static class MockAuthorizer implements Authorizer {
