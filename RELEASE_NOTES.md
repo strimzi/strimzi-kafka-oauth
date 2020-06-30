@@ -28,7 +28,7 @@ If the access token expires before that, the re-authentication will be enforced 
 Any non-authentication operation after token expiry will cause the connection to be terminated by the broker.
 
 Re-authentication should be enabled if you want to prevent authenticated sessions from continuing beyond access token expiry.
-Also, without re-authentication enabled, the KeycloakRBACAuthorizer will eventually fail as it relies on valid access token when refreshing the list of grants for the current session.
+Also, without re-authentication enabled, the `KeycloakRBACAuthorizer` will eventually fail as it relies on valid access token when refreshing the list of grants for the current session.
   
 Unfortunately, due to [the bug #60](https://github.com/strimzi/strimzi-kafka-oauth/pull/60), the re-authentication support was broken.
 That should now be fixed.
