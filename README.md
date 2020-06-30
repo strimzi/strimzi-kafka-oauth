@@ -368,11 +368,28 @@ If the access token expires sooner than that, the re-authentication will be trig
 #### Enforcing the session timeout 
 
 If re-authentication is enabled, then session timeout is enforced as the expiry time of the access token. 
-Multiple 'lightweight' sessions can follow one another over the same network connection for as long the connection isn't
-closed or interrupted due to process restarts or network issues. Since each re-authentication has to start with a valid token
-the client has to
+By using re-authentication the multiple 'lightweight' sessions can follow one another over the same network connection for as long as the connection isn't closed or interrupted due to process restarts or network issues. 
 
-If for 
+If for some reason you can't enable re-authentication or don't want to use it, and if you want to invalidate the session when access token expires, but aren't using `KeycloakRBACAuthorizer` which does this automatically (since version 0.6.0 of this library), you can use the `OAuthSessionAuthorizer` to enforce token expiry mid-session.
+
+`OAuthSessionAuthorizer` works by checking the access token expiry on every operation performed, and denies all access after the token has expired.
+As long as the token has not yet expired (it may have been recently invalidated at authorization server but the Kafka broker may not yet know about it) the authorization is delegated to the delegate authorizer.
+
+If you want to install OAuthSessionAuthorizer wrapped around Simple ACL Authorizer install it as follows in `server.properties`:
+
+    authorizer.class.name=io.strimzi.kafka.oauth.server.OAuthSessionAuthorizer
+    principal.builder.class=io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder
+    
+    strimzi.authorizer.delegate.class.name=kafka.security.auth.SimpleAclAuthorizer
+
+You configure the `SimpleAclAuthorizer` by specifying the same properties as if it was installed under `authorizer.class.name`.
+
+It's the same for any other authorizer you may use - instead of using `authorizer.class.name` you install it by using `strimzi.authorizer.delegate.class.name`.
+
+Do not use `OAuthSessionAuthorizer` together with `KeycloakRBACAuthorizer` since it would be redundant.
+
+If you don't use any authorizer at all, don't use re-authentication, but want to enforce access token expiry mid-session, don't specify the `strimzi.authorizer.delegate.class.name` at all.
+In this case, unless the access token has expired, all the actions will be granted.
 
 ### Configuring the Kafka Broker authorization
 
