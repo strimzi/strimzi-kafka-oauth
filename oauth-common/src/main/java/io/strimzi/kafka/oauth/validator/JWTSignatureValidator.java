@@ -72,6 +72,7 @@ public class JWTSignatureValidator implements TokenValidator {
                                  PrincipalExtractor principalExtractor,
                                  String validIssuerUri,
                                  int refreshSeconds,
+                                 int refreshMinPauseSeconds,
                                  int expirySeconds,
                                  boolean checkAccessTokenType,
                                  String audience,
@@ -108,9 +109,7 @@ public class JWTSignatureValidator implements TokenValidator {
         }
         this.issuerUri = validIssuerUri;
 
-        if (expirySeconds < refreshSeconds + 60) {
-            throw new IllegalArgumentException("expirySeconds has to be at least 60 seconds longer than refreshSeconds");
-        }
+        validateRefreshConfig(refreshSeconds, expirySeconds);
         this.maxStaleSeconds = expirySeconds;
 
         this.checkAccessTokenType = checkAccessTokenType;
@@ -136,6 +135,7 @@ public class JWTSignatureValidator implements TokenValidator {
 
         fastScheduler = new BackOffTaskScheduler(periodicScheduler, () -> fetchKeys());
         fastScheduler.setCutoffIntervalSeconds(refreshSeconds);
+        fastScheduler.setMinPauseSeconds(refreshMinPauseSeconds);
 
         if (log.isDebugEnabled()) {
             log.debug("Configured JWTSignatureValidator:\n    keysEndpointUri: " + keysEndpointUri
@@ -144,10 +144,22 @@ public class JWTSignatureValidator implements TokenValidator {
                     + "\n    principalExtractor: " + principalExtractor
                     + "\n    validIssuerUri: " + validIssuerUri
                     + "\n    certsRefreshSeconds: " + refreshSeconds
+                    + "\n    certsRefreshMinPauseSeconds: " + refreshMinPauseSeconds
                     + "\n    certsExpirySeconds: " + expirySeconds
                     + "\n    checkAccessTokenType: " + checkAccessTokenType
                     + "\n    enableBouncyCastleProvider: " + enableBouncyCastleProvider
                     + "\n    bouncyCastleProviderPosition: " + bouncyCastleProviderPosition);
+        }
+    }
+
+    private void validateRefreshConfig(int refreshSeconds, int expirySeconds) {
+        if (refreshSeconds <= 0) {
+            throw new IllegalArgumentException("refreshSeconds has to be a positive number - (refreshSeconds=" + refreshSeconds + ")");
+        }
+
+        if (expirySeconds < refreshSeconds + 60) {
+            throw new IllegalArgumentException("expirySeconds has to be at least 60 seconds longer than refreshSeconds - (expirySeconds="
+                    + expirySeconds + ", refreshSeconds=" + refreshSeconds + ")");
         }
     }
 

@@ -49,6 +49,7 @@ public class ValidatorKey {
         String jwksEndpointUri;
         int jwksRefreshSeconds;
         int jwksExpirySeconds;
+        int jwksRefreshMinPauseSeconds;
         boolean checkAccessTokenType;
         boolean enableBouncy;
         int bouncyPosition;
@@ -63,6 +64,7 @@ public class ValidatorKey {
             JwtValidatorKey that = (JwtValidatorKey) o;
             return jwksRefreshSeconds == that.jwksRefreshSeconds &&
                     jwksExpirySeconds == that.jwksExpirySeconds &&
+                    jwksRefreshMinPauseSeconds == that.jwksRefreshMinPauseSeconds &&
                     checkAccessTokenType == that.checkAccessTokenType &&
                     enableBouncy == that.enableBouncy &&
                     bouncyPosition == that.bouncyPosition &&
@@ -71,7 +73,7 @@ public class ValidatorKey {
 
         @Override
         public int hashCode() {
-            return Objects.hash(super.hashCode(), jwksEndpointUri, jwksRefreshSeconds, jwksExpirySeconds, checkAccessTokenType, enableBouncy, bouncyPosition);
+            return Objects.hash(super.hashCode(), jwksEndpointUri, jwksRefreshSeconds, jwksExpirySeconds, jwksRefreshMinPauseSeconds, checkAccessTokenType, enableBouncy, bouncyPosition);
         }
     }
 
@@ -187,6 +189,11 @@ public class ValidatorKey {
 
         public JwtValidatorKeyBuilder jwksExpirySeconds(int jwksExpirySeconds) {
             result.jwksExpirySeconds = jwksExpirySeconds;
+            return getThis();
+        }
+
+        public JwtValidatorKeyBuilder jwksRefreshMinPauseSeconds(int jwksRefreshMinPauseSeconds) {
+            result.jwksRefreshMinPauseSeconds = jwksRefreshMinPauseSeconds;
             return getThis();
         }
 

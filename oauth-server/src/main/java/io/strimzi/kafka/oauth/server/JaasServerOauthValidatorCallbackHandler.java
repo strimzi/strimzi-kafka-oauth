@@ -123,6 +123,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
             int jwksRefreshSeconds = config.getValueAsInt(ServerConfig.OAUTH_JWKS_REFRESH_SECONDS, 300);
             int jwksExpirySeconds = config.getValueAsInt(ServerConfig.OAUTH_JWKS_EXPIRY_SECONDS, 360);
+            int jwksMinPauseSeconds = config.getValueAsInt(ServerConfig.OAUTH_JWKS_REFRESH_MIN_PAUSE_SECONDS, 1);
 
             vkey = ValidatorKey.forJwtValidator()
                     .validIssuerUri(validIssuerUri)
@@ -136,6 +137,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                     .hasHostnameVerifier(verifier != null)
                     .jwksEndpointUri(jwksUri)
                     .jwksRefreshSeconds(jwksRefreshSeconds)
+                    .jwksRefreshMinPauseSeconds(jwksMinPauseSeconds)
                     .jwksExpirySeconds(jwksExpirySeconds)
                     .checkAccessTokenType(checkTokenType)
                     .enableBouncy(enableBouncy)
@@ -149,6 +151,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                     principalExtractor,
                     validIssuerUri,
                     jwksRefreshSeconds,
+                    jwksMinPauseSeconds,
                     jwksExpirySeconds,
                     checkTokenType,
                     null,

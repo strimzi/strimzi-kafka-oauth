@@ -116,7 +116,7 @@ Also, you may want each developer to have a user account in order to configure u
 Configuring users, clients, and authorizing clients, obtaining access tokens, and refresh tokens are steps that are specific to the authorization server that you use.
 Consult your authorization server's documentation.
 
-If you use KeycloakRBACAuthorizer for authorization then you also use your authorization server (Keycloak) to use Authorization Services functionality to configure cevurity policies and permissions for users and service accounts. 
+If you use KeycloakRBACAuthorizer for authorization then you also use your authorization server (Keycloak) to use Authorization Services functionality to configure security policies and permissions for users and service accounts. 
  
 Configuring the Kafka Broker 
 ----------------------------
@@ -272,6 +272,10 @@ You can control how often the keys used for signature checks are refreshed and w
 - `oauth.jwks.refresh.seconds` (e.g.: "300" - that's the default value - keys are refreshed every 5 minutes)
 - `oauth.jwks.expiry.seconds` (e.g.: "360" - that's the default value - keys expire 6 minutes after they are loaded)
 
+If an access token signed with an unknown signing key is encountered, another refresh is scheduled immediately.
+You can control the minimum pause between two consecutive scheduled keys refreshes - the default is 1 second:
+- `oauth.jwks.refresh.min.pause.seconds` (e.g.: "0")
+
 All access tokens can be invalidated by rotating the keys on authorization server and expiring old keys.
 
 ###### Validation using the introspection endpoint
@@ -388,6 +392,8 @@ Add the following to `server.properties` file:
     authorizer.class.name=io.strimzi.kafka.oauth.server.authorizer.KeycloakRBACAuthorizer
     principal.builder.class=io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder
 
+Note: Since version 0.6.0 the `io.strimzi.kafka.oauth.server.authorizer.JwtKafkaPrincipalBuilder` has been deprecated. Use the above configuration instead.
+
 #### Configuring the KeycloakRBACAuthorizer
 
 All the configuration properties for KeycloakRBACAuthorizer begin with a `strimzi.authorization.` prefix.
@@ -395,6 +401,18 @@ All the configuration properties for KeycloakRBACAuthorizer begin with a `strimz
 The token endpoint used by KeycloakRBACAuthorizer has to be the same as the one used for authentication:
 - `strimzi.authorization.token.endpoint.uri` (e.g.: "https://localhost:8443/auth/realms/demo/protocol/openid-connect/token" - the endpoint used to exchange the access token for a list of grants)
 - `strimzi.authorization.client.id` (e.g.: "kafka" - the client representing a Kafka Broker which has Authorization Services enabled)
+
+The authorizer will regularly reload the list of grants for active sessions. By default it will do this once every minute.
+You can change this period or even turn that off for debugging reasons:
+- `strimzi.authorization.refresh.grants.period.seconds` (e.g.: "120" - the refresh job period in seconds)
+
+The refresh job works by enumerating the active tokens and requesting the latest grants for each.
+It does that by using a thread pool. You can control the size of the thread pool (how much parallelism you want), the default value is 5:
+- `strimzi.authorization.refresh.grants.pool.size` (e.g.: "10" - the maximum of 10 parallel fetches of grants at a time)
+
+There is a rough correspondence of one fetch per unique access token. A single client typically uses the same access token for multiple connections. 
+Therefore, the number of fetches per job run roughly corresponds to the number of active Kafka clients.
+That is replicated across all Kafka brokers in the cluster - there is a job running at every Kafka broker.
 
 You may also want to configure some other things. You may want to set a logical cluster name so you can target it with authorization rules:
 - `strimzi.authorization.kafka.cluster.name` (e.g.: "dev-cluster" - a logical name of the cluster which can be targeted with authorization services resource definitions, and permission policies)
