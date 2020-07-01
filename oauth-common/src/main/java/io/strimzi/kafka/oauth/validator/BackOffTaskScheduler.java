@@ -74,9 +74,9 @@ public class BackOffTaskScheduler {
             // First repetition is immediate but at least minPauseSeconds has to pass since the last attempt
             long delay = 1;
             long now = System.currentTimeMillis();
-            long boundaryTime = minPauseSeconds > 0 ? lastExecutionAttempt + minPauseSeconds : now;
+            long boundaryTime = minPauseSeconds > 0 ? lastExecutionAttempt + minPauseSeconds * 1000L : now;
             if (boundaryTime > now) {
-                delay = 1000 * (boundaryTime - now);
+                delay = boundaryTime - now;
             }
             service.schedule(new RunnableTask(), delay, TimeUnit.MILLISECONDS);
             if (log.isDebugEnabled()) {
