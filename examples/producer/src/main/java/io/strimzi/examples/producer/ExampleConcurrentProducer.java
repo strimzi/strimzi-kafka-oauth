@@ -22,13 +22,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-public class ExampleMultithreadedProducer {
+public class ExampleConcurrentProducer {
 
-    private static Logger log = LoggerFactory.getLogger(ExampleMultithreadedProducer.class);
+    private static Logger log = LoggerFactory.getLogger(ExampleConcurrentProducer.class);
 
     public static void main(String[] args) {
 
@@ -75,12 +73,7 @@ public class ExampleMultithreadedProducer {
         Properties props = buildProducerConfig();
         Producer<String, String> producer = new KafkaProducer<>(props);
 
-        final int threadCount = 10;
-
-        // KafkaProducer already contains an internal worker pool and has an async API.
-        // But it is also thread-safe, so it can be accessed by multiple threads concurrently if your logic
-        // can benefit from multiple threads preparing inputs and sending them off to Kafka
-        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        // KafkaProducer contains an internal worker pool and has an async API.
         int messageCounter = 1;
 
         List<Job> jobs = new ArrayList<>();
@@ -94,7 +87,10 @@ public class ExampleMultithreadedProducer {
         try {
             while (true) {
 
-                runBatch(executor, producer, jobs, topic);
+                // Run a batch of jobs
+                for (Job j : jobs) {
+                    j.result = producer.send(new ProducerRecord<>(topic, j.message));
+                }
 
                 // Wait for all jobs to finish, and check if some jobs have encountered exceptions that require recreating the producer
                 List<Job> rerunJobs = new ArrayList<>();
@@ -108,12 +104,7 @@ public class ExampleMultithreadedProducer {
                         throw new RuntimeException("Interrupted while sending!");
 
                     } catch (ExecutionException e) {
-                        // Careful - first cause is also ExecutionException
                         Throwable cause = e.getCause();
-                        if (cause instanceof ExecutionException) {
-                            cause = cause.getCause();
-                        }
-
                         if (cause instanceof AuthenticationException
                                 || cause instanceof AuthorizationException) {
                             reinitProducer = true;
@@ -147,15 +138,7 @@ public class ExampleMultithreadedProducer {
                 }
             }
         } finally {
-            executor.shutdown();
             producer.close();
-        }
-    }
-
-    private static void runBatch(ExecutorService executor, Producer<String, String> producer, List<Job> jobs, String topic) {
-        // Run a batch of jobs
-        for (Job j : jobs) {
-            j.result = executor.submit(() -> producer.send(new ProducerRecord<>(topic, j.message)).get());
         }
     }
 
