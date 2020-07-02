@@ -274,7 +274,7 @@ You can control how often the keys used for signature checks are refreshed and w
 
 If an access token signed with an unknown signing key is encountered, another refresh is scheduled immediately.
 You can control the minimum pause between two consecutive scheduled keys refreshes - the default is 1 second:
-- `oauth.jwks.refresh.min.pause.seconds` (e.g.: "0")
+- `oauth.jwks.refresh.min.pause.seconds` (e.g.: "0" - no minimium pause)
 
 All access tokens can be invalidated by rotating the keys on authorization server and expiring old keys.
 
@@ -360,10 +360,14 @@ When client sends the new access token, validation is performed on the broker as
 
 The mechanism has to be explicitly enabled on the Kafka broker by using the `connections.max.reauth.ms` property in `server.properties`:
 
-    connection.max.reauth.ms=3600000
+    connections.max.reauth.ms=3600000
 
 In this example the maximum time until next re-authentication is set to one hour.
 If the access token expires sooner than that, the re-authentication will be triggered sooner.
+
+The option can be specified per-listener. For example if you have a listener called `CLIENTS`, you can specify:
+
+    listener.name.clients.oauthbearer.connections.max.reauth.ms=3600000
 
 #### Enforcing the session timeout 
 
@@ -388,7 +392,7 @@ It's the same for any other authorizer you may use - instead of using `authorize
 
 Do not use `OAuthSessionAuthorizer` together with `KeycloakRBACAuthorizer` since it would be redundant.
 
-If you don't use any authorizer at all, don't use re-authentication, but want to enforce access token expiry mid-session, don't specify the `strimzi.authorizer.delegate.class.name` at all.
+If you don't use any authorizer at all, don't use re-authentication, but still want to enforce access token expiry mid-session, don't specify the `strimzi.authorizer.delegate.class.name` at all.
 In this case, unless the access token has expired, all the actions will be granted.
 
 ### Configuring the Kafka Broker authorization
