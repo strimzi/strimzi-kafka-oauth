@@ -77,6 +77,9 @@ public class ExampleMultithreadedProducer {
 
         final int threadCount = 10;
 
+        // KafkaProducer already contains an internal worker pool and has an async API.
+        // But it is also thread-safe, so it can be accessed by multiple threads concurrently if your logic
+        // can benefit from multiple threads preparing inputs and sending them off to Kafka
         ExecutorService executor = Executors.newFixedThreadPool(threadCount);
         int messageCounter = 1;
 
