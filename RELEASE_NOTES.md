@@ -28,15 +28,16 @@ If the access token expires before that, the re-authentication will be enforced 
 Any non-authentication operation after token expiry will cause the connection to be terminated by the broker.
 
 Re-authentication should be enabled if you want to prevent authenticated sessions from continuing beyond access token expiry.
-Also, without re-authentication enabled, the `KeycloakRBACAuthorizer` will eventually fail as it relies on valid access token when refreshing the list of grants for the current session.
+Also, without re-authentication enabled, the `KeycloakRBACAuthorizer` will now deny further access as soon as the access token expires. 
+It would in any case fail fairly quickly as it relies on valid access token when refreshing the list of grants for the current session.
   
-Unfortunately, due to [the bug #60](https://github.com/strimzi/strimzi-kafka-oauth/pull/60), the re-authentication support was broken.
+In previous versions the re-authentication support was broken due to [the bug #60](https://github.com/strimzi/strimzi-kafka-oauth/pull/60).
 That should now be fixed.
 
 #### Added OAuthSessionAuthorizer
 
 Re-authentication forces active sessions whose access tokens have expired to immediately become invalid. 
-However, if for some reason you don't want to, or can't use re-authentication, don't use `KeycloakRBACAuthorizer`, but still want to enforce session expiry, or if you simply want to better log if token expiry occurs, the new authorizer denies all actions after the access token used for authentication of the session has expired.
+However, if for some reason you don't want to, or can't use re-authentication, and you don't use `KeycloakRBACAuthorizer`, but still want to enforce session expiry, or if you simply want to better log if token expiry occurs, the new authorizer denies all actions after the access token of the session has expired.
 The client will receive the `org.apache.kafka.common.errors.AuthorizationException`.
 
 Usage of `OAuthSessionAuthorizer` is optional.
@@ -80,7 +81,7 @@ Until then, the Kafka broker keeps succesfully authorizing new connections with 
 At the same time it rejects newly issued access tokens that are properly signed with the new signing keys which Kafka broker doesn't yet know about.
 In order to shorten this mismatch period as much as possible, the broker will now trigger JWKS keys refresh as soon as it detects a new signing key.
 And it will keep trying if not successful using a so called exponential back-off, where after the unsuccessful attempt it waits a second, then two, then 4, 8, 16, 32, ... 
-It will not flood the server with requests, always pausing a minimum time between two consecutive successful JWKS keys refreshes.
+It will not flood the server with requests, always pausing for a minimum time between two consecutive keys refresh attempts.
 
 While there would still be a few `invalid token errors`, the clients, if coded correctly, to reinitialise the KafkaProducer / KafkaConsumer in order to force access token refresh, should quickly recover.
 
