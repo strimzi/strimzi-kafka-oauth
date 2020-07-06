@@ -12,7 +12,20 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * This scheduler adds
+ * This scheduler adds support to immediately re-schedule the execution of the provided task, using the provided <em>ExecutorService</em>.
+ * <p>
+ * If the task has already been scheduled (by calling {@link #scheduleTask()} and has not yet completed, another request
+ * to schedule the task will be ignored.
+ * </p>
+ * <p>
+ * If the scheduled task fails during its run, it will be rescheduled using the so called 'exponentional backoff' delay.
+ * Rather than being attempted again immediately, it will pause for an ever increasing time delay until some cutoff delay
+ * is reached ({@link #setCutoffIntervalSeconds(int)}).
+ * </p>
+ * <p>
+ * Alternatively an upper limit can be set to the pause until next attempt ({@link #setMaxIntervalSeconds(int)}).
+ * Once the task is executed successfully it will not be scheduled again until {@link #scheduleTask()} is called again.
+ * </p>
  */
 public class BackOffTaskScheduler {
 
