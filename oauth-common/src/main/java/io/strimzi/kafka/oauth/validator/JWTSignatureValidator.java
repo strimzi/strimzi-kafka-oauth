@@ -258,13 +258,13 @@ public class JWTSignatureValidator implements TokenValidator {
             keywrap.setAlgorithm(tokenVerifier.getHeader().getAlgorithm().name());
             keywrap.setKid(kid);
 
-            log.debug("Signature algorithm used: [" + pub.getAlgorithm() + "]");
+            log.debug("Signature algorithm used: [{}]", pub.getAlgorithm());
             AsymmetricSignatureVerifierContext ctx = isAlgorithmEC(pub.getAlgorithm()) ?
                     new ECDSASignatureVerifierContext(keywrap) :
                     new AsymmetricSignatureVerifierContext(keywrap);
             tokenVerifier.verifierContext(ctx);
 
-            log.debug("SignatureVerifierContext set to: " + ctx);
+            log.debug("SignatureVerifierContext set to: {}", ctx);
 
             tokenVerifier.verify();
             t = tokenVerifier.getToken();

@@ -291,7 +291,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
     private TokenInfo validateToken(String token) {
         TokenInfo result = validator.validate(token);
         if (log.isDebugEnabled()) {
-            log.debug("User validated (Principal:" + result.principal() + ")");
+            log.debug("User validated (Principal:{})", result.principal());
         }
         return result;
     }

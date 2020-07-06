@@ -166,7 +166,7 @@ public class BackOffTaskScheduler {
                     scheduleServiceTask(this, delay);
 
                     if (log.isDebugEnabled()) {
-                        log.debug("Task rescheduled in " + delay + " seconds");
+                        log.debug("Task rescheduled in {} seconds", delay);
                     }
                 } else {
                     // Release taskSchedule lock

@@ -546,7 +546,7 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
                 JsonNode grants = fetchAuthorizationGrants(token.value());
                 if (!grants.equals(token.getPayload())) {
                     if (log.isDebugEnabled()) {
-                        log.debug("Grants have changed for session: " + token.getSessionId() + ", token: " + mask(token.value()));
+                        log.debug("Grants have changed for session: {}, token: {}", token.getSessionId(), mask(token.value()));
                     }
                     token.setPayload(grants);
                 }
@@ -565,7 +565,10 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
                             for (BearerTokenWithPayload token: queue) {
                                 token.setPayload(emptyGrants);
                                 sessions.remove(token);
-                                log.debug("Removed invalid session from sessions map (session: " + f.getToken().getSessionId() + ", token: " + mask(f.getToken().value()) + "). Will not refresh its grants any more.");
+                                if (log.isDebugEnabled()) {
+                                    log.debug("Removed invalid session from sessions map (session: {}, token: {}). Will not refresh its grants any more.",
+                                            f.getToken().getSessionId(), mask(f.getToken().value()));
+                                }
                             }
                         }
                     }
@@ -588,7 +591,7 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
                         break;
                     }
                     if (log.isDebugEnabled()) {
-                        log.debug("Grants have changed for session: " + t.getSessionId() + ", token: " + mask(t.value()));
+                        log.debug("Grants have changed for session: {}, token: {}", t.getSessionId(), mask(t.value()));
                     }
                     t.setPayload(refreshed.getPayload());
                 }
