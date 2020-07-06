@@ -16,10 +16,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class BackOffTaskScheduler {
 
-    private static Logger log = LoggerFactory.getLogger(BackOffTaskScheduler.class);
+    private static final Logger log = LoggerFactory.getLogger(BackOffTaskScheduler.class);
 
-    private ScheduledExecutorService service;
-    private Runnable task;
+    private final ScheduledExecutorService service;
+    private final Runnable task;
 
     private int minPauseSeconds = 1;
     private int maxIntervalSeconds;
@@ -78,7 +78,8 @@ public class BackOffTaskScheduler {
             if (boundaryTime > now) {
                 delay = boundaryTime - now;
             }
-            service.schedule(new RunnableTask(), delay, TimeUnit.MILLISECONDS);
+
+            scheduleServiceTask(new RunnableTask(), delay);
             if (log.isDebugEnabled()) {
                 log.debug("Task scheduled for execution in {} milliseconds", delay);
             }
@@ -90,12 +91,26 @@ public class BackOffTaskScheduler {
     /**
      * Update the time of last execution attempt to current time.
      * This is handy when multiple schedulers work the same task on a single thread.
-     * It affects
      */
     public void updateLastExecutionTime() {
         lastExecutionAttempt = System.currentTimeMillis();
     }
 
+    private void scheduleServiceTask(Runnable task, long delay) {
+        try {
+            service.schedule(task, delay, TimeUnit.SECONDS);
+        } catch (Throwable e) {
+            // Release taskSchedule lock
+            releaseTaskScheduleLock();
+
+            throw new RuntimeException("Failed to re-schedule the task", e);
+        }
+    }
+
+    private void releaseTaskScheduleLock() {
+        taskScheduled.set(false);
+        log.debug("Released taskSchedule lock");
+    }
 
     class RunnableTask implements Runnable {
 
@@ -111,15 +126,14 @@ public class BackOffTaskScheduler {
                 task.run();
 
                 // Release taskSchedule lock
-                taskScheduled.set(false);
-                log.debug("Released taskSchedule lock");
+                releaseTaskScheduleLock();
 
             } catch (Throwable t) {
                 log.error("Scheduled task execution failed:", t);
 
                 // If things went wrong, reschedule next repetition
                 // in exponential backoff fashion (1,2,4,8,16,32)
-                int delay = (int) Math.pow(2, repeatCount);
+                long delay = (long) Math.pow(2, repeatCount);
                 if (minPauseSeconds > 0 && delay < minPauseSeconds) {
                     delay = minPauseSeconds;
                 }
@@ -136,14 +150,14 @@ public class BackOffTaskScheduler {
                 if (cutoffIntervalSeconds <= 0 || delay < cutoffIntervalSeconds) {
 
                     // We still hold the taskScheduled lock
-                    service.schedule(this, delay, TimeUnit.SECONDS);
+                    scheduleServiceTask(this, delay);
+
                     if (log.isDebugEnabled()) {
                         log.debug("Task rescheduled in " + delay + " seconds");
                     }
                 } else {
                     // Release taskSchedule lock
-                    taskScheduled.set(false);
-                    log.debug("Released taskSchedule lock");
+                    releaseTaskScheduleLock();
                 }
             }
         }

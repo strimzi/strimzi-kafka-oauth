@@ -342,8 +342,8 @@ We have to update the oauth library dependency version:
 
     sed -Ei 's#<strimzi-oauth.version>[0-9a-zA-Z.-]+</strimzi-oauth.version>#<strimzi-oauth.version>1.0.0-SNAPSHOT</strimzi-oauth.version>#g' \
       pom.xml \
-      docker-images/kafka/kafka-thirdparty-libs/2.3.x/pom.xml \
-      docker-images/kafka/kafka-thirdparty-libs/2.4.x/pom.xml
+      docker-images/kafka/kafka-thirdparty-libs/2.4.x/pom.xml \
+      docker-images/kafka/kafka-thirdparty-libs/2.5.x/pom.xml
 
 This makes sure the latest strimzi-kafka-oauth library that we built previously is included into Kafka images that we'll build next.
 We can check the change:

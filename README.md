@@ -626,7 +626,7 @@ Inside the cloud deployment it is a valid reaction to simply exit the process an
 But more often than not, a more effective strategy is to repeat the last operation again which can take advantage of the current state of the program loaded in the memory.
 
 If there is a problem during authentication the client will receive the `org.apache.kafka.common.errors.AuthenticationException`.
-Once the session is authenticated, and if some authorizer is configured, the failed authorization will result in the `org.apache.kafka.common.errors.AuthenticationException`.
+Once the session is authenticated, and if some authorizer is configured, the failed authorization will result in the `org.apache.kafka.common.errors.AuthorizationException`.
 
 In order to retry the operation you'll want to close the current producer or consumer, and create a new one from scratch in order to force the client to obtain a new access token.
 You'll also maybe want to make a slight pause when this happens, to prevent flooding the authorization server with the token requests.

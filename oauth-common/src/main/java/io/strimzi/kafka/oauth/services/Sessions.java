@@ -23,6 +23,10 @@ public class Sessions {
 
     private static final Object NONE = new Object();
 
+    /*
+     * We use the WeakHashMap to allow JVM to still garbage collect the keys, and remove them from the map.
+     * The important thing is to not hold on to the objects used as keys in any other way - they must not be referenced in values.
+     */
     private Map<BearerTokenWithPayload, Object> activeSessions = Collections.synchronizedMap(new WeakHashMap<>());
 
     public void put(BearerTokenWithPayload token) {
@@ -45,9 +49,9 @@ public class Sessions {
         }
 
         List<SessionFuture> results = new ArrayList<>(values.size());
-        for (BearerTokenWithPayload w: values) {
-            if (filter.test(w)) {
-                SessionFuture<?> current = new SessionFuture<>(w, executor.submit(() -> task.accept(w)));
+        for (BearerTokenWithPayload token: values) {
+            if (filter.test(token)) {
+                SessionFuture<?> current = new SessionFuture<>(token, executor.submit(() -> task.accept(token)));
                 results.add(current);
             }
         }

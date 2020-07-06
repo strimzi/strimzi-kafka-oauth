@@ -367,7 +367,7 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
             }
 
             if (log.isDebugEnabled()) {
-                log.debug("Authorization grants for user: " + principal + ": " + grants);
+                log.debug("Authorization grants for user {}: {}", principal, grants);
             }
 
             //
@@ -375,9 +375,7 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
             //
 
             if (grants != null) {
-                Iterator<JsonNode> it = grants.iterator();
-                while (it.hasNext()) {
-                    JsonNode permission = it.next();
+                for (JsonNode permission: grants) {
                     String name = permission.get("rsname").asText();
                     ResourceSpec resourceSpec = ResourceSpec.of(name);
                     if (resourceSpec.match(clusterName, resource.resourceType().name(), resource.name())) {
