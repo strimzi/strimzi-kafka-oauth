@@ -80,7 +80,7 @@ public class BackOffTaskScheduler {
             }
             service.schedule(new RunnableTask(), delay, TimeUnit.MILLISECONDS);
             if (log.isDebugEnabled()) {
-                log.debug("Task scheduled for execution in " + delay + " milliseconds");
+                log.debug("Task scheduled for execution in {} milliseconds", delay);
             }
             return true;
         }

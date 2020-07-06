@@ -353,7 +353,7 @@ This is not a full set of available `oauth.*` properties. All the `oauth.*` prop
 #### Enabling the re-authentication
 
 Access tokens expire after some time. The token validation for the purpose of session authentication is only performed immediately after the new connection from the client is established. 
-If using SimpleACLAuthorizer or no authorizer at all, then there is no further need for the access token after the validation, and by default the expiry of the token will not result in session closure or denial of access within existing session.
+If using SimpleACLAuthorizer or no authorizer at all, then there is no further need for the access token after the validation, and by default the expiry of the token will not result in session closure or denial of access within the existing session.
 
 Since Kafka version 2.2 the Kafka brokers support a [re-authentication mechanism](https://cwiki.apache.org/confluence/display/KAFKA/KIP-368%3A+Allow+SASL+Connections+to+Periodically+Re-Authenticate) allowing clients to update the token mid-session, without having to drop and re-establish the connection. 
 When a client sends the new access token, validation is performed on the broker as if a new connection was established.
@@ -618,9 +618,9 @@ Note that if you have JAAS config parameters with the same names (lowercase with
 
 ### Handling expired or invalid tokens gracefully
 
-When using Java Kafka Client library, you can distinguish between exceptions that occur as a result of authentication or authorization issues, and other exception.
+When using the Apache Kafka Java client library, you can distinguish between exceptions that occur as a result of authentication or authorization issues, and other exceptions.
 
-From client's point of view there usually isn't much to do when the exception occurs but to either try again the operation or exit.
+From the client's point of view there usually isn't much to do when the exception occurs but to either retry the operation or exit.
 
 Inside the cloud deployment it is a valid reaction to simply exit the process and let the cloud infrastructure start a new instance of the client service.
 But more often than not, a more effective strategy is to repeat the last operation again which can take advantage of the current state of the program loaded in the memory.
@@ -707,4 +707,3 @@ Demo
 For a demo / tutorial covering OAuth2 authentication see [examples README](examples/README.md).
 
 For another demo / tutorial covering token based authorization using Keycloak Authorization Services see [authorization README](examples/README-authz.md)
-

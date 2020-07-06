@@ -19,7 +19,7 @@ Many improvements have been made to address problems with access tokens expiring
 
 #### Fixed, and documented the re-authentication support
 
-To prevent active sessions to operate beyond the access token lifetime, Kafka has the [re-authentication support](https://cwiki.apache.org/confluence/display/KAFKA/KIP-368%3A+Allow+SASL+Connections+to+Periodically+Re-Authenticate), which has to be explicitly enabled.
+To prevent active sessions operating beyond the access token lifetime, Kafka 2.2 and later has [re-authentication support](https://cwiki.apache.org/confluence/display/KAFKA/KIP-368%3A+Allow+SASL+Connections+to+Periodically+Re-Authenticate), which has to be explicitly enabled.
 Use the following `server.properties` configuration to enable re-authentication, and force clients to re-authenticate within one hour:
 
     connections.max.reauth.ms=3600000
@@ -29,7 +29,7 @@ Any non-authentication operation after token expiry will cause the connection to
 
 Re-authentication should be enabled if you want to prevent authenticated sessions from continuing beyond access token expiry.
 Also, without re-authentication enabled, the `KeycloakRBACAuthorizer` will now deny further access as soon as the access token expires. 
-It would in any case fail fairly quickly as it relies on valid access token when refreshing the list of grants for the current session.
+It would in any case fail fairly quickly as it relies on a valid access token when refreshing the list of grants for the current session.
   
 In previous versions the re-authentication support was broken due to [the bug #60](https://github.com/strimzi/strimzi-kafka-oauth/pull/60).
 That should now be fixed.
@@ -77,7 +77,7 @@ Additional `server.properties` configuration options have been introduced:
 #### Introduced fast JWKS keys refresh
 
 When using fast local signature validation using JWKS endpoint keys, if signing keys are suddenly revoked at the authorization server, it takes a while for the Kafka broker to be aware of this change.
-Until then, the Kafka broker keeps succesfully authorizing new connections with access tokens signed using old keys.
+Until then, the Kafka broker keeps successfully authorizing new connections with access tokens signed using old keys.
 At the same time it rejects newly issued access tokens that are properly signed with the new signing keys which Kafka broker doesn't yet know about.
 In order to shorten this mismatch period as much as possible, the broker will now trigger JWKS keys refresh as soon as it detects a new signing key.
 And it will keep trying if not successful using a so called exponential back-off, where after the unsuccessful attempt it waits a second, then two, then 4, 8, 16, 32, ... 
