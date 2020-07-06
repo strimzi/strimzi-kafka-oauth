@@ -32,9 +32,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Tests for BackOffTaskScheduler
- *
- * If you want to see logging output change log level in src/test/resources/simplelogger.properties
- * from OFF to DEBUG.
  */
 public class BackOffTaskSchedulerTest {
 
@@ -65,7 +62,7 @@ public class BackOffTaskSchedulerTest {
         Assert.assertEquals("Executor log should have 1 entry", 1, executor.invocationLog.size());
 
         MockScheduledExecutorLog entry = executor.invocationLog.getFirst();
-        assertLogEntry(entry, MockExecutorLogActionType.SCHEDULE, 1, TimeUnit.MILLISECONDS);
+        assertLogEntry(entry, MockExecutorLogActionType.SCHEDULE, 0, TimeUnit.SECONDS);
     }
 
     @Test
@@ -91,13 +88,7 @@ public class BackOffTaskSchedulerTest {
 
         // Wait for the max of 5 seconds until the task was scheduled an expected number of times
         int expected = 6;
-        for (int timeout = 10; counter.get() < expected && timeout > 0; timeout--) {
-            try {
-                Thread.sleep(500);
-            } catch (InterruptedException e) {
-                throw new RuntimeException("Interrupted", e);
-            }
-        }
+        waitForTargetCount(counter, expected);
 
         log.debug("Executor log: ");
         for (MockScheduledExecutorLog e: executor.invocationLog) {
@@ -110,7 +101,7 @@ public class BackOffTaskSchedulerTest {
         Iterator<MockScheduledExecutorLog> it = executor.invocationLog.iterator();
 
         Assert.assertTrue("Has more entries", it.hasNext());
-        assertLogEntry(it.next(), MockExecutorLogActionType.SCHEDULE, 1, TimeUnit.MILLISECONDS);
+        assertLogEntry(it.next(), MockExecutorLogActionType.SCHEDULE, 0, TimeUnit.SECONDS);
 
         Iterator<Integer> delayIt = Arrays.asList(5, 5, 8, 16, 32).iterator();
         while (delayIt.hasNext()) {
@@ -141,13 +132,7 @@ public class BackOffTaskSchedulerTest {
 
         // wait for the max of 5 seconds until the task was scheduled an expected number of times
         int expected = 8;
-        for (int timeout = 10; counter.get() < expected && timeout > 0; timeout--) {
-            try {
-                Thread.sleep(500);
-            } catch (InterruptedException e) {
-                throw new RuntimeException("Interrupted", e);
-            }
-        }
+        waitForTargetCount(counter, expected);
 
         log.debug("Executor log: ");
         for (MockScheduledExecutorLog e: executor.invocationLog) {
@@ -160,7 +145,7 @@ public class BackOffTaskSchedulerTest {
         Iterator<MockScheduledExecutorLog> it = executor.invocationLog.iterator();
 
         Assert.assertTrue("Has more entries", it.hasNext());
-        assertLogEntry(it.next(), MockExecutorLogActionType.SCHEDULE, 1, TimeUnit.MILLISECONDS);
+        assertLogEntry(it.next(), MockExecutorLogActionType.SCHEDULE, 0, TimeUnit.SECONDS);
 
         Iterator<Integer> delayIt = Arrays.asList(5, 5, 8, 16, 32, 64, 128).iterator();
         while (delayIt.hasNext()) {
@@ -192,13 +177,7 @@ public class BackOffTaskSchedulerTest {
 
         // wait for the max of 5 seconds until the task was scheduled an expected number of times
         int expected = 11;
-        for (int timeout = 10; counter.get() < expected && timeout > 0; timeout--) {
-            try {
-                Thread.sleep(500);
-            } catch (InterruptedException e) {
-                throw new RuntimeException("Interrupted", e);
-            }
-        }
+        waitForTargetCount(counter, expected);
 
         log.debug("Executor log: ");
         for (MockScheduledExecutorLog e: executor.invocationLog) {
@@ -211,7 +190,7 @@ public class BackOffTaskSchedulerTest {
         Iterator<MockScheduledExecutorLog> it = executor.invocationLog.iterator();
 
         Assert.assertTrue("Has more entries", it.hasNext());
-        assertLogEntry(it.next(), MockExecutorLogActionType.SCHEDULE, 1, TimeUnit.MILLISECONDS);
+        assertLogEntry(it.next(), MockExecutorLogActionType.SCHEDULE, 0, TimeUnit.SECONDS);
 
         Iterator<Integer> delayIt = Arrays.asList(2, 4, 8, 16, 32, 64, 128, 240, 240, 240).iterator();
         while (delayIt.hasNext()) {
@@ -220,6 +199,16 @@ public class BackOffTaskSchedulerTest {
         }
 
         Assert.assertFalse("Has no more entries", it.hasNext());
+    }
+
+    private void waitForTargetCount(AtomicInteger counter, int expected) {
+        for (int timeout = 100; counter.get() < expected && timeout > 0; timeout--) {
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                throw new RuntimeException("Interrupted", e);
+            }
+        }
     }
 
     @Test
@@ -249,7 +238,7 @@ public class BackOffTaskSchedulerTest {
         Assert.assertEquals("Executor log should have 1 entry", 1, executor.invocationLog.size());
 
         MockScheduledExecutorLog entry = executor.invocationLog.getFirst();
-        assertLogEntry(entry, MockExecutorLogActionType.SCHEDULE, 1, TimeUnit.MILLISECONDS);
+        assertLogEntry(entry, MockExecutorLogActionType.SCHEDULE, 0, TimeUnit.SECONDS);
     }
 
     private static void assertLogEntry(MockScheduledExecutorLog entry, MockExecutorLogActionType type, int delayOrPeriod, TimeUnit delayUnit) {

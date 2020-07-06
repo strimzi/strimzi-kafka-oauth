@@ -85,7 +85,7 @@ public class BackOffTaskScheduler {
             log.debug("Acquired taskSchedule lock");
 
             // First repetition is immediate but at least minPauseSeconds has to pass since the last attempt
-            long delay = 1;
+            long delay = 0;
             long now = System.currentTimeMillis();
             long boundaryTime = minPauseSeconds > 0 ? lastExecutionAttempt + minPauseSeconds * 1000L : now;
             if (boundaryTime > now) {
