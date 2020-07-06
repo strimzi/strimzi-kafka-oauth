@@ -23,9 +23,11 @@ public class Sessions {
 
     private static final Object NONE = new Object();
 
-    /*
-     * We use the WeakHashMap to allow JVM to still garbage collect the keys, and remove them from the map.
-     * The important thing is to not hold on to the objects used as keys in any other way - they must not be referenced in values.
+    /**
+     * The map of all 'sessions' in the form of BearerTokenWithPayload - the custom extension of OAuthBearerToken object
+     * produced by our Validators at authentication time, which to us represents a session context.
+     * The WeakHashMap is used to not prevent JVM from garbage collecting the completed and otherwise terminated sessions,
+     * while we're still able to iterate over the active sessions.
      */
     private Map<BearerTokenWithPayload, Object> activeSessions = Collections.synchronizedMap(new WeakHashMap<>());
 
@@ -43,10 +45,7 @@ public class Sessions {
 
         // In order to prevent the possible ConcurrentModificationException in the middle of using an iterator
         // we first make a local copy, then iterate over the copy
-        ArrayList<BearerTokenWithPayload> values;
-        synchronized (activeSessions) {
-            values = new ArrayList<>(activeSessions.keySet());
-        }
+        ArrayList<BearerTokenWithPayload> values = new ArrayList<>(activeSessions.keySet());
 
         List<SessionFuture> results = new ArrayList<>(values.size());
         for (BearerTokenWithPayload token: values) {
@@ -62,10 +61,7 @@ public class Sessions {
     public void cleanupExpired() {
         // In order to prevent the possible ConcurrentModificationException in the middle of using an iterator
         // we first make a local copy, then iterate over the copy
-        ArrayList<BearerTokenWithPayload> values;
-        synchronized (activeSessions) {
-            values = new ArrayList<>(activeSessions.keySet());
-        }
+        ArrayList<BearerTokenWithPayload> values = new ArrayList<>(activeSessions.keySet());
 
         long now = System.currentTimeMillis();
 
