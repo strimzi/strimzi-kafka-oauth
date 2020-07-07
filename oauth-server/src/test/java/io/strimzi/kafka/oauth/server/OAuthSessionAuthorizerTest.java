@@ -106,7 +106,44 @@ public class OAuthSessionAuthorizerTest {
         Assert.assertEquals("Properties contain exactly 2 keys", 2, config.size());
 
         authorizer = new OAuthSessionAuthorizer();
+        try {
+            authorizer.configure(config);
+
+            Assert.fail("Call to configure() should fail due to misconfiguration");
+        } catch (RuntimeException e) {
+            Assert.assertTrue(e.getMessage().contains("'strimzi.authorizer.grant.when.no.delegate=true' has to be specified"));
+        }
+
+        // set the option to a bad value
+        config.put("strimzi.authorizer.grant.when.no.delegate", "grant");
+
+        // configure should fail
+        try {
+            authorizer.configure(config);
+
+            Assert.fail("Call to configure() should fail due to misconfiguration");
+        } catch (IllegalArgumentException ignored) {
+        }
+
+
+        // set the option to another bad value
+        config.put("strimzi.authorizer.grant.when.no.delegate", "false");
+
+        // configure should fail
+        try {
+            authorizer.configure(config);
+
+            Assert.fail("Call to configure() should fail due to misconfiguration");
+        } catch (RuntimeException e) {
+            Assert.assertTrue(e.getMessage().contains("'strimzi.authorizer.grant.when.no.delegate=true' has to be specified"));
+        }
+
+        // set the option to the only valid value
+        config.put("strimzi.authorizer.grant.when.no.delegate", "true");
+
+        // configure should now succeed
         authorizer.configure(config);
+
 
         // Prepare arguments for authorize() call
         session = new RequestChannel.Session(new KafkaPrincipal("User", "CN=admin"), InetAddress.getLocalHost());
@@ -137,9 +174,16 @@ public class OAuthSessionAuthorizerTest {
         principal = new OAuthKafkaPrincipal("User", "bob", token);
         session = new RequestChannel.Session(principal, InetAddress.getLocalHost());
 
-        // authorize() call should return true
+        // authorize() call should return false
         granted = authorizer.authorize(session, op, resource);
         Assert.assertFalse("Should be denied", granted);
+
+        // Prepare an authenticated non-oauth user
+        session = new RequestChannel.Session(new KafkaPrincipal("User", "bob"), InetAddress.getLocalHost());
+
+        // authorize() call should return true
+        granted = authorizer.authorize(session, op, resource);
+        Assert.assertTrue("Should be granted", granted);
     }
 
     public static class MockAuthorizer implements Authorizer {

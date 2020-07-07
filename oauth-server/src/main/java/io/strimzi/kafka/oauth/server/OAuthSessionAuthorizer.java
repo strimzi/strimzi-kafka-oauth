@@ -5,6 +5,7 @@
 package io.strimzi.kafka.oauth.server;
 
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
+import io.strimzi.kafka.oauth.common.Config;
 import io.strimzi.kafka.oauth.common.TimeUtil;
 import kafka.network.RequestChannel;
 import org.apache.kafka.common.security.auth.KafkaPrincipal;
@@ -21,8 +22,7 @@ import static io.strimzi.kafka.oauth.common.LogUtil.mask;
  * <p>
  * This authorizer does not detect if the token was invalidated mid-session by explicitly revoking it at the
  * authorization server or by revoking the JWKS signing keys at the authorization server.
- * </p>
- * <p>
+ * </p><p>
  * To install this authorizer in Kafka broker, specify the following in your 'server.properties':
  * </p>
  * <pre>
@@ -38,8 +38,15 @@ import static io.strimzi.kafka.oauth.common.LogUtil.mask;
  * The specified delegate authorizer should be configured according to its documentation, as if it was installed as the
  * main authorizer (using <em>authorizer.class.name</em>).
  * <p>
- * If the `strimzi.authorizer.delegate.class.name` is not set, any operation will be granted as long as the the access token
- * has not yet expired.
+ * If the `strimzi.authorizer.delegate.class.name` is not set, then you need to explicitly specify that all authorizations
+ * should be granted, as long as the access token has not expired by specifying:
+ * <pre>
+ *     strimzi.authorizer.grant.when.no.delegate=true
+ * </pre>
+ * With this setting the OAuthSessionAuthorizer behaves as if there was no authorizer installed - it grants everything with
+ * the exception that the sessions using SASL_OAUTHBEARER with expired token will be denied.
+ * </p><p>
+ * This authorizer doesn't take <em>super.users</em> setting into account. When used without a delegate every user effectively becomes a super user.
  * </p>
  */
 @SuppressWarnings("deprecation")
@@ -69,6 +76,13 @@ public class OAuthSessionAuthorizer implements kafka.security.auth.Authorizer {
 
             } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
                 throw new RuntimeException("Failed to instantiate and configure the delegate authorizer: " + className, e);
+            }
+        } else {
+            String grantByDefault = (String) configs.get(ServerConfig.STRIMZI_AUTHORIZER_GRANT_WHEN_NO_DELEGATE);
+            boolean isGrantByDefault = grantByDefault != null && Config.isTrue(grantByDefault);
+
+            if (!isGrantByDefault) {
+                throw new RuntimeException("When no 'strimzi.authorizer.delegate.class.name' is specified, 'strimzi.authorizer.grant.when.no.delegate=true' has to be specified");
             }
         }
 
