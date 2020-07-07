@@ -35,45 +35,22 @@ public class ExampleConcurrentProducer {
         Properties defaults = new Properties();
         Config external = new Config();
 
-        //  Set KEYCLOAK_HOST to connect to Keycloak host other than 'keycloak'
-        //  Use 'keycloak.host' system property or KEYCLOAK_HOST env variable
+        configureTokenEndpoint(defaults, external);
 
-        final String keycloakHost = external.getValue("keycloak.host", "keycloak");
-        final String realm = external.getValue("realm", "kafka-authz");
-        final String tokenEndpointUri = "http://" + keycloakHost + ":8080/auth/realms/" + realm + "/protocol/openid-connect/token";
+        configureObtainingTheAccessToken(defaults, external);
 
-        //  You can also configure token endpoint uri directly via 'oauth.token.endpoint.uri' system property,
-        //  or OAUTH_TOKEN_ENDPOINT_URI env variable
-
-        defaults.setProperty(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, tokenEndpointUri);
-
-        //  By defaut this client uses preconfigured clientId and secret to authenticate.
-        //  You can set OAUTH_ACCESS_TOKEN or OAUTH_REFRESH_TOKEN to override default authentication.
-        //
-        //  If access token is configured, it is passed directly to Kafka broker
-        //  If refresh token is configured, it is used in conjunction with clientId and secret
-        //
-        //  See examples README.md for more info.
-
-        final String accessToken = external.getValue(ClientConfig.OAUTH_ACCESS_TOKEN, null);
-
-        if (accessToken == null) {
-            defaults.setProperty(Config.OAUTH_CLIENT_ID, "team-a-client");
-            defaults.setProperty(Config.OAUTH_CLIENT_SECRET, "team-a-client-secret");
-        }
-
-        // Use 'preferred_username' rather than 'sub' for principal name
-        if (isAccessTokenJwt(external)) {
-            defaults.setProperty(Config.OAUTH_USERNAME_CLAIM, "preferred_username");
-        }
+        configureUsernameExtraction(defaults, external);
 
         // Resolve external configurations falling back to provided defaults
         ConfigProperties.resolveAndExportToSystemProperties(defaults);
 
+        // Build the final config
         Properties props = buildProducerConfig();
+
+        // Create the producer
         Producer<String, String> producer = new KafkaProducer<>(props);
 
-        // KafkaProducer contains an internal worker pool and has an async API.
+        // KafkaProducer contains an internal worker pool and has an async API
         int messageCounter = 1;
 
         List<Job> jobs = new ArrayList<>();
@@ -88,31 +65,17 @@ public class ExampleConcurrentProducer {
             while (true) {
 
                 // Run a batch of jobs
-                for (Job j : jobs) {
-                    j.result = producer.send(new ProducerRecord<>(topic, j.message));
-                }
+                runJobs(jobs, producer, topic);
 
                 // Wait for all jobs to finish, and check if some jobs have encountered exceptions that require recreating the producer
                 List<Job> rerunJobs = new ArrayList<>();
                 boolean reinitProducer = false;
 
+                // Wait for jobs to finish
                 for (Job j : jobs) {
-                    try {
-                        j.result.get();
-                        log.info("Sent '" + j.message + "'");
-                    } catch (InterruptedException e) {
-                        throw new RuntimeException("Interrupted while sending!");
-
-                    } catch (ExecutionException e) {
-                        Throwable cause = e.getCause();
-                        if (cause instanceof AuthenticationException
-                                || cause instanceof AuthorizationException) {
-                            reinitProducer = true;
-                            rerunJobs.add(new Job(j.message));
-                            log.error("Failed to send message due to auth / authz issue ('" + j.message + "')", cause);
-                        } else {
-                            throw new RuntimeException("Failed to send message due to unexpected error ('" + j.message + "')", e);
-                        }
+                    boolean reinit = waitForJob(j, rerunJobs);
+                    if (reinit) {
+                        reinitProducer = true;
                     }
                 }
 
@@ -125,11 +88,7 @@ public class ExampleConcurrentProducer {
                 jobs = rerunJobs;
 
                 // Make a little pause before the next batch
-                try {
-                    Thread.sleep(10000);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException("Interrupted while sleeping!");
-                }
+                sleep(10000);
 
                 // Re-init producer if necessary
                 if (reinitProducer) {
@@ -140,6 +99,80 @@ public class ExampleConcurrentProducer {
         } finally {
             producer.close();
         }
+    }
+
+    private static void sleep(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            throw new RuntimeException("Interrupted while sleeping!");
+        }
+    }
+
+    private static boolean waitForJob(Job job, List<Job> rerunJobs) {
+        boolean reinit = false;
+        try {
+            job.result.get();
+            log.info("Sent '" + job.message + "'");
+        } catch (InterruptedException e) {
+            throw new RuntimeException("Interrupted while sending!");
+
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof AuthenticationException
+                    || cause instanceof AuthorizationException) {
+                reinit = true;
+                rerunJobs.add(new Job(job.message));
+                log.error("Failed to send message due to auth / authz issue ('" + job.message + "')", cause);
+            } else {
+                throw new RuntimeException("Failed to send message due to unexpected error ('" + job.message + "')", e);
+            }
+        }
+        return reinit;
+    }
+
+    private static void runJobs(List<Job> jobs, Producer<String, String> producer, String topic) {
+        for (Job j : jobs) {
+            j.result = producer.send(new ProducerRecord<>(topic, j.message));
+        }
+    }
+
+    private static void configureUsernameExtraction(Properties defaults, Config external) {
+        // Use 'preferred_username' rather than 'sub' for principal name
+        if (isAccessTokenJwt(external)) {
+            defaults.setProperty(Config.OAUTH_USERNAME_CLAIM, "preferred_username");
+        }
+    }
+
+    private static void configureObtainingTheAccessToken(Properties defaults, Config external) {
+        //  By defaut this client uses preconfigured clientId and secret to authenticate.
+        //  You can set OAUTH_ACCESS_TOKEN or OAUTH_REFRESH_TOKEN to override default authentication.
+        //
+        //  If access token is configured, it is passed directly to Kafka broker
+        //  If refresh token is configured, it is used in conjunction with clientId and secret
+        //
+        //  See examples README.md for more info.
+
+        final String accessToken = external.getValue(ClientConfig.OAUTH_ACCESS_TOKEN, null);
+
+        if (accessToken == null) {
+            defaults.setProperty(Config.OAUTH_CLIENT_ID, "team-a-client");
+            defaults.setProperty(Config.OAUTH_CLIENT_SECRET, "team-a-client-secret");
+        }
+    }
+
+    private static void configureTokenEndpoint(Properties defaults, Config external) {
+        //  Set KEYCLOAK_HOST to connect to Keycloak host other than 'keycloak'
+        //  Use 'keycloak.host' system property or KEYCLOAK_HOST env variable
+
+        final String keycloakHost = external.getValue("keycloak.host", "keycloak");
+        final String realm = external.getValue("realm", "kafka-authz");
+        final String tokenEndpointUri = "http://" + keycloakHost + ":8080/auth/realms/" + realm + "/protocol/openid-connect/token";
+
+        //  You can also configure token endpoint uri directly via 'oauth.token.endpoint.uri' system property,
+        //  or OAUTH_TOKEN_ENDPOINT_URI env variable
+
+        defaults.setProperty(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, tokenEndpointUri);
     }
 
     @SuppressWarnings("deprecation")
