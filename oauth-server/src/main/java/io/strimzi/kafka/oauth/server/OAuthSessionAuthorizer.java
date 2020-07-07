@@ -22,9 +22,8 @@ import static io.strimzi.kafka.oauth.common.LogUtil.mask;
  * <p>
  * This authorizer does not detect if the token was invalidated mid-session by explicitly revoking it at the
  * authorization server or by revoking the JWKS signing keys at the authorization server.
- * </p><p>
+ * <p>
  * To install this authorizer in Kafka broker, specify the following in your 'server.properties':
- * </p>
  * <pre>
  *     authorizer.class.name=io.strimzi.kafka.oauth.server.OAuthSessionAuthorizer
  *     principal.builder.class=io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder
@@ -45,9 +44,8 @@ import static io.strimzi.kafka.oauth.common.LogUtil.mask;
  * </pre>
  * With this setting the OAuthSessionAuthorizer behaves as if there was no authorizer installed - it grants everything with
  * the exception that the sessions using SASL_OAUTHBEARER with expired token will be denied.
- * </p><p>
+ * <p>
  * This authorizer doesn't take <em>super.users</em> setting into account. When used without a delegate every user effectively becomes a super user.
- * </p>
  */
 @SuppressWarnings("deprecation")
 public class OAuthSessionAuthorizer implements kafka.security.auth.Authorizer {

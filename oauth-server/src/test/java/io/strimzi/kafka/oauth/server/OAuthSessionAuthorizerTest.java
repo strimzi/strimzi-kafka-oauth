@@ -45,21 +45,41 @@ public class OAuthSessionAuthorizerTest {
         Assert.assertEquals("Invocation log contains one entry", 1, delegateAuthorizer.invocationLog.size());
         Assert.assertEquals("Configuration should be passed to delegate", config, delegateAuthorizer.invocationLog.getLast().config);
 
-        // Prepare arguments for authorize() call
-        RequestChannel.Session session = new RequestChannel.Session(new KafkaPrincipal("User", "CN=admin"), InetAddress.getLocalHost());
+
+        testNonOAuthUserWithDelegate(authorizer, delegateAuthorizer);
+
+        testOAuthUserWithDelegate(authorizer, delegateAuthorizer);
+
+        testOAuthUserWithExpiredTokenWithDelegate(authorizer, delegateAuthorizer);
+
+        // prepare the authorizer without the delegate, testing various misconfigurations in the process
+        authorizer = testConfiguringAuthorizerWithoutDelegate(authorizer, config);
+
+        testNonOAuthUserWithoutDelegate(authorizer);
+
+        testOAuthUserWithoutDelegate(authorizer);
+
+        testOAuthUserWithExpiredTokenWithoutDelegate(authorizer);
+    }
+
+    private void testOAuthUserWithExpiredTokenWithoutDelegate(Authorizer authorizer) throws Exception {
+
+        // Make it so that the token is expired
+        TokenInfo tokenInfo = new TokenInfo("accesstoken234", null, "User:bob",
+                System.currentTimeMillis() - 200000,
+                System.currentTimeMillis() - 100000);
+        BearerTokenWithPayload token = new JaasServerOauthValidatorCallbackHandler.BearerTokenWithPayloadImpl(tokenInfo);
+        OAuthKafkaPrincipal principal = new OAuthKafkaPrincipal("User", "bob", token);
+        RequestChannel.Session session = new RequestChannel.Session(principal, InetAddress.getLocalHost());
         Operation op = Operation.fromString("READ");
         Resource resource = new Resource(ResourceType.fromString("TOPIC"), "my-topic");
 
-        // authorize() call should be delegated because principal is not instanceof OAuthKafkaPrincipal
+        // authorize() call should return false
         boolean granted = authorizer.authorize(session, op, resource);
+        Assert.assertFalse("Should be denied", granted);
+    }
 
-        MockAuthorizerLog lastEntry = delegateAuthorizer.invocationLog.getLast();
-        Assert.assertEquals("Invocation log should contain two entries", 2, delegateAuthorizer.invocationLog.size());
-        Assert.assertEquals("authorize() call should be delegated", MockAuthorizerType.AUTHORIZE, lastEntry.type);
-        Assert.assertEquals("Call args should be equal - session", session, lastEntry.session);
-        Assert.assertEquals("Call args should be equal - operation", op, lastEntry.operation);
-        Assert.assertEquals("Call args should be equal - resource", resource, lastEntry.resource);
-        Assert.assertTrue("Should be granted", granted);
+    private void testOAuthUserWithoutDelegate(Authorizer authorizer) throws Exception {
 
         // Prepare condition after mock OAuth athentication with valid token
         TokenInfo tokenInfo = new TokenInfo("accesstoken123", null, "User:bob",
@@ -67,39 +87,28 @@ public class OAuthSessionAuthorizerTest {
                 System.currentTimeMillis() + 100000);
         BearerTokenWithPayload token = new JaasServerOauthValidatorCallbackHandler.BearerTokenWithPayloadImpl(tokenInfo);
         OAuthKafkaPrincipal principal = new OAuthKafkaPrincipal("User", "bob", token);
-        session = new RequestChannel.Session(principal, InetAddress.getLocalHost());
+        RequestChannel.Session session = new RequestChannel.Session(principal, InetAddress.getLocalHost());
+        Operation op = Operation.fromString("READ");
+        Resource resource = new Resource(ResourceType.fromString("TOPIC"), "my-topic");
 
-        // authorize() call should be delegated because the OAuthKafkaPrincipa contains a valid token
-        granted = authorizer.authorize(session, op, resource);
-
-        lastEntry = delegateAuthorizer.invocationLog.getLast();
-        Assert.assertEquals("Invocation log should contain three entries", 3, delegateAuthorizer.invocationLog.size());
-        Assert.assertEquals("authorize() call should be delegated", MockAuthorizerType.AUTHORIZE, lastEntry.type);
-        Assert.assertEquals("Call args should be equal - session", session, lastEntry.session);
-        Assert.assertEquals("Call args should be equal - session.token", token, ((OAuthKafkaPrincipal) lastEntry.session.principal()).getJwt());
-        Assert.assertEquals("Call args should be equal - operation", op, lastEntry.operation);
-        Assert.assertEquals("Call args should be equal - resource", resource, lastEntry.resource);
+        // authorize() call should return true
+        boolean granted = authorizer.authorize(session, op, resource);
         Assert.assertTrue("Should be granted", granted);
+    }
 
-        // Make it so that the token is expired
-        tokenInfo = new TokenInfo("accesstoken234", null, "User:bob",
-                System.currentTimeMillis() - 200000,
-                System.currentTimeMillis() - 100000);
-        token = new JaasServerOauthValidatorCallbackHandler.BearerTokenWithPayloadImpl(tokenInfo);
-        principal = new OAuthKafkaPrincipal("User", "bob", token);
-        session = new RequestChannel.Session(principal, InetAddress.getLocalHost());
+    private void testNonOAuthUserWithoutDelegate(Authorizer authorizer) throws Exception {
 
-        // authorize() call should not be delegated because the OAuthKafkaPrincipa contains an expired token
-        granted = authorizer.authorize(session, op, resource);
+        // Prepare arguments for authorize() call
+        RequestChannel.Session session = new RequestChannel.Session(new KafkaPrincipal("User", "CN=admin"), InetAddress.getLocalHost());
+        Operation op = Operation.fromString("READ");
+        Resource resource = new Resource(ResourceType.fromString("TOPIC"), "my-topic");
 
-        lastEntry = delegateAuthorizer.invocationLog.getLast();
-        Assert.assertEquals("Invocation log should still contain three entries", 3, delegateAuthorizer.invocationLog.size());
-        Assert.assertEquals("Call args should be equal - session", session, lastEntry.session);
-        Assert.assertEquals("Principal type should be OAuthKafkaPrincipal", OAuthKafkaPrincipal.class, lastEntry.session.principal().getClass());
-        Assert.assertNotEquals("Call args should be different - session.token", token, ((OAuthKafkaPrincipal) lastEntry.session.principal()).getJwt());
-        Assert.assertEquals("Call args should be equal - operation", op, lastEntry.operation);
-        Assert.assertEquals("Call args should be equals - resource", resource, lastEntry.resource);
-        Assert.assertFalse("Should be denied", granted);
+        // authorize() call should return true
+        boolean granted = authorizer.authorize(session, op, resource);
+        Assert.assertTrue("Should be granted", granted);
+    }
+
+    private Authorizer testConfiguringAuthorizerWithoutDelegate(Authorizer authorizer, java.util.Map<String, String> config) {
 
         // Test authorizer without the delegate
         config.remove("strimzi.authorizer.delegate.class.name");
@@ -143,47 +152,77 @@ public class OAuthSessionAuthorizerTest {
 
         // configure should now succeed
         authorizer.configure(config);
+        return authorizer;
+    }
 
+    private void testNonOAuthUserWithDelegate(Authorizer authorizer, MockAuthorizer delegateAuthorizer) throws Exception {
 
         // Prepare arguments for authorize() call
-        session = new RequestChannel.Session(new KafkaPrincipal("User", "CN=admin"), InetAddress.getLocalHost());
-        op = Operation.fromString("READ");
-        resource = new Resource(ResourceType.fromString("TOPIC"), "my-topic");
+        RequestChannel.Session session = new RequestChannel.Session(new KafkaPrincipal("User", "CN=admin"), InetAddress.getLocalHost());
+        Operation op = Operation.fromString("READ");
+        Resource resource = new Resource(ResourceType.fromString("TOPIC"), "my-topic");
 
-        // authorize() call should return true
-        granted = authorizer.authorize(session, op, resource);
+        // authorize() call should be delegated because principal is not instanceof OAuthKafkaPrincipal
+        boolean granted = authorizer.authorize(session, op, resource);
+
+        MockAuthorizerLog lastEntry = delegateAuthorizer.invocationLog.getLast();
+        Assert.assertEquals("Invocation log should contain two entries", 2, delegateAuthorizer.invocationLog.size());
+        Assert.assertEquals("authorize() call should be delegated", MockAuthorizerType.AUTHORIZE, lastEntry.type);
+        Assert.assertEquals("Call args should be equal - session", session, lastEntry.session);
+        Assert.assertEquals("Call args should be equal - operation", op, lastEntry.operation);
+        Assert.assertEquals("Call args should be equal - resource", resource, lastEntry.resource);
         Assert.assertTrue("Should be granted", granted);
+    }
+
+    private void testOAuthUserWithDelegate(Authorizer authorizer, MockAuthorizer delegateAuthorizer) throws Exception {
 
         // Prepare condition after mock OAuth athentication with valid token
-        tokenInfo = new TokenInfo("accesstoken123", null, "User:bob",
+        TokenInfo tokenInfo = new TokenInfo("accesstoken123", null, "User:bob",
                 System.currentTimeMillis() - 100000,
                 System.currentTimeMillis() + 100000);
-        token = new JaasServerOauthValidatorCallbackHandler.BearerTokenWithPayloadImpl(tokenInfo);
-        principal = new OAuthKafkaPrincipal("User", "bob", token);
-        session = new RequestChannel.Session(principal, InetAddress.getLocalHost());
+        BearerTokenWithPayload token = new JaasServerOauthValidatorCallbackHandler.BearerTokenWithPayloadImpl(tokenInfo);
+        OAuthKafkaPrincipal principal = new OAuthKafkaPrincipal("User", "bob", token);
 
-        // authorize() call should return true
-        granted = authorizer.authorize(session, op, resource);
+        RequestChannel.Session session = new RequestChannel.Session(principal, InetAddress.getLocalHost());
+        Operation op = Operation.fromString("READ");
+        Resource resource = new Resource(ResourceType.fromString("TOPIC"), "my-topic");
+
+        // authorize() call should be delegated because the OAuthKafkaPrincipa contains a valid token
+        boolean granted = authorizer.authorize(session, op, resource);
+
+        MockAuthorizerLog lastEntry = delegateAuthorizer.invocationLog.getLast();
+        Assert.assertEquals("Invocation log should contain three entries", 3, delegateAuthorizer.invocationLog.size());
+        Assert.assertEquals("authorize() call should be delegated", MockAuthorizerType.AUTHORIZE, lastEntry.type);
+        Assert.assertEquals("Call args should be equal - session", session, lastEntry.session);
+        Assert.assertEquals("Call args should be equal - session.token", token, ((OAuthKafkaPrincipal) lastEntry.session.principal()).getJwt());
+        Assert.assertEquals("Call args should be equal - operation", op, lastEntry.operation);
+        Assert.assertEquals("Call args should be equal - resource", resource, lastEntry.resource);
         Assert.assertTrue("Should be granted", granted);
+    }
+
+    public void testOAuthUserWithExpiredTokenWithDelegate(Authorizer authorizer, MockAuthorizer delegateAuthorizer) throws Exception {
 
         // Make it so that the token is expired
-        tokenInfo = new TokenInfo("accesstoken234", null, "User:bob",
+        TokenInfo tokenInfo = new TokenInfo("accesstoken234", null, "User:bob",
                 System.currentTimeMillis() - 200000,
                 System.currentTimeMillis() - 100000);
-        token = new JaasServerOauthValidatorCallbackHandler.BearerTokenWithPayloadImpl(tokenInfo);
-        principal = new OAuthKafkaPrincipal("User", "bob", token);
-        session = new RequestChannel.Session(principal, InetAddress.getLocalHost());
+        BearerTokenWithPayload token = new JaasServerOauthValidatorCallbackHandler.BearerTokenWithPayloadImpl(tokenInfo);
+        OAuthKafkaPrincipal principal = new OAuthKafkaPrincipal("User", "bob", token);
+        RequestChannel.Session session = new RequestChannel.Session(principal, InetAddress.getLocalHost());
+        Operation op = Operation.fromString("READ");
+        Resource resource = new Resource(ResourceType.fromString("TOPIC"), "my-topic");
 
-        // authorize() call should return false
-        granted = authorizer.authorize(session, op, resource);
+        // authorize() call should not be delegated because the OAuthKafkaPrincipa contains an expired token
+        boolean granted = authorizer.authorize(session, op, resource);
+
+        MockAuthorizerLog lastEntry = delegateAuthorizer.invocationLog.getLast();
+        Assert.assertEquals("Invocation log should still contain three entries", 3, delegateAuthorizer.invocationLog.size());
+        Assert.assertEquals("Call args should be equal - session", session, lastEntry.session);
+        Assert.assertEquals("Principal type should be OAuthKafkaPrincipal", OAuthKafkaPrincipal.class, lastEntry.session.principal().getClass());
+        Assert.assertNotEquals("Call args should be different - session.token", token, ((OAuthKafkaPrincipal) lastEntry.session.principal()).getJwt());
+        Assert.assertEquals("Call args should be equal - operation", op, lastEntry.operation);
+        Assert.assertEquals("Call args should be equals - resource", resource, lastEntry.resource);
         Assert.assertFalse("Should be denied", granted);
-
-        // Prepare an authenticated non-oauth user
-        session = new RequestChannel.Session(new KafkaPrincipal("User", "bob"), InetAddress.getLocalHost());
-
-        // authorize() call should return true
-        granted = authorizer.authorize(session, op, resource);
-        Assert.assertTrue("Should be granted", granted);
     }
 
     public static class MockAuthorizer implements Authorizer {
