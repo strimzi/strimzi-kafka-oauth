@@ -144,9 +144,17 @@ public class BackOffTaskScheduler {
             } catch (Throwable t) {
                 log.error("Scheduled task execution failed:", t);
 
+                // makes no sense to wait for hours until next refresh
+                // this is some kind of overflow protection at ~4.5 hours.
+                if (repeatCount > 14) {
+                    log.debug("Task schedule lock held for too many repetitions");
+                    releaseTaskScheduleLock();
+                    return;
+                }
+
                 // If things went wrong, reschedule next repetition
                 // in exponential backoff fashion (1,2,4,8,16,32)
-                long delay = (long) Math.pow(2, repeatCount);
+                long delay = 1L << repeatCount;
                 if (minPauseSeconds > 0 && delay < minPauseSeconds) {
                     delay = minPauseSeconds;
                 }
