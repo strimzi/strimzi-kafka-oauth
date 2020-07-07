@@ -393,7 +393,13 @@ It's the same for any other authorizer you may use - instead of using `authorize
 Do not use `OAuthSessionAuthorizer` together with `KeycloakRBACAuthorizer` as that would be redundant.
 
 If you don't use any authorizer at all, and don't use re-authentication, but still want to enforce access token expiry mid-session, don't specify the `strimzi.authorizer.delegate.class.name` at all.
-In this case, unless the access token has expired, all the actions will be granted.
+Instead, specify the following configuration:
+
+    strimzi.authorizer.grant.when.no.delegate=true
+
+In this case, unless the access token has expired, all the actions will be granted. The broker will behave as if no authorizer was installed, effectively turning every user into a 'super user'.
+The unauthenticated users, or users authenticated with a mechanism other than OAuth will also automatically have all the actions granted.
+
 
 ### Configuring the Kafka Broker authorization
 
