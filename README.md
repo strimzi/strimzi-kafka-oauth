@@ -353,7 +353,7 @@ This is not a full set of available `oauth.*` properties. All the `oauth.*` prop
 #### Enabling the re-authentication
 
 Access tokens expire after some time. The token validation for the purpose of session authentication is only performed immediately after the new connection from the client is established. 
-If using SimpleACLAuthorizer or no authorizer at all, then there is no further need for the access token after the validation, and by default the expiry of the token will not result in session closure or denial of access within the existing session.
+If using SimpleACLAuthorizer or no authorizer at all, then there is no further need for the access token after the authentication, and by default the expiry of the token will not result in session closure or denial of access within the existing session.
 
 Since Kafka version 2.2 the Kafka brokers support a [re-authentication mechanism](https://cwiki.apache.org/confluence/display/KAFKA/KIP-368%3A+Allow+SASL+Connections+to+Periodically+Re-Authenticate) allowing clients to update the token mid-session, without having to drop and re-establish the connection. 
 When a client sends the new access token, validation is performed on the broker as if a new connection was established.
