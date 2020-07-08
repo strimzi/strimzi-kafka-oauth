@@ -44,6 +44,16 @@ Usage of `OAuthSessionAuthorizer` is optional.
 It 'wraps' itself around another authorizer, and delegates all calls after determining that the current session still contains a valid token.
 This authorizer should *not* be used together with `KeycloakRBACAuthorizer`, since the latter already performs all the same checks.
 
+Two configuration options have been added for use by this authorizer:
+
+* `strimzi.authorizer.delegate.class.name`
+
+  Specifies the delegate authorizer class name to be used.
+  
+* `strimzi.authorizer.grant.when.no.delegate`
+
+  Enables this authorizer to work without the delegate.
+
 #### Deprecated the JwtKafkaPrincipalBuilder in favor of the new OAuthKafkaPrincipalBuilder
 
 In order to support the newly added `OAuthSessionAuthorizer` the `JwtKafkaPrincipalBuilder` had to be moved to `oauth-server` module, which called for a different package.
