@@ -27,7 +27,7 @@ public interface BearerTokenWithPayload extends OAuthBearerToken {
 
     /**
      * This method returns an id of the current instance of this object.
-     * Is is used for debugging purposes - e.g. logging that allows tracking of an individual instance
+     * It is used for debugging purposes - e.g. logging that allows tracking of an individual instance
      * of this object through logs.
      *
      * @return An int identifying this instance
