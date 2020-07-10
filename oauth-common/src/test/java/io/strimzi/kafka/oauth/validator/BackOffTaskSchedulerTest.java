@@ -48,9 +48,7 @@ public class BackOffTaskSchedulerTest {
             counter.incrementAndGet();
         };
 
-        BackOffTaskScheduler scheduler = new BackOffTaskScheduler(executor, task);
-        scheduler.setMinPauseSeconds(5);
-
+        BackOffTaskScheduler scheduler = new BackOffTaskScheduler(executor, 5, 300, task);
         scheduler.scheduleTask();
 
         log.debug("Executor log: ");
@@ -81,9 +79,7 @@ public class BackOffTaskSchedulerTest {
             }
         };
 
-        BackOffTaskScheduler scheduler = new BackOffTaskScheduler(executor, task);
-        scheduler.setMinPauseSeconds(5);
-
+        BackOffTaskScheduler scheduler = new BackOffTaskScheduler(executor, 5, 300, task);
         scheduler.scheduleTask();
 
         // Wait for the max of 5 seconds until the task was scheduled an expected number of times
@@ -124,10 +120,7 @@ public class BackOffTaskSchedulerTest {
             throw new RuntimeException("Test failure (deliberate)");
         };
 
-        BackOffTaskScheduler scheduler = new BackOffTaskScheduler(executor, task);
-        scheduler.setMinPauseSeconds(5);
-        scheduler.setCutoffIntervalSeconds(240);
-
+        BackOffTaskScheduler scheduler = new BackOffTaskScheduler(executor, 5, 250, task);
         scheduler.scheduleTask();
 
         // wait for the max of 5 seconds until the task was scheduled an expected number of times
@@ -148,51 +141,6 @@ public class BackOffTaskSchedulerTest {
         assertLogEntry(it.next(), MockExecutorLogActionType.SCHEDULE, 0, TimeUnit.SECONDS);
 
         Iterator<Integer> delayIt = Arrays.asList(5, 5, 8, 16, 32, 64, 128).iterator();
-        while (delayIt.hasNext()) {
-            Assert.assertTrue("Has more entries", it.hasNext());
-            assertLogEntry(it.next(), MockExecutorLogActionType.SCHEDULE, delayIt.next(), TimeUnit.SECONDS);
-        }
-
-        Assert.assertFalse("Has no more entries", it.hasNext());
-    }
-
-    @Test
-    public void testFailingTaskWithMaxInterval() {
-
-        MockScheduledExecutorService executor = new MockScheduledExecutorService();
-        AtomicInteger counter = new AtomicInteger();
-
-        Runnable task = () -> {
-            int count = counter.incrementAndGet();
-            // Fail first 10 times
-            if (count < 11) {
-                throw new RuntimeException("Test failure (deliberate)");
-            }
-        };
-
-        BackOffTaskScheduler scheduler = new BackOffTaskScheduler(executor, task);
-        scheduler.setMaxIntervalSeconds(240);
-
-        scheduler.scheduleTask();
-
-        // wait for the max of 5 seconds until the task was scheduled an expected number of times
-        int expected = 11;
-        waitForTargetCount(counter, expected);
-
-        log.debug("Executor log: ");
-        for (MockScheduledExecutorLog e: executor.invocationLog) {
-            log.debug("" + e);
-        }
-
-        // Test that the failing task is re-scheduled with exponential backoff until the delay reaches 240 seconds
-        Assert.assertEquals("Executor log should have 11 entries", 11, executor.invocationLog.size());
-
-        Iterator<MockScheduledExecutorLog> it = executor.invocationLog.iterator();
-
-        Assert.assertTrue("Has more entries", it.hasNext());
-        assertLogEntry(it.next(), MockExecutorLogActionType.SCHEDULE, 0, TimeUnit.SECONDS);
-
-        Iterator<Integer> delayIt = Arrays.asList(2, 4, 8, 16, 32, 64, 128, 240, 240, 240).iterator();
         while (delayIt.hasNext()) {
             Assert.assertTrue("Has more entries", it.hasNext());
             assertLogEntry(it.next(), MockExecutorLogActionType.SCHEDULE, delayIt.next(), TimeUnit.SECONDS);
@@ -228,7 +176,7 @@ public class BackOffTaskSchedulerTest {
             }
         };
 
-        BackOffTaskScheduler scheduler = new BackOffTaskScheduler(executor, task);
+        BackOffTaskScheduler scheduler = new BackOffTaskScheduler(executor, 1, 300, task);
 
         // Flood with schedule requests
         for (int i = 0; i < 100; i++) {

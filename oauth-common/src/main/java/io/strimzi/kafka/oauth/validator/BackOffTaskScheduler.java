@@ -14,17 +14,27 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * This scheduler adds support to immediately re-schedule the execution of the provided task, using the provided <em>ExecutorService</em>.
  * <p>
- * If the task has already been scheduled (by calling {@link #scheduleTask()} and has not yet completed, another request
- * to schedule the task will be ignored.
+ * It is used by <em>JWTSignatureValidator</em> to perform immediate (out of regular schedule) keys refresh upon detection
+ * of unknown keys. The objective is to detect rotation of JWT signing keys on authorization server very quickly in order to
+ * minimize the mismatch between valid / invalid keys on the Kafka broker and on the authorization server. Until the keys
+ * are in-sync with the authorization server, the mismatch causes 'invalid token' errors for valid new tokens, and keeps
+ * the Kafka broker accepting the no-longer-valid tokens.
+ * </p>
+ * <p>
+ * This scheduler works in tandem with periodic keys refresh job in <em>JWTSignatureValidator</em>, using the same
+ * <em>ScheduledExecutorService</em>, running the tasks on the same thread.
+ * While the periodic refresh is triggered on a regular schedule, and is unaware of any other tasks, this class runs
+ * the refresh task on demand as a one-off, but tries hard to succeed - it reschedules the task if it fails.
+ * </p>
+ * <p>
+ * If the task has already been scheduled (by calling {@link #scheduleTask()} and has not yet successfully completed,
+ * another request to schedule the task will be ignored.
  * </p>
  * <p>
  * If the scheduled task fails during its run, it will be rescheduled using the so called 'exponentional backoff' delay.
  * Rather than being attempted again immediately, it will pause for an ever increasing time delay until some cutoff delay
- * is reached ({@link #setCutoffIntervalSeconds(int)}).
- * </p>
- * <p>
- * Alternatively an upper limit can be set to the pause until next attempt ({@link #setMaxIntervalSeconds(int)}).
- * Once the task is executed successfully it will not be scheduled again until {@link #scheduleTask()} is called again.
+ * is reached ({@link #cutoffIntervalSeconds}) when no further attempts are schedule, and another {@link #scheduleTask()}
+ * call can again trigger a new refresh.
  * </p>
  */
 public class BackOffTaskScheduler {
@@ -34,50 +44,50 @@ public class BackOffTaskScheduler {
     private final ScheduledExecutorService service;
     private final Runnable task;
 
-    private int minPauseSeconds = 1;
-    private int maxIntervalSeconds;
-    private int cutoffIntervalSeconds;
+    private final int minPauseSeconds;
+    private final int cutoffIntervalSeconds;
 
     // Only one task is scheduled at a time
-    private AtomicBoolean taskScheduled = new AtomicBoolean(false);
+    private final AtomicBoolean taskScheduled = new AtomicBoolean(false);
 
     private long lastExecutionAttempt;
 
-    public BackOffTaskScheduler(ScheduledExecutorService service, Runnable task) {
-        this.service = service;
+    /**
+     * Initialise a new scheduler instance
+     * @param executor Single threaded executor service, also used by periodic keys refresh job
+     * @param minPauseSeconds A minimum pause before starting the task, and between any subsequent attempt
+     * @param cutoffIntervalSeconds If exponential backoff pause exceeds this interval, the task is cancelled
+     * @param task The task that refreshes the keys
+     */
+    public BackOffTaskScheduler(ScheduledExecutorService executor, int minPauseSeconds, int cutoffIntervalSeconds, Runnable task) {
+        this.service = executor;
         this.task = task;
+        this.minPauseSeconds = minPauseSeconds;
+        this.cutoffIntervalSeconds = cutoffIntervalSeconds;
+
+        if (minPauseSeconds < 0) {
+            throw new IllegalArgumentException("'minPauseSeconds' can't be < 0");
+        }
+
+        if (cutoffIntervalSeconds < 0) {
+            throw new IllegalArgumentException("'cutoffIntervaSeconds' can't be < 0");
+        }
     }
 
     public int getMinPauseSeconds() {
         return minPauseSeconds;
     }
 
-    public void setMinPauseSeconds(int minPauseSeconds) {
-        this.minPauseSeconds = minPauseSeconds;
-    }
-
-    public int getMaxIntervalSeconds() {
-        return maxIntervalSeconds;
-    }
-
-    public void setMaxIntervalSeconds(int maxIntervalSeconds) {
-        this.maxIntervalSeconds = maxIntervalSeconds;
-    }
-
     public int getCutoffIntervalSeconds() {
         return cutoffIntervalSeconds;
-    }
-
-    public void setCutoffIntervalSeconds(int cutoffIntervalSeconds) {
-        this.cutoffIntervalSeconds = cutoffIntervalSeconds;
     }
 
     /**
      * Schedule a task. The task will only be scheduled if no other task is yet scheduled.
      *
-     * That is to prevent piling up of tasks.
+     * That is to prevent queueing up of tasks and unnecessary repetition of the task execution.
      *
-     * @return true if task was scheduled for execution, false otherwise
+     * @return true if the task was scheduled for execution, false otherwise
      */
     public boolean scheduleTask() {
         // Only one scheduled task can be outstanding at any time
@@ -99,14 +109,6 @@ public class BackOffTaskScheduler {
             return true;
         }
         return false;
-    }
-
-    /**
-     * Update the time of last execution attempt to current time.
-     * This is handy when multiple schedulers work the same task on a single thread.
-     */
-    public void updateLastExecutionTime() {
-        lastExecutionAttempt = System.currentTimeMillis();
     }
 
     private void scheduleServiceTask(Runnable task, long delay) {
@@ -157,12 +159,6 @@ public class BackOffTaskScheduler {
                 long delay = 1L << repeatCount;
                 if (minPauseSeconds > 0 && delay < minPauseSeconds) {
                     delay = minPauseSeconds;
-                }
-
-                // Limit the delay to maxIntervalSeconds
-                // That makes it possible to grow delay exponentially to some maximum, and then keep it constant
-                if (maxIntervalSeconds > 0 && delay > maxIntervalSeconds) {
-                    delay = maxIntervalSeconds;
                 }
 
                 // Only reschedule if the next run would happen within cutoffIntervalSeconds

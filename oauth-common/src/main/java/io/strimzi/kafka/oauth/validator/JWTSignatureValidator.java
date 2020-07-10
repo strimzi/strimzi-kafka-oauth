@@ -40,6 +40,20 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.strimzi.kafka.oauth.validator.TokenValidationException.Status;
 
+/**
+ * This class is responsible for validating the JWT token signatures during session authentication.
+ * <p>
+ * It performs fast local token validation without the need to immediately contact the authorization server.
+ * for that it relies on the JWKS endpoint exposed at authorization server, which is a standard OAuth2 public endpoint
+ * containing the information about public keys that can be used to validate JWT signatures.
+ * </p>
+ * <p>
+ * A single threaded refresh job is run periodically or upon detecting an unknown signing key, that fetches the latest trusted public keys
+ * for signatare validation from authorization server. If the refresh job is unsuccessful it employs the so called 'exponential back-off'
+ * to retry later in order to reduce any out-of-sync time with the authorization server while still not flooding the server
+ * with endless consecutive requests.
+ * </p>
+ */
 public class JWTSignatureValidator implements TokenValidator {
 
     private static final Logger log = LoggerFactory.getLogger(JWTSignatureValidator.class);
@@ -48,7 +62,6 @@ public class JWTSignatureValidator implements TokenValidator {
 
     private static final TokenVerifier.TokenTypeCheck TOKEN_TYPE_CHECK = new TokenVerifier.TokenTypeCheck(TokenUtil.TOKEN_TYPE_BEARER);
 
-    private final ScheduledExecutorService periodicScheduler;
     private final BackOffTaskScheduler fastScheduler;
 
     private final URI keysUri;
@@ -65,7 +78,22 @@ public class JWTSignatureValidator implements TokenValidator {
     private Map<String, PublicKey> cache = Collections.emptyMap();
     private Map<String, PublicKey> oldCache = Collections.emptyMap();
 
-
+     /**
+     * Create a new instance
+      *
+     * @param keysEndpointUri The JWKS endpoint url at the authorization server
+     * @param socketFactory The optional SSL socket factory to use when establishing the connection to authorization server
+     * @param verifier The optional hostname verifier used to validate the TLS certificate by the authorization server
+     * @param principalExtractor The object used to extract the username from the JWT token
+     * @param validIssuerUri The required value of the 'iss' claim in JWT token
+     * @param refreshSeconds The optional time interval between two consecutive regular JWKS keys refresh runs
+     * @param refreshMinPauseSeconds The optional minimum pause between two consecutive JWKS keys refreshes.
+     * @param expirySeconds The maximum time to trust the unrefreshed JWKS keys. If keys are not successfully refreshed within this time, the validation will start failing.
+     * @param checkAccessTokenType Should the 'typ' claim in the token be validated (be equal to 'Bearer')
+     * @param audience The optional audience
+     * @param enableBouncyCastleProvider Should BouncyCastle JCE provider be enabled - required for ECDSA support
+     * @param bouncyCastleProviderPosition Position in JCE providers list - it is added to the end of the list by default
+     */
     public JWTSignatureValidator(String keysEndpointUri,
                                  SSLSocketFactory socketFactory,
                                  HostnameVerifier verifier,
@@ -129,13 +157,18 @@ public class JWTSignatureValidator implements TokenValidator {
             }
         }
 
+        // get the signing keys for signature validation before the first authorization requests start coming
+        // fail fast if keys refresh doesn't work - it means network issues or authorization server not responding
         fetchKeys();
 
-        periodicScheduler = setupRefreshKeysJob(refreshSeconds);
+        // the single threaded executor for refreshing the keys
+        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(new DaemonThreadFactory());
 
-        fastScheduler = new BackOffTaskScheduler(periodicScheduler, () -> fetchKeys());
-        fastScheduler.setCutoffIntervalSeconds(refreshSeconds);
-        fastScheduler.setMinPauseSeconds(refreshMinPauseSeconds);
+        // set up fast scheduler that refreshes keys on-demand, and keeps trying with exponential back-off until it succeeds
+        fastScheduler = new BackOffTaskScheduler(executor, refreshMinPauseSeconds, refreshSeconds, () -> fetchKeys());
+
+        // set up periodic timer to trigger fastScheduler job every refreshSeconds
+        setupRefreshKeysJob(executor, refreshSeconds);
 
         if (log.isDebugEnabled()) {
             log.debug("Configured JWTSignatureValidator:\n    keysEndpointUri: " + keysEndpointUri
@@ -163,24 +196,23 @@ public class JWTSignatureValidator implements TokenValidator {
         }
     }
 
-    private ScheduledExecutorService setupRefreshKeysJob(int refreshSeconds) {
-        // set up periodic timer to update keys from server every refreshSeconds;
-        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(new DaemonThreadFactory());
+    /**
+     * Set up a regular keys refresh job running on a fixed schedule every <em>refreshSeconds</em>.
+     * Use the fastScheduler for actual keys refresh which means that a minimum pause between two consecutive refreshes
+     * is enforced, and if the keys refresh fails it keeps re-trying using the exponential backoff.
+     *
+     * @param refreshSeconds The refresh period
+     */
+    private void setupRefreshKeysJob(ScheduledExecutorService executor, int refreshSeconds) {
 
-        scheduler.scheduleAtFixedRate(() -> {
+        executor.scheduleAtFixedRate(() -> {
             try {
-                if (fastScheduler != null) {
-                    // This is to maintain minPauseSeconds of fastScheduler in relation to regular scheduler as well
-                    fastScheduler.updateLastExecutionTime();
-                }
-                fetchKeys();
+                fastScheduler.scheduleTask();
             } catch (Exception e) {
                 // Log, but don't rethrow the exception to prevent scheduler cancelling the scheduled job.
                 log.error(e.getMessage(), e);
             }
         }, refreshSeconds, refreshSeconds, TimeUnit.SECONDS);
-
-        return scheduler;
     }
 
     private PublicKey getPublicKey(String id) {
@@ -249,7 +281,7 @@ public class JWTSignatureValidator implements TokenValidator {
                 if (oldCache.get(kid) != null) {
                     throw new TokenValidationException("Token validation failed: The signing key is no longer valid (kid:" + kid + ")");
                 } else {
-                    // Schedule quick keys refresh with flood protection
+                    // Request quick keys refresh
                     fastScheduler.scheduleTask();
                     throw new TokenValidationException("Token validation failed: Unknown signing key (kid:" + kid + ")");
                 }

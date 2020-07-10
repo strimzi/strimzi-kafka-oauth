@@ -13,15 +13,6 @@ public class Validators {
 
     private ConcurrentHashMap<ValidatorKey, TokenValidator> registry = new ConcurrentHashMap<>();
 
-
-    public void put(ValidatorKey key, TokenValidator validator) {
-        registry.put(key, validator);
-    }
-
-    public TokenValidator get(ValidatorKey key) {
-        return registry.get(key);
-    }
-
     public TokenValidator get(ValidatorKey key, Supplier<TokenValidator> factory) {
         return registry.computeIfAbsent(key, k -> factory.get());
     }
