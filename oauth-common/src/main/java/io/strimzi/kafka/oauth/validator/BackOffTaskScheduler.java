@@ -4,6 +4,7 @@
  */
 package io.strimzi.kafka.oauth.validator;
 
+import io.strimzi.kafka.oauth.services.CurrentTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -96,7 +97,7 @@ public class BackOffTaskScheduler {
 
             // First repetition is immediate but at least minPauseSeconds has to pass since the last attempt
             long delay = 0;
-            long now = System.currentTimeMillis();
+            long now = CurrentTime.currentTime();
             long boundaryTime = minPauseSeconds > 0 ? lastExecutionAttempt + minPauseSeconds * 1000L : now;
             if (boundaryTime > now) {
                 delay = boundaryTime - now;
@@ -113,7 +114,7 @@ public class BackOffTaskScheduler {
 
     private void scheduleServiceTask(Runnable task, long delay) {
         try {
-            service.schedule(task, delay, TimeUnit.SECONDS);
+            service.schedule(task, delay, TimeUnit.MILLISECONDS);
         } catch (Throwable e) {
             // Release taskSchedule lock
             releaseTaskScheduleLock();
@@ -134,7 +135,7 @@ public class BackOffTaskScheduler {
         @Override
         public void run() {
             try {
-                lastExecutionAttempt = System.currentTimeMillis();
+                lastExecutionAttempt = CurrentTime.currentTime();
                 repeatCount += 1;
 
                 // Delegate to task's run()
@@ -167,7 +168,7 @@ public class BackOffTaskScheduler {
                 if (cutoffIntervalSeconds <= 0 || delay < cutoffIntervalSeconds) {
 
                     // We still hold the taskScheduled lock
-                    scheduleServiceTask(this, delay);
+                    scheduleServiceTask(this, 1000 * delay);
 
                     if (log.isDebugEnabled()) {
                         log.debug("Task rescheduled in {} seconds", delay);
