@@ -125,24 +125,23 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
             int jwksExpirySeconds = config.getValueAsInt(ServerConfig.OAUTH_JWKS_EXPIRY_SECONDS, 360);
             int jwksMinPauseSeconds = config.getValueAsInt(ServerConfig.OAUTH_JWKS_REFRESH_MIN_PAUSE_SECONDS, 1);
 
-            vkey = ValidatorKey.forJwtValidator()
-                    .validIssuerUri(validIssuerUri)
-                    .usernameClaim(usernameClaim)
-                    .fallbackUsernameClaim(fallbackUsernameClaim)
-                    .fallbackUsernamePrefix(fallbackUsernamePrefix)
-                    .sslTruststore(sslTruststore)
-                    .sslStorePassword(sslPassword)
-                    .sslStoreType(sslType)
-                    .sslRandom(sslRnd)
-                    .hasHostnameVerifier(verifier != null)
-                    .jwksEndpointUri(jwksUri)
-                    .jwksRefreshSeconds(jwksRefreshSeconds)
-                    .jwksRefreshMinPauseSeconds(jwksMinPauseSeconds)
-                    .jwksExpirySeconds(jwksExpirySeconds)
-                    .checkAccessTokenType(checkTokenType)
-                    .enableBouncy(enableBouncy)
-                    .bouncyPosition(bouncyPosition)
-                    .build();
+            vkey = new ValidatorKey.JwtValidatorKey(
+                    validIssuerUri,
+                    usernameClaim,
+                    fallbackUsernameClaim,
+                    fallbackUsernamePrefix,
+                    sslTruststore,
+                    sslPassword,
+                    sslType,
+                    sslRnd,
+                    verifier != null,
+                    jwksUri,
+                    jwksRefreshSeconds,
+                    jwksExpirySeconds,
+                    jwksMinPauseSeconds,
+                    checkTokenType,
+                    enableBouncy,
+                    bouncyPosition);
 
             factory = () -> new JWTSignatureValidator(
                     jwksUri,
@@ -166,22 +165,21 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
             String clientId = config.getValue(Config.OAUTH_CLIENT_ID);
             String clientSecret = config.getValue(Config.OAUTH_CLIENT_SECRET);
 
-            vkey = ValidatorKey.forIntrospectionValidator()
-                    .validIssuerUri(validIssuerUri)
-                    .usernameClaim(usernameClaim)
-                    .fallbackUsernameClaim(fallbackUsernameClaim)
-                    .fallbackUsernamePrefix(fallbackUsernamePrefix)
-                    .sslTruststore(sslTruststore)
-                    .sslStorePassword(sslPassword)
-                    .sslStoreType(sslType)
-                    .sslRandom(sslRnd)
-                    .hasHostnameVerifier(verifier != null)
-                    .introspectionEndpoint(introspectionEndpoint)
-                    .userInfoEndpoint(userInfoEndpoint)
-                    .validTokenType(validTokenType)
-                    .clientId(clientId)
-                    .clientSecret(clientSecret)
-                    .build();
+            vkey = new ValidatorKey.IntrospectionValidatorKey(
+                    validIssuerUri,
+                    usernameClaim,
+                    fallbackUsernameClaim,
+                    fallbackUsernamePrefix,
+                    sslTruststore,
+                    sslPassword,
+                    sslType,
+                    sslRnd,
+                    verifier != null,
+                    introspectionEndpoint,
+                    userInfoEndpoint,
+                    validTokenType,
+                    clientId,
+                    clientSecret);
 
             factory = () -> new OAuthIntrospectionValidator(
                     introspectionEndpoint,

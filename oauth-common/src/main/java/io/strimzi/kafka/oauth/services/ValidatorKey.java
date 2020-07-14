@@ -8,19 +8,37 @@ import java.util.Objects;
 
 public class ValidatorKey {
 
-    String validIssuerUri;
-    String usernameClaim;
-    String fallbackUsernameClaim;
-    String fallbackUsernamePrefix;
+    private final String validIssuerUri;
+    private final String usernameClaim;
+    private final String fallbackUsernameClaim;
+    private final String fallbackUsernamePrefix;
 
-    String sslTruststore;
-    String sslStorePassword;
-    String sslStoreType;
-    String sslRandom;
-    boolean hasHostnameVerifier;
+    private final String sslTruststore;
+    private final String sslStorePassword;
+    private final String sslStoreType;
+    private final String sslRandom;
+    private final boolean hasHostnameVerifier;
 
+    ValidatorKey(String validIssuerUri,
+            String usernameClaim,
+            String fallbackUsernameClaim,
+            String fallbackUsernamePrefix,
+            String sslTruststore,
+            String sslStorePassword,
+            String sslStoreType,
+            String sslRandom,
+            boolean hasHostnameVerifier) {
 
-    ValidatorKey() {}
+        this.validIssuerUri = validIssuerUri;
+        this.usernameClaim = usernameClaim;
+        this.fallbackUsernameClaim = fallbackUsernameClaim;
+        this.fallbackUsernamePrefix = fallbackUsernamePrefix;
+        this.sslTruststore = sslTruststore;
+        this.sslStorePassword = sslStorePassword;
+        this.sslStoreType = sslStoreType;
+        this.sslRandom = sslRandom;
+        this.hasHostnameVerifier = hasHostnameVerifier;
+    }
 
     @Override
     public boolean equals(Object o) {
@@ -46,15 +64,42 @@ public class ValidatorKey {
 
     public static class JwtValidatorKey extends ValidatorKey {
 
-        String jwksEndpointUri;
-        int jwksRefreshSeconds;
-        int jwksExpirySeconds;
-        int jwksRefreshMinPauseSeconds;
-        boolean checkAccessTokenType;
-        boolean enableBouncy;
-        int bouncyPosition;
+        private final String jwksEndpointUri;
+        private final int jwksRefreshSeconds;
+        private final int jwksExpirySeconds;
+        private final int jwksRefreshMinPauseSeconds;
+        private final boolean checkAccessTokenType;
+        private final boolean enableBouncy;
+        private final int bouncyPosition;
 
-        JwtValidatorKey() {}
+        @SuppressWarnings("checkstyle:parameternumber")
+        public JwtValidatorKey(String validIssuerUri,
+                        String usernameClaim,
+                        String fallbackUsernameClaim,
+                        String fallbackUsernamePrefix,
+                        String sslTruststore,
+                        String sslStorePassword,
+                        String sslStoreType,
+                        String sslRandom,
+                        boolean hasHostnameVerifier,
+
+                        String jwksEndpointUri,
+                        int jwksRefreshSeconds,
+                        int jwksExpirySeconds,
+                        int jwksRefreshMinPauseSeconds,
+                        boolean checkAccessTokenType,
+                        boolean enableBouncy,
+                        int bouncyPosition) {
+
+            super(validIssuerUri, usernameClaim, fallbackUsernameClaim, fallbackUsernamePrefix, sslTruststore, sslStorePassword, sslStoreType, sslRandom, hasHostnameVerifier);
+            this.jwksEndpointUri = jwksEndpointUri;
+            this.jwksRefreshSeconds = jwksRefreshSeconds;
+            this.jwksExpirySeconds = jwksExpirySeconds;
+            this.jwksRefreshMinPauseSeconds = jwksRefreshMinPauseSeconds;
+            this.checkAccessTokenType = checkAccessTokenType;
+            this.enableBouncy = enableBouncy;
+            this.bouncyPosition = bouncyPosition;
+        }
 
         @Override
         public boolean equals(Object o) {
@@ -79,13 +124,36 @@ public class ValidatorKey {
 
     public static class IntrospectionValidatorKey extends ValidatorKey {
 
-        String introspectionEndpoint;
-        String userInfoEndpoint;
-        String validTokenType;
-        String clientId;
-        String clientSecret;
+        private final String introspectionEndpoint;
+        private final String userInfoEndpoint;
+        private final String validTokenType;
+        private final String clientId;
+        private final String clientSecret;
 
-        IntrospectionValidatorKey() {}
+        @SuppressWarnings("checkstyle:parameternumber")
+        public IntrospectionValidatorKey(String validIssuerUri,
+                                  String usernameClaim,
+                                  String fallbackUsernameClaim,
+                                  String fallbackUsernamePrefix,
+                                  String sslTruststore,
+                                  String sslStorePassword,
+                                  String sslStoreType,
+                                  String sslRandom,
+                                  boolean hasHostnameVerifier,
+
+                                  String introspectionEndpoint,
+                                  String userInfoEndpoint,
+                                  String validTokenType,
+                                  String clientId,
+                                  String clientSecret) {
+
+            super(validIssuerUri, usernameClaim, fallbackUsernameClaim, fallbackUsernamePrefix, sslTruststore, sslStorePassword, sslStoreType, sslRandom, hasHostnameVerifier);
+            this.introspectionEndpoint = introspectionEndpoint;
+            this.userInfoEndpoint = userInfoEndpoint;
+            this.validTokenType = validTokenType;
+            this.clientId = clientId;
+            this.clientSecret = clientSecret;
+        }
 
         @Override
         public boolean equals(Object o) {
@@ -104,153 +172,5 @@ public class ValidatorKey {
         public int hashCode() {
             return Objects.hash(super.hashCode(), introspectionEndpoint, userInfoEndpoint, validTokenType, clientId, clientSecret);
         }
-    }
-
-    public abstract static class Builder<T, K extends ValidatorKey> {
-
-        K result;
-
-        public K build() {
-            return result;
-        }
-
-        abstract T getThis();
-
-        public T validIssuerUri(String validIssuerUri) {
-            result.validIssuerUri = validIssuerUri;
-            return getThis();
-        }
-
-        public T usernameClaim(String usernameClaim) {
-            result.usernameClaim = usernameClaim;
-            return getThis();
-        }
-
-        public T fallbackUsernameClaim(String fallbackUsernameClaim) {
-            result.fallbackUsernameClaim = fallbackUsernameClaim;
-            return getThis();
-        }
-
-        public T fallbackUsernamePrefix(String fallbackUsernamePrefix) {
-            result.fallbackUsernamePrefix = fallbackUsernamePrefix;
-            return getThis();
-        }
-
-        public T sslTruststore(String sslTruststore) {
-            result.sslTruststore = sslTruststore;
-            return getThis();
-        }
-
-        public T sslStorePassword(String sslStorePassword) {
-            result.sslStorePassword = sslStorePassword;
-            return getThis();
-        }
-
-        public T sslStoreType(String sslStoreType) {
-            result.sslStoreType = sslStoreType;
-            return getThis();
-        }
-
-        public T sslRandom(String sslRandom) {
-            result.sslRandom = sslRandom;
-            return getThis();
-        }
-
-        public T hasHostnameVerifier(boolean hasHostnameVerifier) {
-            result.hasHostnameVerifier = hasHostnameVerifier;
-            return getThis();
-        }
-    }
-
-    public static class JwtValidatorKeyBuilder extends Builder<JwtValidatorKeyBuilder, JwtValidatorKey> {
-
-        JwtValidatorKeyBuilder() {
-            result = new JwtValidatorKey();
-        }
-
-        @Override
-        JwtValidatorKeyBuilder getThis() {
-            return this;
-        }
-
-        public JwtValidatorKeyBuilder jwksEndpointUri(String jwksEndpointUri) {
-            result.jwksEndpointUri = jwksEndpointUri;
-            return getThis();
-        }
-
-        public JwtValidatorKeyBuilder jwksRefreshSeconds(int jwksRefreshSeconds) {
-            result.jwksRefreshSeconds = jwksRefreshSeconds;
-            return getThis();
-        }
-
-        public JwtValidatorKeyBuilder jwksExpirySeconds(int jwksExpirySeconds) {
-            result.jwksExpirySeconds = jwksExpirySeconds;
-            return getThis();
-        }
-
-        public JwtValidatorKeyBuilder jwksRefreshMinPauseSeconds(int jwksRefreshMinPauseSeconds) {
-            result.jwksRefreshMinPauseSeconds = jwksRefreshMinPauseSeconds;
-            return getThis();
-        }
-
-        public JwtValidatorKeyBuilder checkAccessTokenType(boolean checkAccessTokenType) {
-            result.checkAccessTokenType = checkAccessTokenType;
-            return getThis();
-        }
-
-        public JwtValidatorKeyBuilder enableBouncy(boolean enableBouncy) {
-            result.enableBouncy = enableBouncy;
-            return getThis();
-        }
-
-        public JwtValidatorKeyBuilder bouncyPosition(int bouncyPosition) {
-            result.bouncyPosition = bouncyPosition;
-            return getThis();
-        }
-    }
-
-    public static class IntrospectionValidatorKeyBuilder extends Builder<IntrospectionValidatorKeyBuilder, IntrospectionValidatorKey> {
-
-        IntrospectionValidatorKeyBuilder() {
-            result = new IntrospectionValidatorKey();
-        }
-
-        @Override
-        IntrospectionValidatorKeyBuilder getThis() {
-            return this;
-        }
-
-        public IntrospectionValidatorKeyBuilder introspectionEndpoint(String introspectionEndpoint) {
-            result.introspectionEndpoint = introspectionEndpoint;
-            return getThis();
-        }
-
-        public IntrospectionValidatorKeyBuilder userInfoEndpoint(String userInfoEndpoint) {
-            result.userInfoEndpoint = userInfoEndpoint;
-            return getThis();
-        }
-
-        public IntrospectionValidatorKeyBuilder validTokenType(String validTokenType) {
-            result.validTokenType = validTokenType;
-            return getThis();
-        }
-
-        public IntrospectionValidatorKeyBuilder clientId(String clientId) {
-            result.clientId = clientId;
-            return getThis();
-        }
-
-        public IntrospectionValidatorKeyBuilder clientSecret(String clientSecret) {
-            result.clientSecret = clientSecret;
-            return getThis();
-        }
-    }
-
-    public static JwtValidatorKeyBuilder forJwtValidator() {
-        return new JwtValidatorKeyBuilder();
-    }
-
-    public static IntrospectionValidatorKeyBuilder forIntrospectionValidator() {
-        return new IntrospectionValidatorKeyBuilder();
     }
 }
