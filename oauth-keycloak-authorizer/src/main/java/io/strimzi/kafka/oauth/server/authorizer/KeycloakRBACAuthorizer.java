@@ -515,7 +515,7 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
 
     private void refreshGrants() {
         try {
-            log.info("Refreshing authorization grants ...");
+            log.debug("Refreshing authorization grants ...");
             // Multiple sessions can be authenticated with the same access token
             // Only make one grants request for one unique access_token,
             // but update all sessions for the same token
@@ -601,7 +601,7 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
             // Log, but don't rethrow the exception to prevent scheduler cancelling the scheduled job.
             log.error(t.getMessage(), t);
         } finally {
-            log.info("Done refreshing grants");
+            log.debug("Done refreshing grants");
         }
     }
 
