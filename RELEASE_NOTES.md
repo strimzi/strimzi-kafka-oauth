@@ -74,12 +74,12 @@ For example, if the access token expires in 30 minutes, and grants are refreshed
 
 Additional `server.properties` configuration options have been introduced:
 
-* `strimzi.authorization.refresh.grants.period.seconds`
+* `strimzi.authorization.grants.refresh.period.seconds`
 
   The time between two grants refresh job runs. 
   The default value is 60 seconds. If this value is set to 0 or less, refreshing of grants is turned off.
 
-* `strimzi.authorization.refresh.grants.pool.size`
+* `strimzi.authorization.grants.refresh.pool.size`
 
   The number of threads that can fetch grants in parallel.
   The default value is 5.

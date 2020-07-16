@@ -94,10 +94,10 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
  * </li>
  * </ul>
  * <ul>
- * <li><em>strimzi.authorization.refresh.grants.period.seconds</em> The time interval for refreshing the grants of the active sessions. The scheduled job iterates over active sessions and fetches a fresh list of grants for each.<br>
+ * <li><em>strimzi.authorization.grants.refresh.period.seconds</em> The time interval for refreshing the grants of the active sessions. The scheduled job iterates over active sessions and fetches a fresh list of grants for each.<br>
  * The default value is <em>60</em>
  * </li>
- * <li><em>strimzi.authorization.refresh.grants.pool.size</em> The number of threads that can fetch grants from token endpoint at the same time (in parallel).<br>
+ * <li><em>strimzi.authorization.grants.refresh.pool.size</em> The number of threads to fetch grants from token endpoint (in parallel).<br>
  * The default value is <em>5</em>
  * </li>
  * </ul> *
@@ -150,10 +150,10 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
     private boolean denyWhenTokenInvalid = true;
 
     // Less or equal zero means to never check
-    private int checkGrantsPeriodSeconds;
+    private int grantsRefreshPeriodSeconds;
 
     // Number of threads that can perform token endpoint requests at the same time
-    private int poolSize;
+    private int grantsRefreshPoolSize;
 
     private ScheduledExecutorService periodicScheduler;
     private ExecutorService workerPool;
@@ -213,15 +213,15 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
                     .collect(Collectors.toList());
         }
 
-        poolSize = config.getValueAsInt(AuthzConfig.STRIMZI_AUTHORIZATION_REFRESH_GRANTS_POOL_SIZE, 5);
-        if (poolSize < 1) {
-            throw new RuntimeException("Invalid value of 'strimzi.authorization.refresh.grants.pool.size': " + poolSize + ". Has to be >= 1.");
+        grantsRefreshPoolSize = config.getValueAsInt(AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_REFRESH_POOL_SIZE, 5);
+        if (grantsRefreshPoolSize < 1) {
+            throw new RuntimeException("Invalid value of 'strimzi.authorization.grants.refresh.pool.size': " + grantsRefreshPoolSize + ". Has to be >= 1.");
         }
-        checkGrantsPeriodSeconds = config.getValueAsInt(AuthzConfig.STRIMZI_AUTHORIZATION_REFRESH_GRANTS_PERIOD_SECONDS, 60);
+        grantsRefreshPeriodSeconds = config.getValueAsInt(AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_REFRESH_PERIOD_SECONDS, 60);
 
-        if (checkGrantsPeriodSeconds > 0) {
-            workerPool = Executors.newFixedThreadPool(poolSize);
-            periodicScheduler = setupRefreshGrantsJob(checkGrantsPeriodSeconds);
+        if (grantsRefreshPeriodSeconds > 0) {
+            workerPool = Executors.newFixedThreadPool(grantsRefreshPoolSize);
+            periodicScheduler = setupRefreshGrantsJob(grantsRefreshPeriodSeconds);
         }
 
         if (!Services.isAvailable()) {
@@ -236,8 +236,8 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
                     + "\n    clusterName: " + clusterName
                     + "\n    delegateToKafkaACL: " + delegateToKafkaACL
                     + "\n    superUsers: " + superUsers.stream().map(u -> u.getType() + ":" + u.getName()).collect(Collectors.toList())
-                    + "\n    checkGrantsPeriodSeconds: " + checkGrantsPeriodSeconds
-                    + "\n    poolSize: " + poolSize
+                    + "\n    grantsRefreshPeriodSeconds: " + grantsRefreshPeriodSeconds
+                    + "\n    grantsRefreshPoolSize: " + grantsRefreshPoolSize
             );
         }
     }
@@ -256,6 +256,8 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
         Properties p = new Properties();
 
         String[] keys = {
+            AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_REFRESH_PERIOD_SECONDS,
+            AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_REFRESH_POOL_SIZE,
             AuthzConfig.STRIMZI_AUTHORIZATION_DELEGATE_TO_KAFKA_ACL,
             AuthzConfig.STRIMZI_AUTHORIZATION_KAFKA_CLUSTER_NAME,
             AuthzConfig.STRIMZI_AUTHORIZATION_CLIENT_ID,

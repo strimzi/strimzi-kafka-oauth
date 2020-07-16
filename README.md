@@ -432,11 +432,11 @@ The token endpoint used by KeycloakRBACAuthorizer has to be the same as the one 
 
 The authorizer will regularly reload the list of grants for active sessions. By default it will do this once every minute.
 You can change this period or turn it off for debugging reasons (by setting it to "0"):
-- `strimzi.authorization.refresh.grants.period.seconds` (e.g.: "120" - the refresh job period in seconds)
+- `strimzi.authorization.grants.refresh.period.seconds` (e.g.: "120" - the refresh job period in seconds)
 
 The refresh job works by enumerating the active tokens and requesting the latest grants for each.
 It does that by using a thread pool. You can control the size of the thread pool (how much parallelism you want), the default value is 5:
-- `strimzi.authorization.refresh.grants.pool.size` (e.g.: "10" - the maximum of 10 parallel fetches of grants at a time)
+- `strimzi.authorization.grants.refresh.pool.size` (e.g.: "10" - the maximum of 10 parallel fetches of grants at a time)
 
 A single client connection typically has a unique access token even though you could use the same access token for multiple connections. 
 Thus, the number of active tokens is generally proportional to the number of client connections.
