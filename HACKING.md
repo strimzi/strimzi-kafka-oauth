@@ -423,6 +423,15 @@ You can deploy Strimzi Cluster Operator the usual way:
 
 Note: If you're running Kubernetes within a VM you need at least 2 CPUs.
 
+>Unless you have modified the `install/cluster-operator/050-Deployment-strimzi-cluster-operator.yaml` this will use the latest images from Docker Hub.
+>If you have built the cluster operator locally, and pushed it to the Docker Registry running locally as a docker container, you'll probably want to use those images.
+>In that case you need to update the `050-Deployment-strimzi-cluster-operator.yaml` using something like:
+>```
+>sed -Ei -e "s#(image|value): strimzi/([a-z0-9-]+):latest#\1: ${DOCKER_REG}/strimzi/\2:latest#" \
+>  -e "s#([0-9.]+)=strimzi/([a-zA-Z0-9-]+:[a-zA-Z0-9.-]+-kafka-[0-9.]+)#\1=${DOCKER_REG}/strimzi/\2#" \
+>  install/cluster-operator/050-Deployment-strimzi-cluster-operator.yaml
+>```
+ 
 Using `kubectl get pod` you should see the status of strimzi-cluster-operator pod become `Running` after a few seconds.
 
 If not, you can see what's going on by running:
