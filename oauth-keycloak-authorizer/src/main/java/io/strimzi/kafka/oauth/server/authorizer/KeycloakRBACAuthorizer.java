@@ -659,6 +659,12 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
 
     @Override
     public void close() {
+        // We don't care about finishing the refresh tasks
+        try {
+            workerPool.shutdownNow();
+        } catch (Exception e) {
+            log.error("Failed to shutdown the worker pool", e);
+        }
         super.close();
     }
 }
