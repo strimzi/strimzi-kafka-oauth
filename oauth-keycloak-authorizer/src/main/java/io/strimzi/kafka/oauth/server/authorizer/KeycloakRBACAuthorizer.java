@@ -255,6 +255,8 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
     static AuthzConfig convertToCommonConfig(Map<String, ?> configs) {
         Properties p = new Properties();
 
+        // If you add a new config property, make sure to add it to this list
+        // otherwise it won't be picked
         String[] keys = {
             AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_REFRESH_PERIOD_SECONDS,
             AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_REFRESH_POOL_SIZE,

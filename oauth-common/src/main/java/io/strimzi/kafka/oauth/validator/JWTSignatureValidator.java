@@ -238,7 +238,7 @@ public class JWTSignatureValidator implements TokenValidator {
             Map<String, PublicKey> newCache = JWKSUtils.getKeysForUse(jwks, JWK.Use.SIG);
             newCache = Collections.unmodifiableMap(newCache);
             if (!cache.equals(newCache)) {
-                log.info("JWKS keys change detected!");
+                log.info("JWKS keys change detected. Keys updated.");
                 oldCache = cache;
                 cache = newCache;
             }
