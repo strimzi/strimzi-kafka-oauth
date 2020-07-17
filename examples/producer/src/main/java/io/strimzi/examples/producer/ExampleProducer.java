@@ -11,6 +11,8 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.errors.AuthenticationException;
+import org.apache.kafka.common.errors.AuthorizationException;
 import org.apache.kafka.common.serialization.StringSerializer;
 
 import java.util.Properties;
@@ -75,11 +77,17 @@ public class ExampleProducer {
                 throw new RuntimeException("Interrupted while sending!");
 
             } catch (ExecutionException e) {
-                throw new RuntimeException("Failed to send message: " + i, e);
+                if (e.getCause() instanceof AuthenticationException
+                        || e.getCause() instanceof AuthorizationException) {
+                    producer.close();
+                    producer = new KafkaProducer<>(props);
+                } else {
+                    throw new RuntimeException("Failed to send message: " + i, e);
+                }
             }
 
             try {
-                Thread.sleep(2000);
+                Thread.sleep(20000);
             } catch (InterruptedException e) {
                 throw new RuntimeException("Interrupted while sleeping!");
             }
@@ -116,6 +124,13 @@ public class ExampleProducer {
         p.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
 
         p.setProperty(ProducerConfig.ACKS_CONFIG, "all");
+
+        // Adjust re-authentication options
+        // See: strimzi-kafka-oauth/README.md
+        p.setProperty("sasl.login.refresh.buffer.seconds", "30");
+        p.setProperty("sasl.login.refresh.min.period.seconds", "30");
+        p.setProperty("sasl.login.refresh.window.factor", "0.8");
+        p.setProperty("sasl.login.refresh.window.jitter", "0.01");
 
         return ConfigProperties.resolve(p);
     }

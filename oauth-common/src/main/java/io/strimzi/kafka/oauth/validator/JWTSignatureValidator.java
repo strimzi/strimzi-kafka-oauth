@@ -31,16 +31,29 @@ import java.net.URISyntaxException;
 import java.security.Provider;
 import java.security.PublicKey;
 import java.security.Security;
+import java.util.Collections;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.strimzi.kafka.oauth.validator.TokenValidationException.Status;
 
+/**
+ * This class is responsible for validating the JWT token signatures during session authentication.
+ * <p>
+ * It performs fast local token validation without the need to immediately contact the authorization server.
+ * for that it relies on the JWKS endpoint exposed at authorization server, which is a standard OAuth2 public endpoint
+ * containing the information about public keys that can be used to validate JWT signatures.
+ * </p>
+ * <p>
+ * A single threaded refresh job is run periodically or upon detecting an unknown signing key, that fetches the latest trusted public keys
+ * for signatare validation from authorization server. If the refresh job is unsuccessful it employs the so called 'exponential back-off'
+ * to retry later in order to reduce any out-of-sync time with the authorization server while still not flooding the server
+ * with endless consecutive requests.
+ * </p>
+ */
 public class JWTSignatureValidator implements TokenValidator {
 
     private static final Logger log = LoggerFactory.getLogger(JWTSignatureValidator.class);
@@ -49,7 +62,7 @@ public class JWTSignatureValidator implements TokenValidator {
 
     private static final TokenVerifier.TokenTypeCheck TOKEN_TYPE_CHECK = new TokenVerifier.TokenTypeCheck(TokenUtil.TOKEN_TYPE_BEARER);
 
-    private final ScheduledExecutorService scheduler;
+    private final BackOffTaskScheduler fastScheduler;
 
     private final URI keysUri;
     private final String issuerUri;
@@ -62,15 +75,32 @@ public class JWTSignatureValidator implements TokenValidator {
 
     private long lastFetchTime;
 
-    private Map<String, PublicKey> cache = new ConcurrentHashMap<>();
+    private Map<String, PublicKey> cache = Collections.emptyMap();
+    private Map<String, PublicKey> oldCache = Collections.emptyMap();
 
-
+     /**
+     * Create a new instance
+      *
+     * @param keysEndpointUri The JWKS endpoint url at the authorization server
+     * @param socketFactory The optional SSL socket factory to use when establishing the connection to authorization server
+     * @param verifier The optional hostname verifier used to validate the TLS certificate by the authorization server
+     * @param principalExtractor The object used to extract the username from the JWT token
+     * @param validIssuerUri The required value of the 'iss' claim in JWT token
+     * @param refreshSeconds The optional time interval between two consecutive regular JWKS keys refresh runs
+     * @param refreshMinPauseSeconds The optional minimum pause between two consecutive JWKS keys refreshes.
+     * @param expirySeconds The maximum time to trust the unrefreshed JWKS keys. If keys are not successfully refreshed within this time, the validation will start failing.
+     * @param checkAccessTokenType Should the 'typ' claim in the token be validated (be equal to 'Bearer')
+     * @param audience The optional audience
+     * @param enableBouncyCastleProvider Should BouncyCastle JCE provider be enabled - required for ECDSA support
+     * @param bouncyCastleProviderPosition Position in JCE providers list - it is added to the end of the list by default
+     */
     public JWTSignatureValidator(String keysEndpointUri,
                                  SSLSocketFactory socketFactory,
                                  HostnameVerifier verifier,
                                  PrincipalExtractor principalExtractor,
                                  String validIssuerUri,
                                  int refreshSeconds,
+                                 int refreshMinPauseSeconds,
                                  int expirySeconds,
                                  boolean checkAccessTokenType,
                                  String audience,
@@ -107,9 +137,7 @@ public class JWTSignatureValidator implements TokenValidator {
         }
         this.issuerUri = validIssuerUri;
 
-        if (expirySeconds < refreshSeconds + 60) {
-            throw new IllegalArgumentException("expirySeconds has to be at least 60 seconds longer than refreshSeconds");
-        }
+        validateRefreshConfig(refreshSeconds, expirySeconds);
         this.maxStaleSeconds = expirySeconds;
 
         this.checkAccessTokenType = checkAccessTokenType;
@@ -129,9 +157,18 @@ public class JWTSignatureValidator implements TokenValidator {
             }
         }
 
+        // get the signing keys for signature validation before the first authorization requests start coming
+        // fail fast if keys refresh doesn't work - it means network issues or authorization server not responding
         fetchKeys();
 
-        scheduler = setupRefreshKeysJob(refreshSeconds);
+        // the single threaded executor for refreshing the keys
+        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(new DaemonThreadFactory());
+
+        // set up fast scheduler that refreshes keys on-demand, and keeps trying with exponential back-off until it succeeds
+        fastScheduler = new BackOffTaskScheduler(executor, refreshMinPauseSeconds, refreshSeconds, () -> fetchKeys());
+
+        // set up periodic timer to trigger fastScheduler job every refreshSeconds
+        setupRefreshKeysJob(executor, refreshSeconds);
 
         if (log.isDebugEnabled()) {
             log.debug("Configured JWTSignatureValidator:\n    keysEndpointUri: " + keysEndpointUri
@@ -140,6 +177,7 @@ public class JWTSignatureValidator implements TokenValidator {
                     + "\n    principalExtractor: " + principalExtractor
                     + "\n    validIssuerUri: " + validIssuerUri
                     + "\n    certsRefreshSeconds: " + refreshSeconds
+                    + "\n    certsRefreshMinPauseSeconds: " + refreshMinPauseSeconds
                     + "\n    certsExpirySeconds: " + expirySeconds
                     + "\n    checkAccessTokenType: " + checkAccessTokenType
                     + "\n    enableBouncyCastleProvider: " + enableBouncyCastleProvider
@@ -147,20 +185,34 @@ public class JWTSignatureValidator implements TokenValidator {
         }
     }
 
-    private ScheduledExecutorService setupRefreshKeysJob(int refreshSeconds) {
-        // set up periodic timer to update keys from server every refreshSeconds;
-        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(new DaemonThreadFactory());
+    private void validateRefreshConfig(int refreshSeconds, int expirySeconds) {
+        if (refreshSeconds <= 0) {
+            throw new IllegalArgumentException("refreshSeconds has to be a positive number - (refreshSeconds=" + refreshSeconds + ")");
+        }
 
-        scheduler.scheduleAtFixedRate(() -> {
+        if (expirySeconds < refreshSeconds + 60) {
+            throw new IllegalArgumentException("expirySeconds has to be at least 60 seconds longer than refreshSeconds - (expirySeconds="
+                    + expirySeconds + ", refreshSeconds=" + refreshSeconds + ")");
+        }
+    }
+
+    /**
+     * Set up a regular keys refresh job running on a fixed schedule every <em>refreshSeconds</em>.
+     * Use the fastScheduler for actual keys refresh which means that a minimum pause between two consecutive refreshes
+     * is enforced, and if the keys refresh fails it keeps re-trying using the exponential backoff.
+     *
+     * @param refreshSeconds The refresh period
+     */
+    private void setupRefreshKeysJob(ScheduledExecutorService executor, int refreshSeconds) {
+
+        executor.scheduleAtFixedRate(() -> {
             try {
-                fetchKeys();
+                fastScheduler.scheduleTask();
             } catch (Exception e) {
                 // Log, but don't rethrow the exception to prevent scheduler cancelling the scheduled job.
                 log.error(e.getMessage(), e);
             }
         }, refreshSeconds, refreshSeconds, TimeUnit.SECONDS);
-
-        return scheduler;
     }
 
     private PublicKey getPublicKey(String id) {
@@ -183,7 +235,13 @@ public class JWTSignatureValidator implements TokenValidator {
     private void fetchKeys() {
         try {
             JSONWebKeySet jwks = HttpUtil.get(keysUri, socketFactory, hostnameVerifier, null, JSONWebKeySet.class);
-            cache = JWKSUtils.getKeysForUse(jwks, JWK.Use.SIG);
+            Map<String, PublicKey> newCache = JWKSUtils.getKeysForUse(jwks, JWK.Use.SIG);
+            newCache = Collections.unmodifiableMap(newCache);
+            if (!cache.equals(newCache)) {
+                log.info("JWKS keys change detected. Keys updated.");
+                oldCache = cache;
+                cache = newCache;
+            }
             lastFetchTime = System.currentTimeMillis();
         } catch (Exception ex) {
             throw new RuntimeException("Failed to fetch public keys needed to validate JWT signatures: " + keysUri, ex);
@@ -219,24 +277,35 @@ public class JWTSignatureValidator implements TokenValidator {
         try {
             KeyWrapper keywrap = new KeyWrapper();
             PublicKey pub = getPublicKey(kid);
+            if (pub == null) {
+                if (oldCache.get(kid) != null) {
+                    throw new TokenValidationException("Token validation failed: The signing key is no longer valid (kid:" + kid + ")");
+                } else {
+                    // Request quick keys refresh
+                    fastScheduler.scheduleTask();
+                    throw new TokenValidationException("Token validation failed: Unknown signing key (kid:" + kid + ")");
+                }
+            }
             keywrap.setPublicKey(pub);
             keywrap.setAlgorithm(tokenVerifier.getHeader().getAlgorithm().name());
             keywrap.setKid(kid);
 
-            log.debug("Signature algorithm used: [" + pub.getAlgorithm() + "]");
+            log.debug("Signature algorithm used: [{}]", pub.getAlgorithm());
             AsymmetricSignatureVerifierContext ctx = isAlgorithmEC(pub.getAlgorithm()) ?
                     new ECDSASignatureVerifierContext(keywrap) :
                     new AsymmetricSignatureVerifierContext(keywrap);
             tokenVerifier.verifierContext(ctx);
 
-            log.debug("SignatureVerifierContext set to: " + ctx);
+            log.debug("SignatureVerifierContext set to: {}", ctx);
 
             tokenVerifier.verify();
             t = tokenVerifier.getToken();
 
         } catch (TokenSignatureInvalidException e) {
             throw new TokenSignatureException("Signature check failed:", e);
-
+        } catch (TokenValidationException e) {
+            // just rethrow
+            throw e;
         } catch (Exception e) {
             throw new TokenValidationException("Token validation failed:", e);
         }
@@ -244,7 +313,7 @@ public class JWTSignatureValidator implements TokenValidator {
         long expiresMillis = t.getExpiration() * 1000L;
         if (Time.SYSTEM.milliseconds() > expiresMillis) {
             throw new TokenExpiredException("Token expired at: " + expiresMillis + " (" +
-                    TimeUtil.formatIsoDateTimeUTC(expiresMillis) + ")");
+                    TimeUtil.formatIsoDateTimeUTC(expiresMillis) + " UTC)");
         }
 
         String principal = null;
@@ -265,15 +334,4 @@ public class JWTSignatureValidator implements TokenValidator {
     }
 
 
-    /**
-     * Use daemon thread for refresh job
-     */
-    static class DaemonThreadFactory implements ThreadFactory {
-
-        public Thread newThread(Runnable r) {
-            Thread t = Executors.defaultThreadFactory().newThread(r);
-            t.setDaemon(true);
-            return t;
-        }
-    }
 }

@@ -1,6 +1,113 @@
 Release Notes
 =============
 
+0.6.0
+-----
+
+### Optimized internals
+
+Redundant multiple instances of validators were being instantiated resulting in service components, supposed to be singletons, to be instantiated multiple times.
+That was fixed through internal refactoring.
+
+### Improved server-side logging
+
+Improvements have been made to logging for easier tracking of the requests, and better error reporting. 
+
+### Improved handling of expired or otherwise invalidated access tokens
+
+Many improvements have been made to address problems with access tokens expiring, or becoming invalid.
+
+#### Fixed, and documented the re-authentication support
+
+To prevent active sessions operating beyond the access token lifetime, Kafka 2.2 and later has [re-authentication support](https://cwiki.apache.org/confluence/display/KAFKA/KIP-368%3A+Allow+SASL+Connections+to+Periodically+Re-Authenticate), which has to be explicitly enabled.
+Use the following `server.properties` configuration to enable re-authentication, and force clients to re-authenticate within one hour:
+
+    connections.max.reauth.ms=3600000
+
+If the access token expires before that, the re-authentication will be enforced within the access token lifetime.
+Any non-authentication operation after token expiry will cause the connection to be terminated by the broker.
+
+Re-authentication should be enabled if you want to prevent authenticated sessions from continuing beyond access token expiry.
+Also, without re-authentication enabled, the `KeycloakRBACAuthorizer` will now deny further access as soon as the access token expires. 
+It would in any case fail fairly quickly as it relies on a valid access token when refreshing the list of grants for the current session.
+  
+In previous versions the re-authentication support was broken due to [the bug #60](https://github.com/strimzi/strimzi-kafka-oauth/pull/60).
+That should now be fixed.
+
+#### Added OAuthSessionAuthorizer
+
+Re-authentication forces active sessions whose access tokens have expired to immediately become invalid. 
+However, if for some reason you don't want to, or can't use re-authentication, and you don't use `KeycloakRBACAuthorizer`, but still want to enforce session expiry, or if you simply want to better log if token expiry occurs, the new authorizer denies all actions after the access token of the session has expired.
+The client will receive the `org.apache.kafka.common.errors.AuthorizationException`.
+
+Usage of `OAuthSessionAuthorizer` is optional.
+It 'wraps' itself around another authorizer, and delegates all calls after determining that the current session still contains a valid token.
+This authorizer should *not* be used together with `KeycloakRBACAuthorizer`, since the latter already performs all the same checks.
+
+Two configuration options have been added for use by this authorizer:
+
+* `strimzi.authorizer.delegate.class.name`
+
+  Specifies the delegate authorizer class name to be used.
+  
+* `strimzi.authorizer.grant.when.no.delegate`
+
+  Enables this authorizer to work without the delegate.
+
+#### Deprecated the JwtKafkaPrincipalBuilder in favor of the new OAuthKafkaPrincipalBuilder
+
+In order to support the newly added `OAuthSessionAuthorizer` the `JwtKafkaPrincipalBuilder` had to be moved to `oauth-server` module, which called for a different package.
+We took the opportunity to also give the class a better name. The old class still exists, but simply extends the new class.
+
+To use the new class your `server.properties` configuration should contain:
+
+    principal.builder.class=io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder
+ 
+#### KeycloakRBACAuthorizer improvements
+
+* Added session expiry enforcement to KeycloakRBACAuthorizer. 
+If the access token used during authentication expires all the authorizations will automatically be denied.
+Note, that if re-authentication is enabled, and properly functioning, the access token should be refreshed on the server before ever expiring.
+
+* The KeycloakRBACAuthorizer will now regularly refresh the list of grants for every active session, and thus allows any permissions changes made at authorization server (Keycloak / RH-SSO) to take effect on Kafka brokers.  
+For example, if the access token expires in 30 minutes, and grants are refreshed every minute, the revocation of grants will be detected within one minute, and immediately enforced. 
+
+Additional `server.properties` configuration options have been introduced:
+
+* `strimzi.authorization.grants.refresh.period.seconds`
+
+  The time between two grants refresh job runs. 
+  The default value is 60 seconds. If this value is set to 0 or less, refreshing of grants is turned off.
+
+* `strimzi.authorization.grants.refresh.pool.size`
+
+  The number of threads that can fetch grants in parallel.
+  The default value is 5.
+  
+#### Introduced fast JWKS keys refresh
+
+When using fast local signature validation using JWKS endpoint keys, if signing keys are suddenly revoked at the authorization server, it takes a while for the Kafka broker to be aware of this change.
+Until then, the Kafka broker keeps successfully authorizing new connections with access tokens signed using old keys.
+At the same time it rejects newly issued access tokens that are properly signed with the new signing keys which Kafka broker doesn't yet know about.
+In order to shorten this mismatch period as much as possible, the broker will now trigger JWKS keys refresh as soon as it detects a new signing key.
+And it will keep trying if not successful using a so called exponential back-off, where after the unsuccessful attempt it waits a second, then two, then 4, 8, 16, 32, ... 
+It will not flood the server with requests, always pausing for a minimum time between two consecutive keys refresh attempts.
+
+While there would still be a few `invalid token errors`, the clients, if coded correctly, to reinitialise the KafkaProducer / KafkaConsumer in order to force access token refresh, should quickly recover.
+
+The following new configuration option has been introduced:
+
+* `oauth.jwks.refresh.min.pause.seconds`
+
+  The minimum pause between two consecutive reload attempts. This prevents flooding the authorization server.
+  The default value is 1 second.
+
+#### Fixed exception types thrown during token validation
+
+In some cases the client would not receive `org.apache.kafka.common.errors.AuthenticationException` when it should.
+Error messages were also improved to give a more precise reason for the failure.
+
+
 0.5.0
 -----
 

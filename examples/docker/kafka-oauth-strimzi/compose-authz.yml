@@ -48,12 +48,17 @@ services:
 
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
 
-      KAFKA_AUTHORIZER_CLASS_NAME: io.strimzi.kafka.oauth.server.authorizer.KeycloakRBACAuthorizer
-      KAFKA_PRINCIPAL_BUILDER_CLASS: io.strimzi.kafka.oauth.server.authorizer.JwtKafkaPrincipalBuilder
+      KAFKA_AUTHORIZER_CLASS_NAME: io.strimzi.kafka.oauth.server.OAuthSessionAuthorizer
+      KAFKA_PRINCIPAL_BUILDER_CLASS: io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder
+      KAFKA_STRIMZI_AUTHORIZER_DELEGATE_CLASS_NAME: io.strimzi.kafka.oauth.server.authorizer.KeycloakRBACAuthorizer
 
       KAFKA_STRIMZI_AUTHORIZATION_KAFKA_CLUSTER_NAME: cluster2
       KAFKA_STRIMZI_AUTHORIZATION_DELEGATE_TO_KAFKA_ACL: "true"
+      KAFKA_STRIMZI_AUTHORIZATION_GRANTS_REFRESH_POOL_SIZE: "10"
+      KAFKA_STRIMZI_AUTHORIZATION_GRANTS_REFRESH_PERIOD_SECONDS: "30"
       KAFKA_SUPER_USERS: User:CN=my-cluster-kafka,O=io.strimzi;User:CN=my-cluster-entity-operator,O=io.strimzi;User:CN=my-cluster-kafka-exporter,O=io.strimzi;User:service-account-kafka
+
+      KAFKA_LISTENER_NAME_CLIENT_OAUTHBEARER_CONNECTIONS_MAX_REAUTH_MS: 3600000
 
       #
       # Strimzi OAuth Configuration
@@ -71,6 +76,8 @@ services:
 
       # username extraction from JWT token claim
       OAUTH_USERNAME_CLAIM: preferred_username
+
+      OAUTH_JWKS_REFRESH_MIN_PAUSE_SECONDS: "5"
 
       # For start.sh script to know where the keycloak is listening
       KEYCLOAK_HOST: ${KEYCLOAK_HOST:-keycloak}

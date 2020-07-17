@@ -8,12 +8,14 @@ import io.strimzi.kafka.oauth.common.Config;
 import io.strimzi.kafka.oauth.common.ConfigUtil;
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
 import io.strimzi.kafka.oauth.common.PrincipalExtractor;
+import io.strimzi.kafka.oauth.services.Services;
+import io.strimzi.kafka.oauth.services.ValidatorKey;
 import io.strimzi.kafka.oauth.validator.JWTSignatureValidator;
-import io.strimzi.kafka.oauth.validator.OAuthIntrospectionValidator;
 import io.strimzi.kafka.oauth.common.TokenInfo;
+import io.strimzi.kafka.oauth.validator.OAuthIntrospectionValidator;
 import io.strimzi.kafka.oauth.validator.TokenValidator;
 import io.strimzi.kafka.oauth.validator.TokenValidationException;
-import org.apache.kafka.common.errors.AuthenticationException;
+import org.apache.kafka.common.errors.SaslAuthenticationException;
 import org.apache.kafka.common.security.auth.AuthenticateCallbackHandler;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerValidatorCallback;
@@ -33,8 +35,10 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import static io.strimzi.kafka.oauth.common.DeprecationUtil.isAccessTokenJwt;
 import static io.strimzi.kafka.oauth.common.LogUtil.mask;
@@ -103,34 +107,94 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                 fallbackUsernameClaim,
                 fallbackUsernamePrefix);
 
+        if (!Services.isAvailable()) {
+            Services.configure(configs);
+        }
+
+        String sslTruststore = config.getValue(Config.OAUTH_SSL_TRUSTSTORE_LOCATION);
+        String sslPassword = config.getValue(Config.OAUTH_SSL_TRUSTSTORE_PASSWORD);
+        String sslType = config.getValue(Config.OAUTH_SSL_TRUSTSTORE_TYPE);
+        String sslRnd = config.getValue(Config.OAUTH_SSL_SECURE_RANDOM_IMPLEMENTATION);
+
+        ValidatorKey vkey;
+        Supplier<TokenValidator> factory;
+
         if (jwksUri != null) {
-            validator = new JWTSignatureValidator(
-                    config.getValue(ServerConfig.OAUTH_JWKS_ENDPOINT_URI),
+
+            int jwksRefreshSeconds = config.getValueAsInt(ServerConfig.OAUTH_JWKS_REFRESH_SECONDS, 300);
+            int jwksExpirySeconds = config.getValueAsInt(ServerConfig.OAUTH_JWKS_EXPIRY_SECONDS, 360);
+            int jwksMinPauseSeconds = config.getValueAsInt(ServerConfig.OAUTH_JWKS_REFRESH_MIN_PAUSE_SECONDS, 1);
+
+            vkey = new ValidatorKey.JwtValidatorKey(
+                    validIssuerUri,
+                    usernameClaim,
+                    fallbackUsernameClaim,
+                    fallbackUsernamePrefix,
+                    sslTruststore,
+                    sslPassword,
+                    sslType,
+                    sslRnd,
+                    verifier != null,
+                    jwksUri,
+                    jwksRefreshSeconds,
+                    jwksExpirySeconds,
+                    jwksMinPauseSeconds,
+                    checkTokenType,
+                    enableBouncy,
+                    bouncyPosition);
+
+            factory = () -> new JWTSignatureValidator(
+                    jwksUri,
                     socketFactory,
                     verifier,
                     principalExtractor,
                     validIssuerUri,
-                    config.getValueAsInt(ServerConfig.OAUTH_JWKS_REFRESH_SECONDS, 300),
-                    config.getValueAsInt(ServerConfig.OAUTH_JWKS_EXPIRY_SECONDS, 360),
+                    jwksRefreshSeconds,
+                    jwksMinPauseSeconds,
+                    jwksExpirySeconds,
                     checkTokenType,
                     null,
                     enableBouncy,
-                    bouncyPosition
-            );
+                    bouncyPosition);
+
         } else {
-            validator = new OAuthIntrospectionValidator(
-                    config.getValue(ServerConfig.OAUTH_INTROSPECTION_ENDPOINT_URI),
+
+            String introspectionEndpoint = config.getValue(ServerConfig.OAUTH_INTROSPECTION_ENDPOINT_URI);
+            String userInfoEndpoint = config.getValue(ServerConfig.OAUTH_USERINFO_ENDPOINT_URI);
+            String validTokenType = config.getValue(ServerConfig.OAUTH_VALID_TOKEN_TYPE);
+            String clientId = config.getValue(Config.OAUTH_CLIENT_ID);
+            String clientSecret = config.getValue(Config.OAUTH_CLIENT_SECRET);
+
+            vkey = new ValidatorKey.IntrospectionValidatorKey(
+                    validIssuerUri,
+                    usernameClaim,
+                    fallbackUsernameClaim,
+                    fallbackUsernamePrefix,
+                    sslTruststore,
+                    sslPassword,
+                    sslType,
+                    sslRnd,
+                    verifier != null,
+                    introspectionEndpoint,
+                    userInfoEndpoint,
+                    validTokenType,
+                    clientId,
+                    clientSecret);
+
+            factory = () -> new OAuthIntrospectionValidator(
+                    introspectionEndpoint,
                     socketFactory,
                     verifier,
                     principalExtractor,
                     validIssuerUri,
-                    config.getValue(ServerConfig.OAUTH_USERINFO_ENDPOINT_URI),
-                    config.getValue(ServerConfig.OAUTH_VALID_TOKEN_TYPE),
-                    config.getValue(Config.OAUTH_CLIENT_ID),
-                    config.getValue(Config.OAUTH_CLIENT_SECRET),
-                    null
-            );
+                    userInfoEndpoint,
+                    validTokenType,
+                    clientId,
+                    clientSecret,
+                    null);
         }
+
+        validator = Services.getInstance().getValidators().get(vkey, factory);
     }
 
     @SuppressWarnings("deprecation")
@@ -194,7 +258,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
             if (log.isDebugEnabled()) {
                 log.debug("Token validation failed for token: " + mask(token), e);
             }
-            callback.error(e.status(), null, null);
+            throw new SaslAuthenticationException("Authentication failed due to an invalid token: " + getCauseMessage(e), e);
 
         } catch (RuntimeException e) {
             // Kafka ignores cause inside thrown exception, and doesn't log it
@@ -202,13 +266,13 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                 log.debug("Token validation failed due to runtime exception (network issue or misconfiguration): ", e);
             }
             // Extract cause and include it in a message string in order for it to be in the server log
-            throw new AuthenticationException("Token validation failed due to runtime exception: " + getCauseMessage(e), e);
+            throw new SaslAuthenticationException("Token validation failed due to runtime exception: " + getCauseMessage(e), e);
 
-        } catch (Exception e) {
+        } catch (Throwable e) {
             // Log cause, because Kafka doesn't
             log.error("Unexpected failure during signature check:", e);
 
-            throw new RuntimeException("Unexpected failure during signature check:", e);
+            throw new SaslAuthenticationException("Unexpected failure during signature check: " + getCauseMessage(e), e);
         }
     }
 
@@ -225,7 +289,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
     private TokenInfo validateToken(String token) {
         TokenInfo result = validator.validate(token);
         if (log.isDebugEnabled()) {
-            log.debug("User validated (Principal:" + result.principal() + ")");
+            log.debug("User validated (Principal:{})", result.principal());
         }
         return result;
     }
@@ -295,6 +359,19 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         @Override
         public Long startTimeMs() {
             return ti.issuedAtMs();
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            BearerTokenWithPayloadImpl that = (BearerTokenWithPayloadImpl) o;
+            return Objects.equals(ti, that.ti);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(ti);
         }
     }
 }

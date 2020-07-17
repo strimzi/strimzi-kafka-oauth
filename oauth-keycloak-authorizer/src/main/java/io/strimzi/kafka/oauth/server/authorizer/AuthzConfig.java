@@ -16,6 +16,9 @@ public class AuthzConfig extends Config {
     public static final String STRIMZI_AUTHORIZATION_KAFKA_CLUSTER_NAME = "strimzi.authorization.kafka.cluster.name";
     public static final String STRIMZI_AUTHORIZATION_DELEGATE_TO_KAFKA_ACL = "strimzi.authorization.delegate.to.kafka.acl";
 
+    public static final String STRIMZI_AUTHORIZATION_GRANTS_REFRESH_PERIOD_SECONDS = "strimzi.authorization.grants.refresh.period.seconds";
+    public static final String STRIMZI_AUTHORIZATION_GRANTS_REFRESH_POOL_SIZE = "strimzi.authorization.grants.refresh.pool.size";
+
     public static final String STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_LOCATION = "strimzi.authorization.ssl.truststore.location";
     public static final String STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_PASSWORD = "strimzi.authorization.ssl.truststore.password";
     public static final String STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_TYPE = "strimzi.authorization.ssl.truststore.type";

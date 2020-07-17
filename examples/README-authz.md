@@ -4,7 +4,8 @@ Once the Kafka Broker has obtained an access token by using Strimzi Kafka OAuth 
 For this Strimzi Kafka OAuth supports the use of `Keycloak Authorization Services`.
 
 A custom authorizer has to be configured on the Kafka Broker to take advantage of Authorization Services REST endpoints available on Keycloak, which provide a list of granted permissions on resources for authenticated users.
-The list is fetched once, and enforced locally on the Kafka Broker for each user session in order to provide fast authorization decisions.
+The list of grants (permissions) is first fetched during the first action after authenticated session is established by Kafka client, and then regularly refreshed in the background.
+Grants are cached, and enforced locally on the Kafka Broker for each user session in order to provide fast authorization decisions. Because they are refreshed, any changes at Keycloak side are detected and enforced.
 
 
 ## Building the Example Project

@@ -6,6 +6,7 @@ package io.strimzi.kafka.oauth.common;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.keycloak.util.JsonSerialization;
 
 import java.io.IOException;
@@ -18,6 +19,10 @@ import java.util.List;
 public class JSONUtil {
 
     public static final ObjectMapper MAPPER = new ObjectMapper();
+
+    public static ObjectNode newObjectNode() {
+        return new ObjectNode(MAPPER.getNodeFactory());
+    }
 
     public static <T> T readJSON(InputStream is, Class<T> clazz) throws IOException {
         return MAPPER.readValue(is, clazz);

@@ -26,6 +26,9 @@ mvn spotbugs:check
 
 # Run testsuite with java 8 only
 if [ ${JAVA_MAJOR_VERSION} -eq 1 ] ; then
+  DOCKER_TEST_NETWORKS=$(docker network ls | grep test | awk '{print $1}')
+  [ "$DOCKER_TEST_NETWORKS" != "" ] && docker network rm $DOCKER_TEST_NETWORKS
+
   docker pull oryd/hydra:v1.0.0
   mvn test-compile spotbugs:check -e -V -B -f testsuite
   set +e
