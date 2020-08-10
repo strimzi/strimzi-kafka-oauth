@@ -1,4 +1,4 @@
-FROM strimzi/kafka:latest-kafka-2.5.0
+FROM strimzi/kafka:latest-kafka-2.6.0
 
 COPY start.sh /opt/kafka/
 COPY simple_zk_config.sh /opt/kafka/

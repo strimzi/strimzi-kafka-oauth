@@ -1,4 +1,4 @@
-FROM strimzi/kafka:latest-kafka-2.5.0
+FROM strimzi/kafka:latest-kafka-2.6.0
 
 COPY libs/* /opt/kafka/libs/strimzi/
 COPY config/* /opt/kafka/config/
