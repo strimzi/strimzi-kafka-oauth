@@ -547,12 +547,13 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
                     log.trace("Fetch grants for session: " + token.getSessionId() + ", token: " + mask(token.value()));
                 }
 
-                JsonNode grants = fetchAuthorizationGrants(token.value());
-                if (!grants.equals(token.getPayload())) {
+                JsonNode newGrants = fetchAuthorizationGrants(token.value());
+                Object oldGrants = token.getPayload();
+                if (!newGrants.equals(oldGrants)) {
                     if (log.isDebugEnabled()) {
-                        log.debug("Grants have changed for session: {}, token: {}", token.getSessionId(), mask(token.value()));
+                        log.debug("Grants have changed for session: {}, token: {}\nbefore: {}\nafter: {}", token.getSessionId(), mask(token.value()), oldGrants, newGrants);
                     }
-                    token.setPayload(grants);
+                    token.setPayload(newGrants);
                 }
             });
 
@@ -590,14 +591,16 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
                         refreshed = t;
                         continue;
                     }
-                    if (refreshed.getPayload().equals(t.getPayload())) {
+                    Object oldGrants = t.getPayload();
+                    Object newGrants = refreshed.getPayload();
+                    if (newGrants.equals(oldGrants)) {
                         // Grants refreshed, but no change - no need to copy over to all sessions
                         break;
                     }
                     if (log.isDebugEnabled()) {
-                        log.debug("Grants have changed for session: {}, token: {}", t.getSessionId(), mask(t.value()));
+                        log.debug("Grants have changed for session: {}, token: {}\nbefore: {}\nafter: {}", t.getSessionId(), mask(t.value()), oldGrants, newGrants);
                     }
-                    t.setPayload(refreshed.getPayload());
+                    t.setPayload(newGrants);
                 }
             }
 
