@@ -18,6 +18,7 @@
         <module>access-token-introspection-hydra-test</module>
         <module>client-secret-jwt-hydra-test</module>
         <module>client-secret-jwt-keycloak-authz-test</module>
+        <module>client-secret-jwt-keycloak-authz-refresh-test</module>
     </modules>
 
     <licenses>
@@ -44,7 +45,7 @@
         <strimzi-oauth.version>1.0.0-SNAPSHOT</strimzi-oauth.version>
         <checkstyle.dir>..</checkstyle.dir>
 
-        <kafka.docker.image>strimzi/kafka:latest-kafka-2.5.0</kafka.docker.image>
+        <kafka.docker.image>strimzi/kafka:latest-kafka-2.6.0</kafka.docker.image>
     </properties>
 
     <dependencyManagement>
@@ -304,6 +305,12 @@
             <id>kafka-2_5_0</id>
             <properties>
                 <kafka.docker.image>strimzi/kafka:latest-kafka-2.5.0</kafka.docker.image>
+            </properties>
+        </profile>
+        <profile>
+            <id>kafka-2_6_0</id>
+            <properties>
+                <kafka.docker.image>strimzi/kafka:latest-kafka-2.6.0</kafka.docker.image>
             </properties>
         </profile>
     </profiles>
