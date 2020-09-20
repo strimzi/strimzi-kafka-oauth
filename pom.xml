@@ -80,12 +80,12 @@
         <spotbugs.version>3.1.12</spotbugs.version>
         <sonatype.nexus.staging>1.6.3</sonatype.nexus.staging>
 
-        <kafka.version>2.5.0</kafka.version>
+        <kafka.version>2.6.0</kafka.version>
         <scala.version>2.12.8</scala.version>
         <jackson.version>2.10.3</jackson.version>
         <junit.version>4.12</junit.version>
         <slf4j.version>1.7.26</slf4j.version>
-        <keycloak.version>10.0.0</keycloak.version>
+        <keycloak.version>11.0.2</keycloak.version>
         <bouncycastle.version>1.60</bouncycastle.version>
     </properties>
 
@@ -392,4 +392,3 @@
         </profile>
     </profiles>
 </project>
-
