@@ -14,7 +14,7 @@
         <plugins.dependency.version>3.1.1</plugins.dependency.version>
         <plugins.resources.version>3.1.0</plugins.resources.version>
 
-        <keycloak.version>10.0.0</keycloak.version>
+        <keycloak.version>11.0.2</keycloak.version>
         <bouncycastle.version>1.60</bouncycastle.version>
         <strimzi-oauth.version>0.6.0</strimzi-oauth.version>
     </properties>
@@ -99,4 +99,3 @@
         <module>spring</module>
     </modules>
 </project>
-
