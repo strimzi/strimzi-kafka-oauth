@@ -110,7 +110,13 @@ Then we tag and push it to the Docker Registry:
     docker tag strimzi/keycloak-import $REGISTRY_IP:$REGISTRY_PORT/strimzi/keycloak-import
     docker push $REGISTRY_IP:$REGISTRY_PORT/strimzi/keycloak-import
 
+You may need to use a different tag for the registry to allow you to upload the image, e.g. your registry namespace.
 Here we assume we know the IP address (`$REGISTRY_IP`) of the docker container and the port (`$REGISTRY_PORT`) it's listening on, and that, if it is an insecure Docker Registry, the Docker Daemon has been configured to trust the insecure registry. We also assume that you have authenticated to the registry if that is required in your environment. And, very important, we also assume that this is either a public Docker Registry accessible to your Kubernetes deployment or that it's the internal Docker Registry used by your Kubernetes install.
+
+On Minishift, for example, your default registry namespace is 'myproject', and you can get `REGISTRY_IP` and `REGISTRY_PORT`:
+
+    export REGISTRY_IP=$(oc get services -n default | grep 5000 | awk '{print $3}')
+    export REGISTRY_PORT=5000
 
 See [HACKING.md](../../HACKING.md) for more information on setting up the local development environment with all the pieces in place.
 
@@ -121,14 +127,14 @@ Now deploy it as a Kubernetes pod:
 
 The continer will perform the imports of realms into the Keycloak server, and exit. If you run `kubectl get pod` you'll see it CrashLoopBackOff because as soon as it's done, Kubernetes will restart the pod in the background, which will try to execute the same imports again, and fail. You'll also see errors in the Keycloak log, but as long as the initial realm import was successful, you can safely ignore them.
 
-Remove the `keycloak-import` deployment:
+Remove the `keycloak-import` pod:
 
-    kubectl delete deployment keycloak-import
+    kubectl delete pod keycloak-import
 
 
 ### Deploying the Kafka cluster
 
-Assuming you have already installed Strimzi Kafka Operator, you can now simply deploy one of the `kafka-oatuh-*` yaml files. All examples are configured with OAuth2 for authentication.
+Assuming you have already installed Strimzi Kafka Operator, you can now simply deploy one of the `kafka-oauth-*` yaml files. All examples are configured with OAuth2 for authentication.
 
 For example:
 
