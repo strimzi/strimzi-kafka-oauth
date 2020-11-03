@@ -5,6 +5,7 @@
 package io.strimzi.kafka.oauth.server;
 
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
+import io.strimzi.kafka.oauth.services.Principals;
 import io.strimzi.kafka.oauth.services.Services;
 import org.apache.kafka.common.Configurable;
 import org.apache.kafka.common.config.internals.BrokerSecurityConfigs;
@@ -15,6 +16,7 @@ import org.apache.kafka.common.security.authenticator.DefaultKafkaPrincipalBuild
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule;
 import org.apache.kafka.common.security.oauthbearer.internals.OAuthBearerSaslServer;
 
+import javax.security.sasl.SaslServer;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -117,15 +119,32 @@ public class OAuthKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder imp
     @Override
     public KafkaPrincipal build(AuthenticationContext context) {
         if (context instanceof SaslAuthenticationContext) {
-            OAuthBearerSaslServer server = (OAuthBearerSaslServer) ((SaslAuthenticationContext) context).server();
-            if (OAuthBearerLoginModule.OAUTHBEARER_MECHANISM.equals(server.getMechanismName())) {
-                BearerTokenWithPayload token = (BearerTokenWithPayload) server.getNegotiatedProperty("OAUTHBEARER.token");
-                Services.getInstance().getSessions().put(token);
+            SaslServer saslServer = ((SaslAuthenticationContext) context).server();
+            if (saslServer instanceof OAuthBearerSaslServer) {
+                OAuthBearerSaslServer server = (OAuthBearerSaslServer) saslServer;
+                if (OAuthBearerLoginModule.OAUTHBEARER_MECHANISM.equals(server.getMechanismName())) {
+                    BearerTokenWithPayload token = (BearerTokenWithPayload) server.getNegotiatedProperty("OAUTHBEARER.token");
+                    Services.getInstance().getSessions().put(token);
 
-                OAuthKafkaPrincipal kafkaPrincipal = new OAuthKafkaPrincipal(KafkaPrincipal.USER_TYPE,
-                        server.getAuthorizationID(), token);
+                    OAuthKafkaPrincipal kafkaPrincipal = new OAuthKafkaPrincipal(KafkaPrincipal.USER_TYPE,
+                            server.getAuthorizationID(), token);
 
-                return kafkaPrincipal;
+                    return kafkaPrincipal;
+                }
+            }
+
+            // if another mechanism - e.g. PLAIN is used to communicate the OAuth token
+            Principals principals = Services.getInstance().getPrincipals();
+            OAuthKafkaPrincipal principal = OAuthKafkaPrincipal.popCurrentPrincipal();
+            if (principal != null) {
+                principals.putPrincipal(saslServer, principal);
+                return principal;
+            }
+
+            // if principal is required by request / thread other than the one that was just authenticated
+            principal = (OAuthKafkaPrincipal) principals.getPrincipal(saslServer);
+            if (principal != null) {
+                return principal;
             }
         }
 

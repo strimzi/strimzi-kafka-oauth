@@ -20,6 +20,8 @@ import static io.strimzi.kafka.oauth.common.LogUtil.mask;
 @SuppressFBWarnings("EQ_DOESNT_OVERRIDE_EQUALS")
 public final class OAuthKafkaPrincipal extends KafkaPrincipal {
 
+    private static ThreadLocal<OAuthKafkaPrincipal> currentTL = new ThreadLocal<>();
+
     private final BearerTokenWithPayload jwt;
 
     public OAuthKafkaPrincipal(String principalType, String name) {
@@ -33,6 +35,19 @@ public final class OAuthKafkaPrincipal extends KafkaPrincipal {
 
     public BearerTokenWithPayload getJwt() {
         return jwt;
+    }
+
+    public static OAuthKafkaPrincipal popCurrentPrincipal() {
+        OAuthKafkaPrincipal current = currentTL.get();
+        currentTL.remove();
+        return current;
+    }
+
+    public static void pushCurrentPrincipal(OAuthKafkaPrincipal principal) {
+        if (currentTL.get() != null) {
+            throw new RuntimeException("Internal error - current principal already set");
+        }
+        currentTL.set(principal);
     }
 
     @Override

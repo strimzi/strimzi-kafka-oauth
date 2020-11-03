@@ -17,6 +17,8 @@ public class Services {
 
     private Validators validators = new Validators();
 
+    private Principals principals = new Principals();
+
     public static void configure(Map<String, ?> configs) {
         services = new Services();
     }
@@ -41,5 +43,9 @@ public class Services {
 
     public Sessions getSessions() {
         return sessions;
+    }
+
+    public Principals getPrincipals() {
+        return principals;
     }
 }

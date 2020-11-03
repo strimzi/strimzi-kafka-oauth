@@ -8,7 +8,7 @@ import io.strimzi.kafka.oauth.common.Config;
 
 import java.util.Properties;
 
-public class ServerConfig extends Config {
+public class ServerPlainConfig extends Config {
 
     public static final String OAUTH_JWKS_ENDPOINT_URI = "oauth.jwks.endpoint.uri";
     public static final String OAUTH_JWKS_EXPIRY_SECONDS = "oauth.jwks.expiry.seconds";
@@ -29,10 +29,10 @@ public class ServerConfig extends Config {
     @Deprecated
     public static final String OAUTH_VALIDATION_SKIP_TYPE_CHECK = "oauth.validation.skip.type.check";
 
-    public ServerConfig() {
+    public ServerPlainConfig() {
     }
 
-    public ServerConfig(Properties p) {
+    public ServerPlainConfig(Properties p) {
         super(p);
     }
 }
