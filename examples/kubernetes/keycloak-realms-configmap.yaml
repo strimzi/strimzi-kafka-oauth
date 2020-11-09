@@ -6,7 +6,7 @@ data:
   demo-realm.json: |-
     {
       "realm": "demo",
-      "accessTokenLifespan": 300,
+      "accessTokenLifespan": 2592000,
       "ssoSessionMaxLifespan": 32140800,
       "ssoSessionIdleTimeout": 32140800,
       "enabled": true,
@@ -226,9 +226,9 @@ data:
   kafka-authz-realm.json: |
     {
       "realm": "kafka-authz",
-      "accessTokenLifespan": 120,
-      "ssoSessionIdleTimeout": 864000,
-      "ssoSessionMaxLifespan": 864000,
+      "accessTokenLifespan": 2592000,
+      "ssoSessionIdleTimeout": 32140800,
+      "ssoSessionMaxLifespan": 32140800,
       "enabled": true,
       "sslRequired": "external",
       "roles": {
