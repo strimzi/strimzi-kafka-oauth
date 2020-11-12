@@ -11,6 +11,7 @@ spec:
         authentication:
           type: oauth
           enablePlain: true
+          tokenEndpointUri: http://keycloak:8080/auth/realms/kafka-authz/protocol/openid-connect/token
           validIssuerUri: http://keycloak:8080/auth/realms/kafka-authz
           jwksEndpointUri: http://keycloak:8080/auth/realms/kafka-authz/protocol/openid-connect/certs
           userNameClaim: preferred_username

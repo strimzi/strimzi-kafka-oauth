@@ -5,8 +5,10 @@
 package io.strimzi.kafka.oauth.server.plain;
 
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
+import io.strimzi.kafka.oauth.common.OAuthAuthenticator;
 import io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler;
 import io.strimzi.kafka.oauth.server.OAuthKafkaPrincipal;
+import io.strimzi.kafka.oauth.server.ServerConfig;
 import org.apache.kafka.common.errors.SaslAuthenticationException;
 import org.apache.kafka.common.security.auth.KafkaPrincipal;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerToken;
@@ -18,12 +20,18 @@ import org.slf4j.LoggerFactory;
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.login.AppConfigurationEntry;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServerOauthValidatorCallbackHandler {
 
     private static final Logger log = LoggerFactory.getLogger(JaasServerOauthOverPlainValidatorCallbackHandler.class);
+
+    private URI tokenEndpointUri;
 
     @Override
     public void configure(Map<String, ?> configs, String saslMechanism, List<AppConfigurationEntry> jaasConfigEntries) {
@@ -34,6 +42,21 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
 
         if (jaasConfigEntries.size() != 1) {
             throw new IllegalArgumentException("Exactly one jaasConfigEntry expected (size: " + jaasConfigEntries.size());
+        }
+
+        AppConfigurationEntry entry = jaasConfigEntries.get(0);
+        Properties p = new Properties();
+        p.putAll(entry.getOptions());
+        ServerConfig config = new ServerConfig(p);
+
+        String tokenEndpoint = config.getValue(ServerPlainConfig.OAUTH_TOKEN_ENDPOINT_URI);
+        if (tokenEndpoint == null) {
+            throw new IllegalArgumentException("tokenEndpointUri == null");
+        }
+        try {
+            this.tokenEndpointUri = new URI(tokenEndpoint);
+        } catch (URISyntaxException e) {
+            throw new IllegalArgumentException("Invalid keysEndpointUri: " + tokenEndpoint, e);
         }
 
         super.configure(configs, "OAUTHBEARER", jaasConfigEntries);
@@ -78,11 +101,18 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
         }
     }
 
-    private void authenticate(String username, String apiKey) throws UnsupportedCallbackException {
-        System.out.println("authenticate(): " + username + ":" + apiKey);
-        // we assume the api key is the access token
-        // username is the client id
-        OAuthBearerValidatorCallback[] callbacks = new OAuthBearerValidatorCallback[] {new OAuthBearerValidatorCallback(apiKey)};
+    private void authenticate(String username, String password) throws UnsupportedCallbackException, IOException {
+        // if username equals 'access-token' we treat the password as an access token
+        // otherwise, we treat username as clientId, password as client secret and perform client credential auth
+        // to get the access token
+        final String accessToken;
+        if ("access-token".equals(username)) {
+            accessToken = password;
+        } else {
+            accessToken = OAuthAuthenticator.loginWithClientSecret(tokenEndpointUri, getSocketFactory(), getVerifier(), username, password, isJwt(), getPrincipalExtractor(), null)
+                    .token();
+        }
+        OAuthBearerValidatorCallback[] callbacks = new OAuthBearerValidatorCallback[] {new OAuthBearerValidatorCallback(accessToken)};
         super.handle(callbacks);
 
         OAuthBearerToken token = callbacks[0].token();
@@ -91,7 +121,7 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
         }
 
         OAuthKafkaPrincipal kafkaPrincipal = new OAuthKafkaPrincipal(KafkaPrincipal.USER_TYPE,
-                username, (BearerTokenWithPayload) token);
+                token.principalName(), (BearerTokenWithPayload) token);
         OAuthKafkaPrincipal.pushCurrentPrincipal(kafkaPrincipal);
     }
 

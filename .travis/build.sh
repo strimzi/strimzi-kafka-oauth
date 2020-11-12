@@ -32,10 +32,17 @@ if [ ${JAVA_MAJOR_VERSION} -eq 1 ] ; then
   docker pull oryd/hydra:v1.0.0
   mvn test-compile spotbugs:check -e -V -B -f testsuite
   set +e
+  docker pull strimzi/kafka:latest-kafka-2.6.0
   mvn -e -V -B clean install -f testsuite -Pkafka-2_6_0
-  mvn -e -V -B test -f testsuite -Pkafka-2_5_0
+
+  docker pull strimzi/kafka:latest-kafka-2.5.1
+  mvn -e -V -B test -f testsuite -Pkafka-2_5_1
+
+  docker pull strimzi/kafka:latest-kafka-2.4.1
   mvn -e -V -B test -f testsuite -Pkafka-2_4_1
-  mvn -e -V -B test -f testsuite -Pkafka-2_4_0
+
+  docker pull strimzi/kafka:latest-kafka-2.3.0
+  mvn -e -V -B test -f testsuite -Pkafka-2_3_0
 
   EXIT=$?
   FILE=testsuite/kafka.log

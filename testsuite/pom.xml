@@ -19,6 +19,7 @@
         <module>client-secret-jwt-hydra-test</module>
         <module>client-secret-jwt-keycloak-authz-test</module>
         <module>client-secret-jwt-keycloak-authz-refresh-test</module>
+        <module>client-secret-jwt-keycloak-authz-over-plain-test</module>
     </modules>
 
     <licenses>
@@ -77,6 +78,10 @@
         <dependency>
             <groupId>io.strimzi</groupId>
             <artifactId>kafka-oauth-server</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.strimzi</groupId>
+            <artifactId>kafka-oauth-server-plain</artifactId>
         </dependency>
         <dependency>
             <groupId>io.strimzi</groupId>
@@ -198,6 +203,10 @@
                         </artifactItem>
                         <artifactItem>
                             <groupId>io.strimzi</groupId>
+                            <artifactId>kafka-oauth-server-plain</artifactId>
+                        </artifactItem>
+                        <artifactItem>
+                            <groupId>io.strimzi</groupId>
                             <artifactId>kafka-oauth-common</artifactId>
                         </artifactItem>
                         <artifactItem>
@@ -305,6 +314,12 @@
             <id>kafka-2_5_0</id>
             <properties>
                 <kafka.docker.image>strimzi/kafka:latest-kafka-2.5.0</kafka.docker.image>
+            </properties>
+        </profile>
+        <profile>
+            <id>kafka-2_5_1</id>
+            <properties>
+                <kafka.docker.image>strimzi/kafka:latest-kafka-2.5.1</kafka.docker.image>
             </properties>
         </profile>
         <profile>

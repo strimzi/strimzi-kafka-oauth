@@ -53,6 +53,12 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
     private boolean isJwt;
 
+    private SSLSocketFactory socketFactory;
+
+    private HostnameVerifier verifier;
+
+    private PrincipalExtractor principalExtractor;
+
     @Override
     public void configure(Map<String, ?> configs, String saslMechanism, List<AppConfigurationEntry> jaasConfigEntries) {
 
@@ -73,8 +79,8 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
         validateConfig();
 
-        SSLSocketFactory socketFactory = ConfigUtil.createSSLFactory(config);
-        HostnameVerifier verifier = ConfigUtil.createHostnameVerifier(config);
+        socketFactory = ConfigUtil.createSSLFactory(config);
+        verifier = ConfigUtil.createHostnameVerifier(config);
 
 
         String jwksUri = config.getValue(ServerConfig.OAUTH_JWKS_ENDPOINT_URI);
@@ -102,7 +108,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
             throw new RuntimeException("OAuth validator configuration error: OAUTH_FALLBACK_USERNAME_CLAIM must be set when OAUTH_FALLBACK_USERNAME_PREFIX is set");
         }
 
-        PrincipalExtractor principalExtractor = new PrincipalExtractor(
+        principalExtractor = new PrincipalExtractor(
                 usernameClaim,
                 fallbackUsernameClaim,
                 fallbackUsernamePrefix);
@@ -315,6 +321,22 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
             // Try parse as refresh token:
             log.debug("[IGNORED] Failed to parse JWT token's payload", e);
         }
+    }
+
+    public boolean isJwt() {
+        return isJwt;
+    }
+
+    public SSLSocketFactory getSocketFactory() {
+        return socketFactory;
+    }
+
+    public HostnameVerifier getVerifier() {
+        return verifier;
+    }
+
+    public PrincipalExtractor getPrincipalExtractor() {
+        return principalExtractor;
     }
 
     static class BearerTokenWithPayloadImpl implements BearerTokenWithPayload {
