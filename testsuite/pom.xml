@@ -19,7 +19,8 @@
         <module>client-secret-jwt-hydra-test</module>
         <module>client-secret-jwt-keycloak-authz-test</module>
         <module>client-secret-jwt-keycloak-authz-refresh-test</module>
-        <module>client-secret-jwt-keycloak-authz-over-plain-test</module>
+        <module>jwt-over-plain-keycloak-authz-test</module>
+        <module>introspection-over-plain-keycloak-authz-test</module>
     </modules>
 
     <licenses>
@@ -64,6 +65,11 @@
                 <version>${version.arquillian_universe}</version>
                 <scope>import</scope>
                 <type>pom</type>
+            </dependency>
+            <dependency>
+                <groupId>io.strimzi.oauth.testsuite</groupId>
+                <artifactId>jwt-over-plain-keycloak-authz-test</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

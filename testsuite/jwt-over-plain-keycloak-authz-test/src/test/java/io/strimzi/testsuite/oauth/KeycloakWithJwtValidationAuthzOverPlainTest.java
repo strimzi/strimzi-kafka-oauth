@@ -41,7 +41,7 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithClientSe
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
 
 @RunWith(Arquillian.class)
-public class KeycloakClientCredentialsWithJwtValidationAuthzOverPlainTest {
+public class KeycloakWithJwtValidationAuthzOverPlainTest {
 
     private static final String HOST = "keycloak";
     private static final String REALM = "kafka-authz";
@@ -68,11 +68,14 @@ public class KeycloakClientCredentialsWithJwtValidationAuthzOverPlainTest {
     private Producer<String, String> teamBProducer;
     private Consumer<String, String> teamBConsumer;
 
+    protected String getTestTitle() {
+        return "==== KeycloakWithJwtValidationAuthzOverPlainTest - Tests Authorization ====";
+    }
 
     @Test
     public void doTest() throws Exception {
 
-        System.out.println("==== KeycloakClientCredentialsWithJwtValidationAuthzTest - Tests Authorization ====");
+        System.out.println(getTestTitle());
 
         Properties defaults = new Properties();
         defaults.setProperty(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, TOKEN_ENDPOINT_URI);

@@ -25,7 +25,8 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
+
+import static io.strimzi.kafka.oauth.common.LogUtil.getCauseMessage;
 
 public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServerOauthValidatorCallbackHandler {
 
@@ -40,14 +41,7 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
             throw new IllegalArgumentException(String.format("Unexpected SASL mechanism: %s", saslMechanism));
         }
 
-        if (jaasConfigEntries.size() != 1) {
-            throw new IllegalArgumentException("Exactly one jaasConfigEntry expected (size: " + jaasConfigEntries.size());
-        }
-
-        AppConfigurationEntry entry = jaasConfigEntries.get(0);
-        Properties p = new Properties();
-        p.putAll(entry.getOptions());
-        ServerConfig config = new ServerConfig(p);
+        ServerConfig config = parseJaasConfig(jaasConfigEntries);
 
         String tokenEndpoint = config.getValue(ServerPlainConfig.OAUTH_TOKEN_ENDPOINT_URI);
         if (tokenEndpoint == null) {
@@ -56,13 +50,13 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
         try {
             this.tokenEndpointUri = new URI(tokenEndpoint);
         } catch (URISyntaxException e) {
-            throw new IllegalArgumentException("Invalid keysEndpointUri: " + tokenEndpoint, e);
+            throw new IllegalArgumentException("Invalid tokenEndpointUri: " + tokenEndpoint, e);
         }
 
         super.configure(configs, "OAUTHBEARER", jaasConfigEntries);
+
+        log.debug("Configured OAuth over PLAIN:\n    tokenEndpointUri: " + tokenEndpointUri);
     }
-
-
 
     @Override
     public void close() {
@@ -96,6 +90,9 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
         try {
             authenticate(username, password);
             callback.authenticated(true);
+
+        } catch (SaslAuthenticationException e) {
+            throw e;
         } catch (Exception e) {
             throw new SaslAuthenticationException("Authentication failed: " + getCauseMessage(e), e);
         }
@@ -123,15 +120,5 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
         OAuthKafkaPrincipal kafkaPrincipal = new OAuthKafkaPrincipal(KafkaPrincipal.USER_TYPE,
                 token.principalName(), (BearerTokenWithPayload) token);
         OAuthKafkaPrincipal.pushCurrentPrincipal(kafkaPrincipal);
-    }
-
-    private static String getCauseMessage(Throwable e) {
-        StringBuilder sb = new StringBuilder(e.toString());
-
-        Throwable t = e;
-        while ((t = t.getCause()) != null) {
-            sb.append(", caused by: ").append(t.toString());
-        }
-        return sb.toString();
     }
 }

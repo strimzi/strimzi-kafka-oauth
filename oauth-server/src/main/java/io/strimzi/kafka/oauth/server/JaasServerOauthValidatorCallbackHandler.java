@@ -41,6 +41,7 @@ import java.util.Set;
 import java.util.function.Supplier;
 
 import static io.strimzi.kafka.oauth.common.DeprecationUtil.isAccessTokenJwt;
+import static io.strimzi.kafka.oauth.common.LogUtil.getCauseMessage;
 import static io.strimzi.kafka.oauth.common.LogUtil.mask;
 
 public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCallbackHandler {
@@ -66,14 +67,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
             throw new IllegalArgumentException(String.format("Unexpected SASL mechanism: %s", saslMechanism));
         }
 
-        if (jaasConfigEntries.size() != 1) {
-            throw new IllegalArgumentException("Exactly one jaasConfigEntry expected (size: " + jaasConfigEntries.size());
-        }
-
-        AppConfigurationEntry e = jaasConfigEntries.get(0);
-        Properties p = new Properties();
-        p.putAll(e.getOptions());
-        config = new ServerConfig(p);
+        parseJaasConfig(jaasConfigEntries);
 
         isJwt = isAccessTokenJwt(config, log, "OAuth validator configuration error: ");
 
@@ -203,6 +197,21 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         validator = Services.getInstance().getValidators().get(vkey, factory);
     }
 
+    protected ServerConfig parseJaasConfig(List<AppConfigurationEntry> jaasConfigEntries) {
+        if (config != null) {
+            return config;
+        }
+        if (jaasConfigEntries.size() != 1) {
+            throw new IllegalArgumentException("Exactly one jaasConfigEntry expected (size: " + jaasConfigEntries.size());
+        }
+
+        AppConfigurationEntry e = jaasConfigEntries.get(0);
+        Properties p = new Properties();
+        p.putAll(e.getOptions());
+        config = new ServerConfig(p);
+        return config;
+    }
+
     @SuppressWarnings("deprecation")
     private static boolean isCheckAccessTokenType(Config config) {
         String legacy = config.getValue(ServerConfig.OAUTH_VALIDATION_SKIP_TYPE_CHECK);
@@ -280,16 +289,6 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
             throw new SaslAuthenticationException("Unexpected failure during signature check: " + getCauseMessage(e), e);
         }
-    }
-
-    private static String getCauseMessage(Throwable e) {
-        StringBuilder sb = new StringBuilder(e.toString());
-
-        Throwable t = e;
-        while ((t = t.getCause()) != null) {
-            sb.append(", caused by: ").append(t.toString());
-        }
-        return sb.toString();
     }
 
     private TokenInfo validateToken(String token) {
