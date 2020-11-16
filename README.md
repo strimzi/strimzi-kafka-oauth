@@ -159,7 +159,7 @@ The next thing to do is to enable SASL_OAUTHBEARER mechanism:
 
     sasl.enabled.mechanisms=OAUTHBEARER
 
-Since version 0.7.0 there is also support for so called 'OAuth over PLAIN' which allows using the SASL_PLAIN mechanism to authenticate with OAuth access token or with clientId and secret.
+Since version 0.7.0 there is also support for so called 'OAuth over PLAIN' which allows using the SASL_PLAIN mechanism to authenticate with an OAuth access token or with a clientId and a secret.
 In order to use that you have to enable the SASL_PLAIN mechanism as well (you can enable one or the other or both):
 
     sasl.enabled.mechanisms=OAUTHBEARER,PLAIN
@@ -167,13 +167,13 @@ In order to use that you have to enable the SASL_PLAIN mechanism as well (you ca
 #### Configuring the JAAS login module
 
 In JAAS configuration we do three things:
-- We activate a specific JAAS login module - for Strimzi Kafka OAuth that is either:
+- Activate a specific JAAS login module - for Strimzi Kafka OAuth that is either:
   - the `org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule` class which implements Kafka's SASL_OAUTHBEARER authentication mechanism, or 
   - the `org.apache.kafka.common.security.plain.PlainLoginModule` class which implements Kafka's SASL_PLAIN authentication mechanism.
-- We activate the custom server callback that will provide server-side token validation:
+- Activate the custom server callback that will provide server-side token validation:
   - For `SASL_OAUTHBEARER` the callback class should be `io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler`.
   - For `SASL_PLAIN` the callback class should be `io.strimzi.kafka.oauth.server.plain.JaasServerOauthOverPlainValidatorCallbackHandler`.
-- We specify configurations used by the login module, and by our custom extensions - the server callback handler and / or the login callback handler (which we will install in [the next step](#enabling-the-custom-callbacks)).
+- Specify the configurations used by the login module, and by our custom extensions - the server callback handler and / or the login callback handler (which we will do in [the next step](#enabling-the-custom-callbacks)).
 
 JAAS configuration can be specified inside `server.properties` file using the listener-scoped `sasl.jaas.config` key. 
 Assuming there is the `CLIENT` listener configured as shown above, we can specify configuration specifically for that listener:

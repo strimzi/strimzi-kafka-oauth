@@ -1,6 +1,16 @@
 Release Notes
 =============
 
+0.7.0
+-----
+
+### OAuth over PLAIN
+
+SASL_PLAIN can now be used to perform the authentication using a service account clientId and secret or a long-lived access token.
+
+See [README.md] for instructions on how to set up the brokers and the clients.
+
+
 0.6.0
 -----
 
