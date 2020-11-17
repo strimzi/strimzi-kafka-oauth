@@ -42,7 +42,7 @@ public class LogUtil {
      * @param e The exception
      * @return The message with all the causes
      */
-    public static String getCauseMessage(Throwable e) {
+    public static String getAllCauseMessages(Throwable e) {
         StringBuilder sb = new StringBuilder(e.toString());
 
         Throwable t = e;

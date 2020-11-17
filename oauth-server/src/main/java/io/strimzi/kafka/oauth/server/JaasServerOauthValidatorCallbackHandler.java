@@ -41,7 +41,7 @@ import java.util.Set;
 import java.util.function.Supplier;
 
 import static io.strimzi.kafka.oauth.common.DeprecationUtil.isAccessTokenJwt;
-import static io.strimzi.kafka.oauth.common.LogUtil.getCauseMessage;
+import static io.strimzi.kafka.oauth.common.LogUtil.getAllCauseMessages;
 import static io.strimzi.kafka.oauth.common.LogUtil.mask;
 
 public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCallbackHandler {
@@ -273,7 +273,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
             if (log.isDebugEnabled()) {
                 log.debug("Token validation failed for token: " + mask(token), e);
             }
-            throw new SaslAuthenticationException("Authentication failed due to an invalid token: " + getCauseMessage(e), e);
+            throw new SaslAuthenticationException("Authentication failed due to an invalid token: " + getAllCauseMessages(e), e);
 
         } catch (RuntimeException e) {
             // Kafka ignores cause inside thrown exception, and doesn't log it
@@ -281,13 +281,13 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                 log.debug("Token validation failed due to runtime exception (network issue or misconfiguration): ", e);
             }
             // Extract cause and include it in a message string in order for it to be in the server log
-            throw new SaslAuthenticationException("Token validation failed due to runtime exception: " + getCauseMessage(e), e);
+            throw new SaslAuthenticationException("Token validation failed due to runtime exception: " + getAllCauseMessages(e), e);
 
         } catch (Throwable e) {
             // Log cause, because Kafka doesn't
             log.error("Unexpected failure during signature check:", e);
 
-            throw new SaslAuthenticationException("Unexpected failure during signature check: " + getCauseMessage(e), e);
+            throw new SaslAuthenticationException("Unexpected failure during signature check: " + getAllCauseMessages(e), e);
         }
     }
 

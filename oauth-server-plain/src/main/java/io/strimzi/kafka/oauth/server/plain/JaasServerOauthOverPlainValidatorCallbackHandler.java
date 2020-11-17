@@ -26,7 +26,7 @@ import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
 
-import static io.strimzi.kafka.oauth.common.LogUtil.getCauseMessage;
+import static io.strimzi.kafka.oauth.common.LogUtil.getAllCauseMessages;
 
 public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServerOauthValidatorCallbackHandler {
 
@@ -94,7 +94,7 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
         } catch (SaslAuthenticationException e) {
             throw e;
         } catch (Exception e) {
-            throw new SaslAuthenticationException("Authentication failed: " + getCauseMessage(e), e);
+            throw new SaslAuthenticationException("Authentication failed: " + getAllCauseMessages(e), e);
         }
     }
 
