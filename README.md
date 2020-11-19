@@ -426,6 +426,9 @@ Instead, specify the following configuration:
 In this case, unless the access token has expired, all the actions will be granted. The broker will behave as if no authorizer was installed, effectively turning every user into a 'super user'.
 The unauthenticated users, or users authenticated with a mechanism other than OAuth will also automatically have all the actions granted.
 
+Note: When using SASL_PLAIN authentication in combination with `KeycloakRBACAuthorizer` or `OAuthSessionAuthorizer` the Kafka client session will expire when the access token expires.
+This will result in sudden appearance of the authorization failures.
+Since there is no way to pass a new access token mid-session (re-authenticate), the client will have to start a new session by establishing a new connection. 
 
 ### Configuring the Kafka Broker authorization
 
