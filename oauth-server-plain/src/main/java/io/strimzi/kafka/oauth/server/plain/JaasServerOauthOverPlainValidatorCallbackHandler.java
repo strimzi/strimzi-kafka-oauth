@@ -28,6 +28,73 @@ import java.util.Map;
 
 import static io.strimzi.kafka.oauth.common.LogUtil.getAllCauseMessages;
 
+/**
+ * This <em>AuthenticateCallbackHandler</em> implements 'OAuth over PLAIN' support.
+ *
+ * It is designed for use with the <em>org.apache.kafka.common.security.plain.PlainLoginModule</em> which provides
+ * SASL_PLAIN authentication support to Kafka brokers. With this CallbackHandler installed, the client authenticating
+ * with SASL_PLAIN mechanism can use the clientId and the secret, setting them as <em>username</em> and <em>password</em>
+ * parameters.
+ * <p>
+ * Also, the client can use the access token to authenticate, in which case it sets the <em>username</em> parameter
+ * to <em>$accessToken</em>, and set the access token as the <em>password</em> SASL_PLAIN parameter value.
+ * <p>
+ * Allowing the use of OAuth credentials over SASL_PLAIN allows all existing Kafka client tools to authenticate to your
+ * Kafka cluster even when they have no explicit OAuth support.
+ * <p>
+ * To install this <em>CallbackHandler</em> in your Kafka listener, specify the following in your 'server.properties':
+ * </p>
+ * <pre>
+ *     # Declare a listener
+ *     listeners=CLIENT://kafka:9092
+ *
+ *     # Specify whether the TCP connection is unsecured or protected with TLS
+ *     #listener.security.protocol.map=CLIENT:SASL_PLAINTEXT
+ *     listener.security.protocol.map=CLIENT:SASL_SSL
+ *
+ *     # Configure the keystore and truststore for SASL_SSL
+ *     listener.name.client.ssl.keystore.lccation=/tmp/kafka/cluster.keystore.p12
+ *     listener.name.client.ssl.keystore.password=keypass
+ *     listener.name.client.ssl.keystore.type=PKCS12
+ *     listener.name.client.ssl.truststore.location=/tmp/kafka/cluster.truststore.p12
+ *     listener.name.client.ssl.truststore.password=trustpass
+ *     listener.name.client.ssl.truststore.type=PKCS12
+ *
+ *     # Enable SASL_PLAIN authentication mechanism on your listener in addition to any others
+ *     #sasl.enabled.mechanisms: PLAIN,OAUTHBEARER
+ *     sasl.enabled.mechanisms: PLAIN
+ *
+ *     # Install the SASL_PLAIN LoginModule using per-listener sasl.jaas.config
+ *     listener.name.client.plain.sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required \
+ *         oauth.token.endpoint.uri="https://sso-server/token" \
+ *         oauth.valid.issuer.uri="https://java-server" \
+ *         oauth.jwks.endpoint.uri="https://java-server/certs" \
+ *         oauth.username.claim="preferred_username";
+ *
+ *     # Install this CallbackHandler to provide custom handling of authentication
+ *     listener.name.client.plain.sasl.server.callback.handler.class=io.strimzi.kafka.oauth.server.plain.JaasServerOauthOverPlainValidatorCallbackHandler
+ * </pre>
+ * <p>
+ * There is additional <em>sasl.jaas.config</em> configuration that may need to be specified in order for this CallbackHandler to work with your authorization server.
+ * </p>
+ * <blockquote>
+ * Note: The following configuration keys can be specified as parameters to <em>sasl.jaas.config</em> in Kafka `server.properties` file, or as
+ * ENV vars in which case an all-uppercase key name is also attempted with '.' replaced by '_' (e.g. OAUTH_TOKEN_ENDPOINT_URI).
+ * They can also be specified as system properties. The priority is in reverse - system property overrides the ENV var, which overrides
+ * `server.properties`. When not specified as the parameters to <em>sasl.jaas.config</em>, the configuration keys will apply to all listeners.
+ * </blockquote>
+ * <p>
+ * Required <em>sasl.jaas.config</em> configuration:
+ * </p>
+ * <ul>
+ * <li><em>oauth.token.endpoint.uri</em> A URL of the authorization server's token endpoint.<br>
+ * The token endpoint is used to authenticate to authorization server with the <em>clientId</em> and the <em>secret</em> received over username and password parameters.
+ * </li>
+ * </ul>
+ * <p>
+ * The rest of the configuration is the same as for {@link JaasServerOauthValidatorCallbackHandler}.
+ * </p>
+ */
 public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServerOauthValidatorCallbackHandler {
 
     private static final Logger log = LoggerFactory.getLogger(JaasServerOauthOverPlainValidatorCallbackHandler.class);
@@ -99,11 +166,11 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
     }
 
     private void authenticate(String username, String password) throws UnsupportedCallbackException, IOException {
-        // if username equals 'access-token' we treat the password as an access token
+        // if username equals '$accessToken' we treat the password as an access token
         // otherwise, we treat username as clientId, password as client secret and perform client credential auth
         // to get the access token
         final String accessToken;
-        if ("access-token".equals(username)) {
+        if ("$accessToken".equals(username)) {
             accessToken = password;
         } else {
             accessToken = OAuthAuthenticator.loginWithClientSecret(tokenEndpointUri, getSocketFactory(), getVerifier(), username, password, isJwt(), getPrincipalExtractor(), null)
