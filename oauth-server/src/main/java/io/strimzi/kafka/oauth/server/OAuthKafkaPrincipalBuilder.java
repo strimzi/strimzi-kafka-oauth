@@ -135,7 +135,7 @@ public class OAuthKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder imp
 
             // if another mechanism - e.g. PLAIN is used to communicate the OAuth token
             Principals principals = Services.getInstance().getPrincipals();
-            OAuthKafkaPrincipal principal = OAuthKafkaPrincipal.popCurrentPrincipal();
+            OAuthKafkaPrincipal principal = OAuthKafkaPrincipal.takeFromThreadContext();
             if (principal != null) {
                 principals.putPrincipal(saslServer, principal);
                 return principal;

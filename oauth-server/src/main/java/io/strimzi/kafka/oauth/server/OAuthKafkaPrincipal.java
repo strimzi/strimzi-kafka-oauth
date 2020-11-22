@@ -37,13 +37,13 @@ public final class OAuthKafkaPrincipal extends KafkaPrincipal {
         return jwt;
     }
 
-    public static OAuthKafkaPrincipal popCurrentPrincipal() {
+    public static OAuthKafkaPrincipal takeFromThreadContext() {
         OAuthKafkaPrincipal current = currentTL.get();
         currentTL.remove();
         return current;
     }
 
-    public static void pushCurrentPrincipal(OAuthKafkaPrincipal principal) {
+    public static void setToThreadContext(OAuthKafkaPrincipal principal) {
         if (currentTL.get() != null) {
             throw new RuntimeException("Internal error - current principal already set");
         }

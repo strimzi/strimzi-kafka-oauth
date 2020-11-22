@@ -186,6 +186,6 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
 
         OAuthKafkaPrincipal kafkaPrincipal = new OAuthKafkaPrincipal(KafkaPrincipal.USER_TYPE,
                 token.principalName(), (BearerTokenWithPayload) token);
-        OAuthKafkaPrincipal.pushCurrentPrincipal(kafkaPrincipal);
+        OAuthKafkaPrincipal.setToThreadContext(kafkaPrincipal);
     }
 }
