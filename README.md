@@ -383,7 +383,9 @@ If using SimpleACLAuthorizer or no authorizer at all, then there is no further n
 Since Kafka version 2.2 the Kafka brokers support a [re-authentication mechanism](https://cwiki.apache.org/confluence/display/KAFKA/KIP-368%3A+Allow+SASL+Connections+to+Periodically+Re-Authenticate) allowing clients to update the token mid-session, without having to drop and re-establish the connection. 
 When a client sends the new access token, validation is performed on the broker as if a new connection was established.
 
-The re-authentication only works with SASL_OAUTHBEARER mechanism, and is disabled by default in order to prevent the old clients that don't understand the new Kafka wire protocol from breaking.
+The re-authentication mechanism only makes sense for token based authentication mechanisms. Also, because it introduces additional message 
+type to Kafka protocol it has to be explicitly enabled in order to not potentially break the older Kafka clients. 
+
 In order to enable the re-authentication on the Kafka broker, use the `connections.max.reauth.ms` property in `server.properties`:
 
     connections.max.reauth.ms=3600000
