@@ -490,7 +490,7 @@ public class KeycloakWithJwtValidationAuthzOverPlainTest {
         p.setProperty("security.protocol", "SASL_PLAINTEXT");
         p.setProperty("sasl.mechanism", "PLAIN");
         p.setProperty("sasl.jaas.config", "org.apache.kafka.common.security.plain.PlainLoginModule required " +
-                " username=\"access-token\" password=\"" + accessToken + "\";");
+                " username=\"$accessToken\" password=\"" + accessToken + "\";");
 
         p.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "kafka:9092");
         p.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());

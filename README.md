@@ -823,7 +823,7 @@ The Kafka Broker has to have the SASL_PLAIN mechanism enabled and properly confi
 Then, the standard SASL_PLAIN configuration is used on the client with the following two options:
 - the client can authenticate using the service account clientId and secret. Setting the `username` to the value of clientId, and setting the `password` to the value of client secret
 - the client can authenticate using a long-lived access token obtained through a browser sign-in or through using `curl` or similar CLI tool to obtain the access token with `client credentials` or the `password` authentication, 
-  then setting the `username` to `access-token` reserved word and setting `password` to the access token string. 
+  then setting the `username` to `$accessToken` reserved word and setting `password` to the access token string. 
 
 For example, when using the Kafka Client Java library the configuration might look like:
 
