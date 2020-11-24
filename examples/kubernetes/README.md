@@ -10,23 +10,23 @@ They assume Keycloak is used as an authorization server, with properly configure
 
 * `kafka-oauth-single.yaml`
 
-  A single node Kafka cluster using Apache Kafka 2.3.1 with OAuth 2 authentication using the 'demo' realm, and fast local signature validation (with keys loaded from the JWKS endpoint) for validating access tokens.
+  A single node Kafka cluster using Apache Kafka 2.6.0 with OAuth 2 authentication using the 'demo' realm, and fast local signature validation (with keys loaded from the JWKS endpoint) for validating access tokens.
 
-* `kafka-oauth-single-2_4.yaml`
+* `kafka-oauth-single-2_5.yaml`
 
-  Same as `kafka-oauth-single.yaml` except using Apache Kafka 2.4.0.
+  Same as `kafka-oauth-single.yaml` except using Apache Kafka 2.5.0.
 
 * `kafka-oauth-single-introspect.yaml`
 
-  A single node Kafka cluster using Apache Kafka 2.3.1 with OAuth 2 authentication using the `demo` realm, and introspection endpoint for access token validation.
+  A single node Kafka cluster using Apache Kafka 2.6.0 with OAuth 2 authentication using the `demo` realm, and introspection endpoint for access token validation.
 
 * `kafka-oauth-single-authz.yaml`
 
-  A single node Kafka cluster using Apache Kafka 2.3.1 with OAuth 2 authentication using the `kafka-authz` realm, a fast local signature validation, and Keycloak Authorization Services for token-based authorization.
+  A single node Kafka cluster using Apache Kafka 2.6.0 with OAuth 2 authentication using the `kafka-authz` realm, a fast local signature validation, and Keycloak Authorization Services for token-based authorization.
 
-* `kafka-oauth-single-2_4.authz.yaml`
+* `kafka-oauth-single-2_5-authz.yaml`
 
-  Same as `kafka-oauth-single-authz.yaml` except using Apache Kafka 2.4.0.
+  Same as `kafka-oauth-single-authz.yaml` except using Apache Kafka 2.5.0.
 
 ### Deploying Keycloak and accessing the Keycloak Admin Console
 
@@ -58,11 +58,15 @@ First, we need a stable filesystem that is remounted if the Postgres pod is dele
 
     kubectl apply -f postgres-pvc.yaml
     
-Then, we need to start Postgres:
+Then, we need to start the Postgres:
 
     kubectl apply -f postgres.yaml
 
-And finally, start a Keycloak pod that uses Postgres:
+Deploy the mountable realm import files for Keycloak:
+
+    kubectl apply -f keycloak-realms-configmap.yaml
+    
+And finally, start the Keycloak pod that uses Postgres:
 
     kubectl apply -f keycloak-postgres.yaml
  
@@ -98,7 +102,9 @@ You can then open: http://localhost:8080/auth/admin and login with admin:admin.
 
 ### Importing example realms
 
-This step depends on your development environment because we have to build a custom docker image, and deploy it as a Kubernetes pod, for which we have to push it to the Docker Registry first.
+If you use the `keycloak-postgres.yaml` example with the `keycloak-realms-configmap.yaml` file to provide the mounted realm files, then the realms are imported automatically when the Keycloak is started.
+
+Otherwise, this step depends on your development environment because we have to build a custom docker image, and deploy it as a Kubernetes pod, for which we have to push it to the Docker Registry first.
 
 First we build the `keycloak-import` docker image:
 
@@ -110,25 +116,36 @@ Then we tag and push it to the Docker Registry:
     docker tag strimzi/keycloak-import $REGISTRY_IP:$REGISTRY_PORT/strimzi/keycloak-import
     docker push $REGISTRY_IP:$REGISTRY_PORT/strimzi/keycloak-import
 
-Here we assume we know the IP address (`$REGISTRY_IP`) of the docker container and the port (`$REGISTRY_PORT`) it's listening on, and that, if it is an insecure Docker Registry, the Docker Daemon has been configured to trust the insecure registry. We also assume that you have authenticated to the registry if that is required in your environment. And, very important, we also assume that this is either a public Docker Registry accessible to your Kubernetes deployment or that it's the internal Docker Registry used by your Kubernetes install.
+You may need to use a different tag for the registry to allow you to upload the image, e.g. your registry namespace.
+Here we assume we know the IP address (`$REGISTRY_IP`) of the docker container and the port (`$REGISTRY_PORT`) it's listening on, and that, if it is an insecure Docker Registry, the Docker Daemon has been configured to trust the insecure registry. 
+We also assume that you have authenticated to the registry if that is required in your environment. 
+And, very important, we also assume that this is either a public Docker Registry accessible to your Kubernetes deployment or that it's the internal Docker Registry used by your Kubernetes install.
+
+On Minishift, for example, your default registry namespace is 'myproject', and you can get `REGISTRY_IP` and `REGISTRY_PORT`:
+
+    export REGISTRY_IP=$(oc get services -n default | grep 5000 | awk '{print $3}')
+    export REGISTRY_PORT=5000
 
 See [HACKING.md](../../HACKING.md) for more information on setting up the local development environment with all the pieces in place.
 
 
 Now deploy it as a Kubernetes pod:
 
-    kubectl run -ti --attach keycloak-import --image=$REGISTRY_IP:$REGISTRY_PORT/strimzi/keycloak-import
+    kubectl run -ti --attach keycloak-import --rm=true --restart=Never --image=$REGISTRY_IP:$REGISTRY_PORT/strimzi/keycloak-import
 
-The continer will perform the imports of realms into the Keycloak server, and exit. If you run `kubectl get pod` you'll see it CrashLoopBackOff because as soon as it's done, Kubernetes will restart the pod in the background, which will try to execute the same imports again, and fail. You'll also see errors in the Keycloak log, but as long as the initial realm import was successful, you can safely ignore them.
+The continer will perform the imports of realms into the Keycloak server, and exit.
 
-Remove the `keycloak-import` deployment:
+If you don't specify the '--rm=true --restart=Never run', then if you run `kubectl get pod` you'll see it CrashLoopBackOff because as soon as it's done, Kubernetes will restart the pod in the background, which will try to execute the same imports again, and fail. 
+You'll also see errors in the Keycloak log, but as long as the initial realm import was successful, you can safely ignore them.
 
-    kubectl delete deployment keycloak-import
+Remove the `keycloak-import` pod:
+
+    kubectl delete pod keycloak-import
 
 
 ### Deploying the Kafka cluster
 
-Assuming you have already installed Strimzi Kafka Operator, you can now simply deploy one of the `kafka-oatuh-*` yaml files. All examples are configured with OAuth2 for authentication.
+Assuming you have already installed Strimzi Kafka Operator, you can now simply deploy one of the `kafka-oauth-*` yaml files. All examples are configured with OAuth2 for authentication.
 
 For example:
 

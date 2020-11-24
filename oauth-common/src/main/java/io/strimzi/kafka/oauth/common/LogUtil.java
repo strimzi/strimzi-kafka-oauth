@@ -35,4 +35,20 @@ public class LogUtil {
 
         return input.substring(0, 4) + "**" + input.substring(len - 4, len);
     }
+
+    /**
+     * Collect all exception causes into a single string
+     *
+     * @param e The exception
+     * @return The message with all the causes
+     */
+    public static String getAllCauseMessages(Throwable e) {
+        StringBuilder sb = new StringBuilder(e.toString());
+
+        Throwable t = e;
+        while ((t = t.getCause()) != null) {
+            sb.append(", caused by: ").append(t.toString());
+        }
+        return sb.toString();
+    }
 }

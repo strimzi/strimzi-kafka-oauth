@@ -13,6 +13,10 @@ spec:
           validIssuerUri: http://keycloak:8080/auth/realms/kafka-authz
           jwksEndpointUri: http://keycloak:8080/auth/realms/kafka-authz/protocol/openid-connect/certs
           userNameClaim: preferred_username
+
+          # the next option is only available since Strimzi 0.20.0
+          # remove it if using an older version of Strimzi
+          maxSecondsWithoutReauthentication: 3600
       tls: {}
     authorization:
       type: keycloak

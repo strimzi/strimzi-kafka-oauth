@@ -36,10 +36,12 @@ spec:
       value: admin
     - name: KEYCLOAK_PASSWORD
       value: admin
+    - name: KEYCLOAK_IMPORT
+      value: /tmp/realms/kafka-authz-realm.json,/tmp/realms/demo-realm.json
     - name: PROXY_ADDRESS_FORWARDING
       value: "true"
     - name: KEYCLOAK_LOGLEVEL
-      value: TRACE
+      value: INFO
     - name: DB_ADDR
       value: postgres.myproject.svc.cluster.local:5432
     - name: DB_DATABASE
@@ -57,3 +59,10 @@ spec:
       httpGet:
         path: /auth/realms/master
         port: 8080
+    volumeMounts:
+      - name: realms
+        mountPath: /tmp/realms
+  volumes:
+    - name: realms
+      configMap:
+        name: realms

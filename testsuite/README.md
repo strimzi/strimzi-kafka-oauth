@@ -143,3 +143,35 @@ Make sure that you added 'kafka', 'keycloak', and 'hydra' to your `/etc/hosts` a
     127.0.0.1    kafka
     127.0.0.1    keycloak
     127.0.0.1    hydra
+
+
+### How to see Kafka log
+
+Every test submodule contains `arquillian.xml` file which should contain the following:
+
+            kafka:
+              beforeStop:
+                - log:
+                    to: ${PWD}/../kafka.log
+                    stdout: true
+                    stderr: true
+
+You can see the complete kafka log of the last executed test in `kafka.log`.
+
+Alternatively, you can watch the kafka log as the test is executing by running in another shell the following:
+
+    docker logs kafka -f
+
+### How to set a custom Kafka image
+
+By default, the latest released strimzi/kafka images are used for the tests. Regardless of the versions of oauth-kafka-* 
+libraries included with these images, the latest build of 1.0.0-SNAPSHOT oauth-kafka-* libraries is included in these images and
+ placed at the head of the classpath to override the versions packaged with the published images.
+  
+Thus, you don't need to use the latest local build of strimzi/kafka libraries to test the new oauth functionality.
+
+But if you want you can specify the kafka image to use for the test as follows:
+
+    mvn clean test -Dkafka.docker.image=strimzi/kafka:build-kafka-2.6.0  -f testsuite/client-secret-jwt-keycloak-authz-over-plain-test
+
+This will use the latest locally built kafka image of strimzi-kafka-operator project.

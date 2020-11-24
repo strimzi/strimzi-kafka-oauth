@@ -42,6 +42,10 @@
                         </artifactItem>
                         <artifactItem>
                             <groupId>io.strimzi</groupId>
+                            <artifactId>kafka-oauth-server-plain</artifactId>
+                        </artifactItem>
+                        <artifactItem>
+                            <groupId>io.strimzi</groupId>
                             <artifactId>kafka-oauth-common</artifactId>
                         </artifactItem>
                         <artifactItem>

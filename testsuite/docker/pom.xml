@@ -35,6 +35,10 @@
         </dependency>
         <dependency>
             <groupId>io.strimzi</groupId>
+            <artifactId>kafka-oauth-server-plain</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.strimzi</groupId>
             <artifactId>kafka-oauth-common</artifactId>
         </dependency>
         <dependency>
@@ -171,6 +175,10 @@
                         <artifactItem>
                             <groupId>io.strimzi</groupId>
                             <artifactId>kafka-oauth-server</artifactId>
+                        </artifactItem>
+                        <artifactItem>
+                            <groupId>io.strimzi</groupId>
+                            <artifactId>kafka-oauth-server-plain</artifactId>
                         </artifactItem>
                         <artifactItem>
                             <groupId>io.strimzi</groupId>

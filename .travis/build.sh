@@ -1,6 +1,17 @@
 #!/usr/bin/env bash
 set -e
 
+clearDockerEnv() {
+  docker rm -f kafka zookeeper keycloak keycloak-import hydra hydra-import || true
+  DOCKER_TEST_NETWORKS=$(docker network ls | grep test | awk '{print $1}')
+  [ "$DOCKER_TEST_NETWORKS" != "" ] && docker network rm $DOCKER_TEST_NETWORKS
+}
+
+exitIfError() {
+  FILE=testsuite/kafka.log
+  [ "$EXIT" != "0" ] && test -f "$FILE" && cat $FILE && exit $EXIT
+}
+
 # The first segment of the version number is '1' for releases < 9; then '9', '10', '11', ...
 JAVA_MAJOR_VERSION=$(java -version 2>&1 | sed -E -n 's/.* version "([0-9]*).*$/\1/p')
 if [ ${JAVA_MAJOR_VERSION} -gt 1 ] ; then
@@ -26,20 +37,36 @@ mvn spotbugs:check
 
 # Run testsuite with java 8 only
 if [ ${JAVA_MAJOR_VERSION} -eq 1 ] ; then
-  DOCKER_TEST_NETWORKS=$(docker network ls | grep test | awk '{print $1}')
-  [ "$DOCKER_TEST_NETWORKS" != "" ] && docker network rm $DOCKER_TEST_NETWORKS
 
   docker pull oryd/hydra:v1.0.0
   mvn test-compile spotbugs:check -e -V -B -f testsuite
-  set +e
-  mvn -e -V -B clean install -f testsuite -Pkafka-2_6_0
-  mvn -e -V -B test -f testsuite -Pkafka-2_5_0
-  mvn -e -V -B test -f testsuite -Pkafka-2_4_1
-  mvn -e -V -B test -f testsuite -Pkafka-2_4_0
 
+  set +e
+
+  clearDockerEnv
+  docker pull strimzi/kafka:latest-kafka-2.6.0
+  mvn -e -V -B clean install -f testsuite -Pkafka-2_6_0
   EXIT=$?
-  FILE=testsuite/kafka.log
-  [ "$EXIT" != "0" ] && test -f "$FILE" && cat $FILE && exit $EXIT
+  exitIfError
+
+  clearDockerEnv
+  docker pull strimzi/kafka:latest-kafka-2.5.1
+  mvn -e -V -B test -f testsuite -Pkafka-2_5_1
+  EXIT=$?
+  exitIfError
+
+  clearDockerEnv
+  docker pull strimzi/kafka:latest-kafka-2.4.1
+  mvn -e -V -B test -f testsuite -Pkafka-2_4_1
+  EXIT=$?
+  exitIfError
+
+  clearDockerEnv
+  docker pull strimzi/kafka:latest-kafka-2.3.0
+  mvn -e -V -B test -f testsuite -Pkafka-2_3_0
+  EXIT=$?
+  exitIfError
+
   set -e
 fi
 
