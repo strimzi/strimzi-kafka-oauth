@@ -18,6 +18,7 @@ import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.List;
 
 import static io.strimzi.kafka.oauth.common.HttpUtil.post;
 import static io.strimzi.kafka.oauth.common.HttpUtil.get;
@@ -106,7 +107,8 @@ public class OAuthIntrospectionValidator implements TokenValidator {
                     + "\n    userInfoUri: " + userInfoURI
                     + "\n    validTokenType: " + validTokenType
                     + "\n    clientId: " + clientId
-                    + "\n    clientSecret: " + mask(clientSecret));
+                    + "\n    clientSecret: " + mask(clientSecret)
+                    + "\n    audience: " + audience);
         }
     }
 
@@ -210,7 +212,8 @@ public class OAuthIntrospectionValidator implements TokenValidator {
 
         if (audience != null) {
             value = response.get("aud");
-            if (value == null || !audience.equals(value.asText())) {
+            List<String> audienceList = JSONUtil.asListOfString(value);
+            if (value == null || !audienceList.contains(audience)) {
                 throw new TokenValidationException("Token check failed - invalid audience: " + value)
                         .status(Status.INVALID_TOKEN);
             }

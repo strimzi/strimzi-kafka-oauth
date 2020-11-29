@@ -180,6 +180,7 @@ public class JWTSignatureValidator implements TokenValidator {
                     + "\n    certsRefreshMinPauseSeconds: " + refreshMinPauseSeconds
                     + "\n    certsExpirySeconds: " + expirySeconds
                     + "\n    checkAccessTokenType: " + checkAccessTokenType
+                    + "\n    audience: " + audience
                     + "\n    enableBouncyCastleProvider: " + enableBouncyCastleProvider
                     + "\n    bouncyCastleProviderPosition: " + bouncyCastleProviderPosition);
         }
