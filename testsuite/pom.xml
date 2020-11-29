@@ -21,6 +21,8 @@
         <module>client-secret-jwt-keycloak-authz-refresh-test</module>
         <module>jwt-over-plain-keycloak-authz-test</module>
         <module>introspection-over-plain-keycloak-authz-test</module>
+        <module>client-secret-jwt-keycloak-audience-test</module>
+        <module>client-secret-introspection-keycloak-audience-test</module>
     </modules>
 
     <licenses>
@@ -146,7 +148,7 @@
                 <executions>
                     <execution>
                         <id>copy-kafka-example-truststore</id>
-                        <phase>package</phase>
+                        <phase>install</phase>
                         <goals>
                             <goal>copy-resources</goal>
                         </goals>
@@ -165,7 +167,7 @@
                     </execution>
                     <execution>
                         <id>copy-keycloak-example-keystore</id>
-                        <phase>package</phase>
+                        <phase>install</phase>
                         <goals>
                             <goal>copy-resources</goal>
                         </goals>
@@ -191,7 +193,7 @@
                 <executions>
                     <execution>
                         <id>copy</id>
-                        <phase>package</phase>
+                        <phase>install</phase>
                         <goals>
                             <goal>copy</goal>
                         </goals>

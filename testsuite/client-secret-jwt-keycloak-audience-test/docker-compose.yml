@@ -34,6 +34,8 @@ services:
     container_name: kafka
     ports:
       - 9092:9092
+      # javaagent debug port
+      #- 5006:5006
     volumes:
       - ${PWD}/../docker/target/kafka/libs:/opt/kafka/libs/strimzi
       - ${PWD}/../docker/kafka/config:/opt/kafka/config/strimzi
@@ -43,6 +45,10 @@ services:
       - -c
       - cd /opt/kafka/strimzi && ./start.sh
     environment:
+      #- KAFKA_DEBUG=y
+      #- DEBUG_SUSPEND_FLAG=y
+      #- JAVA_DEBUG_PORT=*:5006
+
       - KAFKA_BROKER_ID=1
       - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
       - KAFKA_LISTENERS=CLIENT://kafka:9092
@@ -56,16 +62,9 @@ services:
       - KAFKA_SUPER_USERS=User:service-account-kafka
       - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
 
-      # Enable re-authentication
-      - KAFKA_LISTENER_NAME_CLIENT_OAUTHBEARER_CONNECTIONS_MAX_REAUTH_MS=3600000
-
       - KAFKA_AUTHORIZER_CLASS_NAME=io.strimzi.kafka.oauth.server.authorizer.KeycloakRBACAuthorizer
-      - KAFKA_PRINCIPAL_BUILDER_CLASS=io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder
+      - KAFKA_PRINCIPAL_BUILDER_CLASS=io.strimzi.kafka.oauth.server.authorizer.JwtKafkaPrincipalBuilder
       - KAFKA_STRIMZI_AUTHORIZATION_KAFKA_CLUSTER_NAME=cluster2
-
-      # Configure grants refresh parameters
-      - KAFKA_STRIMZI_AUTHORIZATION_GRANTS_REFRESH_POOL_SIZE=4
-      - KAFKA_STRIMZI_AUTHORIZATION_GRANTS_REFRESH_PERIOD_SECONDS=120
 
       # Authentication config
       - OAUTH_CLIENT_ID=kafka
@@ -75,12 +74,10 @@ services:
       # Validation config
       - OAUTH_VALID_ISSUER_URI=http://${KEYCLOAK_HOST:-keycloak}:8080/auth/realms/${REALM:-kafka-authz}
       - OAUTH_JWKS_ENDPOINT_URI=http://${KEYCLOAK_HOST:-keycloak}:8080/auth/realms/${REALM:-kafka-authz}/protocol/openid-connect/certs
+      - OAUTH_CHECK_AUDIENCE=true
 
       # username extraction from JWT token claim
       - OAUTH_USERNAME_CLAIM=preferred_username
-
-      # Minimum pause between two refreshes of JWKS keys when unknown key is encountered
-      - OAUTH_JWKS_REFRESH_MIN_PAUSE_SECONDS=5
 
       # For start.sh script to know where the keycloak is listening
       - KEYCLOAK_HOST=${KEYCLOAK_HOST:-keycloak}

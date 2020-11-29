@@ -28,6 +28,10 @@
         {
           "name": "uma_protection",
           "clientRole": true
+        },
+        {
+          "name": "kafka-user",
+          "clientRole": true
         }
       ]
     }
@@ -100,6 +104,7 @@
       "serviceAccountClientId" : "team-b-client",
       "realmRoles" : [ "offline_access", "Dev Team B" ],
       "clientRoles" : {
+        "kafka" : [ "kafka-user" ],
         "account" : [ "manage-account", "view-profile" ]
       },
       "groups" : [ ]
@@ -148,6 +153,19 @@
       "authorizationServicesEnabled": true,
       "publicClient": false,
       "fullScopeAllowed": true,
+      "protocolMappers": [
+        {
+          "name": "kafka audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "kafka",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ],
       "authorizationSettings": {
         "allowRemoteResourceManagement": true,
         "policyEnforcementMode": "ENFORCING",

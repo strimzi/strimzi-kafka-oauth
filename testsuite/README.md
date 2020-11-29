@@ -55,9 +55,9 @@ Only one at a time can be applied. For example:
  
     mvn clean install -f testsuite -Pkafka-2_4_1
 
-If you want to run only a single test, you first have to build the whole testsuite:
+If you only want to run a single test, you first have to build the testsuite 'parent':
 
-    mvn clean install -f testsuite -DskipTests
+    mvn clean install -f testsuite -pl .
     mvn test -f testsuite/client-secret-jwt-keycloak-test
 
 Troubleshooting
