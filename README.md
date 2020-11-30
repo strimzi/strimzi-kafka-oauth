@@ -159,7 +159,7 @@ The next thing to do is to enable SASL_OAUTHBEARER mechanism:
 
     sasl.enabled.mechanisms=OAUTHBEARER
 
-Since version 0.7.0 there is also support for so called 'OAuth over PLAIN' which allows using the SASL_PLAIN mechanism to authenticate with an OAuth access token or with a clientId and a secret.
+Since version 0.7.0 there is also support for so called 'OAuth over PLAIN' which allows using the SASL_PLAIN mechanism to authenticate with an OAuth access token or with a client ID and a secret.
 In order to use that you have to enable the SASL_PLAIN mechanism as well (you can enable one or the other or both):
 
     sasl.enabled.mechanisms=OAUTHBEARER,PLAIN
@@ -265,6 +265,14 @@ Specify the following `oauth.*` properties:
 Some authorization servers don't provide the `iss` claim. In that case you would not set `oauth.valid.issuer.uri`, and you would explicitly turn off issuer checking by setting the following option to `false`:
 - `oauth.check.issuer` (e.g. "false")
 
+You can enforce audience check, which is an OAuth2 mechanism to limit access to tokens that are explicitly issued for use by your protected server.
+The authorization server adds the allowed resource servers' `client ids` into `aud` claim of such tokens.
+Set the following option to `true` to enforce audience check (it is not enabled by default). 
+- `oauth.check.audience` (e.g. "true")
+
+When audience check is enabled the `oauth.client.id` has to be configured:
+- `oauth.client.id` (e.g.: "kafka" - this is the OAuth2 client configuration id for Kafka Broker)
+
 JWT tokens contain unique user identification in `sub` claim. However, this is often a long number or a UUID, but we usually prefer to use human readable usernames, which may also be present in JWT token.
 Use `oauth.username.claim` to map the claim (attribute) where the value you want to use as user id is stored:
 - `oauth.username.claim` (e.g.: "preferred_username")
@@ -311,13 +319,18 @@ This will result in Kafka Broker making a request to authorization server every 
 Specify the following `oauth.*` properties:
 - `oauth.introspection.endpoint.uri` (e.g.: "https://localhost:8443/auth/realms/demo/protocol/openid-connect/token/introspect")
 - `oauth.valid.issuer.uri` (e.g.: "https://localhost:8443/auth/realms/demo" - only access tokens issued by this issuer will be accepted)
-- `oauth.client.id` (e.g.: "kafka" - this is the client configuration id for Kafka Broker)
+- `oauth.client.id` (e.g.: "kafka" - this is the OAuth2 client configuration id for Kafka Broker)
 - `oauth.client.secret` (e.g.: "kafka-secret")
  
 Introspection endpoint should be protected. The `oauth.client.id` and `oauth.client.secret` specify Kafka Broker credentials for authenticating to access the introspection endpoint. 
 
 Some authorization servers don't provide the `iss` claim. In that case you would not set `oauth.valid.issuer.uri`, and you would explicitly turn off issuer checking by setting the following option to `false`:
 - `oauth.check.issuer` (e.g.: "false")
+
+You can enforce audience check, which is an OAuth2 mechanism to limit access to tokens that are explicitly issued for use by your protected server.
+The authorization server adds the allowed resource servers' `client IDs` into `aud` claim of such tokens.
+Set the following option to `true` to enforce audience check (it is not enabled by default). 
+- `oauth.check.audience` (e.g. "true")
 
 By default, if the Introspection Endpoint response contains `token_type` claim, there is no checking performed on it.
 Some authorization servers use a non-standard `token_type` value. To give the most flexibility, you can specify the valid `token_type` for your authorization server:
@@ -362,7 +375,7 @@ When you have a DEBUG logging configured for the `io.strimzi` category you may n
 
 ##### Configuring the client side of inter-broker communication
 
-All the Kafka Brokers in the cluster should be configured with the same clientId and clientSecret, and the corresponding user should be added to `super.users` since inter-broker client requires super-user permissions.
+All the Kafka Brokers in the cluster should be configured with the same client ID and secret, and the corresponding user should be added to `super.users` since inter-broker client requires super-user permissions.
 
 Specify the following `oauth.*` properties:
 - `oauth.token.endpoint.uri` (e.g.: "https://localhost:8443/auth/realms/demo/protocol/openid-connect/token")
@@ -498,8 +511,8 @@ For a more in-depth guide to using Keycloak Authorization Services see [the tuto
 
 #### Configuring the RBAC rules through Keycloak Authorization Services
 
-In order to grant Kafka permissions to users or service accounts you have to use the Keycloak Authorization Services rules on the OAuth client that represents the Kafka Broker - typically this client has `kafka` as its clientId.
-The rules exist within the scope of this client, which means that if you have different Kafka clusters configured with different OAuth clientIds they would each have a separate set of permissions even though using the same set of users, and client accounts. 
+In order to grant Kafka permissions to users or service accounts you have to use the Keycloak Authorization Services rules on the OAuth client that represents the Kafka Broker - typically this client has `kafka` as its client ID.
+The rules exist within the scope of this client, which means that if you have different Kafka clusters configured with different OAuth client IDs they would each have a separate set of permissions even though using the same set of users, and client accounts. 
 
 When the Kafka client authenticates using SASL_OAUTHEARER or SASL_PLAIN configured as 'OAuth over PLAIN' the KeycloakRBACAuthorizer retrieves the list of grants for the current session from the Keycloak server using the access token of the current session.
 This list of grants is the result of evaluating the Keycloak Authorization Services policies and permissions. 
@@ -641,13 +654,13 @@ The `oauth.token.endpoint.uri` property always has to be specified.
 Its value points to OAuth2 Token Endpoint provided by authorization server.
 
 Strimzi Kafka OAuth supports three ways to configure authentication on the client.
-The first is to specify the clientId and clientSecret configured on the authorization server specifically for the individual client deployment.
+The first is to specify the client ID and secret configured on the authorization server specifically for the individual client deployment.
 
 This is achieved by specifying the following:
 - `oauth.client.id` (e.g.: "my-client")
 - `oauth.client.secret` (e.g.: "my-client-secret")
 
-When client starts to establish the connection with the Kafka Broker it will first obtain an access token from the configured Token Endpoint, authenticating with the configured clientId and clientSecret using client_credentials grant type.
+When client starts to establish the connection with the Kafka Broker it will first obtain an access token from the configured Token Endpoint, authenticating with the configured client ID and secret using client_credentials grant type.
 
 The second way is to manually obtain and set a refresh token:
 
@@ -821,7 +834,7 @@ There is no OAuth specific configuration that would be required on the client wh
 The Kafka Broker has to have the SASL_PLAIN mechanism enabled and properly configured with `JaasServerOauthOverPlainValidatorCallbackHandler` validation callback handler. 
 
 Then, the standard SASL_PLAIN configuration is used on the client with the following two options:
-- the client can authenticate using the service account clientId and secret. Setting the `username` to the value of clientId, and setting the `password` to the value of client secret
+- the client can authenticate using the service account client ID and secret. Setting the `username` to the value of client ID, and setting the `password` to the value of client secret
 - the client can authenticate using a long-lived access token obtained through a browser sign-in or through using `curl` or similar CLI tool to obtain the access token with `client credentials` or the `password` authentication, 
   then setting the `username` to `$accessToken` reserved word and setting `password` to the access token string. 
 
