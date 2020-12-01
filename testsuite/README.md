@@ -57,8 +57,11 @@ Only one at a time can be applied. For example:
 
 If you only want to run a single test, you first have to build the testsuite 'parent':
 
-    mvn clean install -f testsuite -pl .
+Note: just building the testsuite module is not enough (`mvn clean install -f testsuite -pl .`)
+
+    mvn clean install -f testsuite
     mvn test -f testsuite/client-secret-jwt-keycloak-test
+
 
 Troubleshooting
 ===============
