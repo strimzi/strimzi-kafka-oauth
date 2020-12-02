@@ -265,13 +265,18 @@ Specify the following `oauth.*` properties:
 Some authorization servers don't provide the `iss` claim. In that case you would not set `oauth.valid.issuer.uri`, and you would explicitly turn off issuer checking by setting the following option to `false`:
 - `oauth.check.issuer` (e.g. "false")
 
-You can enforce audience check, which is an OAuth2 mechanism to limit access to tokens that are explicitly issued for use by your protected server.
-The authorization server adds the allowed resource servers' `client ids` into `aud` claim of such tokens.
-Set the following option to `true` to enforce audience check (it is not enabled by default). 
+You can enforce audience check, which is an OAuth2 mechanism to limit access to tokens that are explicitly issued for use by your resource server.
+The authorization server adds the allowed resource servers' `client IDs` into `aud` claim of such tokens.
+
+Set the following option to `true` to enforce audience check:
 - `oauth.check.audience` (e.g. "true")
 
 When audience check is enabled the `oauth.client.id` has to be configured:
 - `oauth.client.id` (e.g.: "kafka" - this is the OAuth2 client configuration id for Kafka Broker)
+
+If the configured `oauth.client.id` is `kafka`, the following are valid examples of `aud` attribute in the JWT token:
+- "kafka"
+- ["rest-api", "kafka"]
 
 JWT tokens contain unique user identification in `sub` claim. However, this is often a long number or a UUID, but we usually prefer to use human readable usernames, which may also be present in JWT token.
 Use `oauth.username.claim` to map the claim (attribute) where the value you want to use as user id is stored:
@@ -327,10 +332,15 @@ Introspection endpoint should be protected. The `oauth.client.id` and `oauth.cli
 Some authorization servers don't provide the `iss` claim. In that case you would not set `oauth.valid.issuer.uri`, and you would explicitly turn off issuer checking by setting the following option to `false`:
 - `oauth.check.issuer` (e.g.: "false")
 
-You can enforce audience check, which is an OAuth2 mechanism to limit access to tokens that are explicitly issued for use by your protected server.
+You can enforce audience check, which is an OAuth2 mechanism to limit access to tokens that are explicitly issued for use by your resource server.
 The authorization server adds the allowed resource servers' `client IDs` into `aud` claim of such tokens.
-Set the following option to `true` to enforce audience check (it is not enabled by default). 
+
+Set the following option to `true` to enforce audience check:
 - `oauth.check.audience` (e.g. "true")
+
+If the configured `oauth.client.id` is `kafka`, the following are valid examples of `aud` attribute in the JWT token:
+- "kafka"
+- ["rest-api", "kafka"]
 
 By default, if the Introspection Endpoint response contains `token_type` claim, there is no checking performed on it.
 Some authorization servers use a non-standard `token_type` value. To give the most flexibility, you can specify the valid `token_type` for your authorization server:
