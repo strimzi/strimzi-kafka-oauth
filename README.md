@@ -265,8 +265,8 @@ Specify the following `oauth.*` properties:
 Some authorization servers don't provide the `iss` claim. In that case you would not set `oauth.valid.issuer.uri`, and you would explicitly turn off issuer checking by setting the following option to `false`:
 - `oauth.check.issuer` (e.g. "false")
 
-You can enforce audience checking, which is an OAuth2 mechanism to prevent successful authentication with tokens that are explicitly issued for use by your resource server.
-The authorization server adds the allowed resource servers' `client IDs` into `aud` claim of such tokens.
+You can enforce audience checking, which is an OAuth2 mechanism to prevent successful authentication with tokens that are not explicitly issued for use by your resource server.
+The authorization server adds the allowed resource servers' `client IDs` into the `aud` claim of such tokens.
 
 Set the following option to `true` to enforce audience checking:
 - `oauth.check.audience` (e.g. "true")
@@ -324,7 +324,7 @@ This will result in Kafka Broker making a request to authorization server every 
 Specify the following `oauth.*` properties:
 - `oauth.introspection.endpoint.uri` (e.g.: "https://localhost:8443/auth/realms/demo/protocol/openid-connect/token/introspect")
 - `oauth.valid.issuer.uri` (e.g.: "https://localhost:8443/auth/realms/demo" - only access tokens issued by this issuer will be accepted)
-- `oauth.client.id` (e.g.: "kafka" - this is the OAuth2 client configuration id for the Kafka Broker)
+- `oauth.client.id` (e.g.: "kafka" - this is the OAuth2 client configuration id for the Kafka broker)
 - `oauth.client.secret` (e.g.: "kafka-secret")
  
 Introspection endpoint should be protected. The `oauth.client.id` and `oauth.client.secret` specify Kafka Broker credentials for authenticating to access the introspection endpoint. 
@@ -333,7 +333,7 @@ Some authorization servers don't provide the `iss` claim. In that case you would
 - `oauth.check.issuer` (e.g.: "false")
 
 You can enforce audience checking, which is an OAuth2 mechanism to prevent successful authentication with tokens that are explicitly issued for use by your resource server.
-The authorization server adds the allowed resource servers' `client IDs` into `aud` claim of such tokens.
+The authorization server adds the allowed resource servers' `client IDs` into the `aud` claim of such tokens.
 
 Set the following option to `true` to enforce audience checking:
 - `oauth.check.audience` (e.g. "true")
@@ -385,7 +385,7 @@ When you have a DEBUG logging configured for the `io.strimzi` category you may n
 
 ##### Configuring the client side of inter-broker communication
 
-All the Kafka Brokers in the cluster should be configured with the same client ID and secret, and the corresponding user should be added to `super.users` since inter-broker client requires super-user permissions.
+All the Kafka brokers in the cluster should be configured with the same client ID and secret, and the corresponding user should be added to `super.users` since inter-broker client requires super-user permissions.
 
 Specify the following `oauth.*` properties:
 - `oauth.token.endpoint.uri` (e.g.: "https://localhost:8443/auth/realms/demo/protocol/openid-connect/token")

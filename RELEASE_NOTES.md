@@ -10,9 +10,9 @@ SASL_PLAIN can now be used to perform the authentication using a service account
 
 See [README.md] for instructions on how to set up the brokers and the clients.
 
-### Audience check
+### Audience checking
 
-Additional server-side configuration option was added to enable / disable the audience check:
+Additional server-side configuration option was added to enable / disable the audience checking:
 * `oauth.check.audience` (e.g. "true") 
 
 
