@@ -247,7 +247,7 @@ For example, the order of looking for configuration for `strimzi.client.id` woul
 
 ##### Configuring the token validation
 
-The most essential OAuth2 configuration on the Kafka Broker is the configuration related to validation of the access tokens passed from Kafka clients to the Kafka broker during SASL based authentication mechanism.
+The most essential OAuth2 configuration on the Kafka broker is the configuration related to validation of the access tokens passed from Kafka clients to the Kafka broker during SASL based authentication mechanism.
 
 There are two options for token validation:
 - Using the JWKS endpoint in combination with signed JWT formatted access tokens
@@ -265,7 +265,7 @@ Specify the following `oauth.*` properties:
 Some authorization servers don't provide the `iss` claim. In that case you would not set `oauth.valid.issuer.uri`, and you would explicitly turn off issuer checking by setting the following option to `false`:
 - `oauth.check.issuer` (e.g. "false")
 
-You can enforce audience checking, which is an OAuth2 mechanism to limit access to tokens that are explicitly issued for use by your resource server.
+You can enforce audience checking, which is an OAuth2 mechanism to prevent successful authentication with tokens that are explicitly issued for use by your resource server.
 The authorization server adds the allowed resource servers' `client IDs` into `aud` claim of such tokens.
 
 Set the following option to `true` to enforce audience checking:
@@ -332,7 +332,7 @@ Introspection endpoint should be protected. The `oauth.client.id` and `oauth.cli
 Some authorization servers don't provide the `iss` claim. In that case you would not set `oauth.valid.issuer.uri`, and you would explicitly turn off issuer checking by setting the following option to `false`:
 - `oauth.check.issuer` (e.g.: "false")
 
-You can enforce audience checking, which is an OAuth2 mechanism to limit access to tokens that are explicitly issued for use by your resource server.
+You can enforce audience checking, which is an OAuth2 mechanism to prevent successful authentication with tokens that are explicitly issued for use by your resource server.
 The authorization server adds the allowed resource servers' `client IDs` into `aud` claim of such tokens.
 
 Set the following option to `true` to enforce audience checking:
