@@ -271,8 +271,8 @@ The authorization server adds the allowed resource servers' `client IDs` into `a
 Set the following option to `true` to enforce audience check:
 - `oauth.check.audience` (e.g. "true")
 
-When audience check is enabled the `oauth.client.id` has to be configured:
-- `oauth.client.id` (e.g.: "kafka" - this is the OAuth2 client configuration id for Kafka Broker)
+When audience checking is enabled the `oauth.client.id` has to be configured:
+- `oauth.client.id` (e.g.: "kafka" - this is the OAuth2 client configuration id for the Kafka Broker)
 
 If the configured `oauth.client.id` is `kafka`, the following are valid examples of `aud` attribute in the JWT token:
 - "kafka"
@@ -324,7 +324,7 @@ This will result in Kafka Broker making a request to authorization server every 
 Specify the following `oauth.*` properties:
 - `oauth.introspection.endpoint.uri` (e.g.: "https://localhost:8443/auth/realms/demo/protocol/openid-connect/token/introspect")
 - `oauth.valid.issuer.uri` (e.g.: "https://localhost:8443/auth/realms/demo" - only access tokens issued by this issuer will be accepted)
-- `oauth.client.id` (e.g.: "kafka" - this is the OAuth2 client configuration id for Kafka Broker)
+- `oauth.client.id` (e.g.: "kafka" - this is the OAuth2 client configuration id for the Kafka Broker)
 - `oauth.client.secret` (e.g.: "kafka-secret")
  
 Introspection endpoint should be protected. The `oauth.client.id` and `oauth.client.secret` specify Kafka Broker credentials for authenticating to access the introspection endpoint. 
