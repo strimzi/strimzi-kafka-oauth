@@ -136,7 +136,7 @@ import static io.strimzi.kafka.oauth.common.LogUtil.mask;
  * Common optional <em>sasl.jaas.config</em> configuration:
  * <ul>
  * <li><em>oauth.crypto.provider.bouncycastle</em> If set to `true` the BouncyCastle crypto provider is installed. <br>
- * Installing BouncyCastle crypto provider adds suport for ECDSA signing algorithm. Default value is `false`.
+ * Installing BouncyCastle crypto provider adds suport for ECDSA signing algorithm. Default value is <em>false</em>.
  * </li>
  * <li><em>oauth.crypto.provider.bouncycastle.position</em> The position in the list of crypto providers where BouncyCastle provider should be installed.<br>
  * The position counting starts at 1. Any value less than 1 installs the provider at the end of the crypto providers list. Default value is '0'.</li>
@@ -250,7 +250,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         String clientSecret = config.getValue(Config.OAUTH_CLIENT_SECRET);
 
         if (checkAudience && clientId == null) {
-            throw new RuntimeException("Oauth validator configuration error: OAUTH_CLIENT_ID must be set when OAUTH_CHECK_AUDIENCE is set");
+            throw new RuntimeException("Oauth validator configuration error: OAUTH_CLIENT_ID must be set when OAUTH_CHECK_AUDIENCE is 'true'");
         }
         String audience = checkAudience ? clientId : null;
 
