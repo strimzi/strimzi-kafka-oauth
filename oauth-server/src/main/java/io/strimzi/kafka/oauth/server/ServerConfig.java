@@ -19,6 +19,7 @@ public class ServerConfig extends Config {
     public static final String OAUTH_USERINFO_ENDPOINT_URI = "oauth.userinfo.endpoint.uri";
     public static final String OAUTH_CHECK_ACCESS_TOKEN_TYPE = "oauth.check.access.token.type";
     public static final String OAUTH_CHECK_ISSUER = "oauth.check.issuer";
+    public static final String OAUTH_CHECK_AUDIENCE = "oauth.check.audience";
     public static final String OAUTH_CRYPTO_PROVIDER_BOUNCYCASTLE = "oauth.crypto.provider.bouncycastle";
     public static final String OAUTH_CRYPTO_PROVIDER_BOUNCYCASTLE_POSITION = "oauth.crypto.provider.bouncycastle.position";
     public static final String OAUTH_VALID_TOKEN_TYPE = "oauth.valid.token.type";

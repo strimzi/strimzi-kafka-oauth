@@ -254,6 +254,10 @@ data:
             {
               "name": "uma_protection",
               "clientRole": true
+            },
+            {
+              "name": "kafka-user",
+              "clientRole": true
             }
           ]
         }
@@ -326,6 +330,7 @@ data:
           "serviceAccountClientId" : "team-b-client",
           "realmRoles" : [ "offline_access", "Dev Team B" ],
           "clientRoles" : {
+            "kafka" : [ "kafka-user" ],
             "account" : [ "manage-account", "view-profile" ]
           },
           "groups" : [ ]

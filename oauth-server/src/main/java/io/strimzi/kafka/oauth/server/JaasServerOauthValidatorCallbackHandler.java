@@ -107,11 +107,11 @@ import static io.strimzi.kafka.oauth.common.LogUtil.mask;
  * Optional <em>sasl.jaas.config</em> configuration:
  * </p>
  * <ul>
- * <li><em>oauth.jwks.refresh.seconds</em> Configures how often the JWKS certificates are refreshed. <br/>
+ * <li><em>oauth.jwks.refresh.seconds</em> Configures how often the JWKS certificates are refreshed. <br>
  * The refresh interval has to be at least 60 seconds shorter then the expiry interval specified in <em>oauth.jwks.expiry.seconds</em>. Default value is <em>300</em>.</li>
- * <li><em>oauth.jwks.expiry.seconds</em> Configures how often the JWKS certificates are considered valid. <br/>
+ * <li><em>oauth.jwks.expiry.seconds</em> Configures how often the JWKS certificates are considered valid. <br>
  * The expiry interval has to be at least 60 seconds longer then the refresh interval specified in <em>oauth.jwks.refresh.seconds</em>. Default value is <em>360</em>.</li>
- * <li><em>oauth.jwks.refresh.min.pause.seconds</em> The minimum pause between two consecutive refreshes. <br/>
+ * <li><em>oauth.jwks.refresh.min.pause.seconds</em> The minimum pause between two consecutive refreshes. <br>
  * When an unknown signing key is encountered the refresh is scheduled immediately, but will always wait for this minimum pause. Default value is <em>1</em>.</li>
  * </ul>
  * <p>
@@ -120,7 +120,7 @@ import static io.strimzi.kafka.oauth.common.LogUtil.mask;
  * Required <em>sasl.jaas.config</em> configuration:
  * </p>
  * <ul>
- * <li><em>oauth.introspection.endpoint.uri</em> A URL of the token introspection endpoint to which token validation is delegates. <br/>
+ * <li><em>oauth.introspection.endpoint.uri</em> A URL of the token introspection endpoint to which token validation is delegates. <br>
  * It can be used to validate opaque non-JWT tokens which can't be checked using fast local token validation.</li>
  * <li><em>oauth.client.id</em> OAuth client id which the Kafka broker uses to authenticate against the authorization server to use the introspection endpoint.</li>
  * <li><em>oauth.client.secret</em> The OAuth client secret which the Kafka broker uses to authenticate to the authorization server and use the introspection endpoint.</li>
@@ -135,28 +135,29 @@ import static io.strimzi.kafka.oauth.common.LogUtil.mask;
  * <p>
  * Common optional <em>sasl.jaas.config</em> configuration:
  * <ul>
- * <li><em>oauth.crypto.provider.bouncycastle</em> If set to `true` the BouncyCastle crypto provider is installed. <br/>
- * Installing BouncyCastle crypto provider adds suport for ECDSA signing algorithm. Default value is `false`.
+ * <li><em>oauth.crypto.provider.bouncycastle</em> If set to `true` the BouncyCastle crypto provider is installed. <br>
+ * Installing BouncyCastle crypto provider adds suport for ECDSA signing algorithm. Default value is <em>false</em>.
  * </li>
- * <li><em>oauth.crypto.provider.bouncycastle.position</em> The position in the list of crypto providers where BouncyCastle provider should be installed.<br/>
+ * <li><em>oauth.crypto.provider.bouncycastle.position</em> The position in the list of crypto providers where BouncyCastle provider should be installed.<br>
  * The position counting starts at 1. Any value less than 1 installs the provider at the end of the crypto providers list. Default value is '0'.</li>
- * <li><em>oauth.username.claim</em> The attribute key that should be used to extract the user id. If not set `sub` attribute is used.<br/>
+ * <li><em>oauth.username.claim</em> The attribute key that should be used to extract the user id. If not set `sub` attribute is used.<br>
  * The attribute key refers to the JWT token claim when fast local validation is used, or to attribute in the response by introspection endpoint when introspection based validation is used. It has no default value.</li>
- * <li><em>oauth.fallback.username.claim</em> The fallback username claim to be used for the user id if the attribute key specified by `oauth.username.claim` <br/>
+ * <li><em>oauth.fallback.username.claim</em> The fallback username claim to be used for the user id if the attribute key specified by `oauth.username.claim` <br>
  * is not present. This is useful when `client_credentials` authentication only results in the client id being provided in another claim.
- * <li><em>oauth.fallback.username.prefix</em> The prefix to use with the value of <em>oauth.fallback.username.claim</em> to construct the user id.  <br/>
+ * <li><em>oauth.fallback.username.prefix</em> The prefix to use with the value of <em>oauth.fallback.username.claim</em> to construct the user id.  <br>
  * This only takes effect if <em>oauth.fallback.username.claim</em> is <em>true</em>, and the value is present for the claim.
  * Mapping usernames and client ids into the same user id space is useful in preventing name collisions.</li>
- * <li><em>oauth.check.issuer</em> Enable or disable issuer checking. <br/>
+ * <li><em>oauth.check.issuer</em> Enable or disable issuer checking. <br>
  * By default issuer is checked using the value configured by <em>oauth.valid.issuer.uri</em>. Default value is <em>true</em></li>
- * <li><em>oauth.access.token.is.jwt</em> Configure whether the access token is treated as JWT. <br/>
+ * <li><em>oauth.check.audience</em> Enable or disable audience checking. <br>
+ * Enabling audience check limits access only to tokens explicitly issued for access to your Kafka broker. If enabled, the <em>oauth.client.id</em> also has to be configured. Default value is <em>false</em></li>
+ * <li><em>oauth.access.token.is.jwt</em> Configure whether the access token is treated as JWT. <br>
  * This must be set to <em>false</em> if the authorization server returns opaque tokens. Default value is <em>true</em>.</li>
  * <li><em>oauth.tokens.not.jwt</em> Deprecated. Same as <em>oauth.access.token.is.jwt</em> with opposite meaning.</li>
- * <li><em>oauth.check.access.token.type</em> Configure whether the access token type check is performed or not. <br/>
+ * <li><em>oauth.check.access.token.type</em> Configure whether the access token type check is performed or not. <br>
  * This should be set to <em>false</em> if the authorization server does not include <em>typ</em> claim in JWT token. Default value is <em>true</em>.</li>
  * <li><em>oauth.validation.skip.type.check</em> Deprecated. Same as <em>oauth.check.access.token.type</em> with opposite meaning.</li>
  * </ul>
- * </p>
  * <p>
  * TLS <em>sasl.jaas.config</em> configuration for TLS connectivity with the authorization server:
  * </p>
@@ -180,7 +181,6 @@ import static io.strimzi.kafka.oauth.common.LogUtil.mask;
  * If not set, the default value is <em>HTTPS</em> which enforces hostname verification for server certificates.
  * </li>
  * </ul>
- * </p>
  */
 public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCallbackHandler {
 
@@ -227,6 +227,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         }
 
         boolean checkTokenType = isCheckAccessTokenType(config);
+        boolean checkAudience = config.getValueAsBoolean(ServerConfig.OAUTH_CHECK_AUDIENCE, false);
 
         String usernameClaim = config.getValue(Config.OAUTH_USERNAME_CLAIM);
         String fallbackUsernameClaim = config.getValue(Config.OAUTH_FALLBACK_USERNAME_CLAIM);
@@ -244,6 +245,14 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                 usernameClaim,
                 fallbackUsernameClaim,
                 fallbackUsernamePrefix);
+
+        String clientId = config.getValue(Config.OAUTH_CLIENT_ID);
+        String clientSecret = config.getValue(Config.OAUTH_CLIENT_SECRET);
+
+        if (checkAudience && clientId == null) {
+            throw new RuntimeException("Oauth validator configuration error: OAUTH_CLIENT_ID must be set when OAUTH_CHECK_AUDIENCE is 'true'");
+        }
+        String audience = checkAudience ? clientId : null;
 
         if (!Services.isAvailable()) {
             Services.configure(configs);
@@ -265,6 +274,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
             vkey = new ValidatorKey.JwtValidatorKey(
                     validIssuerUri,
+                    audience,
                     usernameClaim,
                     fallbackUsernameClaim,
                     fallbackUsernamePrefix,
@@ -291,7 +301,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                     jwksMinPauseSeconds,
                     jwksExpirySeconds,
                     checkTokenType,
-                    null,
+                    audience,
                     enableBouncy,
                     bouncyPosition);
 
@@ -300,11 +310,10 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
             String introspectionEndpoint = config.getValue(ServerConfig.OAUTH_INTROSPECTION_ENDPOINT_URI);
             String userInfoEndpoint = config.getValue(ServerConfig.OAUTH_USERINFO_ENDPOINT_URI);
             String validTokenType = config.getValue(ServerConfig.OAUTH_VALID_TOKEN_TYPE);
-            String clientId = config.getValue(Config.OAUTH_CLIENT_ID);
-            String clientSecret = config.getValue(Config.OAUTH_CLIENT_SECRET);
 
             vkey = new ValidatorKey.IntrospectionValidatorKey(
                     validIssuerUri,
+                    audience,
                     usernameClaim,
                     fallbackUsernameClaim,
                     fallbackUsernamePrefix,
@@ -329,7 +338,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                     validTokenType,
                     clientId,
                     clientSecret,
-                    null);
+                    audience);
         }
 
         validator = Services.getInstance().getValidators().get(vkey, factory);

@@ -35,7 +35,7 @@ services:
     ports:
       - 9092:9092
     volumes:
-      - ${PWD}/target/kafka/libs:/opt/kafka/libs/strimzi
+      - ${PWD}/../docker/target/kafka/libs:/opt/kafka/libs/strimzi
       - ${PWD}/../docker/kafka/config:/opt/kafka/config/strimzi
       - ${PWD}/../docker/kafka/scripts:/opt/kafka/strimzi
     command:
