@@ -10,6 +10,7 @@ public class ValidatorKey {
 
     private final String validIssuerUri;
     private final String audience;
+    private final String customClaimCheck;
     private final String usernameClaim;
     private final String fallbackUsernameClaim;
     private final String fallbackUsernamePrefix;
@@ -22,6 +23,7 @@ public class ValidatorKey {
 
     ValidatorKey(String validIssuerUri,
             String audience,
+            String customClaimCheck,
             String usernameClaim,
             String fallbackUsernameClaim,
             String fallbackUsernamePrefix,
@@ -33,6 +35,7 @@ public class ValidatorKey {
 
         this.validIssuerUri = validIssuerUri;
         this.audience = audience;
+        this.customClaimCheck = customClaimCheck;
         this.usernameClaim = usernameClaim;
         this.fallbackUsernameClaim = fallbackUsernameClaim;
         this.fallbackUsernamePrefix = fallbackUsernamePrefix;
@@ -51,6 +54,7 @@ public class ValidatorKey {
         return hasHostnameVerifier == that.hasHostnameVerifier &&
                 Objects.equals(validIssuerUri, that.validIssuerUri) &&
                 Objects.equals(audience, that.audience) &&
+                Objects.equals(customClaimCheck, that.customClaimCheck) &&
                 Objects.equals(usernameClaim, that.usernameClaim) &&
                 Objects.equals(fallbackUsernameClaim, that.fallbackUsernameClaim) &&
                 Objects.equals(fallbackUsernamePrefix, that.fallbackUsernamePrefix) &&
@@ -62,7 +66,7 @@ public class ValidatorKey {
 
     @Override
     public int hashCode() {
-        return Objects.hash(validIssuerUri, audience, usernameClaim, fallbackUsernameClaim, fallbackUsernamePrefix, sslTruststore, sslStorePassword, sslStoreType, sslRandom, hasHostnameVerifier);
+        return Objects.hash(validIssuerUri, audience, customClaimCheck, usernameClaim, fallbackUsernameClaim, fallbackUsernamePrefix, sslTruststore, sslStorePassword, sslStoreType, sslRandom, hasHostnameVerifier);
     }
 
 
@@ -79,6 +83,7 @@ public class ValidatorKey {
         @SuppressWarnings("checkstyle:parameternumber")
         public JwtValidatorKey(String validIssuerUri,
                         String audience,
+                        String customClaimCheck,
                         String usernameClaim,
                         String fallbackUsernameClaim,
                         String fallbackUsernamePrefix,
@@ -96,7 +101,7 @@ public class ValidatorKey {
                         boolean enableBouncy,
                         int bouncyPosition) {
 
-            super(validIssuerUri, audience, usernameClaim, fallbackUsernameClaim, fallbackUsernamePrefix, sslTruststore, sslStorePassword, sslStoreType, sslRandom, hasHostnameVerifier);
+            super(validIssuerUri, audience, customClaimCheck, usernameClaim, fallbackUsernameClaim, fallbackUsernamePrefix, sslTruststore, sslStorePassword, sslStoreType, sslRandom, hasHostnameVerifier);
             this.jwksEndpointUri = jwksEndpointUri;
             this.jwksRefreshSeconds = jwksRefreshSeconds;
             this.jwksExpirySeconds = jwksExpirySeconds;
@@ -138,6 +143,7 @@ public class ValidatorKey {
         @SuppressWarnings("checkstyle:parameternumber")
         public IntrospectionValidatorKey(String validIssuerUri,
                                   String audience,
+                                  String customClaimCheck,
                                   String usernameClaim,
                                   String fallbackUsernameClaim,
                                   String fallbackUsernamePrefix,
@@ -153,7 +159,7 @@ public class ValidatorKey {
                                   String clientId,
                                   String clientSecret) {
 
-            super(validIssuerUri, audience, usernameClaim, fallbackUsernameClaim, fallbackUsernamePrefix, sslTruststore, sslStorePassword, sslStoreType, sslRandom, hasHostnameVerifier);
+            super(validIssuerUri, audience, customClaimCheck, usernameClaim, fallbackUsernameClaim, fallbackUsernamePrefix, sslTruststore, sslStorePassword, sslStoreType, sslRandom, hasHostnameVerifier);
             this.introspectionEndpoint = introspectionEndpoint;
             this.userInfoEndpoint = userInfoEndpoint;
             this.validTokenType = validTokenType;

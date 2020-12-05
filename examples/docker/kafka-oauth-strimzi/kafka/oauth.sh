@@ -73,7 +73,7 @@ do
 done
 
 if [ "$TOKEN_ENDPOINT" == "" ]; then
-    >&2 echo "ENV variable TOKEN_ENDPOINT not set."
+    >&2 echo "TOKEN_ENDPOINT not set. Use --endpoint with endpoint url to set it."
     exit 1
 fi
 
@@ -88,7 +88,7 @@ if [ "$UNAME" == "" ] && [ "$CLIENT_ID" == "" ]; then
 fi
 
 if [ "$CLIENT_ID" == "" ]; then
-    [ "$QUIET" == "" ] && >&2 echo "ENV var CLIENT_ID not set. Using default value: kafka-cli"
+    [ "$QUIET" == "" ] && >&2 echo "CLIENT_ID not set. Using default value: kafka-cli"
     CLIENT_ID=kafka-cli
 fi
 
@@ -99,7 +99,7 @@ else
 fi
 
 if [ "$SCOPES" == "" ] && [ DEFAULT_SCOPES != "" ]; then
-    [ "$QUIET" == "" ] && >&2 echo "ENV var SCOPES not set. Using default value: ${DEFAULT_SCOPES}"
+    [ "$QUIET" == "" ] && >&2 echo "SCOPES not set. Using default value: ${DEFAULT_SCOPES}"
     SCOPES="${DEFAULT_SCOPES}"
 fi
 

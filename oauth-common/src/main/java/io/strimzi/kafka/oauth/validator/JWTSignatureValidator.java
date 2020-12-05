@@ -4,12 +4,14 @@
  */
 package io.strimzi.kafka.oauth.validator;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.strimzi.kafka.oauth.common.HttpUtil;
 import io.strimzi.kafka.oauth.common.JSONUtil;
 import io.strimzi.kafka.oauth.common.PrincipalExtractor;
 import io.strimzi.kafka.oauth.common.TimeUtil;
 import io.strimzi.kafka.oauth.common.TokenInfo;
+import io.strimzi.kafka.oauth.jsonpath.JsonPathFilterQuery;
 import org.apache.kafka.common.utils.Time;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.keycloak.TokenVerifier;
@@ -69,6 +71,7 @@ public class JWTSignatureValidator implements TokenValidator {
     private final int maxStaleSeconds;
     private final boolean checkAccessTokenType;
     private final String audience;
+    private final JsonPathFilterQuery customClaimMatcher;
     private final SSLSocketFactory socketFactory;
     private final HostnameVerifier hostnameVerifier;
     private final PrincipalExtractor principalExtractor;
@@ -78,9 +81,9 @@ public class JWTSignatureValidator implements TokenValidator {
     private Map<String, PublicKey> cache = Collections.emptyMap();
     private Map<String, PublicKey> oldCache = Collections.emptyMap();
 
-     /**
-     * Create a new instance
-      *
+    /**
+     * Create a new instance.
+     *
      * @param keysEndpointUri The JWKS endpoint url at the authorization server
      * @param socketFactory The optional SSL socket factory to use when establishing the connection to authorization server
      * @param verifier The optional hostname verifier used to validate the TLS certificate by the authorization server
@@ -91,6 +94,7 @@ public class JWTSignatureValidator implements TokenValidator {
      * @param expirySeconds The maximum time to trust the unrefreshed JWKS keys. If keys are not successfully refreshed within this time, the validation will start failing.
      * @param checkAccessTokenType Should the 'typ' claim in the token be validated (be equal to 'Bearer')
      * @param audience The optional audience
+     * @param customClaimCheck The optional JsonPath filter query for additional custom claim checking
      * @param enableBouncyCastleProvider Should BouncyCastle JCE provider be enabled - required for ECDSA support
      * @param bouncyCastleProviderPosition Position in JCE providers list - it is added to the end of the list by default
      */
@@ -104,6 +108,7 @@ public class JWTSignatureValidator implements TokenValidator {
                                  int expirySeconds,
                                  boolean checkAccessTokenType,
                                  String audience,
+                                 String customClaimCheck,
                                  boolean enableBouncyCastleProvider,
                                  int bouncyCastleProviderPosition) {
 
@@ -142,6 +147,7 @@ public class JWTSignatureValidator implements TokenValidator {
 
         this.checkAccessTokenType = checkAccessTokenType;
         this.audience = audience;
+        this.customClaimMatcher = parseCustomClaimCheck(customClaimCheck);
 
         if (enableBouncyCastleProvider && !bouncyInstalled.getAndSet(true)) {
             int installedPosition = Security.insertProviderAt(new BouncyCastleProvider(), bouncyCastleProviderPosition);
@@ -181,9 +187,21 @@ public class JWTSignatureValidator implements TokenValidator {
                     + "\n    certsExpirySeconds: " + expirySeconds
                     + "\n    checkAccessTokenType: " + checkAccessTokenType
                     + "\n    audience: " + audience
+                    + "\n    customClaimCheck: " + customClaimCheck
                     + "\n    enableBouncyCastleProvider: " + enableBouncyCastleProvider
                     + "\n    bouncyCastleProviderPosition: " + bouncyCastleProviderPosition);
         }
+    }
+
+    private JsonPathFilterQuery parseCustomClaimCheck(String customClaimCheck) {
+        if (customClaimCheck != null) {
+            String query = customClaimCheck.trim();
+            if (query.length() == 0) {
+                throw new IllegalArgumentException("Value of customClaimCheck is empty");
+            }
+            return JsonPathFilterQuery.parse(query);
+        }
+        return null;
     }
 
     private void validateRefreshConfig(int refreshSeconds, int expirySeconds) {
@@ -249,21 +267,11 @@ public class JWTSignatureValidator implements TokenValidator {
         }
     }
 
-    @SuppressWarnings({"deprecation", "unchecked"})
     @SuppressFBWarnings(value = "BC_UNCONFIRMED_CAST_OF_RETURN_VALUE",
             justification = "We tell TokenVerifier to parse AccessToken. It will return AccessToken or fail.")
     public TokenInfo validate(String token) {
-        TokenVerifier<AccessToken> tokenVerifier = TokenVerifier.create(token, AccessToken.class);
 
-        if (issuerUri != null) {
-            tokenVerifier.realmUrl(issuerUri);
-        }
-        if (checkAccessTokenType) {
-            tokenVerifier.withChecks(TOKEN_TYPE_CHECK);
-        }
-        if (audience != null) {
-            tokenVerifier.audience(audience);
-        }
+        TokenVerifier<AccessToken> tokenVerifier = initializeTokenVerifier(token);
 
         String kid = null;
         try {
@@ -311,15 +319,33 @@ public class JWTSignatureValidator implements TokenValidator {
             throw new TokenValidationException("Token validation failed:", e);
         }
 
-        long expiresMillis = t.getExpiration() * 1000L;
+        long expiresMillis = t.getExp() != null ? t.getExp().intValue() * 1000L : 0L;
         if (Time.SYSTEM.milliseconds() > expiresMillis) {
             throw new TokenExpiredException("Token expired at: " + expiresMillis + " (" +
                     TimeUtil.formatIsoDateTimeUTC(expiresMillis) + " UTC)");
         }
 
+        JsonNode tokenJson = null;
+
+        if (customClaimMatcher != null) {
+            tokenJson = JSONUtil.asJson(t);
+            if (!customClaimMatcher.match(tokenJson)) {
+                throw new TokenValidationException("Token validation failed: Custom claim check failed");
+            }
+        }
+
+        String principal = extractPrincipal(t, tokenJson);
+        return new TokenInfo(t, token, principal);
+    }
+
+    private String extractPrincipal(AccessToken t, JsonNode tokenJson) {
         String principal = null;
+
         if (principalExtractor.isConfigured()) {
-            principal = principalExtractor.getPrincipal(JSONUtil.asJson(t));
+            if (tokenJson == null) {
+                tokenJson = JSONUtil.asJson(t);
+            }
+            principal = principalExtractor.getPrincipal(tokenJson);
         }
         if (principal == null && !principalExtractor.isConfigured()) {
             principal = principalExtractor.getSub(t);
@@ -327,7 +353,23 @@ public class JWTSignatureValidator implements TokenValidator {
         if (principal == null) {
             throw new RuntimeException("Failed to extract principal - check usernameClaim, fallbackUsernameClaim configuration");
         }
-        return new TokenInfo(t, token, principal);
+        return principal;
+    }
+
+    @SuppressWarnings({"deprecation", "unchecked"})
+    private TokenVerifier<AccessToken> initializeTokenVerifier(String token) {
+        TokenVerifier<AccessToken> tokenVerifier = TokenVerifier.create(token, AccessToken.class);
+
+        if (issuerUri != null) {
+            tokenVerifier.realmUrl(issuerUri);
+        }
+        if (checkAccessTokenType) {
+            tokenVerifier.withChecks(TOKEN_TYPE_CHECK);
+        }
+        if (audience != null) {
+            tokenVerifier.audience(audience);
+        }
+        return tokenVerifier;
     }
 
     private static boolean isAlgorithmEC(String algorithm) {

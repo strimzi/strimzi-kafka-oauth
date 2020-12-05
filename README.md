@@ -383,6 +383,15 @@ If the user id could not be extracted from Introspection Endpoint response, then
 When you have a DEBUG logging configured for the `io.strimzi` category you may need to specify the following to prevent warnings about access token not being JWT:
 - `oauth.access.token.is.jwt` (e.g.: "false")
 
+###### Custom attribute checking
+
+You may want to limit the ability to authenticate to your Kafka broker beyond the available common token claims.
+There is an additional mechanism available since version 0.7.0 that allows the use of JSONPath filter query which is matched against the JWT token or the introspection endpoint response, and if the match fails, the authentication with the token is denied.
+
+- `oauth.custom.claim.check` (e.g.: "'kafka-user' in @.roles")
+
+See [JsonPathFilterQuery JavaDoc](oauth-common/src/main/java/io/strimzi/kafka/oauth/jsonpath/JsonPathFilterQuery.java) for more information about the syntax.
+
 ##### Configuring the client side of inter-broker communication
 
 All the Kafka brokers in the cluster should be configured with the same client ID and secret, and the corresponding user should be added to `super.users` since inter-broker client requires super-user permissions.
