@@ -28,6 +28,7 @@ Strimzi Kafka OAuth modules provide support for OAuth2 as authentication mechani
       - [Configuring the token validation](#configuring-the-token-validation)
         - [Validation using the JWKS endpoint](#validation-using-the-jwks-endpoint)
         - [Validation using the introspection endpoint](#validation-using-the-introspection-endpoint)
+        - [Custom attribute checking](#custom-attribute-checking)
       - [Configuring the client side of inter-broker communication](#configuring-the-client-side-of-inter-broker-communication)
     - [Enabling the re-authentication](#enabling-the-re-authentication)
     - [Enforcing the session timeout](#enforcing-the-session-timeout)  
