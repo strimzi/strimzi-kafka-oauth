@@ -5,7 +5,10 @@
 package io.strimzi.kafka.oauth.jsonpath;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+@SuppressFBWarnings(value = "URF_UNREAD_FIELD",
+        justification = "We may need 'key' field in the future")
 class JsonKeyValue {
     String key;
     JsonNode value;
