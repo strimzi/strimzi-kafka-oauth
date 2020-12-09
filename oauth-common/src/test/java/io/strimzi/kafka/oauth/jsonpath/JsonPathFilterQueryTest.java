@@ -53,7 +53,11 @@ public class JsonPathFilterQueryTest {
         String[] errQueries = {
             "['exp'] > 1000", "attribute path",
             "@", "at position: 0",
-            "@.custom in null", "right of 'in'"
+            "@.custom in null", "right of 'in'",
+            "1 < @.attr", "left of '<'",
+            "'lala' > 'lala'", "attribute path",
+            "'lala' <= null", "attribute path",
+            "@.attr > null", "'null' to the right"
         };
 
         // TODO: Unsupported comparison
@@ -66,7 +70,7 @@ public class JsonPathFilterQueryTest {
 
             boolean expected = Boolean.parseBoolean(queries[++i]);
 
-            boolean result = q.match(json);
+            boolean result = q.matches(json);
             System.out.println("Test: " + query + " " + (result ? "MATCH" : "NO MATCH"));
 
             Assert.assertEquals("Expected " + expected + " when testing: " + query, expected, result);

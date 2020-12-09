@@ -261,7 +261,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         }
 
         if (customClaimMatcher != null) {
-            if (!customClaimMatcher.match(response)) {
+            if (!customClaimMatcher.matches(response)) {
                 throw new TokenValidationException("Token check failed - custom claim check failed.")
                         .status(Status.INVALID_TOKEN);
             }

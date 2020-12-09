@@ -60,6 +60,7 @@ import java.util.ArrayList;
  *   {
  *       "token": {
  *         "sub": "username",
+ *         "custom": "custom value",
  *         ...
  *       }
  *   }
@@ -68,7 +69,7 @@ import java.util.ArrayList;
  * <pre>
  *    $[*][?(QUERY)]
  * </pre>
- * For example: '$[*][?(@.sub != null &amp;&amp; )]'
+ * For example: '$[*][?(@.custom == 'custom value')]'
  *
  * Some other differences are:
  * <ul>
@@ -79,7 +80,7 @@ import java.util.ArrayList;
  * Usage:
  * <pre>
  *   JsonPathFilterQuery query = new JsonPathFilterQuery("@.custom == 'value'");
- *   boolean match = query.match(jsonObject);
+ *   boolean match = query.matches(jsonObject);
  * </pre>
  *
  * Query is parsed in the first line and any errors during parsing result
@@ -112,8 +113,8 @@ public class JsonPathFilterQuery {
      * @param jsonObject Jackson DataBind object
      * @return true if the object matches the filter, false otherwise
      */
-    public boolean match(JsonNode jsonObject) {
-        return new Matcher(parsed).match(jsonObject);
+    public boolean matches(JsonNode jsonObject) {
+        return new Matcher(parsed).matches(jsonObject);
     }
 
     private StatementNode readStatement(ParsingContext ctx) {
@@ -143,6 +144,9 @@ public class JsonPathFilterQuery {
 
             if (!(predicate.getLval() instanceof PathNameNode)) {
                 throw new JsonPathFilterQueryException("Value to the left of '" + op + "' has to be specified as an attribute path (for example: @.attr)");
+            }
+            if (!OperatorNode.EQ.equals(op) && predicate.getRval() instanceof NullNode) {
+                throw new JsonPathFilterQueryException("Can not use 'null' to the right of '" + op + "'");
             }
         }
         if (OperatorNode.IN.equals(op)) {
@@ -363,7 +367,7 @@ public class JsonPathFilterQuery {
 
         // TODO set error
         //throw new JsonPathParseException("Failed to read string - missing ending quote", query, ctx.current);
-        ctx.reset(start);
+        ctx.resetTo(start);
         return null;
     }
 
@@ -396,7 +400,7 @@ public class JsonPathFilterQuery {
                 } else {
                     // TODO set error
                     //throw new JsonPathParseException("Invalid character for number: '" + c + "'", query, ctx.current);
-                    ctx.reset(start);
+                    ctx.resetTo(start);
                     return null;
                 }
             }
@@ -423,7 +427,7 @@ public class JsonPathFilterQuery {
         // next one should be eol or ' '
         boolean expected = ctx.readExpected(Constants.SPACE);
         if (!expected && !ctx.eol()) {
-            ctx.reset(start);
+            ctx.resetTo(start);
             return null;
         }
         return NullNode.INSTANCE;

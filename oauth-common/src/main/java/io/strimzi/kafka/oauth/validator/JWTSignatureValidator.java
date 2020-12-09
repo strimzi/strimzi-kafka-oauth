@@ -329,7 +329,7 @@ public class JWTSignatureValidator implements TokenValidator {
 
         if (customClaimMatcher != null) {
             tokenJson = JSONUtil.asJson(t);
-            if (!customClaimMatcher.match(tokenJson)) {
+            if (!customClaimMatcher.matches(tokenJson)) {
                 throw new TokenValidationException("Token validation failed: Custom claim check failed");
             }
         }

@@ -11,6 +11,15 @@ import org.slf4j.LoggerFactory;
 import java.math.BigDecimal;
 import java.util.Iterator;
 
+/**
+ * <em>Matcher</em> is used for matching the JSON object against the parsed JsonPath filter query.
+ *
+ * This class is thread-safe, and can be used by multiple threads at the same time.
+ *
+ * Initialise the <em>Matcher</em> with the result of the {@link JsonPathFilterQuery#parse(String)} method.
+ * Store the reference, and use it concurrently by calling the {@link Matcher#matches(JsonNode)} method,
+ * passing it the JSON object to match against the parsed filter.
+ */
 class Matcher {
 
     private static final Logger log = LoggerFactory.getLogger(Matcher.class);
@@ -22,12 +31,12 @@ class Matcher {
     }
 
     /**
-     * Match the JSON object against the JsonPath filter query.
+     * Match the JSON object against the JsonPath filter query as described in {@link JsonPathFilterQuery}.
      *
      * @param json Jackson JsonObject to match
      * @return true if the object matches the filter, false otherwise
      */
-    public boolean match(JsonNode json) {
+    public boolean matches(JsonNode json) {
         BooleanEvaluator eval = new BooleanEvaluator();
         for (ExpressionNode expression : parsed.expressions) {
 

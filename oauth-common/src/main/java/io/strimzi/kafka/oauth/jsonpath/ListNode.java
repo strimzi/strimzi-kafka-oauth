@@ -5,7 +5,6 @@
 package io.strimzi.kafka.oauth.jsonpath;
 
 import java.util.ArrayList;
-import java.util.stream.Collectors;
 
 class ListNode extends Node {
     private final ArrayList<Node> items;
@@ -16,15 +15,10 @@ class ListNode extends Node {
 
     @Override
     public String toString() {
-        return items.stream().map(Object::toString).collect(Collectors.joining(",", "[", "]"));
+        return items.toString();
     }
 
     public boolean contains(Object o) {
-        for (Node n : items) {
-            if (n.equals(o)) {
-                return true;
-            }
-        }
-        return false;
+        return items.contains(o);
     }
 }
