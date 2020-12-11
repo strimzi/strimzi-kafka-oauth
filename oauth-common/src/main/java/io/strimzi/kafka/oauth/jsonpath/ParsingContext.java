@@ -12,7 +12,7 @@ package io.strimzi.kafka.oauth.jsonpath;
  * The read*() methods increment the current position, the peek*() methods do not.
  * The unread() method decrements the current position.
  */
- class ParsingContext {
+class ParsingContext {
 
     char[] buffer;
     int start;
