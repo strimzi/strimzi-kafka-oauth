@@ -44,9 +44,6 @@ public final class OAuthKafkaPrincipal extends KafkaPrincipal {
     }
 
     public static void setToThreadContext(OAuthKafkaPrincipal principal) {
-        if (currentTL.get() != null) {
-            throw new RuntimeException("Internal error - current principal already set");
-        }
         currentTL.set(principal);
     }
 
