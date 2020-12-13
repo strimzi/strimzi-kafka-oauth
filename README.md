@@ -865,7 +865,7 @@ security.protocol=SASL_PLAINTEXT
 sasl.mechanism=PLAIN
 sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required \
   username="team-a-client" \
-  password="team-a-client-secret"
+  password="team-a-client-secret" ;
 ```
 
 Note that when using SASL_PLAIN the credentials are actually sent to the Kafka Broker, which is not the case when SASL_OAUTHBEARER is used, when the client library contacts the OAuth2 authorization service first, to obtain the access token, and then only sends to the Kafka Broker the access token.
