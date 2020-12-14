@@ -8,6 +8,12 @@ Release Notes
 
 SASL_PLAIN can now be used to perform the authentication using a service account clientId and secret or a long-lived access token.
 
+When configuring OAuth authentication you should configure the custom principal builder factory:
+
+    principal.builder.class=io.strimzi.kafka.oauth.server.OAuthKafkaPrinipalBuilder
+
+That is needed by OAuth over PLAIN to function correctly, and is also required by `KeycloakRBACAuthorizer` to function correctly, so it is best to just always configure it.
+
 See [README.md] for instructions on how to set up the brokers and the clients.
 
 ### Audience checking

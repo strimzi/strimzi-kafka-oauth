@@ -24,6 +24,7 @@ Strimzi Kafka OAuth modules provide support for OAuth2 as authentication mechani
     - [Configuring the listeners](#configuring-the-listeners)
     - [Configuring the JAAS login module](#configuring-the-jaas-login-module)
     - [Enabling the custom callbacks](#enabling-the-custom-callbacks)
+    - [Enabling the custom principal builder](#enabling-the-custom-principal_builder)
     - [Configuring the OAuth2](#configuring-the-oauth2)
       - [Configuring the token validation](#configuring-the-token-validation)
         - [Validation using the JWKS endpoint](#validation-using-the-jwks-endpoint)
@@ -167,10 +168,11 @@ In order to use that you have to enable the SASL_PLAIN mechanism as well (you ca
 
 #### Configuring the JAAS login module
 
-In JAAS configuration we do three things:
+In JAAS configuration we do four things:
 - Activate a specific JAAS login module - for Strimzi Kafka OAuth that is either:
   - the `org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule` class which implements Kafka's SASL_OAUTHBEARER authentication mechanism, or 
   - the `org.apache.kafka.common.security.plain.PlainLoginModule` class which implements Kafka's SASL_PLAIN authentication mechanism.
+- Activate the custom principal builder - `io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder`.
 - Activate the custom server callback that will provide server-side token validation:
   - For `SASL_OAUTHBEARER` the callback class should be `io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler`.
   - For `SASL_PLAIN` the callback class should be `io.strimzi.kafka.oauth.server.plain.JaasServerOauthOverPlainValidatorCallbackHandler`.
@@ -218,6 +220,12 @@ An example for SASL_PLAIN:
 If the SASL_OAUTHBEARER listener is also used for interbroker communication, then you also have to configure the client callback handler class.
 
     listener.name.client.oauthbearer.sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler 
+
+#### Enabling the custom principal builder
+
+OAuth authentication also requires a custom principal builder to be installed on the broker:
+  
+    principal.builder.class=io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder
 
 #### Configuring the OAuth2
 
@@ -443,8 +451,6 @@ As long as the token has not yet expired (it may have been recently invalidated 
 If you want to install OAuthSessionAuthorizer wrapped around Simple ACL Authorizer install it as follows in `server.properties`:
 
     authorizer.class.name=io.strimzi.kafka.oauth.server.OAuthSessionAuthorizer
-    principal.builder.class=io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder
-    
     strimzi.authorizer.delegate.class.name=kafka.security.auth.SimpleAclAuthorizer
 
 You configure the `SimpleAclAuthorizer` by specifying the same properties as if it was installed under `authorizer.class.name`.
@@ -481,15 +487,16 @@ Strimzi Kafka OAuth provides an alternative authorizer - `io.strimzi.kafka.oauth
 Add the following to `server.properties` file:
 
     authorizer.class.name=io.strimzi.kafka.oauth.server.authorizer.KeycloakRBACAuthorizer
-    principal.builder.class=io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder
 
 Note: Since version 0.6.0 the `io.strimzi.kafka.oauth.server.authorizer.JwtKafkaPrincipalBuilder` has been deprecated. Use the above configuration instead.
+
+You also need a properly configured OAuth authentication support, as described in [Configuring the Kafka broker authentication](configuring_the_kafka_broker_authentication).
 
 #### Configuring the KeycloakRBACAuthorizer
 
 All the configuration properties for KeycloakRBACAuthorizer begin with a `strimzi.authorization.` prefix.
 
-The token endpoint used by KeycloakRBACAuthorizer has to be the same as the one used for authentication:
+The token endpoint used by KeycloakRBACAuthorizer has to be the same as the one used for OAuth authentication:
 - `strimzi.authorization.token.endpoint.uri` (e.g.: "https://localhost:8443/auth/realms/demo/protocol/openid-connect/token" - the endpoint used to exchange the access token for a list of grants)
 - `strimzi.authorization.client.id` (e.g.: "kafka" - the client representing a Kafka Broker which has Authorization Services enabled)
 

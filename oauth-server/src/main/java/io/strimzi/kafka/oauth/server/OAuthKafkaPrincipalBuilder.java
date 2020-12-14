@@ -35,7 +35,10 @@ import java.util.Map;
  * the OAuthBearerToken token produced by <em>io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler</em>.
  * </p>
  * <p>
- * You can use 'principal.builder.class=io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder'
+ * It is also required for OAuth over PLAIN to operate properly.
+ * </p>
+ * <p>
+ * Use 'principal.builder.class=io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder'
  * property definition in server.properties to install it.
  * </p>
  */
