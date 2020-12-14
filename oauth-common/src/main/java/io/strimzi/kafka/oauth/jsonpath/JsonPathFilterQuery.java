@@ -7,6 +7,7 @@ package io.strimzi.kafka.oauth.jsonpath;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * This class implements parsing JsonPath filter query syntax inspired by:
@@ -50,6 +51,11 @@ import java.util.ArrayList;
  *   "'kafka' in @.aud"
  *   '"kafka-user" in @.roles.client-roles.kafka'
  *   "@.exp &gt; 1000 || 'kafka' in @.aud"
+ *   "(@.custom == 'custom-value' or @.custom == 'custom-value2')"
+ *   "@.roles.client-roles.kafka != null or (@.exp &gt; 1000 &amp;&amp; @.custom == 'custom-value')"
+ *   "('kafka' in @.aud || @.custom == 'custom-value') and @.exp &gt; 1000"
+ *   "(('kafka' in @.aud || @.custom == 'custom-value') and @.exp &gt; 1000)"
+ *   "((('kafka' in @.aud || @.custom == 'custom-value') and @.exp &gt; 1000))"
  * </pre>
  *
  * This class only implements a subset of the JsonPath syntax. It is focused on filter matching - answering the question if the JWT token matches the selector or not.
@@ -91,10 +97,10 @@ import java.util.ArrayList;
  */
 public class JsonPathFilterQuery {
 
-    private final StatementNode parsed;
+    private final ComposedPredicateNode parsed;
 
     private JsonPathFilterQuery(String query) {
-        this.parsed = readStatement(new ParsingContext(query.toCharArray()));
+        this.parsed = readComposedPredicate(new ParsingContext(query.toCharArray()));
     }
 
     /**
@@ -117,53 +123,75 @@ public class JsonPathFilterQuery {
         return new Matcher(parsed).matches(jsonObject);
     }
 
-    private StatementNode readStatement(ParsingContext ctx) {
-        StatementNode node = new StatementNode();
+    private ComposedPredicateNode readComposedPredicate(ParsingContext ctx) {
+        List<ExpressionNode> expressions = new ArrayList<>();
 
         Logical operator = null;
         do {
             ctx.resetStart();
-            PredicateNode predicate = readPredicate(ctx);
+            AbstractPredicateNode predicate;
+
+            boolean bracket = readDelim(ctx, Constants.LEFT_BRACKET);
+            if (bracket) {
+                predicate = readComposedPredicate(ctx);
+                if (!readDelim(ctx, Constants.RIGHT_BRACKET)) {
+                    throw new JsonPathFilterQueryException("Failed to parse query - expected ')'" + ctx.toString());
+                }
+            } else {
+                predicate = readPredicate(ctx);
+            }
             if (predicate == null) {
                 throw new JsonPathFilterQueryException("Failed to parse query: " + ctx.toString());
             }
             validate(predicate);
-            node.add(expression(operator, predicate));
+            expressions.add(expression(operator, predicate));
         } while ((operator = readOrOrAnd(ctx)) != null);
 
-        return node;
+        return new ComposedPredicateNode(expressions);
     }
 
-    private void validate(PredicateNode predicate) {
-        OperatorNode op = predicate.getOp();
-        if (OperatorNode.EQ.equals(op)
-                || OperatorNode.LT.equals(op)
-                || OperatorNode.GT.equals(op)
-                || OperatorNode.LTE.equals(op)
-                || OperatorNode.GTE.equals(op)) {
-
-            if (!(predicate.getLval() instanceof PathNameNode)) {
-                throw new JsonPathFilterQueryException("Value to the left of '" + op + "' has to be specified as an attribute path (for example: @.attr)");
-            }
-            if (!OperatorNode.EQ.equals(op) && predicate.getRval() instanceof NullNode) {
-                throw new JsonPathFilterQueryException("Can not use 'null' to the right of '" + op + "'");
-            }
+    private boolean readDelim(ParsingContext ctx, char delim) {
+        ctx.skipWhiteSpace();
+        if (ctx.eol()) {
+            return false;
         }
-        if (OperatorNode.IN.equals(op)) {
-            Node rNode = predicate.getRval();
-            if (NullNode.INSTANCE == rNode) {
-                throw new JsonPathFilterQueryException("Can not use 'null' to the right of 'in'. (Try 'in [null]' or '== null')");
+        return ctx.readExpected(delim);
+    }
+
+    private void validate(AbstractPredicateNode node) {
+        if (node instanceof PredicateNode) {
+            PredicateNode predicate = (PredicateNode) node;
+
+            OperatorNode op = predicate.getOp();
+            if (OperatorNode.EQ.equals(op)
+                    || OperatorNode.LT.equals(op)
+                    || OperatorNode.GT.equals(op)
+                    || OperatorNode.LTE.equals(op)
+                    || OperatorNode.GTE.equals(op)) {
+
+                if (!(predicate.getLval() instanceof PathNameNode)) {
+                    throw new JsonPathFilterQueryException("Value to the left of '" + op + "' has to be specified as an attribute path (for example: @.attr)");
+                }
+                if (!OperatorNode.EQ.equals(op) && predicate.getRval() instanceof NullNode) {
+                    throw new JsonPathFilterQueryException("Can not use 'null' to the right of '" + op + "'");
+                }
             }
-            if (!PathNameNode.class.isAssignableFrom(rNode.getClass())
-                    && !ListNode.class.isAssignableFrom(rNode.getClass())) {
-                throw new JsonPathFilterQueryException("Value to the right of 'in' has to be specified as an attribute path (for example: @.attr) or an array (for example: ['val1', 'val2'])");
-            }
-            Node lNode = predicate.getLval();
-            if (!PathNameNode.class.isAssignableFrom(lNode.getClass())
-                    && !StringNode.class.isAssignableFrom(lNode.getClass())
-                    && !NumberNode.class.isAssignableFrom(lNode.getClass())
-                    && !NullNode.class.isAssignableFrom(lNode.getClass())) {
-                throw new RuntimeException("Value to the left of 'in' has to be specified as an attribute path (for example: @.attr), a string, a number or null");
+            if (OperatorNode.IN.equals(op)) {
+                Node rNode = predicate.getRval();
+                if (NullNode.INSTANCE == rNode) {
+                    throw new JsonPathFilterQueryException("Can not use 'null' to the right of 'in'. (Try 'in [null]' or '== null')");
+                }
+                if (!PathNameNode.class.isAssignableFrom(rNode.getClass())
+                        && !ListNode.class.isAssignableFrom(rNode.getClass())) {
+                    throw new JsonPathFilterQueryException("Value to the right of 'in' has to be specified as an attribute path (for example: @.attr) or an array (for example: ['val1', 'val2'])");
+                }
+                Node lNode = predicate.getLval();
+                if (!PathNameNode.class.isAssignableFrom(lNode.getClass())
+                        && !StringNode.class.isAssignableFrom(lNode.getClass())
+                        && !NumberNode.class.isAssignableFrom(lNode.getClass())
+                        && !NullNode.class.isAssignableFrom(lNode.getClass())) {
+                    throw new RuntimeException("Value to the left of 'in' has to be specified as an attribute path (for example: @.attr), a string, a number or null");
+                }
             }
         }
     }
@@ -338,7 +366,7 @@ public class JsonPathFilterQuery {
         int c;
         do {
             c = ctx.read();
-        } while (c != Constants.EOL && c != Constants.SPACE && c != Constants.DOT);
+        } while (c != Constants.EOL && c != Constants.SPACE && c != Constants.DOT && c != Constants.RIGHT_BRACKET);
 
         if (c != Constants.EOL) {
             ctx.unread();
@@ -393,7 +421,7 @@ public class JsonPathFilterQuery {
             if (!isDigit(c)) {
                 if (c == Constants.DOT && !decimal) {
                     decimal = true;
-                } else if ((c == ',' || c == ']') && inList) {
+                } else if (c == Constants.RIGHT_BRACKET || ((c == ',' || c == ']') && inList)) {
                     endOffset = 0;
                     ctx.unread();
                     break;
@@ -424,8 +452,8 @@ public class JsonPathFilterQuery {
             return null;
         }
 
-        // next one should be eol or ' '
-        boolean expected = ctx.readExpected(Constants.SPACE);
+        // next one should be eol or ' ' or ')'
+        boolean expected = ctx.readExpected(new char[] {Constants.SPACE, Constants.RIGHT_BRACKET});
         if (!expected && !ctx.eol()) {
             ctx.resetTo(start);
             return null;
@@ -433,7 +461,7 @@ public class JsonPathFilterQuery {
         return NullNode.INSTANCE;
     }
 
-    private ExpressionNode expression(Logical operator, PredicateNode predicate) {
+    private ExpressionNode expression(Logical operator, AbstractPredicateNode predicate) {
         return new ExpressionNode(operator, predicate);
     }
 

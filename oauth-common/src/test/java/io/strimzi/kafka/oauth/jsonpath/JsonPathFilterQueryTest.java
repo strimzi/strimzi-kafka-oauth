@@ -10,6 +10,8 @@ import org.junit.Test;
 import org.keycloak.util.JsonSerialization;
 
 import java.io.IOException;
+import java.util.LinkedList;
+import java.util.List;
 
 public class JsonPathFilterQueryTest {
 
@@ -28,26 +30,31 @@ public class JsonPathFilterQueryTest {
     public void testJsonPathFilterQuery() throws IOException {
 
         String[] queries = {
-            "@.exp < 1000", "true",
-            "@.exp > 1000", "false",
-            "@.custom == 'custom-value'", "true",
-            "@.custom == 'custom-value' and @.exp > 1000", "false",
-            "@.custom == 'custom-value' or @.exp > 1000", "true",
-            "@.custom == 'custom-value' && @.exp <= 1000", "true",
-            "@.custom != 'custom-value'", "false",
-            "@.iat != null", "true",
-            "@.iat == null", "false",
-            "@.custom in ['some-custom-value', 42, 'custom-value']", "true",
-            "@.custom nin ['some-custom-value', 42, 'custom-value']", "false",
-            "@.custom nin []", "true",
-            "@.custom in []", "false",
-            "@.custom-level in [1,2,3]", "false",
-            "@.custom-level in [1,8,9,20]", "true",
-            "@.custom-level nin [1,8,9,20]", "false",
-            "@.roles.client-roles.kafka != null", "true",
-            "'kafka' in @.aud", "true",
-            "\"kafka-user\" in @.roles.client-roles.kafka", "true",
-            "@.exp > 1000 || 'kafka' in @.aud", "true"
+//            "@.exp < 1000", "true",
+//            "@.exp > 1000", "false",
+//            "@.custom == 'custom-value'", "true",
+//            "@.custom == 'custom-value' and @.exp > 1000", "false",
+//            "@.custom == 'custom-value' or @.exp > 1000", "true",
+//            "@.custom == 'custom-value' && @.exp <= 1000", "true",
+//            "@.custom != 'custom-value'", "false",
+//            "@.iat != null", "true",
+//            "@.iat == null", "false",
+//            "@.custom in ['some-custom-value', 42, 'custom-value']", "true",
+//            "@.custom nin ['some-custom-value', 42, 'custom-value']", "false",
+//            "@.custom nin []", "true",
+//            "@.custom in []", "false",
+//            "@.custom-level in [1,2,3]", "false",
+//            "@.custom-level in [1,8,9,20]", "true",
+//            "@.custom-level nin [1,8,9,20]", "false",
+//            "@.roles.client-roles.kafka != null", "true",
+//            "'kafka' in @.aud", "true",
+//            "\"kafka-user\" in @.roles.client-roles.kafka", "true",
+//            "@.exp > 1000 || 'kafka' in @.aud", "true",
+//            "(@.custom == 'custom-value' or @.custom == 'custom-value2')", "true",
+//            "(@.exp > 1000 && @.custom == 'custom-value') or @.roles.client-roles.kafka != null", "true",
+//            "@.exp >= 600 and ('kafka' in @.aud || @.custom == 'custom-value')", "true",
+            "((@.custom == 'some-custom-value' || 'kafka' in @.aud) and @.exp > 1000)", "false",
+            "((('kafka' in @.aud || @.custom == 'custom-value') and @.exp > 1000))", "false"
         };
 
         String[] errQueries = {
@@ -86,5 +93,38 @@ public class JsonPathFilterQueryTest {
                 Assert.assertTrue("Failed to parse", expected.getMessage().contains(errQueries[++i]));
             }
         }
+    }
+
+    final List<String> tracker = new LinkedList<>();
+
+    @Test
+    public void testPrecedence() {
+        // we expect the last eval to not be called and expression to resolve to true
+        boolean val = evalTrue("first")
+                && evalTrue("second")
+                || evalFalse("third");
+        System.out.println("true && true || false : " + val);
+
+        tracker.clear();
+
+        // we expect the second eval to not be called and expression to resolve to true
+        val = evalTrue("first") || evalFalse("second") && evalTrue("third");
+        System.out.println("true || false && true" + val);
+
+        tracker.clear();
+
+        // we expect all the evals to be called and expression to resolve to false
+        val = evalFalse("first") || evalTrue("second") && evalFalse("third");
+        System.out.println("false || true && false: " + val);
+    }
+
+    private boolean evalTrue(String label) {
+        tracker.add(label);
+        return true;
+    }
+
+    private boolean evalFalse(String label) {
+        tracker.add(label);
+        return false;
     }
 }

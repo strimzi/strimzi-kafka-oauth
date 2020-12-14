@@ -6,9 +6,9 @@ package io.strimzi.kafka.oauth.jsonpath;
 
 class ExpressionNode extends Node {
     private final Logical op;
-    private final PredicateNode predicate;
+    private final AbstractPredicateNode predicate;
 
-    ExpressionNode(Logical op, PredicateNode predicate) {
+    ExpressionNode(Logical op, AbstractPredicateNode predicate) {
         this.op = op;
         this.predicate = predicate;
     }
@@ -17,7 +17,7 @@ class ExpressionNode extends Node {
         return op;
     }
 
-    public PredicateNode getPredicate() {
+    public AbstractPredicateNode getPredicate() {
         return predicate;
     }
 

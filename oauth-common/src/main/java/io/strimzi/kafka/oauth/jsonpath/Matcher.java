@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.util.Iterator;
+import java.util.List;
 
 /**
  * <em>Matcher</em> is used for matching the JSON object against the parsed JsonPath filter query.
@@ -24,11 +25,12 @@ class Matcher {
 
     private static final Logger log = LoggerFactory.getLogger(Matcher.class);
 
-    private final StatementNode parsed;
+    private final ComposedPredicateNode parsed;
 
-    Matcher(StatementNode parsed) {
+    Matcher(ComposedPredicateNode parsed) {
         this.parsed = parsed;
     }
+
 
     /**
      * Match the JSON object against the JsonPath filter query as described in {@link JsonPathFilterQuery}.
@@ -37,48 +39,65 @@ class Matcher {
      * @return true if the object matches the filter, false otherwise
      */
     public boolean matches(JsonNode json) {
+        return matches(json, parsed.getExpressions());
+    }
+
+    public boolean matches(JsonNode json, List<ExpressionNode> expressions) {
         BooleanEvaluator eval = new BooleanEvaluator();
-        for (ExpressionNode expression : parsed.expressions) {
+        for (ExpressionNode expression : expressions) {
 
             Logical logical = expression.getOp();
+            // short circuit for AND
             if (logical == Logical.AND && !eval.current) {
                 return false;
             }
-            PredicateNode predicate = expression.getPredicate();
-            OperatorNode op = predicate.getOp();
-
-            try {
-                if (op == OperatorNode.EQ) {
-                    eval.update(logical, compareEquals(json, predicate));
-                } else if (op == OperatorNode.NEQ) {
-                    eval.update(logical, !compareEquals(json, predicate));
-                } else if (op == OperatorNode.GT) {
-                    eval.update(logical, compareGreaterThan(json, predicate));
-                } else if (op == OperatorNode.LTE) {
-                    eval.update(logical, !compareGreaterThan(json, predicate));
-                } else if (op == OperatorNode.LT) {
-                    eval.update(logical, compareLessThan(json, predicate));
-                } else if (op == OperatorNode.GTE) {
-                    eval.update(logical, !compareLessThan(json, predicate));
-                } else if (op == OperatorNode.IN) {
-                    eval.update(logical, containedIn(json, predicate));
-                } else if (op == OperatorNode.NIN) {
-                    eval.update(logical, !containedIn(json, predicate));
-                } else if (op == OperatorNode.MATCH_RE) {
-                    throw new RuntimeException("Not implemented");
-                } else if (op == OperatorNode.ANYOF) {
-                    throw new RuntimeException("Not implemented");
-                } else if (op == OperatorNode.NONEOF) {
-                    throw new RuntimeException("Not implemented");
-                }
-            } catch (JsonPathFilterQueryException e) {
-                if (log.isDebugEnabled()) {
-                    log.debug("Failed to evaluate expression: " + predicate, e);
-                }
-                eval.update(logical, false);
+            // short circuit for OR
+            if (logical == Logical.OR && eval.current) {
+                return true;
+            }
+            AbstractPredicateNode node = expression.getPredicate();
+            if (node instanceof ComposedPredicateNode) {
+                eval.update(logical, matches(json, ((ComposedPredicateNode) node).getExpressions()));
+            } else {
+                updateEvaluationWithPredicateNode(eval, json, node, logical);
             }
         }
         return eval.current;
+    }
+
+    private void updateEvaluationWithPredicateNode(BooleanEvaluator eval, JsonNode json, AbstractPredicateNode node, Logical logical) {
+        PredicateNode predicate = (PredicateNode) node;
+        OperatorNode op = predicate.getOp();
+        try {
+            if (op == OperatorNode.EQ) {
+                eval.update(logical, compareEquals(json, predicate));
+            } else if (op == OperatorNode.NEQ) {
+                eval.update(logical, !compareEquals(json, predicate));
+            } else if (op == OperatorNode.GT) {
+                eval.update(logical, compareGreaterThan(json, predicate));
+            } else if (op == OperatorNode.LTE) {
+                eval.update(logical, !compareGreaterThan(json, predicate));
+            } else if (op == OperatorNode.LT) {
+                eval.update(logical, compareLessThan(json, predicate));
+            } else if (op == OperatorNode.GTE) {
+                eval.update(logical, !compareLessThan(json, predicate));
+            } else if (op == OperatorNode.IN) {
+                eval.update(logical, containedIn(json, predicate));
+            } else if (op == OperatorNode.NIN) {
+                eval.update(logical, !containedIn(json, predicate));
+            } else if (op == OperatorNode.MATCH_RE) {
+                throw new RuntimeException("Not implemented");
+            } else if (op == OperatorNode.ANYOF) {
+                throw new RuntimeException("Not implemented");
+            } else if (op == OperatorNode.NONEOF) {
+                throw new RuntimeException("Not implemented");
+            }
+        } catch (JsonPathFilterQueryException e) {
+            if (log.isDebugEnabled()) {
+                log.debug("Failed to evaluate expression: " + node, e);
+            }
+            eval.update(logical, false);
+        }
     }
 
     private boolean compareEquals(JsonNode json, PredicateNode predicate) {

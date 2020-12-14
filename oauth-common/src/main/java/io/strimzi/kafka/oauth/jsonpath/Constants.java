@@ -9,6 +9,8 @@ public class Constants {
     static final char DOT = '.';
     static final char SINGLE = '\'';
     static final char DOUBLE = '\"';
+    static final char LEFT_BRACKET = '(';
+    static final char RIGHT_BRACKET = ')';
 
     static final char[] NULL = {'n', 'u', 'l', 'l'};
     static final char[] AND = {'a', 'n', 'd'};
