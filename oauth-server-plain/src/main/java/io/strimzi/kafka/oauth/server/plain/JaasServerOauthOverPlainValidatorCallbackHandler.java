@@ -151,17 +151,16 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
             handleCallback(cb, username, password);
 
         } catch (UnsupportedCallbackException e) {
-            if (log.isDebugEnabled()) {
-                log.error("Authentication failed due to misconfigured CallbackHandler: ", e);
-            }
+            log.error("Authentication failed due to misconfigured CallbackHandler: ", e);
             throw e;
         } catch (SaslAuthenticationException e) {
             if (log.isDebugEnabled()) {
-                log.error("Authentication failed for username: [" + username + "]: ", e);
+                log.debug("Authentication failed for username: [" + username + "]: ", e);
             }
+            throw e;
         } catch (Throwable e) {
             if (log.isDebugEnabled()) {
-                log.error("Authentication failed for username: [" + username + "]: ", e);
+                log.debug("Authentication failed for username: [" + username + "]: ", e);
             }
             throw new SaslAuthenticationException("Authentication failed for username: [" + username + "] " + getAllCauseMessages(e), e);
         }
