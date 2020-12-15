@@ -191,7 +191,7 @@ class ParsingContext {
      * The specified characters can include Constant.EOL, which checks if the buffer has already been completely read.
      *
      * @param anyChar The characters to check for
-     * @return true if the character at the current poistion is any of the specified characters
+     * @return true if the character at the current position is any of the specified characters
      */
     public boolean peekForAny(char... anyChar) {
         for (char c : anyChar) {

@@ -88,9 +88,9 @@ class Matcher {
             } else if (op == OperatorNode.MATCH_RE) {
                 throw new RuntimeException("Not implemented");
             } else if (op == OperatorNode.ANYOF) {
-                throw new RuntimeException("Not implemented");
+                eval.update(logical, anyOf(json, predicate));
             } else if (op == OperatorNode.NONEOF) {
-                throw new RuntimeException("Not implemented");
+                eval.update(logical, noneOf(json, predicate));
             }
         } catch (JsonPathFilterQueryException e) {
             if (log.isDebugEnabled()) {
@@ -259,6 +259,62 @@ class Matcher {
         } else {
             throw new RuntimeException("Value to the left of 'in' has to be specified as an attribute path (for example: @.attr), a string, a number or null");
         }
+    }
+
+    private boolean anyOf(JsonNode json, PredicateNode predicate) {
+        return anyOf(json, predicate, "anyof");
+    }
+
+    private boolean noneOf(JsonNode json, PredicateNode predicate) {
+        return !anyOf(json, predicate, "noneof");
+    }
+
+    private boolean anyOf(JsonNode json, PredicateNode predicate, String opname) {
+        Node lval = predicate.getLval();
+        Node rval = predicate.getRval();
+
+        if (rval == null || rval instanceof NullNode) {
+            throw new RuntimeException("Illegal state - can't have 'null' to the right of '" + opname + "'  (try 'in [null]' or '== null')");
+        }
+
+        if (!(rval instanceof ListNode)) {
+            throw new RuntimeException("Value to the right of '" + opname + "' has to be an array (for example: ['value1', 'value2']");
+        }
+
+        if (!(lval instanceof PathNameNode)) {
+            throw new RuntimeException("Value to the left of '" + opname + "' has to be specified as an attribute path (for example: @.attr)");
+        }
+
+        JsonKeyValue lNode = getAttributeJsonNode(json, (PathNameNode) lval);
+        if (lNode == null || lNode.value == null) {
+            return false;
+        }
+
+        if (!lNode.value.isArray()) {
+            // throw new RuntimeException("Unsupported value type for value left of 'anyof' - must be array")
+            return false;
+        }
+
+        Iterator<JsonNode> it = lNode.value.elements();
+        ListNode list = (ListNode) rval;
+
+        while (it.hasNext()) {
+            JsonNode item = it.next();
+            if (item.isTextual()) {
+                if (list.contains(new StringNode(item.asText()))) {
+                    return true;
+                }
+            } else if (item.isNumber()) {
+                if (list.contains(new NumberNode(item.decimalValue()))) {
+                    return true;
+                }
+            } else if (item.isNull()) {
+                if (list.contains(NullNode.INSTANCE)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private boolean containsStringNode(JsonNode json, StringNode lval, Node rval) {

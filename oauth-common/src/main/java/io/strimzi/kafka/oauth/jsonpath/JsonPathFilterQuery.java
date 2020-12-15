@@ -293,7 +293,7 @@ public class JsonPathFilterQuery {
         if (ctx.eol()) {
             return null;
         }
-        if (!ctx.readExpected('[')) {
+        if (!ctx.readExpected(Constants.LEFT_SQUARE_BRACKET)) {
             return null;
         }
 
@@ -310,10 +310,10 @@ public class JsonPathFilterQuery {
             ctx.skipWhiteSpace();
             c = ctx.read();
 
-            if (c != ',' && c != ']') {
+            if (c != ',' && c != Constants.RIGHT_SQUARE_BRACKET) {
                 throw new JsonPathFilterQueryException("Unexpected character in array - " + ctx.toString());
             }
-        } while (node != null && c != ']');
+        } while (node != null && c != Constants.RIGHT_SQUARE_BRACKET);
 
         return new ListNode(list);
     }
@@ -323,7 +323,7 @@ public class JsonPathFilterQuery {
         if (ctx.eol()) {
             return null;
         }
-        if (ctx.peek() == ']') {
+        if (ctx.peek() == Constants.RIGHT_SQUARE_BRACKET) {
             return null;
         }
         Node node = readString(ctx);
@@ -421,7 +421,7 @@ public class JsonPathFilterQuery {
             if (!isDigit(c)) {
                 if (c == Constants.DOT && !decimal) {
                     decimal = true;
-                } else if (c == Constants.RIGHT_BRACKET || ((c == ',' || c == ']') && inList)) {
+                } else if (c == Constants.RIGHT_BRACKET || ((c == Constants.COMMA || c == Constants.RIGHT_SQUARE_BRACKET) && inList)) {
                     endOffset = 0;
                     ctx.unread();
                     break;
@@ -452,8 +452,8 @@ public class JsonPathFilterQuery {
             return null;
         }
 
-        // next one should be eol or ' ' or ')'
-        boolean expected = ctx.readExpected(new char[] {Constants.SPACE, Constants.RIGHT_BRACKET});
+        // next one should be eol or ' ', ',', ']', or ')'
+        boolean expected = ctx.peekForAny(Constants.SPACE, Constants.COMMA, Constants.RIGHT_SQUARE_BRACKET, Constants.RIGHT_BRACKET);
         if (!expected && !ctx.eol()) {
             ctx.resetTo(start);
             return null;
