@@ -93,9 +93,13 @@ class Matcher {
             } else if (op == OperatorNode.NONEOF) {
                 eval.update(logical, noneOf(json, predicate));
             }
-        } catch (JsonPathFilterQueryException e) {
-            if (log.isDebugEnabled()) {
-                log.debug("Failed to evaluate expression: " + node, e);
+        } catch (IllegalStateException e) {
+            log.error("Failed to evaluate expression due to internal error: " + node, e);
+            eval.update(logical, false);
+
+        } catch (Exception e) {
+            if (log.isTraceEnabled()) {
+                log.trace("Failed to evaluate expression: " + node, e);
             }
             eval.update(logical, false);
         }
@@ -154,11 +158,12 @@ class Matcher {
                 // We assume that the attribute not existing fulfills the == null condition
                 return lNode == null || lNode.value == null;
             }
+            return false;
+
         } else {
             // This validation is performed in JsonPathFilterQuery.validate()
             throw new IllegalStateException("Value left of == has to be specified as an attribute path e.g.: @.attr");
         }
-        return false;
     }
 
     private JsonKeyValue getAttributeJsonNode(JsonNode json, PathNameNode value) {
@@ -169,14 +174,9 @@ class Matcher {
             if (current == null) {
                 return null;
             }
-            if (!segment.deep()) {
-                currentName = segment.name();
-                current = current.get(currentName);
-            } else {
-                // we don't support depth
-                // TODO: check this at compile time
-                throw new RuntimeException("Depth search of attributes not supported (invalid attribute pathname segment: " + segment + ")");
-            }
+
+            currentName = segment.name();
+            current = current.get(currentName);
         }
         return new JsonKeyValue(currentName, current);
     }
@@ -201,22 +201,22 @@ class Matcher {
                 String rNodeValue = rNode == null ? null : rNode.value == null ? null : rNode.value.asText();
 
                 if (lNode == null || lNode.value == null) {
-                    throw new JsonPathFilterQueryException("Unsupported comparison (null vs. " + rNodeValue + ")");
+                    throw new IllegalArgumentException("Unsupported comparison (null vs. " + rNodeValue + ")");
                 }
                 if (rNode == null || rNode.value == null) {
-                    throw new JsonPathFilterQueryException("Unsupported comparison (null vs. null)");
+                    throw new IllegalArgumentException("Unsupported comparison (null vs. null)");
                 }
                 return compare(lNode.value, rNode.value);
             }
             if (rval instanceof StringNode) {
                 if (lNode == null || !lNode.value.isTextual()) {
-                    throw new JsonPathFilterQueryException("Unsupported comparison (null vs. " + rval.toString() + ")");
+                    throw new IllegalArgumentException("Unsupported comparison (null vs. " + rval.toString() + ")");
                 }
                 return lNode.value.asText().compareTo(((StringNode) rval).value);
             }
             if (rval instanceof NumberNode) {
                 if (lNode == null || lNode.value == null || !lNode.value.isNumber()) {
-                    throw new JsonPathFilterQueryException("Unsupported comparison (null vs. " + rval.toString() + ")");
+                    throw new IllegalArgumentException("Unsupported comparison (null vs. " + rval.toString() + ")");
                 }
 
                 double ldouble = lNode.value.asDouble();
@@ -225,7 +225,7 @@ class Matcher {
                 return Double.compare(ldouble, rdouble);
             }
 
-            throw new JsonPathFilterQueryException("Unsupported comparison (" + lval + " .vs " + rval);
+            throw new IllegalArgumentException("Unsupported comparison (" + lval + " .vs " + rval);
         }
 
         // This validation is performed in JsonPathFilterQuery.validate()
@@ -498,6 +498,6 @@ class Matcher {
         } else if (value.isNull()) {
             return NullNode.INSTANCE;
         }
-        throw new RuntimeException("Unsupported element type: " + value);
+        throw new IllegalArgumentException("Unsupported element type: " + value);
     }
 }

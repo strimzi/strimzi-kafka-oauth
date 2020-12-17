@@ -208,30 +208,30 @@ public class JsonPathFilterQuery {
                         && !StringNode.class.isAssignableFrom(lNode.getClass())
                         && !NumberNode.class.isAssignableFrom(lNode.getClass())
                         && !NullNode.class.isAssignableFrom(lNode.getClass())) {
-                    throw new RuntimeException("Value to the left of 'in' has to be specified as an attribute path (for example: @.attr), a string, a number or null - " + ctx.reset());
+                    throw new JsonPathFilterQueryException("Value to the left of 'in' has to be specified as an attribute path (for example: @.attr), a string, a number or null - " + ctx.reset());
                 }
 
             } else if (OperatorNode.ANYOF.equals(op) || OperatorNode.NONEOF.equals(op)) {
                 Node rNode = predicate.getRval();
                 if (rNode == null || rNode instanceof NullNode) {
-                    throw new RuntimeException("Illegal state - can't have 'null' to the right of '" + op + "'  (try 'in [null]' or '== null')");
+                    throw new JsonPathFilterQueryException("Illegal state - can't have 'null' to the right of '" + op + "'  (try 'in [null]' or '== null')");
                 }
 
                 if (!(rNode instanceof ListNode)) {
-                    throw new RuntimeException("Value to the right of '" + op + "' has to be an array (for example: ['value1', 'value2']");
+                    throw new JsonPathFilterQueryException("Value to the right of '" + op + "' has to be an array (for example: ['value1', 'value2']");
                 }
 
                 Node lNode = predicate.getLval();
                 if (!(lNode instanceof PathNameNode)) {
-                    throw new RuntimeException("Value to the left of '" + op + "' has to be specified as an attribute path (for example: @.attr)");
+                    throw new JsonPathFilterQueryException("Value to the left of '" + op + "' has to be specified as an attribute path (for example: @.attr)");
                 }
 
             } else if (OperatorNode.MATCH_RE.equals(op)) {
                 if (!(predicate.getLval() instanceof PathNameNode)) {
-                    throw new RuntimeException("Value to the left of =~ has to be specified as an attribute path (for example: @.attr) - " + ctx.reset());
+                    throw new JsonPathFilterQueryException("Value to the left of =~ has to be specified as an attribute path (for example: @.attr) - " + ctx.reset());
                 }
                 if (!(predicate.getRval() instanceof RegexNode)) {
-                    throw new RuntimeException("Value to the right of =~ has to be specified as a regular expression (for example: /foo-.+/) - " + ctx);
+                    throw new JsonPathFilterQueryException("Value to the right of =~ has to be specified as a regular expression (for example: /foo-.+/) - " + ctx);
                 }
             }
         }
@@ -433,9 +433,9 @@ public class JsonPathFilterQuery {
         if (!ctx.readExpected(Constants.DOT)) {
             return null;
         }
-        boolean deep = false;
-        if (ctx.readExpected(Constants.DOT)) {
-            deep = true;
+
+        if (ctx.peekForAny(Constants.DOT)) {
+            throw new JsonPathFilterQueryException("Attribute pathname matching using '..' not supported - " + ctx);
         }
 
         if (ctx.eol()) {
@@ -451,7 +451,7 @@ public class JsonPathFilterQuery {
         if (c != Constants.EOL) {
             ctx.unread();
         }
-        return new AttributePathName.Segment(new String(ctx.buffer, start, ctx.current - start), deep);
+        return new AttributePathName.Segment(new String(ctx.buffer, start, ctx.current - start));
     }
 
     private StringNode readString(ParsingContext ctx) {
@@ -472,11 +472,7 @@ public class JsonPathFilterQuery {
                 return new StringNode(new String(ctx.buffer, start + 1, ctx.current - start - 2));
             }
         }
-
-        // TODO set error
-        //throw new JsonPathParseException("Failed to read string - missing ending quote", query, ctx.current);
-        ctx.resetTo(start);
-        return null;
+        throw new JsonPathFilterQueryException("Failed to read string - missing end quote - " + ctx);
     }
 
     private NumberNode readNumber(ParsingContext ctx) {

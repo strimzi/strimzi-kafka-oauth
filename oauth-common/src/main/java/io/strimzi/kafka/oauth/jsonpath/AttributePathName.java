@@ -17,19 +17,13 @@ class AttributePathName {
     public static class Segment {
 
         private final String name;
-        private final boolean deep;
 
-        public Segment(String name, boolean deep) {
+        public Segment(String name) {
             this.name = name;
-            this.deep = deep;
         }
 
         public String name() {
             return name;
-        }
-
-        public boolean deep() {
-            return deep;
         }
     }
 
@@ -40,8 +34,7 @@ class AttributePathName {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         for (Segment s : segments) {
-            sb.append(s.deep ? ".." : ".");
-            sb.append(s.name);
+            sb.append(".").append(s.name);
         }
         return sb.toString();
     }
