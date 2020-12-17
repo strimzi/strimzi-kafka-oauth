@@ -5,6 +5,9 @@
 package io.strimzi.kafka.oauth.jsonpath;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -104,6 +107,8 @@ import java.util.List;
  */
 public class JsonPathFilterQuery {
 
+    private static final Logger log = LoggerFactory.getLogger(JsonPathFilterQuery.class);
+
     private final ComposedPredicateNode parsed;
 
     private JsonPathFilterQuery(String query) {
@@ -188,8 +193,8 @@ public class JsonPathFilterQuery {
                 if (!OperatorNode.EQ.equals(op) && predicate.getRval() instanceof NullNode) {
                     throw new JsonPathFilterQueryException("Can not use 'null' to the right of '" + op + "' - " + ctx);
                 }
-            }
-            if (OperatorNode.IN.equals(op)) {
+
+            } else if (OperatorNode.IN.equals(op)) {
                 Node rNode = predicate.getRval();
                 if (NullNode.INSTANCE == rNode) {
                     throw new JsonPathFilterQueryException("Can not use 'null' to the right of 'in'. (Try 'in [null]' or '== null') - " + ctx);
@@ -205,8 +210,23 @@ public class JsonPathFilterQuery {
                         && !NullNode.class.isAssignableFrom(lNode.getClass())) {
                     throw new RuntimeException("Value to the left of 'in' has to be specified as an attribute path (for example: @.attr), a string, a number or null - " + ctx.reset());
                 }
-            }
-            if (OperatorNode.MATCH_RE.equals(op)) {
+
+            } else if (OperatorNode.ANYOF.equals(op) || OperatorNode.NONEOF.equals(op)) {
+                Node rNode = predicate.getRval();
+                if (rNode == null || rNode instanceof NullNode) {
+                    throw new RuntimeException("Illegal state - can't have 'null' to the right of '" + op + "'  (try 'in [null]' or '== null')");
+                }
+
+                if (!(rNode instanceof ListNode)) {
+                    throw new RuntimeException("Value to the right of '" + op + "' has to be an array (for example: ['value1', 'value2']");
+                }
+
+                Node lNode = predicate.getLval();
+                if (!(lNode instanceof PathNameNode)) {
+                    throw new RuntimeException("Value to the left of '" + op + "' has to be specified as an attribute path (for example: @.attr)");
+                }
+
+            } else if (OperatorNode.MATCH_RE.equals(op)) {
                 if (!(predicate.getLval() instanceof PathNameNode)) {
                     throw new RuntimeException("Value to the left of =~ has to be specified as an attribute path (for example: @.attr) - " + ctx.reset());
                 }
@@ -477,6 +497,9 @@ public class JsonPathFilterQuery {
 
         int endOffset = 1;
         int c = ctx.read();
+        if (c == '-') {
+            c = ctx.read();
+        }
         while (c != Constants.EOL && c != Constants.SPACE) {
             if (!isDigit(c)) {
                 if (c == Constants.DOT && !decimal) {
@@ -486,8 +509,9 @@ public class JsonPathFilterQuery {
                     ctx.unread();
                     break;
                 } else {
-                    // TODO set error
-                    //throw new JsonPathParseException("Invalid character for number: '" + c + "'", query, ctx.current);
+                    if (log.isTraceEnabled()) {
+                        log.trace("Invalid character for number: '" + c + "' - " + ctx);
+                    }
                     ctx.resetTo(start);
                     return null;
                 }

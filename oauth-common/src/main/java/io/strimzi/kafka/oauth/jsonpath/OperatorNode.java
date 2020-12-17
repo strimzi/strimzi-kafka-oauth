@@ -20,7 +20,7 @@ class OperatorNode extends Node {
     static final OperatorNode ANYOF = new OperatorNode(Constants.ANYOF);
     static final OperatorNode NONEOF = new OperatorNode(Constants.NONEOF);
 
-    OperatorNode(char[] token) {
+    private OperatorNode(char[] token) {
         name = new String(token);
     }
 

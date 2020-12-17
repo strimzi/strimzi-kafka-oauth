@@ -28,11 +28,22 @@ public class JsonPathFilterQueryTest {
             "}";
 
     @Test
-    public void testJsonPathFilterQuery() throws IOException {
+    public void testJsonPathFilterQuery() throws Exception {
 
         String[] queries = {
+            "@.custom-level != -1", "true",
             "@.exp < 1000", "true",
             "@.exp > 1000", "false",
+            "@.exp >= 600", "true",
+            "@.exp <= 600", "true",
+            "@.exp > 600", "false",
+            "@.exp < 600", "false",
+            "@.custom < 'custom-value2'", "true",
+            "@.custom > 'custom-val'", "true",
+            "@.custom > 'aaaaaaaaaaaaaaaa'", "true",
+            "@.custom > 'AAAAAAAAAAAAAAAA'", "true",
+            "@.custom > 'ZZZZZZZZZZZZZZZZ'", "true",
+            "@.custom > 'z'", "false",
             "@.custom == 'custom-value'", "true",
             "@.custom == 'custom-value' and @.exp > 1000", "false",
             "@.custom == 'custom-value' or @.exp > 1000", "true",
@@ -62,9 +73,11 @@ public class JsonPathFilterQueryTest {
             "((@.custom == 'some-custom-value' || 'kafka' in @.aud) and @.exp > 1000)", "false",
             "((('kafka' in @.aud || @.custom == 'custom-value') and @.exp > 1000))", "false",
             "@.exp =~ /^6[0-9][0-9]$/", "true",
-            "@.custom =~ /^custom-.+$/", "true",
-            "@.custom =~ /(?i)^CUSTOM-.+$/", "true",
+            "@.custom =~ /custom-.+/", "true",
+            "@.custom =~ /ustom-.+/", "false",
+            "@.custom =~ /(?i)CUSTOM-.+/", "true",
             "@.iss =~ /https:\\/\\/auth-server\\/.+/", "true",
+            "@.iss =~ /https:\\/\\/auth-server\\//", "false",
             "!(@.missing noneof [null, 'username'])", "false"
         };
 
@@ -103,8 +116,12 @@ public class JsonPathFilterQueryTest {
                 JsonPathFilterQuery.parse(query);
                 Assert.fail("Parsing the query should have failed: " + query);
             } catch (JsonPathFilterQueryException expected) {
-                //expected.printStackTrace();
-                Assert.assertTrue("Failed to parse", expected.getMessage().contains(errQueries[++i]));
+                try {
+                    Assert.assertTrue("Failed to parse", expected.getMessage().contains(errQueries[++i]));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    throw e;
+                }
             }
         }
     }
@@ -141,5 +158,22 @@ public class JsonPathFilterQueryTest {
     private boolean evalFalse(String label) {
         tracker.add(label);
         return false;
+    }
+
+    @Ignore
+    @Test
+    public void testCompareString() {
+        String [] values = {
+                "custom-value", "AAAAAAAAAAAAAAAA",
+                "custom-value", "ZZZZZZZZZZZZZZZZ",
+                "custom-value", "d",
+                "custom-value", "custom-value2",
+                "custom-value", "custom",
+        };
+
+        for (int i = 0; i < values.length; i+=2) {
+            int comparison = values[i].compareTo(values[i + 1]);
+            System.out.println(values[i] + " > " + values[i + 1] + " ? " + (comparison > 1));
+        }
     }
 }

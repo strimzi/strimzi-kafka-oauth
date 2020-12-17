@@ -105,12 +105,7 @@ class Matcher {
         Node lval = predicate.getLval();
         Node rval = predicate.getRval();
 
-        if (!(lval instanceof PathNameNode)) {
-            throw new RuntimeException("Value left of =~ has to be specified as an attribute path, for example: @.attr");
-        }
-        if (!(rval instanceof RegexNode)) {
-            throw new RuntimeException("Value right of =~ has to be specified as a regular expression, for example: /foo-.+/");
-        }
+        // Additional validation is performed in JsonPathFilterQuery.validate()
 
         JsonKeyValue lNode = getAttributeJsonNode(json, (PathNameNode) lval);
         if (lNode == null || lNode.value == null) {
@@ -160,7 +155,8 @@ class Matcher {
                 return lNode == null || lNode.value == null;
             }
         } else {
-            throw new RuntimeException("Value left of == has to be specified as an attribute path e.g.: @.attr");
+            // This validation is performed in JsonPathFilterQuery.validate()
+            throw new IllegalStateException("Value left of == has to be specified as an attribute path e.g.: @.attr");
         }
         return false;
     }
@@ -178,6 +174,7 @@ class Matcher {
                 current = current.get(currentName);
             } else {
                 // we don't support depth
+                // TODO: check this at compile time
                 throw new RuntimeException("Depth search of attributes not supported (invalid attribute pathname segment: " + segment + ")");
             }
         }
@@ -231,7 +228,8 @@ class Matcher {
             throw new JsonPathFilterQueryException("Unsupported comparison (" + lval + " .vs " + rval);
         }
 
-        throw new JsonPathFilterQueryException("Value left of the operator has to be specified as an attribute path e.g.: @.attr");
+        // This validation is performed in JsonPathFilterQuery.validate()
+        throw new IllegalStateException("Value left of the operator has to be specified as an attribute path e.g.: @.attr");
     }
 
     private int compare(JsonNode val, JsonNode val2) {
@@ -259,9 +257,7 @@ class Matcher {
         Node lval = predicate.getLval();
         Node rval = predicate.getRval();
 
-        if (rval == null || rval instanceof NullNode) {
-            throw new RuntimeException("Illegal state - can't have 'null' to the right of 'in'  (try 'in [null]' or '== null')");
-        }
+        // Additional validation is performed in JsonPathFilterQuery.validate()
 
         if (lval instanceof PathNameNode) {
             JsonKeyValue lNode = getAttributeJsonNode(json, (PathNameNode) lval);
@@ -272,7 +268,8 @@ class Matcher {
             } else if (rval instanceof ListNode) {
                 return containsJsonValueInListNode(lNode, (ListNode) rval);
             } else {
-                throw new RuntimeException("Can't use 'null' to the right of 'in' (try 'in [null]' or '== null')");
+                // This validation is performed in JsonPathFilterQuery.validate()
+                throw new IllegalStateException("Can't use 'null' to the right of 'in' (try 'in [null]' or '== null')");
             }
 
         } else if (lval instanceof StringNode) {
@@ -282,7 +279,8 @@ class Matcher {
         } else if (lval instanceof NullNode) {
             return containsNullNode(json, rval);
         } else {
-            throw new RuntimeException("Value to the left of 'in' has to be specified as an attribute path (for example: @.attr), a string, a number or null");
+            // This validation is performed in JsonPathFilterQuery.validate()
+            throw new IllegalStateException("Value to the left of 'in' has to be specified as an attribute path (for example: @.attr), a string, a number or null");
         }
     }
 
@@ -298,17 +296,7 @@ class Matcher {
         Node lval = predicate.getLval();
         Node rval = predicate.getRval();
 
-        if (rval == null || rval instanceof NullNode) {
-            throw new RuntimeException("Illegal state - can't have 'null' to the right of '" + opname + "'  (try 'in [null]' or '== null')");
-        }
-
-        if (!(rval instanceof ListNode)) {
-            throw new RuntimeException("Value to the right of '" + opname + "' has to be an array (for example: ['value1', 'value2']");
-        }
-
-        if (!(lval instanceof PathNameNode)) {
-            throw new RuntimeException("Value to the left of '" + opname + "' has to be specified as an attribute path (for example: @.attr)");
-        }
+        // Additional validation is performed in JsonPathFilterQuery.validate()
 
         JsonKeyValue lNode = getAttributeJsonNode(json, (PathNameNode) lval);
         if (lNode == null || lNode.value == null) {
@@ -316,7 +304,9 @@ class Matcher {
         }
 
         if (!lNode.value.isArray()) {
-            // throw new RuntimeException("Unsupported value type for value left of 'anyof' - must be array")
+            if (log.isTraceEnabled()) {
+                log.trace("Unsupported value type for left of '" + opname + "' - must be array (" + lval + ")");
+            }
             return false;
         }
 
@@ -337,6 +327,10 @@ class Matcher {
                 if (list.contains(NullNode.INSTANCE)) {
                     return true;
                 }
+            } else {
+                if (log.isTraceEnabled()) {
+                    log.trace("Unsupported value type in attribute left of '" + opname + "' (" + item + ")");
+                }
             }
         }
         return false;
@@ -353,14 +347,17 @@ class Matcher {
             if (rNode.value.isArray()) {
                 return containsStringNodeInJsonArray(lval, rNode);
             }
-            // throw new RuntimeException("Unsupported comparison: " + lNode.value + " in " rNode.value);
+            if (log.isTraceEnabled()) {
+                log.trace("Unsupported comparison: " + lval + " in " + rNode.value);
+            }
             return false;
 
         } else if (rval instanceof ListNode) {
             ListNode rvalNode = (ListNode) rval;
             return rvalNode.contains(lval);
         } else {
-            throw new RuntimeException("Value to the right of 'in' has to be specified as an attribute path (for example: @.attr) or an array (for example: ['val1', 'val2'])");
+            // This validation is performed in JsonPathFilterQuery.validate()
+            throw new IllegalStateException("Value to the right of 'in' has to be specified as an attribute path (for example: @.attr) or an array (for example: ['val1', 'val2'])");
         }
     }
 
@@ -375,14 +372,17 @@ class Matcher {
             if (rNode.value.isArray()) {
                 return containsNumberNodeInJsonArray(lval, rNode);
             }
-            // throw new RuntimeException("Unsupported comparison: " + lNode.value + " in " rNode.value);
+            if (log.isTraceEnabled()) {
+                log.trace("Unsupported comparison: " + lval + " in " + rNode.value);
+            }
             return false;
 
         } else if (rval instanceof ListNode) {
             ListNode rvalNode = (ListNode) rval;
             return rvalNode.contains(lval);
         } else {
-            throw new RuntimeException("Value to the right of 'in' has to be specified as an attribute path (for example: @.attr) or an array (for example: ['val1', 'val2'])");
+            // This validation is performed in JsonPathFilterQuery.validate()
+            throw new IllegalStateException("Value to the right of 'in' has to be specified as an attribute path (for example: @.attr) or an array (for example: ['val1', 'val2'])");
         }
     }
 
@@ -397,14 +397,17 @@ class Matcher {
             if (rNode.value.isArray()) {
                 return containsNullNodeInJsonArray(rNode);
             }
-            // throw new RuntimeException("Unsupported comparison: " + lNode.value + " in " rNode.value);
+            if (log.isTraceEnabled()) {
+                log.trace("Unsupported comparison: null in " + rNode.value);
+            }
             return false;
 
         } else if (rval instanceof ListNode) {
             ListNode rvalNode = (ListNode) rval;
             return rvalNode.contains(NullNode.INSTANCE);
         } else {
-            throw new RuntimeException("Value to the right of 'in' has to be specified as an attribute path (for example: @.attr) or an array (for example: ['val1', 'val2'])");
+            // This validation is performed in JsonPathFilterQuery.validate()
+            throw new IllegalStateException("Value to the right of 'in' has to be specified as an attribute path (for example: @.attr) or an array (for example: ['val1', 'val2'])");
         }
     }
 
@@ -421,7 +424,9 @@ class Matcher {
         if (rNode.value.isArray()) {
             return containsJsonValueInJsonArray(lNode, rNode);
         }
-        // throw new RuntimeException("Unsupported comparison: " + lNode.value + " in " rNode.value);
+        if (log.isTraceEnabled()) {
+            log.trace("Unsupported comparison: " + lNode.value + " in " + rNode.value);
+        }
         return false;
     }
 
@@ -466,9 +471,8 @@ class Matcher {
         try {
             value = convertFromJsonNode(lNode.value);
         } catch (Exception e) {
-            // log exception?
             if (log.isTraceEnabled()) {
-                log.trace("Failed to convert attribute value to one supported on the left of 'in' : " + lNode.value);
+                log.trace("Failed to convert attribute value to one supported on the left of 'in' : " + lNode.value, e);
             }
             return false;
         }
@@ -496,5 +500,4 @@ class Matcher {
         }
         throw new RuntimeException("Unsupported element type: " + value);
     }
-
 }
