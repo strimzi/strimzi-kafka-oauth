@@ -4,5 +4,5 @@
  */
 package io.strimzi.kafka.oauth.jsonpath;
 
-class Node {
+abstract class Node {
 }

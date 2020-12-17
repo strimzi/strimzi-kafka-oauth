@@ -44,8 +44,9 @@ class ParsingContext {
     /**
      * Reset the current position to the start position.
      */
-    public void reset() {
+    public ParsingContext reset() {
         current = start;
+        return this;
     }
 
     /**

@@ -20,6 +20,7 @@ public class Constants {
     static final char[] AND_SYMBOLIC = {'&', '&'};
     static final char[] OR = {'o', 'r'};
     static final char[] OR_SYMBOLIC = {'|', '|'};
+    static final char[] NOT = {'!'};
     static final char[] EQ = {'=', '='};
     static final char[] NEQ = {'!', '='};
     static final char[] LT = {'<'};

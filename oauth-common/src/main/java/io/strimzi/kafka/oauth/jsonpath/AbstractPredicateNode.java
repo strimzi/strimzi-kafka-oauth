@@ -4,5 +4,6 @@
  */
 package io.strimzi.kafka.oauth.jsonpath;
 
-public class AbstractPredicateNode extends Node {
+public abstract class AbstractPredicateNode extends Node {
+
 }

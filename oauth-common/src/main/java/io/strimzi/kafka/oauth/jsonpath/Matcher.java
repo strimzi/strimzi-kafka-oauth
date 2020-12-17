@@ -57,15 +57,16 @@ class Matcher {
             }
             AbstractPredicateNode node = expression.getPredicate();
             if (node instanceof ComposedPredicateNode) {
-                eval.update(logical, matches(json, ((ComposedPredicateNode) node).getExpressions()));
+                boolean matches = matches(json, ((ComposedPredicateNode) node).getExpressions());
+                eval.update(logical, expression.isNegated() ? !matches : matches);
             } else {
-                updateEvaluationWithPredicateNode(eval, json, node, logical);
+                updateEvaluationWithPredicateNode(eval, logical, json, node);
             }
         }
         return eval.current;
     }
 
-    private void updateEvaluationWithPredicateNode(BooleanEvaluator eval, JsonNode json, AbstractPredicateNode node, Logical logical) {
+    private void updateEvaluationWithPredicateNode(BooleanEvaluator eval, Logical logical, JsonNode json, AbstractPredicateNode node) {
         PredicateNode predicate = (PredicateNode) node;
         OperatorNode op = predicate.getOp();
         try {
@@ -86,7 +87,7 @@ class Matcher {
             } else if (op == OperatorNode.NIN) {
                 eval.update(logical, !containedIn(json, predicate));
             } else if (op == OperatorNode.MATCH_RE) {
-                throw new RuntimeException("Not implemented");
+                eval.update(logical, matchRegex(json, predicate));
             } else if (op == OperatorNode.ANYOF) {
                 eval.update(logical, anyOf(json, predicate));
             } else if (op == OperatorNode.NONEOF) {
@@ -98,6 +99,30 @@ class Matcher {
             }
             eval.update(logical, false);
         }
+    }
+
+    private boolean matchRegex(JsonNode json, PredicateNode predicate) {
+        Node lval = predicate.getLval();
+        Node rval = predicate.getRval();
+
+        if (!(lval instanceof PathNameNode)) {
+            throw new RuntimeException("Value left of =~ has to be specified as an attribute path, for example: @.attr");
+        }
+        if (!(rval instanceof RegexNode)) {
+            throw new RuntimeException("Value right of =~ has to be specified as a regular expression, for example: /foo-.+/");
+        }
+
+        JsonKeyValue lNode = getAttributeJsonNode(json, (PathNameNode) lval);
+        if (lNode == null || lNode.value == null) {
+            return false;
+        }
+
+        if (!(lNode.value.isTextual() || lNode.value.isNumber())) {
+            // can't match the type
+            return false;
+        }
+
+        return ((RegexNode) rval).getPattern().matcher(lNode.value.asText()).matches();
     }
 
     private boolean compareEquals(JsonNode json, PredicateNode predicate) {

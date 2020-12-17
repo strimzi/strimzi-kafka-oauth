@@ -18,7 +18,7 @@ import java.util.List;
  * <pre>
  *   {
  *     "aud": ["uma_authorization", "kafka"],
- *     "iss": "https://keycloak/token/",
+ *     "iss": "https://auth-server/token/",
  *     "iat": 0,
  *     "exp": 600,
  *     "sub": "username",
@@ -56,6 +56,11 @@ import java.util.List;
  *   "('kafka' in @.aud || @.custom == 'custom-value') and @.exp &gt; 1000"
  *   "(('kafka' in @.aud || @.custom == 'custom-value') and @.exp &gt; 1000)"
  *   "((('kafka' in @.aud || @.custom == 'custom-value') and @.exp &gt; 1000))"
+ *   "@.exp =~ /^6[0-9][0-9]$/"
+ *   "@.custom =~ /^custom-.+$/"
+ *   "@.custom =~ /(?i)^CUSTOM-.+$/"
+ *   "@.iss =~ /https:\/\/auth-server\/.+/"
+ *   "!(@.missing noneof [null, 'username'])"
  * </pre>
  *
  * This class only implements a subset of the JsonPath syntax. It is focused on filter matching - answering the question if the JWT token matches the selector or not.
@@ -81,6 +86,8 @@ import java.util.List;
  * <ul>
  * <li> the use of 'or' / 'and' in addition to '||' / '&amp;&amp;'</li>
  * <li> the requirement to use whitespace between operands and operators</li>
+ * <li> the RegEx operator using the {@link java.util.regex.Pattern} regex format, where you specify options as part of the query,
+ * for example starting the regex with: (?i) to turn on case-insensitive matching</li>
  * </ul>
  *
  * Usage:
@@ -131,20 +138,26 @@ public class JsonPathFilterQuery {
             ctx.resetStart();
             AbstractPredicateNode predicate;
 
+            boolean negated = ctx.readExpected(Constants.NOT);
+            if (negated) {
+                ctx.skipWhiteSpace();
+            }
             boolean bracket = readDelim(ctx, Constants.LEFT_BRACKET);
             if (bracket) {
                 predicate = readComposedPredicate(ctx);
                 if (!readDelim(ctx, Constants.RIGHT_BRACKET)) {
                     throw new JsonPathFilterQueryException("Failed to parse query - expected ')'" + ctx.toString());
                 }
+            } else if (negated) {
+                throw new JsonPathFilterQueryException("Failed to parse query - expected '('" + ctx.toString());
             } else {
                 predicate = readPredicate(ctx);
             }
             if (predicate == null) {
                 throw new JsonPathFilterQueryException("Failed to parse query: " + ctx.toString());
             }
-            validate(predicate);
-            expressions.add(expression(operator, predicate));
+            validate(ctx, predicate);
+            expressions.add(expression(operator, negated, predicate));
         } while ((operator = readOrOrAnd(ctx)) != null);
 
         return new ComposedPredicateNode(expressions);
@@ -158,7 +171,7 @@ public class JsonPathFilterQuery {
         return ctx.readExpected(delim);
     }
 
-    private void validate(AbstractPredicateNode node) {
+    private void validate(ParsingContext ctx, AbstractPredicateNode node) {
         if (node instanceof PredicateNode) {
             PredicateNode predicate = (PredicateNode) node;
 
@@ -170,27 +183,35 @@ public class JsonPathFilterQuery {
                     || OperatorNode.GTE.equals(op)) {
 
                 if (!(predicate.getLval() instanceof PathNameNode)) {
-                    throw new JsonPathFilterQueryException("Value to the left of '" + op + "' has to be specified as an attribute path (for example: @.attr)");
+                    throw new JsonPathFilterQueryException("Value to the left of '" + op + "' has to be specified as an attribute path (for example: @.attr) - " + ctx.reset());
                 }
                 if (!OperatorNode.EQ.equals(op) && predicate.getRval() instanceof NullNode) {
-                    throw new JsonPathFilterQueryException("Can not use 'null' to the right of '" + op + "'");
+                    throw new JsonPathFilterQueryException("Can not use 'null' to the right of '" + op + "' - " + ctx);
                 }
             }
             if (OperatorNode.IN.equals(op)) {
                 Node rNode = predicate.getRval();
                 if (NullNode.INSTANCE == rNode) {
-                    throw new JsonPathFilterQueryException("Can not use 'null' to the right of 'in'. (Try 'in [null]' or '== null')");
+                    throw new JsonPathFilterQueryException("Can not use 'null' to the right of 'in'. (Try 'in [null]' or '== null') - " + ctx);
                 }
                 if (!PathNameNode.class.isAssignableFrom(rNode.getClass())
                         && !ListNode.class.isAssignableFrom(rNode.getClass())) {
-                    throw new JsonPathFilterQueryException("Value to the right of 'in' has to be specified as an attribute path (for example: @.attr) or an array (for example: ['val1', 'val2'])");
+                    throw new JsonPathFilterQueryException("Value to the right of 'in' has to be specified as an attribute path (for example: @.attr) or an array (for example: ['val1', 'val2']) - " + ctx);
                 }
                 Node lNode = predicate.getLval();
                 if (!PathNameNode.class.isAssignableFrom(lNode.getClass())
                         && !StringNode.class.isAssignableFrom(lNode.getClass())
                         && !NumberNode.class.isAssignableFrom(lNode.getClass())
                         && !NullNode.class.isAssignableFrom(lNode.getClass())) {
-                    throw new RuntimeException("Value to the left of 'in' has to be specified as an attribute path (for example: @.attr), a string, a number or null");
+                    throw new RuntimeException("Value to the left of 'in' has to be specified as an attribute path (for example: @.attr), a string, a number or null - " + ctx.reset());
+                }
+            }
+            if (OperatorNode.MATCH_RE.equals(op)) {
+                if (!(predicate.getLval() instanceof PathNameNode)) {
+                    throw new RuntimeException("Value to the left of =~ has to be specified as an attribute path (for example: @.attr) - " + ctx.reset());
+                }
+                if (!(predicate.getRval() instanceof RegexNode)) {
+                    throw new RuntimeException("Value to the right of =~ has to be specified as a regular expression (for example: /foo-.+/) - " + ctx);
                 }
             }
         }
@@ -208,12 +229,51 @@ public class JsonPathFilterQuery {
         }
         ctx.resetStart();
 
-        Node rval = readOperand(ctx);
+        Node rval;
+        if (op == OperatorNode.MATCH_RE) {
+            rval = readRegex(ctx);
+        } else {
+            rval = readOperand(ctx);
+        }
+
         if (rval == null) {
-            return null;
+            throw new JsonPathFilterQueryException("Value expected to the right of '" + op + "' - " + ctx);
         }
         ctx.resetStart();
         return new PredicateNode(lval, op, rval);
+    }
+
+    private Node readRegex(ParsingContext ctx) {
+        ctx.skipWhiteSpace();
+        if (ctx.eol()) {
+            return null;
+        }
+
+        boolean success = ctx.readExpected('/');
+        if (!success) {
+            throw new JsonPathFilterQueryException("Expected start of REGEX expression - " + ctx.toString());
+        }
+
+        String regex = null;
+        int start = ctx.current;
+        int c = ctx.read();
+        int last = '/';
+
+        while (c != Constants.EOL) {
+            if (c == '/' && last != '\\') {
+                regex = new String(ctx.buffer, start, ctx.current - start - 1);
+                break;
+            }
+            last = c;
+            c = ctx.read();
+        }
+        if (regex == null) {
+            throw new JsonPathFilterQueryException("Expected end of RegEx expression - " + ctx.toString());
+        }
+        if (regex.length() == 0) {
+            throw new JsonPathFilterQueryException("RegEx expression is empty - " + ctx.toString());
+        }
+        return new RegexNode(regex);
     }
 
     private OperatorNode readOperator(ParsingContext ctx) {
@@ -461,8 +521,8 @@ public class JsonPathFilterQuery {
         return NullNode.INSTANCE;
     }
 
-    private ExpressionNode expression(Logical operator, AbstractPredicateNode predicate) {
-        return new ExpressionNode(operator, predicate);
+    private ExpressionNode expression(Logical operator, boolean negated, AbstractPredicateNode predicate) {
+        return new ExpressionNode(operator, negated, predicate);
     }
 
     private Logical readOrOrAnd(ParsingContext ctx) {

@@ -6,6 +6,7 @@ package io.strimzi.kafka.oauth.jsonpath;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.keycloak.util.JsonSerialization;
 
@@ -17,7 +18,7 @@ public class JsonPathFilterQueryTest {
 
     String jsonString = "{ " +
             "\"aud\": [\"uma_authorization\", \"kafka\"], " +
-            "\"iss\": \"https://keycloak/token\", " +
+            "\"iss\": \"https://auth-server/token\", " +
             "\"iat\": 0, " +
             "\"exp\": 600, " +
             "\"sub\": \"username\", " +
@@ -59,7 +60,12 @@ public class JsonPathFilterQueryTest {
             "@.missing anyof [null, 'username']", "false",
             "@.missing noneof [null, 'username']", "true",
             "((@.custom == 'some-custom-value' || 'kafka' in @.aud) and @.exp > 1000)", "false",
-            "((('kafka' in @.aud || @.custom == 'custom-value') and @.exp > 1000))", "false"
+            "((('kafka' in @.aud || @.custom == 'custom-value') and @.exp > 1000))", "false",
+            "@.exp =~ /^6[0-9][0-9]$/", "true",
+            "@.custom =~ /^custom-.+$/", "true",
+            "@.custom =~ /(?i)^CUSTOM-.+$/", "true",
+            "@.iss =~ /https:\\/\\/auth-server\\/.+/", "true",
+            "!(@.missing noneof [null, 'username'])", "false"
         };
 
         String[] errQueries = {
@@ -69,7 +75,8 @@ public class JsonPathFilterQueryTest {
             "1 < @.attr", "left of '<'",
             "'lala' > 'lala'", "attribute path",
             "'lala' <= null", "attribute path",
-            "@.attr > null", "'null' to the right"
+            "@.attr > null", "'null' to the right",
+            "@.attr == and !('admin' in @.roles)", "Value expected to the right"
         };
 
         // TODO: Unsupported comparison
@@ -91,10 +98,12 @@ public class JsonPathFilterQueryTest {
         for (int i = 0; i < errQueries.length; i++) {
             try {
                 String query = errQueries[i];
-                JsonPathFilterQuery.parse(query);
+                System.out.println("Test failing parse: " + query);
 
+                JsonPathFilterQuery.parse(query);
                 Assert.fail("Parsing the query should have failed: " + query);
             } catch (JsonPathFilterQueryException expected) {
+                //expected.printStackTrace();
                 Assert.assertTrue("Failed to parse", expected.getMessage().contains(errQueries[++i]));
             }
         }
@@ -102,6 +111,7 @@ public class JsonPathFilterQueryTest {
 
     final List<String> tracker = new LinkedList<>();
 
+    @Ignore
     @Test
     public void testPrecedence() {
         // we expect the last eval to not be called and expression to resolve to true
