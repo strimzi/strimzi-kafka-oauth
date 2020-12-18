@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2019, Strimzi authors.
+ * Copyright 2017-2020, Strimzi authors.
  * License: Apache License 2.0 (see the file LICENSE or http://apache.org/licenses/LICENSE-2.0.html).
  */
 package io.strimzi.kafka.oauth.jsonpath;
@@ -7,7 +7,7 @@ package io.strimzi.kafka.oauth.jsonpath;
 public class Constants {
     static final char SPACE = ' ';
     static final char DOT = '.';
-    static final char COMMA= ',';
+    static final char COMMA = ',';
     static final char SINGLE = '\'';
     static final char DOUBLE = '\"';
     static final char LEFT_BRACKET = '(';

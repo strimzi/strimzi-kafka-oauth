@@ -285,7 +285,7 @@ When audience checking is enabled the `oauth.client.id` has to be configured:
 
 If the configured `oauth.client.id` is `kafka`, the following are valid examples of `aud` attribute in the JWT token:
 - "kafka"
-- ["rest-api", "kafka"]
+- \["rest-api", "kafka"\]
 
 JWT tokens contain unique user identification in `sub` claim. However, this is often a long number or a UUID, but we usually prefer to use human readable usernames, which may also be present in JWT token.
 Use `oauth.username.claim` to map the claim (attribute) where the value you want to use as user id is stored:
@@ -349,7 +349,7 @@ Set the following option to `true` to enforce audience checking:
 
 If the configured `oauth.client.id` is `kafka`, the following are valid examples of `aud` attribute in the JWT token:
 - "kafka"
-- ["rest-api", "kafka"]
+- \["rest-api", "kafka"\]
 
 By default, if the Introspection Endpoint response contains `token_type` claim, there is no checking performed on it.
 Some authorization servers use a non-standard `token_type` value. To give the most flexibility, you can specify the valid `token_type` for your authorization server:

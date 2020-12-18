@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2019, Strimzi authors.
+ * Copyright 2017-2020, Strimzi authors.
  * License: Apache License 2.0 (see the file LICENSE or http://apache.org/licenses/LICENSE-2.0.html).
  */
 package io.strimzi.kafka.oauth.jsonpath;
@@ -182,58 +182,79 @@ public class JsonPathFilterQuery {
 
             OperatorNode op = predicate.getOp();
             if (OperatorNode.EQ.equals(op)
+                    || OperatorNode.NEQ.equals(op)
                     || OperatorNode.LT.equals(op)
                     || OperatorNode.GT.equals(op)
                     || OperatorNode.LTE.equals(op)
                     || OperatorNode.GTE.equals(op)) {
 
-                if (!(predicate.getLval() instanceof PathNameNode)) {
-                    throw new JsonPathFilterQueryException("Value to the left of '" + op + "' has to be specified as an attribute path (for example: @.attr) - " + ctx.reset());
-                }
-                if (!OperatorNode.EQ.equals(op) && predicate.getRval() instanceof NullNode) {
-                    throw new JsonPathFilterQueryException("Can not use 'null' to the right of '" + op + "' - " + ctx);
-                }
+                validateComparator(ctx, predicate, op);
 
-            } else if (OperatorNode.IN.equals(op)) {
-                Node rNode = predicate.getRval();
-                if (NullNode.INSTANCE == rNode) {
-                    throw new JsonPathFilterQueryException("Can not use 'null' to the right of 'in'. (Try 'in [null]' or '== null') - " + ctx);
-                }
-                if (!PathNameNode.class.isAssignableFrom(rNode.getClass())
-                        && !ListNode.class.isAssignableFrom(rNode.getClass())) {
-                    throw new JsonPathFilterQueryException("Value to the right of 'in' has to be specified as an attribute path (for example: @.attr) or an array (for example: ['val1', 'val2']) - " + ctx);
-                }
-                Node lNode = predicate.getLval();
-                if (!PathNameNode.class.isAssignableFrom(lNode.getClass())
-                        && !StringNode.class.isAssignableFrom(lNode.getClass())
-                        && !NumberNode.class.isAssignableFrom(lNode.getClass())
-                        && !NullNode.class.isAssignableFrom(lNode.getClass())) {
-                    throw new JsonPathFilterQueryException("Value to the left of 'in' has to be specified as an attribute path (for example: @.attr), a string, a number or null - " + ctx.reset());
-                }
+            } else if (OperatorNode.IN.equals(op) || OperatorNode.NIN.equals(op)) {
+                validateInNin(ctx, predicate);
 
             } else if (OperatorNode.ANYOF.equals(op) || OperatorNode.NONEOF.equals(op)) {
-                Node rNode = predicate.getRval();
-                if (rNode == null || rNode instanceof NullNode) {
-                    throw new JsonPathFilterQueryException("Illegal state - can't have 'null' to the right of '" + op + "'  (try 'in [null]' or '== null')");
-                }
-
-                if (!(rNode instanceof ListNode)) {
-                    throw new JsonPathFilterQueryException("Value to the right of '" + op + "' has to be an array (for example: ['value1', 'value2']");
-                }
-
-                Node lNode = predicate.getLval();
-                if (!(lNode instanceof PathNameNode)) {
-                    throw new JsonPathFilterQueryException("Value to the left of '" + op + "' has to be specified as an attribute path (for example: @.attr)");
-                }
+                validateAnyOfNoneOf(predicate);
 
             } else if (OperatorNode.MATCH_RE.equals(op)) {
-                if (!(predicate.getLval() instanceof PathNameNode)) {
-                    throw new JsonPathFilterQueryException("Value to the left of =~ has to be specified as an attribute path (for example: @.attr) - " + ctx.reset());
-                }
-                if (!(predicate.getRval() instanceof RegexNode)) {
-                    throw new JsonPathFilterQueryException("Value to the right of =~ has to be specified as a regular expression (for example: /foo-.+/) - " + ctx);
-                }
+                validateMatchRegEx(ctx, predicate);
             }
+        }
+    }
+
+    private void validateComparator(ParsingContext ctx, PredicateNode predicate, OperatorNode op) {
+        if (!(predicate.getLval() instanceof PathNameNode)) {
+            throw new JsonPathFilterQueryException("Value to the left of '" + op + "' has to be specified as an attribute path (for example: @.attr) - " + ctx.reset());
+        }
+        if (predicate.getRval() instanceof NullNode
+                && !OperatorNode.EQ.equals(op)
+                && !OperatorNode.NEQ.equals(op)) {
+            throw new JsonPathFilterQueryException("Can not use 'null' to the right of '" + op + "' - " + ctx);
+        }
+    }
+
+    private void validateMatchRegEx(ParsingContext ctx, PredicateNode predicate) {
+        if (!(predicate.getLval() instanceof PathNameNode)) {
+            throw new JsonPathFilterQueryException("Value to the left of =~ has to be specified as an attribute path (for example: @.attr) - " + ctx.reset());
+        }
+        if (!(predicate.getRval() instanceof RegexNode)) {
+            throw new JsonPathFilterQueryException("Value to the right of =~ has to be specified as a regular expression (for example: /foo-.+/) - " + ctx);
+        }
+    }
+
+    private void validateAnyOfNoneOf(PredicateNode predicate) {
+        OperatorNode op = predicate.getOp();
+        Node rNode = predicate.getRval();
+        if (rNode == null || rNode instanceof NullNode) {
+            throw new JsonPathFilterQueryException("Illegal state - can't have 'null' to the right of '" + op + "'  (try 'in [null]' or '== null')");
+        }
+
+        if (!(rNode instanceof ListNode)) {
+            throw new JsonPathFilterQueryException("Value to the right of '" + op + "' has to be an array (for example: ['value1', 'value2']");
+        }
+
+        Node lNode = predicate.getLval();
+        if (!(lNode instanceof PathNameNode)) {
+            throw new JsonPathFilterQueryException("Value to the left of '" + op + "' has to be specified as an attribute path (for example: @.attr)");
+        }
+    }
+
+    private void validateInNin(ParsingContext ctx, PredicateNode predicate) {
+        OperatorNode op = predicate.getOp();
+        Node rNode = predicate.getRval();
+        if (NullNode.INSTANCE == rNode) {
+            throw new JsonPathFilterQueryException("Can not use 'null' to the right of '" + op + "'. (Try '" + op + " [null]' or '"  + (OperatorNode.IN.equals(op) ? '=' : '!') + "= null') - " + ctx);
+        }
+        if (!PathNameNode.class.isAssignableFrom(rNode.getClass())
+                && !ListNode.class.isAssignableFrom(rNode.getClass())) {
+            throw new JsonPathFilterQueryException("Value to the right of '" + op + "' has to be specified as an attribute path (for example: @.attr) or an array (for example: ['val1', 'val2']) - " + ctx);
+        }
+        Node lNode = predicate.getLval();
+        if (!PathNameNode.class.isAssignableFrom(lNode.getClass())
+                && !StringNode.class.isAssignableFrom(lNode.getClass())
+                && !NumberNode.class.isAssignableFrom(lNode.getClass())
+                && !NullNode.class.isAssignableFrom(lNode.getClass())) {
+            throw new JsonPathFilterQueryException("Value to the left of '" + op + "' has to be specified as an attribute path (for example: @.attr), a string, a number or null - " + ctx.reset());
         }
     }
 
@@ -471,8 +492,10 @@ public class JsonPathFilterQuery {
                 ctx.read();
                 return new StringNode(new String(ctx.buffer, start + 1, ctx.current - start - 2));
             }
+            throw new JsonPathFilterQueryException("Failed to read string - missing end quote - " + ctx);
         }
-        throw new JsonPathFilterQueryException("Failed to read string - missing end quote - " + ctx);
+        // not a string
+        return null;
     }
 
     private NumberNode readNumber(ParsingContext ctx) {

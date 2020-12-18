@@ -131,7 +131,7 @@ import static io.strimzi.kafka.oauth.common.LogUtil.mask;
  * </p>
  * <ul>
  * <li><em>oauth.userinfo.endpoint.uri</em> A URL of the token introspection endpoint which can be used to validate opaque non-JWT tokens.<br>
- * <li><em>oauth.valid.token.type</em> A URL of the token introspection endpoint which can be used to validate opaque non-JWT tokens.<br>
+ * <li><em>oauth.valid.token.type</em> If set, the token type returned by the introspection endpoint has to match the configured value.<br>
  * </ul>
  * <p>
  * Common optional <em>sasl.jaas.config</em> configuration:

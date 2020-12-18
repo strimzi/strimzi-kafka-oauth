@@ -10,7 +10,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.keycloak.util.JsonSerialization;
 
-import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -163,15 +162,15 @@ public class JsonPathFilterQueryTest {
     @Ignore
     @Test
     public void testCompareString() {
-        String [] values = {
-                "custom-value", "AAAAAAAAAAAAAAAA",
-                "custom-value", "ZZZZZZZZZZZZZZZZ",
-                "custom-value", "d",
-                "custom-value", "custom-value2",
-                "custom-value", "custom",
+        String[] values = {
+            "custom-value", "AAAAAAAAAAAAAAAA",
+            "custom-value", "ZZZZZZZZZZZZZZZZ",
+            "custom-value", "d",
+            "custom-value", "custom-value2",
+            "custom-value", "custom",
         };
 
-        for (int i = 0; i < values.length; i+=2) {
+        for (int i = 0; i < values.length; i += 2) {
             int comparison = values[i].compareTo(values[i + 1]);
             System.out.println(values[i] + " > " + values[i + 1] + " ? " + (comparison > 1));
         }
