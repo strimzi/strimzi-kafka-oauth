@@ -10,7 +10,7 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>client-secret-jwt-hydra-test</artifactId>
+    <artifactId>hydra-test</artifactId>
 
     <licenses>
         <license>
