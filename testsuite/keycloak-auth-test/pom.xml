@@ -10,7 +10,7 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>access-token-introspection-keycloak-test</artifactId>
+    <artifactId>keycloak-auth-test</artifactId>
 
     <licenses>
         <license>

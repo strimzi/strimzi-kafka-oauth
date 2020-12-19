@@ -182,6 +182,18 @@
       }
     },
     {
+      "clientId": "kafka-cli",
+      "enabled": true,
+      "publicClient": true,
+      "bearerOnly": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "consentRequired" : false,
+      "fullScopeAllowed" : false
+    },
+    {
       "clientId": "kafka-producer-client",
       "enabled": true,
       "clientAuthenticatorType": "client-secret",
