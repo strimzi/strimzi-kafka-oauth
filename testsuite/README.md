@@ -17,6 +17,7 @@ Then, you have to add some entries to your `/etc/hosts` file:
 
     127.0.0.1            keycloak
     127.0.0.1            hydra
+    127.0.0.1            hydra-jwt
     127.0.0.1            kafka
 
 That's needed for host resolution, because Kafka brokers and Kafka clients connecting to Keycloak / Hydra have to use the 
@@ -146,6 +147,7 @@ Make sure that you added 'kafka', 'keycloak', and 'hydra' to your `/etc/hosts` a
     127.0.0.1    kafka
     127.0.0.1    keycloak
     127.0.0.1    hydra
+    127.0.0.1    hydra-jwt
 
 
 ### How to see Kafka log
