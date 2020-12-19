@@ -88,7 +88,7 @@
                             <outputDirectory>target/kafka/certs</outputDirectory>
                             <resources>
                                 <resource>
-                                    <directory>${basedir}/../../examples/docker/certificates</directory>
+                                    <directory>${basedir}/certificates</directory>
                                     <includes>
                                         <include>ca-truststore.p12</include>
                                     </includes>
@@ -107,7 +107,7 @@
                             <outputDirectory>target/keycloak/certs</outputDirectory>
                             <resources>
                                 <resource>
-                                    <directory>${basedir}/../../examples/docker/keycloak/certificates</directory>
+                                    <directory>${basedir}/certificates</directory>
                                     <includes>
                                         <include>keycloak.server.keystore.p12</include>
                                     </includes>
@@ -126,10 +126,12 @@
                             <outputDirectory>target/hydra/certs</outputDirectory>
                             <resources>
                                 <resource>
-                                    <directory>${basedir}/../../examples/docker/hydra/certificates</directory>
+                                    <directory>${basedir}/certificates</directory>
                                     <includes>
                                         <include>hydra.crt</include>
                                         <include>hydra.key</include>
+                                        <include>hydra-jwt.crt</include>
+                                        <include>hydra-jwt.key</include>
                                     </includes>
                                     <filtering>false</filtering>
                                 </resource>
@@ -146,7 +148,7 @@
                             <outputDirectory>target/hydra-import/certs</outputDirectory>
                             <resources>
                                 <resource>
-                                    <directory>${basedir}/../../examples/docker/certificates</directory>
+                                    <directory>${basedir}/certificates</directory>
                                     <includes>
                                         <include>ca.crt</include>
                                     </includes>
