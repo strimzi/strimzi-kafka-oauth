@@ -12,7 +12,7 @@
 
     <modules>
         <module>docker</module>
-        <module>keycloak-auth-test</module>
+        <module>keycloak-auth-tests</module>
         <module>hydra-test</module>
         <module>client-secret-jwt-keycloak-authz-test</module>
         <module>client-secret-jwt-keycloak-authz-refresh-test</module>
