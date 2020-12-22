@@ -542,20 +542,7 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
             };
 
             Sessions sessions = Services.getInstance().getSessions();
-            List<SessionFuture> scheduled = sessions.executeTask(workerPool, filter, token -> {
-                if (log.isTraceEnabled()) {
-                    log.trace("Fetch grants for session: " + token.getSessionId() + ", token: " + mask(token.value()));
-                }
-
-                JsonNode newGrants = fetchAuthorizationGrants(token.value());
-                Object oldGrants = token.getPayload();
-                if (!newGrants.equals(oldGrants)) {
-                    if (log.isDebugEnabled()) {
-                        log.debug("Grants have changed for session: {}, token: {}\nbefore: {}\nafter: {}", token.getSessionId(), mask(token.value()), oldGrants, newGrants);
-                    }
-                    token.setPayload(newGrants);
-                }
-            });
+            List<SessionFuture> scheduled = scheduleGrantsRefresh(filter, sessions);
 
             for (SessionFuture f: scheduled) {
                 try {
@@ -578,7 +565,7 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
                         }
                     }
                 } catch (Throwable e) {
-                    log.warn("[IGNORED] Failed to fetch grants for token: " + e.getMessage(), e);
+                    log.warn("[IGNORED] Failed to fetch grants for session: " + f.getToken().getSessionId() + ", token: " + mask(f.getToken().value()) + " - " + e.getMessage(), e);
                 }
             }
 
@@ -593,6 +580,9 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
                     }
                     Object oldGrants = t.getPayload();
                     Object newGrants = refreshed.getPayload();
+                    if (newGrants == null) {
+                        newGrants = JSONUtil.newObjectNode();
+                    }
                     if (newGrants.equals(oldGrants)) {
                         // Grants refreshed, but no change - no need to copy over to all sessions
                         break;
@@ -610,6 +600,34 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
         } finally {
             log.debug("Done refreshing grants");
         }
+    }
+
+    private List<SessionFuture> scheduleGrantsRefresh(Predicate<BearerTokenWithPayload> filter, Sessions sessions) {
+        List<SessionFuture> scheduled = sessions.executeTask(workerPool, filter, token -> {
+            if (log.isTraceEnabled()) {
+                log.trace("Fetch grants for session: " + token.getSessionId() + ", token: " + mask(token.value()));
+            }
+
+            JsonNode newGrants;
+            try {
+                newGrants = fetchAuthorizationGrants(token.value());
+            } catch (HttpException e) {
+                if (403 == e.getStatus()) {
+                    // 403 happens when no policy matches the token - thus there are no grants
+                    newGrants = JSONUtil.newObjectNode();
+                } else {
+                    throw e;
+                }
+            }
+            Object oldGrants = token.getPayload();
+            if (!newGrants.equals(oldGrants)) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Grants have changed for session: {}, token: {}\nbefore: {}\nafter: {}", token.getSessionId(), mask(token.value()), oldGrants, newGrants);
+                }
+                token.setPayload(newGrants);
+            }
+        });
+        return scheduled;
     }
 
     @Override
@@ -664,7 +682,9 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
     public void close() {
         // We don't care about finishing the refresh tasks
         try {
-            workerPool.shutdownNow();
+            if (workerPool != null) {
+                workerPool.shutdownNow();
+            }
         } catch (Exception e) {
             log.error("Failed to shutdown the worker pool", e);
         }
