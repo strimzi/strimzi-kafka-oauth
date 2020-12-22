@@ -13,11 +13,8 @@
     <modules>
         <module>docker</module>
         <module>keycloak-auth-tests</module>
+        <module>keycloak-authz-tests</module>
         <module>hydra-test</module>
-        <module>client-secret-jwt-keycloak-authz-test</module>
-        <module>client-secret-jwt-keycloak-authz-refresh-test</module>
-        <module>jwt-over-plain-keycloak-authz-test</module>
-        <module>introspection-over-plain-keycloak-authz-test</module>
     </modules>
 
     <licenses>
