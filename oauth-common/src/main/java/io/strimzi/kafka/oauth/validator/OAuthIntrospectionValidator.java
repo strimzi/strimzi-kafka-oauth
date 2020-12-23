@@ -238,7 +238,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         if (validIssuerURI != null) {
             value = response.get("iss");
             if (value == null || !validIssuerURI.equals(value.asText())) {
-                throw new TokenValidationException("Token check failed - invalid issuer: " + value)
+                throw new TokenValidationException("Token check failed - Invalid issuer: " + value)
                         .status(Status.INVALID_TOKEN);
             }
         }
@@ -246,7 +246,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         if (validTokenType != null) {
             value = response.get("token_type");
             if (value == null || !validTokenType.equals(value.asText())) {
-                throw new TokenValidationException("Token check failed - invalid token type: " + value + " (should be '" + validTokenType + "')" + (value == null ? ". Consider not setting OAUTH_VALID_TOKEN_TYPE." : ""))
+                throw new TokenValidationException("Token check failed - Invalid token type: " + value + " (should be '" + validTokenType + "')" + (value == null ? ". Consider not setting OAUTH_VALID_TOKEN_TYPE." : ""))
                         .status(Status.UNSUPPORTED_TOKEN_TYPE);
             }
         }
@@ -255,14 +255,14 @@ public class OAuthIntrospectionValidator implements TokenValidator {
             value = response.get("aud");
             List<String> audienceList = value != null ? JSONUtil.asListOfString(value) : Collections.emptyList();
             if (!audienceList.contains(audience)) {
-                throw new TokenValidationException("Token check failed - invalid audience: " + value)
+                throw new TokenValidationException("Token check failed - Invalid audience: " + value)
                         .status(Status.INVALID_TOKEN);
             }
         }
 
         if (customClaimMatcher != null) {
             if (!customClaimMatcher.matches(response)) {
-                throw new TokenValidationException("Token check failed - custom claim check failed.")
+                throw new TokenValidationException("Token check failed - Custom claim check failed.")
                         .status(Status.INVALID_TOKEN);
             }
         }

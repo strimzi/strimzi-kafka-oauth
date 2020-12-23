@@ -16,6 +16,8 @@ import java.net.URI;
 import java.util.Map;
 import java.util.Properties;
 
+import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
+
 public class Common {
 
     static String getJaasConfigOptionsString(Map<String, String> options) {
@@ -101,6 +103,26 @@ public class Common {
         JsonNode token = result.get("refresh_token");
         if (token == null) {
             throw new IllegalStateException("Invalid response from authorization server: no refresh_token");
+        }
+        return token.asText();
+    }
+
+    static String loginWithUsernamePassword(URI tokenEndpointUri, String username, String password, String clientId) throws IOException {
+
+        String body = "grant_type=password&username=" + urlencode(username) +
+                "&password=" + urlencode(password) + "&client_id=" + urlencode(clientId);
+
+        JsonNode result = HttpUtil.post(tokenEndpointUri,
+                null,
+                null,
+                null,
+                "application/x-www-form-urlencoded",
+                body,
+                JsonNode.class);
+
+        JsonNode token = result.get("access_token");
+        if (token == null) {
+            throw new IllegalStateException("Invalid response from authorization server: no access_token");
         }
         return token.asText();
     }

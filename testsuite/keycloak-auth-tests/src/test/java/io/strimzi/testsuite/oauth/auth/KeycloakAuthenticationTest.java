@@ -24,5 +24,6 @@ public class KeycloakAuthenticationTest {
         BasicTests.doTests();
         OAuthOverPlainTests.doTests();
         AudienceTests.doTests();
+        CustomCheckTests.doTests();
     }
 }
