@@ -6,12 +6,8 @@ package io.strimzi.kafka.oauth.jsonpath;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.keycloak.util.JsonSerialization;
-
-import java.util.LinkedList;
-import java.util.List;
 
 public class JsonPathFilterQueryTest {
 
@@ -37,6 +33,7 @@ public class JsonPathFilterQueryTest {
             "@.exp <= 600", "true",
             "@.exp > 600", "false",
             "@.exp < 600", "false",
+            "@.exp < 'cant compare makes it false'", "false",
             "@.custom < 'custom-value2'", "true",
             "@.custom > 'custom-val'", "true",
             "@.custom > 'aaaaaaaaaaaaaaaa'", "true",
@@ -88,10 +85,10 @@ public class JsonPathFilterQueryTest {
             "'lala' > 'lala'", "attribute path",
             "'lala' <= null", "attribute path",
             "@.attr > null", "'null' to the right",
-            "@.attr == and !('admin' in @.roles)", "Value expected to the right"
+            "@.attr == and !('admin' in @.roles)", "Value expected to the right",
+            "@.exp < 'cant compare makes it false", "missing end quote"
         };
 
-        // TODO: Unsupported comparison
 
         JsonNode json = JsonSerialization.readValue(jsonString, JsonNode.class);
 
@@ -122,57 +119,6 @@ public class JsonPathFilterQueryTest {
                     throw e;
                 }
             }
-        }
-    }
-
-    final List<String> tracker = new LinkedList<>();
-
-    @Ignore
-    @Test
-    public void testPrecedence() {
-        // we expect the last eval to not be called and expression to resolve to true
-        boolean val = evalTrue("first")
-                && evalTrue("second")
-                || evalFalse("third");
-        System.out.println("true && true || false : " + val);
-
-        tracker.clear();
-
-        // we expect the second eval to not be called and expression to resolve to true
-        val = evalTrue("first") || evalFalse("second") && evalTrue("third");
-        System.out.println("true || false && true" + val);
-
-        tracker.clear();
-
-        // we expect all the evals to be called and expression to resolve to false
-        val = evalFalse("first") || evalTrue("second") && evalFalse("third");
-        System.out.println("false || true && false: " + val);
-    }
-
-    private boolean evalTrue(String label) {
-        tracker.add(label);
-        return true;
-    }
-
-    private boolean evalFalse(String label) {
-        tracker.add(label);
-        return false;
-    }
-
-    @Ignore
-    @Test
-    public void testCompareString() {
-        String[] values = {
-            "custom-value", "AAAAAAAAAAAAAAAA",
-            "custom-value", "ZZZZZZZZZZZZZZZZ",
-            "custom-value", "d",
-            "custom-value", "custom-value2",
-            "custom-value", "custom",
-        };
-
-        for (int i = 0; i < values.length; i += 2) {
-            int comparison = values[i].compareTo(values[i + 1]);
-            System.out.println(values[i] + " > " + values[i + 1] + " ? " + (comparison > 1));
         }
     }
 }
