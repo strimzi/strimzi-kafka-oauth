@@ -14,7 +14,7 @@
             hydra-import:
               await:
                 strategy: log
-                match: 'regexp:.*OAuth 2.0 Client ID: kafka-consumer-client.*'
+                match: 'OAuth 2.0 Client ID: kafka-consumer-client'
                 timeout: 20
             hydra-jwt:
               await:
@@ -23,7 +23,7 @@
             hydra-jwt-import:
               await:
                 strategy: log
-                match: 'regexp:.*OAuth 2.0 Client ID: kafka-consumer-client.*'
+                match: 'OAuth 2.0 Client ID: kafka-consumer-client'
                 timeout: 20
             zookeeper:
               await:

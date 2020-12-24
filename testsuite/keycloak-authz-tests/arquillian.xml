@@ -7,6 +7,10 @@
     <extension qualifier="docker">
         <property name="dockerContainersFile">docker-compose.yml</property>
         <property name="cubeSpecificProperties">
+            keycloak:
+              await:
+                strategy: sleeping
+                sleepTime: 50 s
             zookeeper:
               await:
                 strategy: sleeping
@@ -22,10 +26,6 @@
                     to: ${PWD}/../kafka.log
                     stdout: true
                     stderr: true
-            keycloak:
-              await:
-                strategy: sleeping
-                sleepTime: 50 s
         </property>
     </extension>
 </arquillian>
