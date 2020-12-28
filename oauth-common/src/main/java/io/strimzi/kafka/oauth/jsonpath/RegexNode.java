@@ -17,4 +17,9 @@ public class RegexNode extends Node {
     public Pattern getPattern() {
         return pattern;
     }
+
+    @Override
+    public String toString() {
+        return pattern.pattern();
+    }
 }

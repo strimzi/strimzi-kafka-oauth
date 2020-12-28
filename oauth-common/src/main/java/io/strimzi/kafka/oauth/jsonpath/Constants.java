@@ -32,8 +32,5 @@ public class Constants {
     static final char[] NIN = {'n', 'i', 'n'};
     static final char[] ANYOF = {'a', 'n', 'y', 'o', 'f'};
     static final char[] NONEOF = {'n', 'o', 'n', 'e', 'o', 'f'};
-    //static final char[] SUBSETOF = {'s', 'u', 'b', 's', 'e', 't', 'o', 'f'};
-    //static final char[] SIZE = {'s', 'i', 'z', 'e'};
-    //static final char[] EMPTY = {'e', 'm', 'p', 't', 'y'};
     static final int EOL = -1;
 }

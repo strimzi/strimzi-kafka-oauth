@@ -9,6 +9,10 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.keycloak.util.JsonSerialization;
 
+import java.util.ArrayList;
+import java.util.Formatter;
+import java.util.Locale;
+
 public class JsonPathFilterQueryTest {
 
     String jsonString = "{ " +
@@ -119,6 +123,104 @@ public class JsonPathFilterQueryTest {
                     throw e;
                 }
             }
+        }
+    }
+
+    @Test
+    public void testPerformance() throws Exception {
+        String jsonTemplate = "{ " +
+            "\"aud\": [\"uma_authorization\", \"kafka\"], " +
+            "\"iss\": \"https://auth-server/token\", " +
+            "\"iat\": %d, " +
+            "\"exp\": 600, " +
+            "\"sub\": \"username\", " +
+            "\"custom\": \"custom-value\"," +
+            "\"roles\": {\"client-roles\": {\"kafka\": [\"kafka-user\"]} }, " +
+            "\"custom-level\": 9 " +
+            "}";
+
+        StringBuilder jsonString = new StringBuilder();
+        Formatter fmt = new Formatter(jsonString, Locale.US);
+
+        ArrayList<JsonNode> tokens = new ArrayList<>();
+
+        long time = System.currentTimeMillis();
+        final int count = 10000;
+        for (int i = 0; i < count; i++) {
+            fmt.format(jsonTemplate, i);
+            JsonNode json = JsonSerialization.readValue(jsonString.toString(), JsonNode.class);
+            tokens.add(json);
+            jsonString.setLength(0);
+        }
+        System.out.printf("Generated %d unique tokens in %d ms%n", count, System.currentTimeMillis() - time);
+
+        String[] queries = {
+            "@.custom-level != -1", "true",
+            "@.exp < 1000", "true",
+            "@.exp > 1000", "false",
+            "@.exp >= 600", "true",
+            "@.exp <= 600", "true",
+            "@.exp > 600", "false",
+            "@.exp < 600", "false",
+            "@.exp < 'cant compare makes it false'", "false",
+            "@.custom < 'custom-value2'", "true",
+            "@.custom > 'custom-val'", "true",
+            "@.custom > 'aaaaaaaaaaaaaaaa'", "true",
+            "@.custom > 'AAAAAAAAAAAAAAAA'", "true",
+            "@.custom > 'ZZZZZZZZZZZZZZZZ'", "true",
+            "@.custom > 'z'", "false",
+            "@.custom == 'custom-value'", "true",
+            "@.custom == 'custom-value' and @.exp > 1000", "false",
+            "@.custom == 'custom-value' or @.exp > 1000", "true",
+            "@.custom == 'custom-value' && @.exp <= 1000", "true",
+            "@.custom != 'custom-value'", "false",
+            "@.iat != null", "true",
+            "@.iat == null", "false",
+            "@.custom in ['some-custom-value', 42, 'custom-value']", "true",
+            "@.custom nin ['some-custom-value', 42, 'custom-value']", "false",
+            "@.custom nin []", "true",
+            "@.custom in []", "false",
+            "@.custom-level in [1,2,3]", "false",
+            "@.custom-level in [1,8,9,20]", "true",
+            "@.custom-level nin [1,8,9,20]", "false",
+            "@.roles.client-roles.kafka != null", "true",
+            "'kafka' in @.aud", "true",
+            "\"kafka-user\" in @.roles.client-roles.kafka", "true",
+            "@.exp > 1000 || 'kafka' in @.aud", "true",
+            "(@.custom == 'custom-value' or @.custom == 'custom-value2')", "true",
+            "(@.exp > 1000 && @.custom == 'custom-value') or @.roles.client-roles.kafka != null", "true",
+            "@.exp >= 600 and ('kafka' in @.aud || @.custom == 'custom-value')", "true",
+            "@.roles.client-roles.kafka anyof ['kafka-admin', 'kafka-user']", "true",
+            "@.roles.client-roles.kafka noneof ['kafka-admin', 'kafka-user']", "false",
+            "@.sub anyof ['username']", "false",
+            "@.missing anyof [null, 'username']", "false",
+            "@.missing noneof [null, 'username']", "true",
+            "((@.custom == 'some-custom-value' || 'kafka' in @.aud) and @.exp > 1000)", "false",
+            "((('kafka' in @.aud || @.custom == 'custom-value') and @.exp > 1000))", "false",
+            "@.exp =~ /^6[0-9][0-9]$/", "true",
+            "@.custom =~ /custom-.+/", "true",
+            "@.custom =~ /ustom-.+/", "false",
+            "@.custom =~ /(?i)CUSTOM-.+/", "true",
+            "@.iss =~ /https:\\/\\/auth-server\\/.+/", "true",
+            "@.iss =~ /https:\\/\\/auth-server\\//", "false",
+            "!(@.missing noneof [null, 'username'])", "false"
+        };
+
+        ArrayList<JsonPathFilterQuery> parsedQueries = new ArrayList<>();
+
+        time = System.currentTimeMillis();
+        for (int i = 0; i < queries.length; i += 2) {
+            parsedQueries.add(JsonPathFilterQuery.parse(queries[i]));
+        }
+        System.out.printf("Parsed %d unique queries in %d ms%n", queries.length / 2, System.currentTimeMillis() - time);
+
+        for (int i = 0; i < parsedQueries.size(); i++) {
+            time = System.currentTimeMillis();
+            JsonPathFilterQuery query = parsedQueries.get(i);
+            for (int j = 0; j < tokens.size(); j++) {
+                query.matches(tokens.get(j));
+            }
+            System.out.printf("Ran query on %d unique tokens in %d ms :: '%s'%n", tokens.size(), System.currentTimeMillis() - time, query);
         }
     }
 }

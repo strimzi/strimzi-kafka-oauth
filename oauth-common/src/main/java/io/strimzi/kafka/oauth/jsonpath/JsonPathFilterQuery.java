@@ -588,4 +588,8 @@ public class JsonPathFilterQuery {
         return null;
     }
 
+    @Override
+    public String toString() {
+        return parsed.toString();
+    }
 }
