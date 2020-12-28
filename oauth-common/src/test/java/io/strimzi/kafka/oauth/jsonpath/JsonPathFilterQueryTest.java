@@ -15,71 +15,71 @@ import java.util.Locale;
 
 public class JsonPathFilterQueryTest {
 
-    String jsonString = "{ " +
-            "\"aud\": [\"uma_authorization\", \"kafka\"], " +
-            "\"iss\": \"https://auth-server/token\", " +
-            "\"iat\": 0, " +
-            "\"exp\": 600, " +
-            "\"sub\": \"username\", " +
-            "\"custom\": \"custom-value\"," +
-            "\"roles\": {\"client-roles\": {\"kafka\": [\"kafka-user\"]} }, " +
-            "\"custom-level\": 9 " +
-            "}";
+    final String jsonString = "{ " +
+        "\"aud\": [\"uma_authorization\", \"kafka\"], " +
+        "\"iss\": \"https://auth-server/token\", " +
+        "\"iat\": 0, " +
+        "\"exp\": 600, " +
+        "\"sub\": \"username\", " +
+        "\"custom\": \"custom-value\"," +
+        "\"roles\": {\"client-roles\": {\"kafka\": [\"kafka-user\"]} }, " +
+        "\"custom-level\": 9 " +
+        "}";
+
+    final String[] queries = {
+        "@.custom-level != -1", "true",
+        "@.exp < 1000", "true",
+        "@.exp > 1000", "false",
+        "@.exp >= 600", "true",
+        "@.exp <= 600", "true",
+        "@.exp > 600", "false",
+        "@.exp < 600", "false",
+        "@.exp < 'cant compare makes it false'", "false",
+        "@.custom < 'custom-value2'", "true",
+        "@.custom > 'custom-val'", "true",
+        "@.custom > 'aaaaaaaaaaaaaaaa'", "true",
+        "@.custom > 'AAAAAAAAAAAAAAAA'", "true",
+        "@.custom > 'ZZZZZZZZZZZZZZZZ'", "true",
+        "@.custom > 'z'", "false",
+        "@.custom == 'custom-value'", "true",
+        "@.custom == 'custom-value' and @.exp > 1000", "false",
+        "@.custom == 'custom-value' or @.exp > 1000", "true",
+        "@.custom == 'custom-value' && @.exp <= 1000", "true",
+        "@.custom != 'custom-value'", "false",
+        "@.iat != null", "true",
+        "@.iat == null", "false",
+        "@.custom in ['some-custom-value', 42, 'custom-value']", "true",
+        "@.custom nin ['some-custom-value', 42, 'custom-value']", "false",
+        "@.custom nin []", "true",
+        "@.custom in []", "false",
+        "@.custom-level in [1,2,3]", "false",
+        "@.custom-level in [1,8,9,20]", "true",
+        "@.custom-level nin [1,8,9,20]", "false",
+        "@.roles.client-roles.kafka != null", "true",
+        "'kafka' in @.aud", "true",
+        "\"kafka-user\" in @.roles.client-roles.kafka", "true",
+        "@.exp > 1000 || 'kafka' in @.aud", "true",
+        "(@.custom == 'custom-value' or @.custom == 'custom-value2')", "true",
+        "(@.exp > 1000 && @.custom == 'custom-value') or @.roles.client-roles.kafka != null", "true",
+        "@.exp >= 600 and ('kafka' in @.aud || @.custom == 'custom-value')", "true",
+        "@.roles.client-roles.kafka anyof ['kafka-admin', 'kafka-user']", "true",
+        "@.roles.client-roles.kafka noneof ['kafka-admin', 'kafka-user']", "false",
+        "@.sub anyof ['username']", "false",
+        "@.missing anyof [null, 'username']", "false",
+        "@.missing noneof [null, 'username']", "true",
+        "((@.custom == 'some-custom-value' || 'kafka' in @.aud) and @.exp > 1000)", "false",
+        "((('kafka' in @.aud || @.custom == 'custom-value') and @.exp > 1000))", "false",
+        "@.exp =~ /^6[0-9][0-9]$/", "true",
+        "@.custom =~ /custom-.+/", "true",
+        "@.custom =~ /ustom-.+/", "false",
+        "@.custom =~ /(?i)CUSTOM-.+/", "true",
+        "@.iss =~ /https:\\/\\/auth-server\\/.+/", "true",
+        "@.iss =~ /https:\\/\\/auth-server\\//", "false",
+        "!(@.missing noneof [null, 'username'])", "false"
+    };
 
     @Test
     public void testJsonPathFilterQuery() throws Exception {
-
-        String[] queries = {
-            "@.custom-level != -1", "true",
-            "@.exp < 1000", "true",
-            "@.exp > 1000", "false",
-            "@.exp >= 600", "true",
-            "@.exp <= 600", "true",
-            "@.exp > 600", "false",
-            "@.exp < 600", "false",
-            "@.exp < 'cant compare makes it false'", "false",
-            "@.custom < 'custom-value2'", "true",
-            "@.custom > 'custom-val'", "true",
-            "@.custom > 'aaaaaaaaaaaaaaaa'", "true",
-            "@.custom > 'AAAAAAAAAAAAAAAA'", "true",
-            "@.custom > 'ZZZZZZZZZZZZZZZZ'", "true",
-            "@.custom > 'z'", "false",
-            "@.custom == 'custom-value'", "true",
-            "@.custom == 'custom-value' and @.exp > 1000", "false",
-            "@.custom == 'custom-value' or @.exp > 1000", "true",
-            "@.custom == 'custom-value' && @.exp <= 1000", "true",
-            "@.custom != 'custom-value'", "false",
-            "@.iat != null", "true",
-            "@.iat == null", "false",
-            "@.custom in ['some-custom-value', 42, 'custom-value']", "true",
-            "@.custom nin ['some-custom-value', 42, 'custom-value']", "false",
-            "@.custom nin []", "true",
-            "@.custom in []", "false",
-            "@.custom-level in [1,2,3]", "false",
-            "@.custom-level in [1,8,9,20]", "true",
-            "@.custom-level nin [1,8,9,20]", "false",
-            "@.roles.client-roles.kafka != null", "true",
-            "'kafka' in @.aud", "true",
-            "\"kafka-user\" in @.roles.client-roles.kafka", "true",
-            "@.exp > 1000 || 'kafka' in @.aud", "true",
-            "(@.custom == 'custom-value' or @.custom == 'custom-value2')", "true",
-            "(@.exp > 1000 && @.custom == 'custom-value') or @.roles.client-roles.kafka != null", "true",
-            "@.exp >= 600 and ('kafka' in @.aud || @.custom == 'custom-value')", "true",
-            "@.roles.client-roles.kafka anyof ['kafka-admin', 'kafka-user']", "true",
-            "@.roles.client-roles.kafka noneof ['kafka-admin', 'kafka-user']", "false",
-            "@.sub anyof ['username']", "false",
-            "@.missing anyof [null, 'username']", "false",
-            "@.missing noneof [null, 'username']", "true",
-            "((@.custom == 'some-custom-value' || 'kafka' in @.aud) and @.exp > 1000)", "false",
-            "((('kafka' in @.aud || @.custom == 'custom-value') and @.exp > 1000))", "false",
-            "@.exp =~ /^6[0-9][0-9]$/", "true",
-            "@.custom =~ /custom-.+/", "true",
-            "@.custom =~ /ustom-.+/", "false",
-            "@.custom =~ /(?i)CUSTOM-.+/", "true",
-            "@.iss =~ /https:\\/\\/auth-server\\/.+/", "true",
-            "@.iss =~ /https:\\/\\/auth-server\\//", "false",
-            "!(@.missing noneof [null, 'username'])", "false"
-        };
 
         String[] errQueries = {
             "['exp'] > 1000", "attribute path",
@@ -154,57 +154,6 @@ public class JsonPathFilterQueryTest {
         }
         System.out.printf("Generated %d unique tokens in %d ms%n", count, System.currentTimeMillis() - time);
 
-        String[] queries = {
-            "@.custom-level != -1", "true",
-            "@.exp < 1000", "true",
-            "@.exp > 1000", "false",
-            "@.exp >= 600", "true",
-            "@.exp <= 600", "true",
-            "@.exp > 600", "false",
-            "@.exp < 600", "false",
-            "@.exp < 'cant compare makes it false'", "false",
-            "@.custom < 'custom-value2'", "true",
-            "@.custom > 'custom-val'", "true",
-            "@.custom > 'aaaaaaaaaaaaaaaa'", "true",
-            "@.custom > 'AAAAAAAAAAAAAAAA'", "true",
-            "@.custom > 'ZZZZZZZZZZZZZZZZ'", "true",
-            "@.custom > 'z'", "false",
-            "@.custom == 'custom-value'", "true",
-            "@.custom == 'custom-value' and @.exp > 1000", "false",
-            "@.custom == 'custom-value' or @.exp > 1000", "true",
-            "@.custom == 'custom-value' && @.exp <= 1000", "true",
-            "@.custom != 'custom-value'", "false",
-            "@.iat != null", "true",
-            "@.iat == null", "false",
-            "@.custom in ['some-custom-value', 42, 'custom-value']", "true",
-            "@.custom nin ['some-custom-value', 42, 'custom-value']", "false",
-            "@.custom nin []", "true",
-            "@.custom in []", "false",
-            "@.custom-level in [1,2,3]", "false",
-            "@.custom-level in [1,8,9,20]", "true",
-            "@.custom-level nin [1,8,9,20]", "false",
-            "@.roles.client-roles.kafka != null", "true",
-            "'kafka' in @.aud", "true",
-            "\"kafka-user\" in @.roles.client-roles.kafka", "true",
-            "@.exp > 1000 || 'kafka' in @.aud", "true",
-            "(@.custom == 'custom-value' or @.custom == 'custom-value2')", "true",
-            "(@.exp > 1000 && @.custom == 'custom-value') or @.roles.client-roles.kafka != null", "true",
-            "@.exp >= 600 and ('kafka' in @.aud || @.custom == 'custom-value')", "true",
-            "@.roles.client-roles.kafka anyof ['kafka-admin', 'kafka-user']", "true",
-            "@.roles.client-roles.kafka noneof ['kafka-admin', 'kafka-user']", "false",
-            "@.sub anyof ['username']", "false",
-            "@.missing anyof [null, 'username']", "false",
-            "@.missing noneof [null, 'username']", "true",
-            "((@.custom == 'some-custom-value' || 'kafka' in @.aud) and @.exp > 1000)", "false",
-            "((('kafka' in @.aud || @.custom == 'custom-value') and @.exp > 1000))", "false",
-            "@.exp =~ /^6[0-9][0-9]$/", "true",
-            "@.custom =~ /custom-.+/", "true",
-            "@.custom =~ /ustom-.+/", "false",
-            "@.custom =~ /(?i)CUSTOM-.+/", "true",
-            "@.iss =~ /https:\\/\\/auth-server\\/.+/", "true",
-            "@.iss =~ /https:\\/\\/auth-server\\//", "false",
-            "!(@.missing noneof [null, 'username'])", "false"
-        };
 
         ArrayList<JsonPathFilterQuery> parsedQueries = new ArrayList<>();
 
