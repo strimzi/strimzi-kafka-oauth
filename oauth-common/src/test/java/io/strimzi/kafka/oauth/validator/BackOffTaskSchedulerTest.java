@@ -329,7 +329,7 @@ public class BackOffTaskSchedulerTest {
         List<MockScheduledExecutorLog> elog = waitForEntryCount(executor, 8);
 
         // it will now delay next execution for 32 seconds
-        Assert.assertTrue("Has 8 entries", elog.size() == 8);
+        Assert.assertTrue("Should have 8 entries :: " + elog, elog.size() == 8);
         assertLogEntry(elog.get(7), MockExecutorLogActionType.SCHEDULE, 32000, TimeUnit.MILLISECONDS);
 
         // With taskDuration = 4 we should after 5 executions be at around 54 seconds (plus 60 seconds initial offset)
