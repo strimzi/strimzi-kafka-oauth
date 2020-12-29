@@ -190,9 +190,9 @@ class MockTimeProviderBasedScheduledExecutorService implements ScheduledExecutor
             try {
                 long startJob = CurrentTime.currentTime();
                 command.run();
-                long delay = startJob + period - CurrentTime.currentTime();
+                long delay = startJob + unit.toMillis(period) - CurrentTime.currentTime();
                 f.complete(null);
-                scheduleAtFixedRate(command, delay, period, unit);
+                scheduleAtFixedRate(command, unit.convert(delay, TimeUnit.MILLISECONDS), period, unit);
             } catch (Throwable t) {
                 f.completeExceptionally(t);
             }
