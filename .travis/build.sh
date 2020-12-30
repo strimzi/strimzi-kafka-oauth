@@ -39,6 +39,8 @@ mvn spotbugs:check
 if [ ${JAVA_MAJOR_VERSION} -eq 1 ] ; then
 
   docker pull oryd/hydra:v1.0.0
+  docker pull quay.io/keycloak/keycloak:latest
+
   mvn test-compile spotbugs:check -e -V -B -f testsuite
 
   set +e

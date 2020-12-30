@@ -27,7 +27,7 @@ metadata:
 spec:
   containers:
   - name: keycloak
-    image: jboss/keycloak
+    image: quay.io/keycloak/keycloak
     args:
     - "-b 0.0.0.0"
     - "-Dkeycloak.profile.feature.upload_scripts=enabled"

@@ -1,4 +1,4 @@
-FROM jboss/keycloak:latest
+FROM quay.io/keycloak/keycloak:latest
 
 RUN mkdir /opt/jboss/realms
 COPY realms/* /opt/jboss/realms/

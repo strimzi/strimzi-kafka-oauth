@@ -3,7 +3,7 @@ version: '3.5'
 services:
 
   keycloak:
-    image: jboss/keycloak
+    image: quay.io/keycloak/keycloak
     container_name: keycloak
     ports:
       -  8080:8080
