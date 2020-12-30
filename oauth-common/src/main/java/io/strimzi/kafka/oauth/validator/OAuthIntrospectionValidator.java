@@ -65,7 +65,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
      * @param clientId The clientId of the OAuth2 client representing this Kafka broker - needed to authenticate to the introspection endpoint
      * @param clientSecret The secret of the OAuth2 client representing this Kafka broker - needed to authenticate to the introspection endpoint
      * @param audience The optional audience check. If specified, the 'aud' attributie of the introspection endpoint response needs to contain the configured clientId
-     * @param customClaimCheck The optional JsonPath filter query for additional custom attribute checking
+     * @param customClaimCheck The optional JSONPath filter query for additional custom attribute checking
      */
     public OAuthIntrospectionValidator(String introspectionEndpointUri,
                                        SSLSocketFactory socketFactory,

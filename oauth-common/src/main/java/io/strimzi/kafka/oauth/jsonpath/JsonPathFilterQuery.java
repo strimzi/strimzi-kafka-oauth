@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * This class implements parsing JsonPath filter query syntax inspired by:
+ * This class implements the parsing of the JSONPath filter query syntax inspired by:
  *
  *    https://github.com/json-path/JsonPath
  *
@@ -66,10 +66,10 @@ import java.util.List;
  *   "!(@.missing noneof [null, 'username'])"
  * </pre>
  *
- * This class only implements a subset of the JsonPath syntax. It is focused on filter matching - answering the question if the JWT token matches the selector or not.
+ * This class only implements a subset of the JSONPath syntax. It is focused on filter matching - answering the question if the JWT token matches the selector or not.
  * <p>
- * Main difference with the JsonPath is that the attribute paths using '@' match relative to root JSON object rather than any child attribute.
- * For equivalent queries using other JsonPath implementations one would have to wrap the JWT object into another attribute, for example:
+ * Main difference with the JSONPath is that the attribute paths using '@' match relative to root JSON object rather than any child attribute.
+ * For equivalent queries using other JSONPath implementations one would have to wrap the JWT object into another attribute, for example:
  * <pre>
  *   {
  *       "token": {
@@ -118,7 +118,7 @@ public class JsonPathFilterQuery {
     /**
      * Construct a new JsonPathFilterQuery
      *
-     * @param query The query using the JsonPath filter syntax
+     * @param query The query using the JSONPath filter syntax
      * @return New JsonPathFilerQuery instance
      */
     public static JsonPathFilterQuery parse(String query) {

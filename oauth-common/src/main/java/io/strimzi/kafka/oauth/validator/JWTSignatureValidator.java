@@ -94,7 +94,7 @@ public class JWTSignatureValidator implements TokenValidator {
      * @param expirySeconds The maximum time to trust the unrefreshed JWKS keys. If keys are not successfully refreshed within this time, the validation will start failing.
      * @param checkAccessTokenType Should the 'typ' claim in the token be validated (be equal to 'Bearer')
      * @param audience The optional audience
-     * @param customClaimCheck The optional JsonPath filter query for additional custom claim checking
+     * @param customClaimCheck The optional JSONPath filter query for additional custom claim checking
      * @param enableBouncyCastleProvider Should BouncyCastle JCE provider be enabled - required for ECDSA support
      * @param bouncyCastleProviderPosition Position in JCE providers list - it is added to the end of the list by default
      */

@@ -18,8 +18,21 @@ See [README.md] for instructions on how to set up the brokers and the clients.
 
 ### Audience checking
 
-Additional server-side configuration option was added to enable / disable the audience checking:
-* `oauth.check.audience` (e.g. "true") 
+Additional server-side configuration option was added to enable / disable the audience checking during authentication:
+* `oauth.check.audience` (e.g. "true")
+
+See [README.md] for more information.
+
+
+### Custom claim checking
+
+Another token validation mechanism was added which allows using the JSONPath filter queries to express the additional conditions that
+the token has to match during authentication in order to pass validation.
+
+To enable it set the following option to a valid JSONPath filter query:
+* `oauth.custom.claim.check` (e.g. "'kafka-user' in @.roles")
+
+See [README.md] for more information.
 
 
 0.6.0

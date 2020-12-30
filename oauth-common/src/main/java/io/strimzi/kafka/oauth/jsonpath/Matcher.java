@@ -13,7 +13,7 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * <em>Matcher</em> is used for matching the JSON object against the parsed JsonPath filter query.
+ * <em>Matcher</em> is used for matching the JSON object against the parsed JSONPath filter query.
  *
  * This class is thread-safe, and can be used by multiple threads at the same time.
  *
@@ -33,7 +33,7 @@ class Matcher {
 
 
     /**
-     * Match the JSON object against the JsonPath filter query as described in {@link JsonPathFilterQuery}.
+     * Match the JSON object against the JSONPath filter query as described in {@link JsonPathFilterQuery}.
      *
      * @param json Jackson JsonObject to match
      * @return true if the object matches the filter, false otherwise

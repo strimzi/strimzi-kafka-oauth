@@ -392,12 +392,38 @@ If the user id could not be extracted from Introspection Endpoint response, then
 When you have a DEBUG logging configured for the `io.strimzi` category you may need to specify the following to prevent warnings about access token not being JWT:
 - `oauth.access.token.is.jwt` (e.g.: "false")
 
-###### Custom attribute checking
+###### Custom claim checking
 
 You may want to limit the ability to authenticate to your Kafka broker beyond the available common token claims.
-There is an additional mechanism available since version 0.7.0 that allows the use of JSONPath filter query which is matched against the JWT token or the introspection endpoint response, and if the match fails, the authentication with the token is denied.
+There is another mechanism available that allows the use of JSONPath filter query which is matched against the JWT token or the introspection endpoint response, and if the match fails, the authentication with the token is denied.
 
 - `oauth.custom.claim.check` (e.g.: "'kafka-user' in @.roles")
+
+For example, if the access token looks like the following:
+```
+   {
+     "aud": ["uma_authorization", "kafka"],
+     "iss": "https://auth-server/token/",
+     "iat": 0,
+     "exp": 600,
+     "sub": "username",
+     "custom": "custom-value",
+     "roles": {
+       "client-roles": {
+         "kafka": ["kafka-user"]
+       }
+     },
+     "custom-level": 9,
+     "orgId": "org-001"
+   }
+```
+
+Here are some examples of valid queries that will pass the check:
+```
+   @.orgId == 'org-001' and 'kafka-user' in @.roles.client-roles.kafka
+   @.custom-level > 7 and @.custom =~ /custom-.*/
+   @.orgId != null && @.clientId == null
+```
 
 See [JsonPathFilterQuery JavaDoc](oauth-common/src/main/java/io/strimzi/kafka/oauth/jsonpath/JsonPathFilterQuery.java) for more information about the syntax.
 
