@@ -91,8 +91,8 @@ public class JsonPathFilterQueryTest {
             "@.attr > null", "'null' to the right",
             "@.attr == and !('admin' in @.roles)", "Value expected to the right",
             "@.exp < 'cant compare makes it false", "missing end quote",
-            "@.typ == 'Bearer' and @.iss == 'http://keycloak:8080/auth/realms/kafka-authz' and @.clientId != null && and 'kafka' in @aud and 'kafka-user' in @.resource_access.kafka.roles", "expected predicate",
-            "@.typ == 'Bearer' and @.iss == 'http://keycloak:8080/auth/realms/kafka-authz' and @.clientId != null && 'kafka' in @aud and 'kafka-user' in @.resource_access.kafka.roles", "attribute path"
+            "@.typ == 'Bearer' and @.iss == 'https://auth-server' and @.clientId != null && and 'kafka' in @aud and 'kafka-user' in @.resource_access.kafka.roles", "expected predicate",
+            "@.typ == 'Bearer' and @.iss == 'https://auth-server' and @.clientId != null && 'kafka' in @aud and 'kafka-user' in @.resource_access.kafka.roles", "attribute path"
         };
 
 
