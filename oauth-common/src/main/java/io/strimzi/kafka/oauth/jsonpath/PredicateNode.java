@@ -9,6 +9,12 @@ class PredicateNode extends AbstractPredicateNode {
     private final OperatorNode op;
     private final Node rval;
 
+    PredicateNode(Node lval) {
+        this.lval = lval;
+        op = null;
+        rval = null;
+    }
+
     PredicateNode(Node lval, OperatorNode op, Node rval) {
         this.lval = lval;
         this.op = op;
@@ -29,6 +35,6 @@ class PredicateNode extends AbstractPredicateNode {
 
     @Override
     public String toString() {
-        return "" + lval + " " + op + (rval != null ? " " + rval : "");
+        return "" + lval + (op != null ? " " + op + (rval != null ? " " + rval : "") : "");
     }
 }

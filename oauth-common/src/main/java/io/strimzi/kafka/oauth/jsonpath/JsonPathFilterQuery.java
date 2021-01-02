@@ -12,6 +12,10 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
+import static io.strimzi.kafka.oauth.jsonpath.Constants.EOL;
+import static io.strimzi.kafka.oauth.jsonpath.Constants.RIGHT_BRACKET;
+import static io.strimzi.kafka.oauth.jsonpath.Constants.SPACE;
+
 /**
  * This class implements the parsing of the JSONPath filter query syntax inspired by:
  *
@@ -150,11 +154,9 @@ public class JsonPathFilterQuery {
             boolean bracket = readDelim(ctx, Constants.LEFT_BRACKET);
             if (bracket) {
                 predicate = readComposedPredicate(ctx);
-                if (!readDelim(ctx, Constants.RIGHT_BRACKET)) {
+                if (!readDelim(ctx, RIGHT_BRACKET)) {
                     throw new JsonPathFilterQueryException("Failed to parse query - expected ')'" + ctx.toString());
                 }
-            } else if (negated) {
-                throw new JsonPathFilterQueryException("Failed to parse query - expected '('" + ctx.toString());
             } else {
                 predicate = readPredicate(ctx);
             }
@@ -181,7 +183,12 @@ public class JsonPathFilterQuery {
             PredicateNode predicate = (PredicateNode) node;
 
             OperatorNode op = predicate.getOp();
-            if (OperatorNode.EQ.equals(op)
+            if (op == null) {
+                Node lNode = predicate.getLval();
+                if (!(lNode instanceof PathNameNode)) {
+                    throw new JsonPathFilterQueryException("Single value expression should be specified as an attribute path (for example: @.attr)");
+                }
+            } else if (OperatorNode.EQ.equals(op)
                     || OperatorNode.NEQ.equals(op)
                     || OperatorNode.LT.equals(op)
                     || OperatorNode.GT.equals(op)
@@ -266,7 +273,7 @@ public class JsonPathFilterQuery {
 
         OperatorNode op = readOperator(ctx);
         if (op == null) {
-            return null;
+            return new PredicateNode(lval);
         }
         ctx.resetStart();
 
@@ -300,7 +307,7 @@ public class JsonPathFilterQuery {
         int c = ctx.read();
         int last = '/';
 
-        while (c != Constants.EOL) {
+        while (c != EOL) {
             if (c == '/' && last != '\\') {
                 regex = new String(ctx.buffer, start, ctx.current - start - 1);
                 break;
@@ -314,6 +321,14 @@ public class JsonPathFilterQuery {
         if (regex.length() == 0) {
             throw new JsonPathFilterQueryException("RegEx expression is empty - " + ctx.toString());
         }
+
+        // see if any modifiers should be applied - like /i for ignore-case
+        c = ctx.peek();
+        if (c != EOL && c != SPACE && c != RIGHT_BRACKET) {
+            int flags = RegexNode.applyFlag(ctx, (char) ctx.read(), 0);
+            return new RegexNode(regex, flags);
+        }
+
         return new RegexNode(regex);
     }
 
@@ -324,27 +339,27 @@ public class JsonPathFilterQuery {
         }
         OperatorNode result = null;
 
-        if (ctx.readExpectedWithDelims(Constants.EQ, Constants.SPACE)) {
+        if (ctx.readExpectedWithDelims(Constants.EQ, SPACE)) {
             result = OperatorNode.EQ;
-        } else if (ctx.readExpectedWithDelims(Constants.NEQ, Constants.SPACE)) {
+        } else if (ctx.readExpectedWithDelims(Constants.NEQ, SPACE)) {
             result = OperatorNode.NEQ;
-        } else if (ctx.readExpectedWithDelims(Constants.LT, Constants.SPACE)) {
+        } else if (ctx.readExpectedWithDelims(Constants.LT, SPACE)) {
             result = OperatorNode.LT;
-        } else if (ctx.readExpectedWithDelims(Constants.GT, Constants.SPACE)) {
+        } else if (ctx.readExpectedWithDelims(Constants.GT, SPACE)) {
             result = OperatorNode.GT;
-        } else if (ctx.readExpectedWithDelims(Constants.LTE, Constants.SPACE)) {
+        } else if (ctx.readExpectedWithDelims(Constants.LTE, SPACE)) {
             result = OperatorNode.LTE;
-        } else if (ctx.readExpectedWithDelims(Constants.GTE, Constants.SPACE)) {
+        } else if (ctx.readExpectedWithDelims(Constants.GTE, SPACE)) {
             result = OperatorNode.GTE;
-        } else if (ctx.readExpectedWithDelims(Constants.MATCH_RE, Constants.SPACE)) {
+        } else if (ctx.readExpectedWithDelims(Constants.MATCH_RE, SPACE)) {
             result = OperatorNode.MATCH_RE;
-        } else if (ctx.readExpectedWithDelims(Constants.IN, Constants.SPACE)) {
+        } else if (ctx.readExpectedWithDelims(Constants.IN, SPACE)) {
             result = OperatorNode.IN;
-        } else if (ctx.readExpectedWithDelims(Constants.NIN, Constants.SPACE)) {
+        } else if (ctx.readExpectedWithDelims(Constants.NIN, SPACE)) {
             result = OperatorNode.NIN;
-        } else if (ctx.readExpectedWithDelims(Constants.ANYOF, Constants.SPACE)) {
+        } else if (ctx.readExpectedWithDelims(Constants.ANYOF, SPACE)) {
             result = OperatorNode.ANYOF;
-        } else if (ctx.readExpectedWithDelims(Constants.NONEOF, Constants.SPACE)) {
+        } else if (ctx.readExpectedWithDelims(Constants.NONEOF, SPACE)) {
             result = OperatorNode.NONEOF;
         }
 
@@ -467,9 +482,9 @@ public class JsonPathFilterQuery {
         int c;
         do {
             c = ctx.read();
-        } while (c != Constants.EOL && c != Constants.SPACE && c != Constants.DOT && c != Constants.RIGHT_BRACKET);
+        } while (c != EOL && c != SPACE && c != Constants.DOT && c != RIGHT_BRACKET);
 
-        if (c != Constants.EOL) {
+        if (c != EOL) {
             ctx.unread();
         }
         return new AttributePathName.Segment(new String(ctx.buffer, start, ctx.current - start));
@@ -519,11 +534,11 @@ public class JsonPathFilterQuery {
         if (c == '-') {
             c = ctx.read();
         }
-        while (c != Constants.EOL && c != Constants.SPACE) {
+        while (c != EOL && c != SPACE) {
             if (!isDigit(c)) {
                 if (c == Constants.DOT && !decimal) {
                     decimal = true;
-                } else if (c == Constants.RIGHT_BRACKET || ((c == Constants.COMMA || c == Constants.RIGHT_SQUARE_BRACKET) && inList)) {
+                } else if (c == RIGHT_BRACKET || ((c == Constants.COMMA || c == Constants.RIGHT_SQUARE_BRACKET) && inList)) {
                     endOffset = 0;
                     ctx.unread();
                     break;
@@ -537,7 +552,7 @@ public class JsonPathFilterQuery {
             }
             c = ctx.read();
         }
-        int separator = c == Constants.EOL ? 0 : endOffset;
+        int separator = c == EOL ? 0 : endOffset;
         return new NumberNode(new BigDecimal(ctx.buffer, start, ctx.current - start - separator));
     }
 
@@ -556,7 +571,7 @@ public class JsonPathFilterQuery {
         }
 
         // next one should be eol or ' ', ',', ']', or ')'
-        boolean expected = ctx.peekForAny(Constants.SPACE, Constants.COMMA, Constants.RIGHT_SQUARE_BRACKET, Constants.RIGHT_BRACKET);
+        boolean expected = ctx.peekForAny(SPACE, Constants.COMMA, Constants.RIGHT_SQUARE_BRACKET, RIGHT_BRACKET);
         if (!expected && !ctx.eol()) {
             ctx.resetTo(start);
             return null;
@@ -573,16 +588,16 @@ public class JsonPathFilterQuery {
         if (ctx.eol()) {
             return null;
         }
-        if (ctx.readExpectedWithDelims(Constants.OR, Constants.SPACE)) {
+        if (ctx.readExpectedWithDelims(Constants.OR, SPACE)) {
             return Logical.OR;
         }
-        if (ctx.readExpectedWithDelims(Constants.OR_SYMBOLIC, Constants.SPACE)) {
+        if (ctx.readExpectedWithDelims(Constants.OR_SYMBOLIC, SPACE)) {
             return Logical.OR;
         }
-        if (ctx.readExpectedWithDelims(Constants.AND, Constants.SPACE)) {
+        if (ctx.readExpectedWithDelims(Constants.AND, SPACE)) {
             return Logical.AND;
         }
-        if (ctx.readExpectedWithDelims(Constants.AND_SYMBOLIC, Constants.SPACE)) {
+        if (ctx.readExpectedWithDelims(Constants.AND_SYMBOLIC, SPACE)) {
             return Logical.AND;
         }
         return null;

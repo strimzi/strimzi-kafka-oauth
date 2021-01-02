@@ -14,6 +14,10 @@ public class RegexNode extends Node {
         this.pattern = Pattern.compile(regex);
     }
 
+    RegexNode(String regex, int flags) {
+        this.pattern = Pattern.compile(regex, flags);
+    }
+
     public Pattern getPattern() {
         return pattern;
     }
@@ -21,5 +25,15 @@ public class RegexNode extends Node {
     @Override
     public String toString() {
         return pattern.pattern();
+    }
+
+    public static int applyFlag(ParsingContext ctx, char c, int current) {
+        switch (c) {
+            case 'i': {
+                return current | Pattern.CASE_INSENSITIVE;
+            }
+            default:
+                throw new JsonPathFilterQueryException("RegEx expression with unsupported option: " + c + " - " + ctx.toString());
+        }
     }
 }

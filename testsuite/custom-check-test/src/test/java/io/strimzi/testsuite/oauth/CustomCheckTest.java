@@ -89,21 +89,33 @@ public class CustomCheckTest {
         "@.sub anyof ['username']", "false",
         "@.missing anyof [null, 'username']", "false",
         "@.missing noneof [null, 'username']", "false",
+        "@.aud noneof [null, 'username']", "true",
+        "@.aud noneof ['kafka', 'something']", "false",
+        "@.aud anyof ['kafka', 'something']", "true",
+        "!(@.aud anyof ['kafka', 'something'])", "false",
+        "!(@.aud noneof [null, 'username'])", "false",
         "((@.custom == 'some-custom-value' || 'kafka' in @.aud) && @.exp > 1000)", "false",
         "((('kafka' in @.aud || @.custom == 'custom-value') && @.exp > 1000))", "false",
         "@.exp =~ /^6[0-9][0-9]$/", "true",
         "@.custom =~ /custom-.+/", "true",
         "@.custom =~ /ustom-.+/", "false",
+        "@.custom =~ /CUSTOM-.+/i", "true",
         "@.iss =~ /https:\\/\\/auth-server\\/.+/", "true",
         "@.iss =~ /https:\\/\\/auth-server\\//", "false",
-        "!(@.missing noneof [null, 'username'])", "false",
         "@.custom == 'custom-value' && @.exp > 1000", "false",
         "@.custom == 'custom-value' || @.exp > 1000", "true",
         "(@.custom == 'custom-value' || @.custom == 'custom-value2')", "true",
         "@.missing == null", "false",
         "@.missing != null", "true",
+        "@.missing", "false",
+        "!@.missing", "true",
+        "@.custom", "true"
     };
 
+    /*
+     * These are the queries supported by our implementation but not by Jayway implementation.
+     * It's the use of 'and' and 'or', and also the support of option switches within regex.
+     */
     final String[] nonStandardQueries = {
         "(@.exp > 1000 && @.custom == 'custom-value') or @.roles.client-roles.kafka != null", "true",
         "@.exp >= 600 and ('kafka' in @.aud || @.custom == 'custom-value')", "true",
@@ -115,15 +127,27 @@ public class CustomCheckTest {
         "@.custom =~ /(?i)CUSTOM-.+/", "true",
     };
 
+    /*
+     * These are queries supported by Jayway implementation but not supported by our implementation.
+     * It's mostly the lack of whitespace.
+     */
     final String[] unsupportedStandardQueries = {
         "@.custom-level!=-1", "true",
         "@.iat==null", "false",
         "@.custom=~/CUSTOM-.+/i", "true",
         "@.custom=='custom-value' && @.exp>1000", "false",
-        "@.custom=='custom-value'&&@.exp>1000", "false",
-        "@.missing", "false",
-        "!@.missing", "true",
-        "@.custom", "true",
+        "@.custom=='custom-value'&&@.exp>1000", "false"
+    };
+
+    /*
+     * These queries return a different result in Jayway JsonPath implementation
+     *
+     * In the case of 'anyof' and 'noneof' Jayway seems to silently fail the evaluation when the referenced
+     * attribute is missing, which results in EXPRESSION and !(EXPRESSION) to both effectively evaluate to false.
+     */
+    final String[] incompatibleJaywayQueries = {
+        "!(@.missing anyof [null, 'username'])", "true",
+        "!(@.missing noneof [null, 'username'])", "true"
     };
 
     final static Configuration.Defaults JAYWAY_CONFIG = new Configuration.Defaults() {
@@ -166,6 +190,7 @@ public class CustomCheckTest {
         JsonNode json = JsonSerialization.readValue(jsonString, JsonNode.class);
 
         testQueries(json, queries);
+        testQueries(json, incompatibleJaywayQueries);
         testQueries(json, nonStandardQueries);
 
         for (int i = 0; i < errQueries.length; i++) {
@@ -227,13 +252,9 @@ public class CustomCheckTest {
             String query = queries[i];
             boolean expected = Boolean.parseBoolean(queries[++i]);
 
-            //try {
-                // Oddly, Jayway JsonPath doesn't seem to have a parse time vs. match time separation for applying the query
-                ArrayNode result = doc.read("$[*][?(" + query + ")]");
-                Assert.assertEquals("Unexpected result running: " + query, expected, result.size() == 1);
-            //} catch (Throwable e) {
-            //    log.warn("[IGNORED] Failed to run: " + query, e);
-            //}
+            // Oddly, Jayway JsonPath doesn't seem to have a parse vs. match separation for applying the query
+            ArrayNode result = doc.read("$[*][?(" + query + ")]");
+            Assert.assertEquals("Unexpected result running: " + query, expected, result.size() == 1);
         }
     }
 
@@ -308,11 +329,7 @@ public class CustomCheckTest {
 
                 ParseContext ctx = using(conf);
                 DocumentContext doc = ctx.parse(json);
-                try {
-                    doc.read("$[*][?(" + query + ")]");
-                } catch (Throwable e) {
-                    log.warn("[IGNORED] Failed to run: " + query, e);
-                }
+                doc.read("$[*][?(" + query + ")]");
             }
             System.out.printf("Ran query on %d unique tokens in %d ms :: '%s'%n", tokens.size(), System.currentTimeMillis() - time, query);
         }

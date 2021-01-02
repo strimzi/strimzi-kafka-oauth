@@ -59,15 +59,22 @@ class Matcher {
             if (node instanceof ComposedPredicateNode) {
                 boolean matches = matches(json, ((ComposedPredicateNode) node).getExpressions());
                 eval.update(logical, expression.isNegated() ? !matches : matches);
+            } else if (node instanceof PredicateNode) {
+                PredicateNode predicate = (PredicateNode) node;
+                if (predicate.getOp() == null) {
+                    boolean nonempty = isNonEmpty(json, predicate);
+                    eval.update(logical, expression.isNegated() ? !nonempty : nonempty);
+                } else {
+                    updateEvaluationWithPredicateNode(eval, logical, json, predicate);
+                }
             } else {
-                updateEvaluationWithPredicateNode(eval, logical, json, node);
+                throw new IllegalStateException("Internal error - unexpected node type: " + node + " (" + (node != null ? node.getClass() : "") + ")");
             }
         }
         return eval.current;
     }
 
-    private void updateEvaluationWithPredicateNode(BooleanEvaluator eval, Logical logical, JsonNode json, AbstractPredicateNode node) {
-        PredicateNode predicate = (PredicateNode) node;
+    private void updateEvaluationWithPredicateNode(BooleanEvaluator eval, Logical logical, JsonNode json, PredicateNode predicate) {
         OperatorNode op = predicate.getOp();
         try {
             if (op == OperatorNode.EQ) {
@@ -94,15 +101,31 @@ class Matcher {
                 eval.update(logical, noneOf(json, predicate));
             }
         } catch (IllegalStateException e) {
-            log.error("Failed to evaluate expression due to internal error: " + node, e);
+            log.error("Failed to evaluate expression due to internal error: " + predicate, e);
             eval.update(logical, false);
 
         } catch (Exception e) {
             if (log.isTraceEnabled()) {
-                log.trace("Failed to evaluate expression: " + node, e);
+                log.trace("Failed to evaluate expression: " + predicate, e);
             }
             eval.update(logical, false);
         }
+    }
+
+    /**
+     * This method returns true if the attribute exists and its value is not null or "".
+     *
+     * @param json The json object to filter on
+     * @param predicate The predicate to be evaluated
+     * @return true if the referenced attribute is non-empty
+     */
+    private boolean isNonEmpty(JsonNode json, PredicateNode predicate) {
+        Node lval = predicate.getLval();
+
+        // Additional validation is performed in JsonPathFilterQuery.validate()
+
+        JsonKeyValue lNode = getAttributeJsonNode(json, (PathNameNode) lval);
+        return !(lNode == null || lNode.value == null || "".equals(lNode.value));
     }
 
     private boolean matchRegex(JsonNode json, PredicateNode predicate) {
@@ -131,32 +154,23 @@ class Matcher {
         if (lval instanceof PathNameNode) {
             JsonKeyValue lNode = getAttributeJsonNode(json, (PathNameNode) lval);
 
+            // Attribute NOT existing means != null
+            if (lNode == null || lNode.value == null) {
+                return false;
+            }
+
             if (rval instanceof PathNameNode) {
                 JsonKeyValue rNode = getAttributeJsonNode(json, (PathNameNode) rval);
-                if (lNode == null) {
-                    return false;
-                }
-                if (lNode.value == null) {
-                    return rNode != null && rNode.value == null;
-                }
-
                 return rNode != null && lNode.value.equals(rNode.value);
             }
             if (rval instanceof StringNode) {
-                if (lNode == null || lNode.value == null) {
-                    return false;
-                }
                 return lNode.value.isTextual() && lNode.value.asText().equals(((StringNode) rval).value);
             }
             if (rval instanceof NumberNode) {
-                if (lNode == null) {
-                    return false;
-                }
                 return lNode.value.isNumber() && ((NumberNode) rval).value.equals(new BigDecimal(lNode.value.asText()));
             }
             if (rval instanceof NullNode) {
-                // We assume that the attribute not existing fulfills the == null condition
-                return lNode == null || lNode.value == null;
+                return lNode.value == null;
             }
             return false;
 
@@ -289,7 +303,7 @@ class Matcher {
     }
 
     private boolean noneOf(JsonNode json, PredicateNode predicate) {
-        return !anyOf(json, predicate, "noneof");
+        return isNonEmpty(json, predicate) ? !anyOf(json, predicate, "noneof") : false;
     }
 
     private boolean anyOf(JsonNode json, PredicateNode predicate, String opname) {
