@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.Option;
 import com.jayway.jsonpath.ParseContext;
 import com.jayway.jsonpath.spi.json.JacksonJsonNodeJsonProvider;
@@ -252,8 +253,8 @@ public class CustomCheckTest {
             String query = queries[i];
             boolean expected = Boolean.parseBoolean(queries[++i]);
 
-            // Oddly, Jayway JsonPath doesn't seem to have a parse vs. match separation for applying the query
-            ArrayNode result = doc.read("$[*][?(" + query + ")]");
+            JsonPath compiled = JsonPath.compile("$[*][?(" + query + ")]");
+            ArrayNode result = doc.read(compiled);
             Assert.assertEquals("Unexpected result running: " + query, expected, result.size() == 1);
         }
     }
@@ -310,7 +311,6 @@ public class CustomCheckTest {
             System.out.printf("Ran query on %d unique tokens in %d ms :: '%s'%n", tokens.size(), System.currentTimeMillis() - time, query);
         }
 
-
         // Now compare with jayway JsonPath
         Configuration.setDefaults(JAYWAY_CONFIG);
 
@@ -319,19 +319,28 @@ public class CustomCheckTest {
                 //.options(Option.AS_PATH_LIST)
                 .build();
 
+
         System.out.println("\nTest Jayway JsonPath\n");
 
+        ArrayList<JsonPath> parsedJaywayQueries = new ArrayList<>();
+
+        time = System.currentTimeMillis();
         for (int i = 0; i < queries.length; i += 2) {
+            parsedJaywayQueries.add(JsonPath.compile("$[*][?(" + queries[i] + ")]"));
+        }
+        System.out.printf("Parsed %d unique queries in %d ms%n", queries.length / 2, System.currentTimeMillis() - time);
+
+        for (int i = 0; i < parsedJaywayQueries.size(); i++) {
             time = System.currentTimeMillis();
-            String query = queries[i];
+            JsonPath query = parsedJaywayQueries.get(i);
             for (int j = 0; j < tokens.size(); j++) {
                 JsonNode json = wrapToken(tokens.get(j));
 
                 ParseContext ctx = using(conf);
                 DocumentContext doc = ctx.parse(json);
-                doc.read("$[*][?(" + query + ")]");
+                doc.read(query);
             }
-            System.out.printf("Ran query on %d unique tokens in %d ms :: '%s'%n", tokens.size(), System.currentTimeMillis() - time, query);
+            System.out.printf("Ran query on %d unique tokens in %d ms :: '%s'%n", tokens.size(), System.currentTimeMillis() - time, queries[i*2]);
         }
     }
 }
