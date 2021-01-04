@@ -176,15 +176,15 @@ public class CustomCheckTest {
     public void testJsonPathFilterQuery() throws Exception {
 
         String[] errQueries = {
-                "['exp'] > 1000", "attribute path",
-                "@", "at position: 0",
-                "@.custom in null", "right of 'in'",
-                "1 < @.attr", "left of '<'",
-                "'lala' > 'lala'", "attribute path",
-                "'lala' <= null", "attribute path",
-                "@.attr > null", "'null' to the right",
-                "@.attr == and !('admin' in @.roles)", "Value expected to the right",
-                "@.exp < 'cant compare makes it false", "missing end quote"
+            "['exp'] > 1000", "attribute path",
+            "@", "at position: 0",
+            "@.custom in null", "right of 'in'",
+            "1 < @.attr", "left of '<'",
+            "'lala' > 'lala'", "attribute path",
+            "'lala' <= null", "attribute path",
+            "@.attr > null", "'null' to the right",
+            "@.attr == and !('admin' in @.roles)", "Value expected to the right",
+            "@.exp < 'cant compare makes it false", "missing end quote"
         };
 
 
@@ -340,7 +340,7 @@ public class CustomCheckTest {
                 DocumentContext doc = ctx.parse(json);
                 doc.read(query);
             }
-            System.out.printf("Ran query on %d unique tokens in %d ms :: '%s'%n", tokens.size(), System.currentTimeMillis() - time, queries[i*2]);
+            System.out.printf("Ran query on %d unique tokens in %d ms :: '%s'%n", tokens.size(), System.currentTimeMillis() - time, queries[i * 2]);
         }
     }
 }

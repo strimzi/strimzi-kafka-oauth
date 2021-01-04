@@ -125,7 +125,8 @@ class Matcher {
         // Additional validation is performed in JsonPathFilterQuery.validate()
 
         JsonKeyValue lNode = getAttributeJsonNode(json, (PathNameNode) lval);
-        return !(lNode == null || lNode.value == null || "".equals(lNode.value));
+        return !(lNode == null || lNode.value == null
+                || (lNode.value.isTextual() && "".equals(lNode.value.asText())));
     }
 
     private boolean matchRegex(JsonNode json, PredicateNode predicate) {
