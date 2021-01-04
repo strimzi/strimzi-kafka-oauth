@@ -71,7 +71,7 @@ public class BackOffTaskScheduler {
         }
 
         if (cutoffIntervalSeconds < 0) {
-            throw new IllegalArgumentException("'cutoffIntervaSeconds' can't be < 0");
+            throw new IllegalArgumentException("'cutoffIntervalSeconds' can't be < 0");
         }
     }
 

@@ -29,6 +29,8 @@ public class BackOffTaskSchedulerTest {
     @Test
     public void testSuccessfulTask() {
 
+        printTitle("BackOffTaskSchedulerTest :: testSuccessfulTask");
+
         MockScheduledExecutorService executor = new MockScheduledExecutorService();
 
         AtomicInteger counter = new AtomicInteger();
@@ -51,6 +53,8 @@ public class BackOffTaskSchedulerTest {
 
     @Test
     public void testFailingTaskEventuallySucceeds() {
+
+        printTitle("BackOffTaskSchedulerTest :: testFailingTaskEventuallySucceeds");
 
         MockScheduledExecutorService executor = new MockScheduledExecutorService();
 
@@ -94,6 +98,8 @@ public class BackOffTaskSchedulerTest {
     @Test
     public void testFailingTaskWithCutoff() {
 
+        printTitle("BackOffTaskSchedulerTest :: testFailingTaskWithCutoff");
+
         MockScheduledExecutorService executor = new MockScheduledExecutorService();
         AtomicInteger counter = new AtomicInteger();
 
@@ -131,6 +137,8 @@ public class BackOffTaskSchedulerTest {
 
     @Test
     public void testRegularAndFastSchedulerInteractionWithMockTime() {
+
+        printTitle("BackOffTaskSchedulerTest :: testRegularAndFastSchedulerInteractionWithMockTime");
 
         // Set mock current time provider, that will be picked by BackOffTaskScheduler
         MockCurrentTimeProvider timeProvider = new MockCurrentTimeProvider();
@@ -490,5 +498,9 @@ public class BackOffTaskSchedulerTest {
         Assert.assertEquals("Entry is of type " + type, type, entry.type);
         Assert.assertEquals("DelayOrPeriod is " + delayOrPeriod, delayOrPeriod, entry.delayOrPeriod);
         Assert.assertEquals("DelayUnit is " + delayUnit, delayUnit, entry.delayUnit);
+    }
+
+    private static void printTitle(String message) {
+        System.out.println("\n=== " + message + " ===\n");
     }
 }
