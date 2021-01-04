@@ -31,7 +31,7 @@ Running
 
 You may first need to perform the following cleanup of pre-existing containers / network definitions:
 
-    docker rm -f kafka zookeeper keycloak hydra
+    docker rm -f keycloak kafka zookeeper hydra hydra-jwt hydra-import hydra-jwt-import
     docker network rm $(docker network ls | grep test | awk '{print $1}')
     
 To build and run the testsuite you need a running 'docker' daemon, then simply run:

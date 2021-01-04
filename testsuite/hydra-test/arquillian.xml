@@ -10,7 +10,7 @@
             hydra:
               await:
                 strategy: sleeping
-                sleepTime: 5 s
+                sleepTime: 20 s
             hydra-import:
               await:
                 strategy: log
@@ -19,7 +19,7 @@
             hydra-jwt:
               await:
                 strategy: sleeping
-                sleepTime: 5 s
+                sleepTime: 20 s
             hydra-jwt-import:
               await:
                 strategy: log

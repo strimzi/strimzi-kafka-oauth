@@ -38,7 +38,7 @@ mvn spotbugs:check
 # Run testsuite with java 8 only
 if [ ${JAVA_MAJOR_VERSION} -eq 1 ] ; then
 
-  docker pull oryd/hydra:v1.0.0
+  docker pull oryd/hydra:v1.8.5
   docker pull quay.io/keycloak/keycloak:latest
 
   mvn test-compile spotbugs:check -e -V -B -f testsuite

@@ -3,7 +3,7 @@ version: '3.5'
 services:
 
   hydra-db-migrate:
-    image: oryd/hydra:v1.0.0
+    image: oryd/hydra:v1.8.5
     container_name: hydra-db-migrate
 
     command: migrate sql --yes postgres://hydra:secret@hydra-db:5432/hydra?sslmode=disable
