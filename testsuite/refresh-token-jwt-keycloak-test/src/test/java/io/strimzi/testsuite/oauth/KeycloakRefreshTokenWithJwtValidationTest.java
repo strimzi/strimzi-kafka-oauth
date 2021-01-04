@@ -131,7 +131,7 @@ public class KeycloakRefreshTokenWithJwtValidationTest {
 
         JsonNode token = result.get("refresh_token");
         if (token == null) {
-            throw new IllegalStateException("Invalid response from authorization server: no refresh_token");
+            throw new IllegalStateException("Invalid response from authorization server: no refresh_token - " + result);
         }
         return token.asText();
     }

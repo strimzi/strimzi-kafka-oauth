@@ -24,9 +24,8 @@
                     stderr: true
             keycloak:
               await:
-                strategy: log
-                match: 'regexp:.* Keycloak .* started in .*'
-                timeout: 120
+                strategy: sleeping
+                sleepTime: 50 s
         </property>
     </extension>
 </arquillian>
