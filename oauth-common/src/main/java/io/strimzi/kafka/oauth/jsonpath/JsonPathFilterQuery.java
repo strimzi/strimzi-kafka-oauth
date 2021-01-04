@@ -17,7 +17,7 @@ import static io.strimzi.kafka.oauth.jsonpath.Constants.RIGHT_BRACKET;
 import static io.strimzi.kafka.oauth.jsonpath.Constants.SPACE;
 
 /**
- * This class implements the parsing of the JSONPath filter query syntax inspired by:
+ * This class implements the parsing of the JSONPath filter query syntax as implemented by:
  *
  *    https://github.com/json-path/JsonPath
  *
@@ -91,10 +91,23 @@ import static io.strimzi.kafka.oauth.jsonpath.Constants.SPACE;
  *
  * Some other differences are:
  * <ul>
- * <li> the use of 'or' / 'and' in addition to '||' / '&amp;&amp;'</li>
  * <li> the requirement to use whitespace between operands and operators</li>
- * <li> the RegEx operator using the {@link java.util.regex.Pattern} regex format, where you specify options as part of the query,
+ * <li> the use of 'or' / 'and' in addition to '||' / '&amp;&amp;'</li>
+ * <li> the RegEx operator using the {@link java.util.regex.Pattern} regex format, where you can specify options as part of the query,
  * for example starting the regex with: (?i) to turn on case-insensitive matching</li>
+ * </ul>
+ *
+ * Generally the filter queries should be compatible with Jayway JSONPath implementation - producing the same results,
+ * but some functions, are not implemented.
+ * <p>
+ * Features not implemented include:
+ * <ul>
+ * <li>Deep scan (e.g.: '@..roles')</li>
+ * <li>Array indexing (e.g.: '@.roles[1]')</li>
+ * <li>Bracket notate child (e.g.: '@.['roles'].['my client']')</li>
+ * <li>Array slice operator (e.g.: '@.aud[0:2]')</li>
+ * <li>Functions (e.g.: min(), max(), sum() ...)</li>
+ * <li>Operators 'size' and 'empty' (e.g.: '@.roles empty', '@.roles size')</li>
  * </ul>
  *
  * Usage:
@@ -103,7 +116,7 @@ import static io.strimzi.kafka.oauth.jsonpath.Constants.SPACE;
  *   boolean match = query.matches(jsonObject);
  * </pre>
  *
- * Query is parsed in the first line and any errors during parsing result
+ * Query is parsed in the first line and any errors during parsing results
  * in {@link JsonPathFilterQueryException}.
  *
  * Matching is thread safe. The normal usage pattern is to initialise the JsonPathFilterQuery object once,
