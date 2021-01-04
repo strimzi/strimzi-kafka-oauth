@@ -11,11 +11,10 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>custom-check-test</module>
         <module>docker</module>
+        <module>refresh-token-jwt-keycloak-test</module>
         <module>client-secret-jwt-keycloak-test</module>
         <module>access-token-introspection-keycloak-test</module>
-        <module>refresh-token-jwt-keycloak-test</module>
         <module>access-token-introspection-hydra-test</module>
         <module>client-secret-jwt-hydra-test</module>
         <module>client-secret-jwt-keycloak-authz-test</module>
@@ -24,6 +23,7 @@
         <module>introspection-over-plain-keycloak-authz-test</module>
         <module>client-secret-jwt-keycloak-audience-test</module>
         <module>client-secret-introspection-keycloak-audience-test</module>
+        <module>custom-check-test</module>
     </modules>
 
     <licenses>
