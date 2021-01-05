@@ -11,6 +11,7 @@
     <packaging>pom</packaging>
 
     <modules>
+        <module>custom-check-test</module>
         <module>docker</module>
         <module>refresh-token-jwt-keycloak-test</module>
         <module>client-secret-jwt-keycloak-test</module>
@@ -23,7 +24,6 @@
         <module>introspection-over-plain-keycloak-authz-test</module>
         <module>client-secret-jwt-keycloak-audience-test</module>
         <module>client-secret-introspection-keycloak-audience-test</module>
-        <module>custom-check-test</module>
     </modules>
 
     <licenses>
