@@ -12,4 +12,8 @@ public class JsonPathFilterQueryException extends RuntimeException {
     public JsonPathFilterQueryException(String message) {
         super(message);
     }
+
+    public JsonPathFilterQueryException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

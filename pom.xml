@@ -83,6 +83,7 @@
         <kafka.version>2.6.0</kafka.version>
         <scala.version>2.12.8</scala.version>
         <jackson.version>2.10.3</jackson.version>
+        <jsonpath.version>2.5.0</jsonpath.version>
         <junit.version>4.13.1</junit.version>
         <slf4j.version>1.7.26</slf4j.version>
         <keycloak.version>11.0.2</keycloak.version>
@@ -171,6 +172,11 @@
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
                 <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.jayway.jsonpath</groupId>
+                <artifactId>json-path</artifactId>
+                <version>${jsonpath.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.keycloak</groupId>

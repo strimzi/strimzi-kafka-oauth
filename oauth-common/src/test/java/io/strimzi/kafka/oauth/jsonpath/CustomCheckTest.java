@@ -2,11 +2,9 @@
  * Copyright 2017-2021, Strimzi authors.
  * License: Apache License 2.0 (see the file LICENSE or http://apache.org/licenses/LICENSE-2.0.html).
  */
-package io.strimzi.testsuite.oauth;
+package io.strimzi.kafka.oauth.jsonpath;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import io.strimzi.kafka.oauth.jsonpath.JsonPathFilterQuery;
-import io.strimzi.kafka.oauth.jsonpath.JsonPathFilterQueryException;
 import org.junit.Assert;
 import org.junit.Test;
 import org.keycloak.util.JsonSerialization;
