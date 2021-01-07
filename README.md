@@ -29,7 +29,7 @@ Strimzi Kafka OAuth modules provide support for OAuth2 as authentication mechani
       - [Configuring the token validation](#configuring-the-token-validation)
         - [Validation using the JWKS endpoint](#validation-using-the-jwks-endpoint)
         - [Validation using the introspection endpoint](#validation-using-the-introspection-endpoint)
-        - [Custom attribute checking](#custom-attribute-checking)
+        - [Custom claim checking](#custom-claim-checking)
       - [Configuring the client side of inter-broker communication](#configuring-the-client-side-of-inter-broker-communication)
     - [Enabling the re-authentication](#enabling-the-re-authentication)
     - [Enforcing the session timeout](#enforcing-the-session-timeout)  
@@ -394,8 +394,9 @@ When you have a DEBUG logging configured for the `io.strimzi` category you may n
 
 ###### Custom claim checking
 
-You may want to limit the ability to authenticate to your Kafka broker beyond the available common token claims.
-There is another mechanism available that allows the use of JSONPath filter query which is matched against the JWT token or the introspection endpoint response, and if the match fails, the authentication with the token is denied.
+You may want to place additional constraints on who can authenticate to your Kafka broker based on the content of JWT access token.
+There is a mechanism available that allows the use of JSONPath filter query which is the JWT access token or the introspection endpoint response is matched against.
+If the match fails, the authentication is denied.
 
 - `oauth.custom.claim.check` (e.g.: "'kafka-user' in @.roles")
 
@@ -420,10 +421,14 @@ For example, if the access token looks like the following:
 
 Here are some examples of valid queries that will pass the check:
 ```
-   @.orgId == 'org-001' and 'kafka-user' in @.roles.client-roles.kafka
-   @.custom-level > 7 and @.custom =~ /custom-.*/
-   @.orgId != null && @.clientId == null
+   @.orgId == 'org-001' && 'kafka-user' in @.roles.client-roles.kafka
+   @.custom-level > 7 && @.custom =~ /custom-.*/
+   @.orgId && !@.clientId
 ```
+Note, that you should not use `null` in your queries, instead you should check if the attribute is non-empty.
+For example:
+- '@.orgId' is `true` if 'orgId' attribute is set to some non-empty value
+- '!@.clientId' is `true` if clientId attribute is missing or is set to `null` or an empty string
 
 See [JsonPathFilterQuery JavaDoc](oauth-common/src/main/java/io/strimzi/kafka/oauth/jsonpath/JsonPathFilterQuery.java) for more information about the syntax.
 
