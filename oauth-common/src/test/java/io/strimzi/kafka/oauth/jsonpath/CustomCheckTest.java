@@ -147,13 +147,12 @@ public class CustomCheckTest {
         testQueries(json, nonsensicalQueries);
         //testQueries(json, buggyJaywayQueries);
 
-        for (int i = 0; i < errQueries.length; i++) {
+        for (String errQuery : errQueries) {
             try {
-                String query = errQueries[i];
-                System.out.println("Test failing parse: " + query);
+                System.out.println("Test failing parse: " + errQuery);
 
-                JsonPathFilterQuery.parse(query);
-                Assert.fail("Parsing the query should have failed: " + query);
+                JsonPathFilterQuery.parse(errQuery);
+                Assert.fail("Parsing the query should have failed: " + errQuery);
 
             } catch (JsonPathFilterQueryException expected) {
             }
@@ -212,13 +211,12 @@ public class CustomCheckTest {
         System.out.printf("Parsed %d unique queries in %d ms%n", queries.length / 2, System.currentTimeMillis() - time);
 
         System.out.println("\nTest JsonPathFilerQuery\n");
-        for (int i = 0; i < parsedQueries.size(); i++) {
+        for (JsonPathFilterQuery parsedQuery : parsedQueries) {
             time = System.currentTimeMillis();
-            JsonPathFilterQuery query = parsedQueries.get(i);
-            for (int j = 0; j < tokens.size(); j++) {
-                query.matches(tokens.get(j));
+            for (JsonNode token : tokens) {
+                parsedQuery.matches(token);
             }
-            System.out.printf("Ran query on %d unique tokens in %d ms :: '%s'%n", tokens.size(), System.currentTimeMillis() - time, query);
+            System.out.printf("Ran query on %d unique tokens in %d ms :: '%s'%n", tokens.size(), System.currentTimeMillis() - time, parsedQuery);
         }
     }
 }

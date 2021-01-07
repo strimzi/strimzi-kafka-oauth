@@ -10,8 +10,6 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.ParseContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static io.strimzi.kafka.oauth.common.JSONUtil.MAPPER;
 
@@ -25,8 +23,6 @@ import static io.strimzi.kafka.oauth.common.JSONUtil.MAPPER;
  * passing it the JSON object to match against the parsed filter.
  */
 class Matcher {
-
-    private static final Logger log = LoggerFactory.getLogger(Matcher.class);
 
     private final ParseContext ctx;
     private final JsonPath parsed;

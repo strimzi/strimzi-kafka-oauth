@@ -9,10 +9,6 @@ package io.strimzi.kafka.oauth.jsonpath;
  */
 public class JsonPathFilterQueryException extends RuntimeException {
 
-    public JsonPathFilterQueryException(String message) {
-        super(message);
-    }
-
     public JsonPathFilterQueryException(String message, Throwable cause) {
         super(message, cause);
     }

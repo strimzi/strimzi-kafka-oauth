@@ -11,8 +11,6 @@ import com.jayway.jsonpath.Option;
 import com.jayway.jsonpath.ParseContext;
 import com.jayway.jsonpath.spi.json.JacksonJsonNodeJsonProvider;
 import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static com.jayway.jsonpath.JsonPath.using;
 
@@ -94,8 +92,6 @@ import static com.jayway.jsonpath.JsonPath.using;
  * and query it many times concurrently against json objects.
  */
 public class JsonPathFilterQuery {
-
-    private static final Logger log = LoggerFactory.getLogger(JsonPathFilterQuery.class);
 
     private final Matcher matcher;
 
