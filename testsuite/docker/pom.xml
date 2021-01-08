@@ -206,6 +206,10 @@
                             <groupId>org.bouncycastle</groupId>
                             <artifactId>bcprov-jdk15on</artifactId>
                         </artifactItem>
+                        <artifactItem>
+                            <groupId>com.jayway.jsonpath</groupId>
+                            <artifactId>json-path</artifactId>
+                        </artifactItem>
                     </artifactItems>
                     <outputDirectory>target/kafka/libs</outputDirectory>
                     <overWriteReleases>false</overWriteReleases>
