@@ -52,8 +52,8 @@ import static com.jayway.jsonpath.JsonPath.using;
  *   {@literal @}.roles.client-roles.kafka &amp;&amp; "kafka-admin" nin {@literal @}.roles.client-roles.kafka
  *   {@literal @}.custom =~ /^CUSTOM-.+$/i
  *   {@literal @}.custom == 'custom-value' &amp;&amp; ('kafka' in {@literal @}.aud || 'kafka-user' in {@literal @}.roles.client-roles.kafka)
- *   {@literal @}.custom =~ /^custom-.+$/
- *   {@literal @}.iss =~ /https:\/\/auth-server\/.+/
+ *   {@literal @}.custom =~ /^custom-.+/
+ *   {@literal @}.iss =~ /^https:\/\/auth-server\/.+/
  *   !{@literal @}.internal_id
  * </pre>
  *
