@@ -26,6 +26,10 @@
                     to: ${PWD}/../kafka.log
                     stdout: true
                     stderr: true
+            kafka-acls:
+              await:
+                strategy: sleeping
+                sleepTime: 10 s
         </property>
     </extension>
 </arquillian>

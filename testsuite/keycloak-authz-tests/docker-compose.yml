@@ -120,6 +120,18 @@ services:
       - KEYCLOAK_HOST=${KEYCLOAK_HOST:-keycloak}
       - REALM=${REALM:-kafka-authz}
 
+  kafka-acls:
+    image: ${KAFKA_DOCKER_IMAGE}
+    container_name: kafka-acls
+    links:
+      - kafka
+    volumes:
+      - ${PWD}/../docker/kafka-acls/scripts:/opt/kafka/strimzi
+    command:
+      - /bin/bash
+      - -c
+      - cd /opt/kafka/strimzi && sleep 60 && ./add-acls.sh
+
   zookeeper:
     image: ${KAFKA_DOCKER_IMAGE}
     container_name: zookeeper
