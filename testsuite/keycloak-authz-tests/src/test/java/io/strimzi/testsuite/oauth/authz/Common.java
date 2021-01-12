@@ -278,6 +278,8 @@ public class Common {
         p.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         p.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         p.setProperty(ProducerConfig.ACKS_CONFIG, "all");
+        p.setProperty(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, "5000");
+        p.setProperty(ProducerConfig.RETRIES_CONFIG, "0");
     }
 
     static Properties buildConsumerConfigOAuthBearer(String kafkaBootstrap, Map<String, String> oauthConfig) {
@@ -304,6 +306,12 @@ public class Common {
         return p;
     }
 
+    static Properties buildProducerConfigScram(String kafkaBootstrap, Map<String, String> scramConfig) {
+        Properties p = buildCommonConfigScram(scramConfig);
+        setCommonProducerProperties(kafkaBootstrap, p);
+        return p;
+    }
+
     static Properties buildConsumerConfigPlain(String kafkaBootstrap, Map<String, String> plainConfig) {
         Properties p = buildCommonConfigPlain(plainConfig);
         setCommonConsumerProperties(kafkaBootstrap, p);
@@ -326,6 +334,16 @@ public class Common {
         p.setProperty("security.protocol", "SASL_PLAINTEXT");
         p.setProperty("sasl.mechanism", "PLAIN");
         p.setProperty("sasl.jaas.config", "org.apache.kafka.common.security.plain.PlainLoginModule required " + configOptions + " ;");
+        return p;
+    }
+
+    static Properties buildCommonConfigScram(Map<String, String> scramConfig) {
+        String configOptions = getJaasConfigOptionsString(scramConfig);
+
+        Properties p = new Properties();
+        p.setProperty("security.protocol", "SASL_PLAINTEXT");
+        p.setProperty("sasl.mechanism", "SCRAM-SHA-512");
+        p.setProperty("sasl.jaas.config", "org.apache.kafka.common.security.scram.ScramLoginModule required " + configOptions + " ;");
         return p;
     }
 

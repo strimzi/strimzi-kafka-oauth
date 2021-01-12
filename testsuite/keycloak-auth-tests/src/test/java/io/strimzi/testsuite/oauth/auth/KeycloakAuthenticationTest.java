@@ -7,6 +7,8 @@ package io.strimzi.testsuite.oauth.auth;
 import org.jboss.arquillian.junit.Arquillian;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Tests for OAuth authentication using Keycloak
@@ -19,11 +21,20 @@ import org.junit.runner.RunWith;
 @RunWith(Arquillian.class)
 public class KeycloakAuthenticationTest {
 
+    static final Logger log = LoggerFactory.getLogger(KeycloakAuthenticationTest.class);
+
     @Test
     public void doTest() throws Exception {
-        BasicTests.doTests();
-        OAuthOverPlainTests.doTests();
-        AudienceTests.doTests();
-        CustomCheckTests.doTests();
+        try {
+            BasicTests.doTests();
+            OAuthOverPlainTests.doTests();
+            AudienceTests.doTests();
+            CustomCheckTests.doTests();
+            MultiSaslTests.doTests();
+
+        } catch (Throwable e) {
+            log.error("Test failed: ", e);
+            throw e;
+        }
     }
 }

@@ -183,7 +183,7 @@
       "bearerOnly": false,
       "standardFlowEnabled": false,
       "implicitFlowEnabled": false,
-      "directAccessGrantsEnabled": false,
+      "directAccessGrantsEnabled": true,
       "serviceAccountsEnabled": false,
       "consentRequired" : false,
       "fullScopeAllowed" : false

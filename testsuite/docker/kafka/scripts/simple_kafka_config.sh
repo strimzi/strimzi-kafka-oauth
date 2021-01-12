@@ -19,6 +19,23 @@ pop_value() {
   unset props[$key]
 }
 
+#
+# This function allows you to encode as KAFKA_* env vars property names that contain characters invalid for env var names
+# You can use:
+#   KAFKA_LISTENER_NAME_CLIENT_SCRAM__2DSHA__2D256_SASL_JAAS_CONFIG=something
+#
+# Which will first be converted to:
+#   KAFKA_LISTENER_NAME_CLIENT_SCRAM%2DSHA%2D256_SASL_JAAS_CONFIG=something
+#
+# And then to:
+#   KAFKA_LISTENER_NAME_CLIENT_SCRAM-SHA-256_SASL_JAAS_CONFIG=something
+#
+unescape() {
+  if [[ "$1" != "" ]]; then
+    echo "$1" | sed -e "s@__@\%@g" -e "s@+@ @g;s@%@\\\\x@g" | xargs -0 printf "%b"
+  fi
+}
+
 unset IFS
 for var in $(compgen -e); do
   if [[ $var == KAFKA_* ]]; then
@@ -26,7 +43,7 @@ for var in $(compgen -e); do
     case $var in
       KAFKA_DEBUG|KAFKA_OPTS|KAFKA_VERSION|KAFKA_HOME|KAFKA_CHECKSUM|KAFKA_LOG4J_OPTS|KAFKA_HEAP_OPTS|KAFKA_JVM_PERFORMANCE_OPTS|KAFKA_GC_LOG_OPTS|KAFKA_JMX_OPTS) ;;
       *)
-        props[`to_property_name $var`]=${!var}
+        props[$(to_property_name $(unescape $var))]=${!var}
       ;;
     esac
   fi
