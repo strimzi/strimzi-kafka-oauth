@@ -68,6 +68,8 @@ public class CustomCheckTest {
         "@.sub anyof ['username']", "false",
         "@.missing anyof [null, 'username']", "false",
         "@.missing noneof [null, 'username']", "false",
+        "!(@.missing && @.missing anyof [null, 'username'])", "true",
+        "!(@.missing && @.missing noneof [null, 'username'])", "true",
         "@.aud noneof [null, 'username']", "true",
         "@.aud noneof ['kafka', 'something']", "false",
         "@.aud anyof ['kafka', 'something']", "true",
