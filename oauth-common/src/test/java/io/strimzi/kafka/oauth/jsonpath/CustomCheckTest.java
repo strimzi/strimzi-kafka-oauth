@@ -6,6 +6,7 @@ package io.strimzi.kafka.oauth.jsonpath;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.keycloak.util.JsonSerialization;
 
@@ -112,12 +113,12 @@ public class CustomCheckTest {
     };
 
     /*
-     * These queries return a different result in Jayway JsonPath implementation
-     *
      * In the case of 'anyof' and 'noneof' Jayway seems to silently fail the evaluation when the referenced
      * attribute is missing, which results in EXPRESSION and !(EXPRESSION) to both effectively evaluate to false.
+     *
+     * See: https://github.com/json-path/JsonPath/issues/662
      */
-    final String[] buggyJaywayQueries = {
+    final String[] maybeBuggyJaywayQueries = {
         "!(@.missing anyof [null, 'username'])", "true",
         "!(@.missing noneof [null, 'username'])", "true"
     };
@@ -145,7 +146,7 @@ public class CustomCheckTest {
         testQueries(json, queries);
         testQueries(json, poorWhitespaceQueries);
         testQueries(json, nonsensicalQueries);
-        //testQueries(json, buggyJaywayQueries);
+        //testQueries(json, maybeBuggyJaywayQueries);
 
         for (String errQuery : errQueries) {
             try {
@@ -173,6 +174,7 @@ public class CustomCheckTest {
         }
     }
 
+    @Ignore
     @Test
     public void testPerformance() throws Exception {
         String jsonTemplate = "{ " +
