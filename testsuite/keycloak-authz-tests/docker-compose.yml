@@ -130,7 +130,7 @@ services:
     command:
       - /bin/bash
       - -c
-      - cd /opt/kafka/strimzi && sleep 60 && ./add-acls.sh
+      - cd /opt/kafka/strimzi && ./add-acls.sh
 
   zookeeper:
     image: ${KAFKA_DOCKER_IMAGE}
