@@ -105,7 +105,7 @@ services:
       - KAFKA_STRIMZI_AUTHORIZATION_CLIENT_SECRET=kafka-secret
       - KAFKA_STRIMZI_AUTHORIZATION_KAFKA_CLUSTER_NAME=cluster2
       - KAFKA_STRIMZI_AUTHORIZATION_DELEGATE_TO_KAFKA_ACL=true
-      -
+
       # Parameters controlling the refreshing of grants
       - KAFKA_STRIMZI_AUTHORIZATION_GRANTS_REFRESH_POOL_SIZE=4
       #   any change to permissions will be reflected within 10 seconds

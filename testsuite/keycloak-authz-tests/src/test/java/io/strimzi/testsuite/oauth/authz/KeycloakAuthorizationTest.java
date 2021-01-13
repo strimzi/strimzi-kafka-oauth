@@ -7,6 +7,8 @@ package io.strimzi.testsuite.oauth.authz;
 import org.jboss.arquillian.junit.Arquillian;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Tests for OAuth authentication using Keycloak + Keycloak Authorization Services based authorization
@@ -19,27 +21,32 @@ import org.junit.runner.RunWith;
 @RunWith(Arquillian.class)
 public class KeycloakAuthorizationTest {
 
+    private static final Logger log = LoggerFactory.getLogger(KeycloakAuthorizationTest.class);
+
     @Test
     public void doTest() throws Exception {
+        try {
 
-        logStart("KeycloakAuthorizationTest :: JwtValidationAuthzTest");
-        MultiSaslTests.doTests();
+            logStart("KeycloakAuthorizationTest :: JwtValidationAuthzTest");
+            new BasicTest("kafka:9092", false).doTest();
 
-        logStart("KeycloakAuthorizationTest :: JwtValidationAuthzTest");
-        new BasicTest("kafka:9092", false).doTest();
+            logStart("KeycloakAuthorizationTest :: IntrospectionValidationAuthzTest");
+            new BasicTest("kafka:9093", false).doTest();
 
-        logStart("KeycloakAuthorizationTest :: IntrospectionValidationAuthzTest");
-        new BasicTest("kafka:9093", false).doTest();
+            logStart("KeycloakAuthorizationTest :: OAuthOverPlain + JwtValidationAuthzTest");
+            new OAuthOverPlainTest("kafka:9094", true).doTest();
 
-        logStart("KeycloakAuthorizationTest :: OAuthOverPlain + JwtValidationAuthzTest");
-        new OAuthOverPlainTest("kafka:9094", true).doTest();
+            logStart("KeycloakAuthorizationTest :: OAuthOverPlain + IntrospectionValidationAuthzTest");
+            new OAuthOverPlainTest("kafka:9095", true).doTest();
 
-        logStart("KeycloakAuthorizationTest :: OAuthOverPlain + IntrospectionValidationAuthzTest");
-        new OAuthOverPlainTest("kafka:9095", true).doTest();
+            // This test has to be the last one - it changes the team-a-client, and team-b-client permissions in Keycloak
+            logStart("KeycloakAuthorizationTest :: JwtValidationAuthzTest + RefreshGrants");
+            new RefreshTest("kafka:9096", false).doTest();
 
-        // This test has to be the last one - it changes the team-a-client, and team-b-client permissions in Keycloak
-        logStart("KeycloakAuthorizationTest :: JwtValidationAuthzTest + RefreshGrants");
-        new RefreshTest("kafka:9096", false).doTest();
+        } catch (Throwable e) {
+            log.error("Keycloak Authorization Test failed: ", e);
+            throw e;
+        }
     }
 
     private void logStart(String msg) {
