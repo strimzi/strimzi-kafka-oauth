@@ -26,15 +26,32 @@ public class KeycloakAuthenticationTest {
     @Test
     public void doTest() throws Exception {
         try {
+            logStart("KeycloakAuthenticationTest :: BasicTests");
             BasicTests.doTests();
+
+            logStart("KeycloakAuthenticationTest :: OAuthOverPlainTests");
             OAuthOverPlainTests.doTests();
+
+            logStart("KeycloakAuthenticationTest :: AudienceTests");
             AudienceTests.doTests();
+
+            logStart("KeycloakAuthenticationTest :: CustomCheckTests");
             CustomCheckTests.doTests();
+
+            logStart("KeycloakAuthenticationTest :: MultiSaslTests");
             MultiSaslTests.doTests();
 
         } catch (Throwable e) {
-            log.error("Test failed: ", e);
+            log.error("Keycloak Authentication Test failed: ", e);
             throw e;
         }
+    }
+
+    private void logStart(String msg) {
+        System.out.println();
+        System.out.println();
+        System.out.println("========    "  + msg);
+        System.out.println();
+        System.out.println();
     }
 }
