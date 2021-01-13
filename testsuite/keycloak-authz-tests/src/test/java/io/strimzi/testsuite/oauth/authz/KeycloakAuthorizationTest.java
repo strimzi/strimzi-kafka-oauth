@@ -26,6 +26,8 @@ public class KeycloakAuthorizationTest {
     @Test
     public void doTest() throws Exception {
         try {
+            logStart("KeycloakAuthorizationTest :: MultiSaslTests");
+            MultiSaslTests.doTests();
 
             logStart("KeycloakAuthorizationTest :: JwtValidationAuthzTest");
             new BasicTest("kafka:9092", false).doTest();

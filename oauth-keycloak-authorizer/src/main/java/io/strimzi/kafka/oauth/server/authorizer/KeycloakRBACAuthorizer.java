@@ -235,7 +235,7 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
                     + "\n    clientId: " + clientId
                     + "\n    clusterName: " + clusterName
                     + "\n    delegateToKafkaACL: " + delegateToKafkaACL
-                    + "\n    superUsers: " + superUsers.stream().map(u -> u.getType() + ":" + u.getName()).collect(Collectors.toList())
+                    + "\n    superUsers: " + superUsers.stream().map(u -> "'" + u.getType() + ":" + u.getName() + "'").collect(Collectors.toList())
                     + "\n    grantsRefreshPeriodSeconds: " + grantsRefreshPeriodSeconds
                     + "\n    grantsRefreshPoolSize: " + grantsRefreshPoolSize
             );

@@ -111,7 +111,7 @@ services:
       #   any change to permissions will be reflected within 10 seconds
       - KAFKA_STRIMZI_AUTHORIZATION_GRANTS_REFRESH_PERIOD_SECONDS=10
 
-      - KAFKA_SUPER_USERS=User:service-account-kafka
+      - KAFKA_SUPER_USERS=User:admin;User:service-account-kafka
 
       # Other configuration
       - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
