@@ -81,6 +81,11 @@ services:
     ports:
       - 9092:9092
       - 9093:9093
+    links:
+      - hydra
+      - hydra-jwt
+      - hydra-import
+      - hydra-jwt-import
     volumes:
       - ${PWD}/../docker/target/kafka/libs:/opt/kafka/libs/strimzi
       - ${PWD}/../docker/kafka/config:/opt/kafka/config/strimzi
