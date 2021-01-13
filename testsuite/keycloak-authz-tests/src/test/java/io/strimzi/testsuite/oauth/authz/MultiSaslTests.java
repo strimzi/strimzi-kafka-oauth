@@ -32,7 +32,8 @@ public class MultiSaslTests {
         String username = "bobby";
         String password = "bobby-secret";
 
-        // producing to PLAIN listener using SASL_PLAIN should succeed
+        // Producing to PLAIN listener using SASL_PLAIN should succeed.
+        // The necessary ACLs have been added by 'docker/kafka-acls/scripts/add-acls.sh'
         Properties producerProps = producerConfigPlain(KAFKA_PLAIN_LISTENER, username, password);
         produceToTopic("KeycloakAuthenticationTest-multiSaslTest-plain", producerProps);
 
@@ -42,7 +43,8 @@ public class MultiSaslTests {
         } catch (Exception ignored) {
         }
 
-        // producing to SCRAM listener using SASL_SCRAM-SHA-512 should fail
+        // Producing to SCRAM listener using SASL_SCRAM-SHA-512 should fail.
+        // User 'bobby' has not been configured for SCRAM in 'docker/kafka/scripts/start.sh'
         producerProps = producerConfigScram(KAFKA_SCRAM_LISTENER, username, password);
         try {
             produceToTopic("KeycloakAuthenticationTest-multiSaslTest-scram", producerProps);
@@ -55,7 +57,8 @@ public class MultiSaslTests {
         username = "alice";
         password = "alice-secret";
 
-        // producing to PLAIN listener using SASL_PLAIN should fail
+        // Producing to PLAIN listener using SASL_PLAIN should fail.
+        // User 'alice' has not been configured for PLAIN in PLAIN listener configuration in 'docker-compose.yml'
         producerProps = producerConfigPlain(KAFKA_PLAIN_LISTENER, username, password);
         try {
             produceToTopic("KeycloakAuthenticationTest-multiSaslTest-plain", producerProps);
@@ -63,7 +66,8 @@ public class MultiSaslTests {
         } catch (Exception ignored) {
         }
 
-        // producing to SCRAM listener using SASL_SCRAM-SHA-512 should succeed
+        // Producing to SCRAM listener using SASL_SCRAM-SHA-512 should succeed.
+        // The necessary ACLs have been added by 'docker/kafka-acls/scripts/add-acls.sh'
         producerProps = producerConfigScram(KAFKA_SCRAM_LISTENER, username, password);
         produceToTopic("KeycloakAuthenticationTest-multiSaslTest-scram", producerProps);
         try {
@@ -87,7 +91,8 @@ public class MultiSaslTests {
         username = "alice";
         password = "alice-password";
 
-        // producing to PLAIN listener using SASL_PLAIN should fail
+        // Producing to PLAIN listener using SASL_PLAIN should fail.
+        // User 'alice' was not configured for PLAIN in 'docker-compose.yml'
         producerProps = producerConfigPlain(KAFKA_PLAIN_LISTENER, username, password);
         try {
             produceToTopic("KeycloakAuthenticationTest-multiSaslTest-plain", producerProps);
@@ -95,7 +100,8 @@ public class MultiSaslTests {
         } catch (Exception ignored) {
         }
 
-        // producing to SCRAM listener using SASL_SCRAM-SHA-512 should fail
+        // Producing to SCRAM listener using SASL_SCRAM-SHA-512 should fail.
+        // User 'alice' was configured for SASL in 'docker/kafka/scripts/start.sh' but with a different password
         producerProps = producerConfigScram(KAFKA_SCRAM_LISTENER, username, password);
         try {
             produceToTopic("KeycloakAuthenticationTest-multiSaslTest-scram", producerProps);
@@ -103,7 +109,7 @@ public class MultiSaslTests {
         } catch (Exception ignored) {
         }
 
-        // producing to JWT listener using SASL_OAUTHBEARER using access token should succeed
+        // Producing to JWT listener using SASL_OAUTHBEARER using access token should succeed
         String accessToken = Common.loginWithUsernamePassword(
                 URI.create("http://keycloak:8080/auth/realms/kafka-authz/protocol/openid-connect/token"),
                 username, password, "kafka-cli");
