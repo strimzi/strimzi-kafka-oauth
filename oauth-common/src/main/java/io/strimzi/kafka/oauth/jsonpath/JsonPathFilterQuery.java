@@ -106,7 +106,7 @@ public class JsonPathFilterQuery {
         try {
             this.matcher = new Matcher(ctx, query);
         } catch (JsonPathException e) {
-            throw new JsonPathFilterQueryException("Failed to parse filter query: " + query, e);
+            throw new JsonPathFilterQueryException("Failed to parse filter query: \"" + query + "\"", e);
         }
     }
 
