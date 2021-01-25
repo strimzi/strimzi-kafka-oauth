@@ -45,7 +45,7 @@ public final class OAuthKafkaPrincipal extends KafkaPrincipal {
 
     public static void setToThreadContext(OAuthKafkaPrincipal principal) {
         if (currentTL.get() != null) {
-            throw new RuntimeException("Internal error - current principal already set. Make sure you have 'principal.builder.class=io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder' in your server.properties");
+            throw new RuntimeException("Internal error - current principal already set. Make sure you have 'principal.builder.class=io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder' in your broker configuration file");
         }
         currentTL.set(principal);
     }

@@ -139,8 +139,8 @@ public class CustomCheckTest {
     public void testJsonPathFilterQuery() throws Exception {
 
         String[] errQueries = {
-            "@.attr == and !('admin' in @.roles)",
-            "@.exp < 'cant compare makes it false"
+            "@.attr == and !('admin' in @.roles)",     // no value to the right of ==
+            "@.exp < 'unclosed string"                 // unclosed string
         };
 
         JsonNode json = JsonSerialization.readValue(jsonString, JsonNode.class);
