@@ -13,9 +13,10 @@
                 sleepTime: 5 s
             kafka:
               await:
-                strategy: log
-                match: '[KafkaServer id=1] started'
-                timeout: 120
+                strategy: docker_health
+                iterations: 50
+                sleepPollingTime: 5 s
+                command: ["sh", "-c", "grep 'started (kafka.server.KafkaServer)' &lt; /tmp/logs/server.log"]
               beforeStop:
                 - log:
                     to: ${PWD}/../kafka.log
@@ -23,9 +24,8 @@
                     stderr: true
             keycloak:
               await:
-                strategy: log
-                match: 'regexp:.* Keycloak .* started in .*'
-                timeout: 120
+                strategy: sleeping
+                sleepTime: 50 s
         </property>
     </extension>
 </arquillian>

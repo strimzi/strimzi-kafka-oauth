@@ -516,7 +516,7 @@ public class KeycloakClientCredentialsWithJwtValidationAuthzTest {
 
         JsonNode token = result.get("access_token");
         if (token == null) {
-            throw new IllegalStateException("Invalid response from authorization server: no access_token");
+            throw new IllegalStateException("Invalid response from authorization server: no access_token - " + result);
         }
         return token.asText();
     }

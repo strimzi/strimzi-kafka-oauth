@@ -27,6 +27,8 @@ import org.jboss.arquillian.junit.Arquillian;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URI;
@@ -42,6 +44,8 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
 
 @RunWith(Arquillian.class)
 public class KeycloakWithJwtValidationAuthzOverPlainTest {
+
+    private static Logger log = LoggerFactory.getLogger(KeycloakWithJwtValidationAuthzOverPlainTest.class);
 
     private static final String HOST = "keycloak";
     private static final String REALM = "kafka-authz";
@@ -75,34 +79,40 @@ public class KeycloakWithJwtValidationAuthzOverPlainTest {
     @Test
     public void doTest() throws Exception {
 
-        System.out.println(getTestTitle());
+        try {
+            System.out.println(getTestTitle());
 
-        Properties defaults = new Properties();
-        defaults.setProperty(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, TOKEN_ENDPOINT_URI);
-        defaults.setProperty(ClientConfig.OAUTH_USERNAME_CLAIM, "preferred_username");
+            Properties defaults = new Properties();
+            defaults.setProperty(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, TOKEN_ENDPOINT_URI);
+            defaults.setProperty(ClientConfig.OAUTH_USERNAME_CLAIM, "preferred_username");
 
-        ConfigProperties.resolveAndExportToSystemProperties(defaults);
+            ConfigProperties.resolveAndExportToSystemProperties(defaults);
 
-        Properties p = System.getProperties();
-        for (Object key: p.keySet()) {
-            System.out.println("" + key + "=" + p.get(key));
+            Properties p = System.getProperties();
+            for (Object key : p.keySet()) {
+                System.out.println("" + key + "=" + p.get(key));
+            }
+
+            fixBadlyImportedAuthzSettings();
+
+            tokens = authenticateAllActors();
+
+            testTeamAClientPart1();
+
+            testTeamBClientPart1();
+
+            createTopicAsClusterManager();
+
+            testTeamAClientPart2();
+
+            testTeamBClientPart2();
+
+            testClusterManager();
+
+        } catch (Throwable t) {
+            log.error("Test failed", t);
+            throw t;
         }
-
-        fixBadlyImportedAuthzSettings();
-
-        tokens = authenticateAllActors();
-
-        testTeamAClientPart1();
-
-        testTeamBClientPart1();
-
-        createTopicAsClusterManager();
-
-        testTeamAClientPart2();
-
-        testTeamBClientPart2();
-
-        testClusterManager();
     }
 
 

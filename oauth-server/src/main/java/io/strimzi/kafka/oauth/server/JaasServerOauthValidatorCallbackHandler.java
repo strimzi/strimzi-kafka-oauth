@@ -8,6 +8,7 @@ import io.strimzi.kafka.oauth.common.Config;
 import io.strimzi.kafka.oauth.common.ConfigUtil;
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
 import io.strimzi.kafka.oauth.common.PrincipalExtractor;
+import io.strimzi.kafka.oauth.jsonpath.JsonPathFilterQuery;
 import io.strimzi.kafka.oauth.services.Services;
 import io.strimzi.kafka.oauth.services.ValidatorKey;
 import io.strimzi.kafka.oauth.validator.JWTSignatureValidator;
@@ -130,7 +131,7 @@ import static io.strimzi.kafka.oauth.common.LogUtil.mask;
  * </p>
  * <ul>
  * <li><em>oauth.userinfo.endpoint.uri</em> A URL of the token introspection endpoint which can be used to validate opaque non-JWT tokens.<br>
- * <li><em>oauth.valid.token.type</em> A URL of the token introspection endpoint which can be used to validate opaque non-JWT tokens.<br>
+ * <li><em>oauth.valid.token.type</em> If set, the token type returned by the introspection endpoint has to match the configured value.<br>
  * </ul>
  * <p>
  * Common optional <em>sasl.jaas.config</em> configuration:
@@ -157,6 +158,8 @@ import static io.strimzi.kafka.oauth.common.LogUtil.mask;
  * <li><em>oauth.check.access.token.type</em> Configure whether the access token type check is performed or not. <br>
  * This should be set to <em>false</em> if the authorization server does not include <em>typ</em> claim in JWT token. Default value is <em>true</em>.</li>
  * <li><em>oauth.validation.skip.type.check</em> Deprecated. Same as <em>oauth.check.access.token.type</em> with opposite meaning.</li>
+ * <li><em>oauth.custom.claim.check</em> The optional mechanism to validate the JWT token or the introspection endpoint response by using any claim or attribute with a JSONPath inspired filter query that evaluates to true or false.
+ * If it evaluates to true the check passes, otherwise the token is rejected. See {@link JsonPathFilterQuery}.
  * </ul>
  * <p>
  * TLS <em>sasl.jaas.config</em> configuration for TLS connectivity with the authorization server:
@@ -253,6 +256,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
             throw new RuntimeException("Oauth validator configuration error: OAUTH_CLIENT_ID must be set when OAUTH_CHECK_AUDIENCE is 'true'");
         }
         String audience = checkAudience ? clientId : null;
+        String customClaimCheck = config.getValue(ServerConfig.OAUTH_CUSTOM_CLAIM_CHECK);
 
         if (!Services.isAvailable()) {
             Services.configure(configs);
@@ -275,6 +279,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
             vkey = new ValidatorKey.JwtValidatorKey(
                     validIssuerUri,
                     audience,
+                    customClaimCheck,
                     usernameClaim,
                     fallbackUsernameClaim,
                     fallbackUsernamePrefix,
@@ -302,6 +307,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                     jwksExpirySeconds,
                     checkTokenType,
                     audience,
+                    customClaimCheck,
                     enableBouncy,
                     bouncyPosition);
 
@@ -314,6 +320,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
             vkey = new ValidatorKey.IntrospectionValidatorKey(
                     validIssuerUri,
                     audience,
+                    customClaimCheck,
                     usernameClaim,
                     fallbackUsernameClaim,
                     fallbackUsernamePrefix,
@@ -338,7 +345,8 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                     validTokenType,
                     clientId,
                     clientSecret,
-                    audience);
+                    audience,
+                    customClaimCheck);
         }
 
         validator = Services.getInstance().getValidators().get(vkey, factory);

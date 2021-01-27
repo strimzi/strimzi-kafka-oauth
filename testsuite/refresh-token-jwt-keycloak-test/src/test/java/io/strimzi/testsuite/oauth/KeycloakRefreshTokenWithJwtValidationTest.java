@@ -38,8 +38,11 @@ public class KeycloakRefreshTokenWithJwtValidationTest {
     private static final String HOST = "keycloak";
     private static final String REALM = "demo";
 
-    private static final String CLIENT_ID = "kafka-producer-client";
-    private static final String CLIENT_SECRET = "kafka-producer-client-secret";
+    private static final String CLIENT_ID = "kafka";
+    private static final String CLIENT_SECRET = null;
+
+    private static final String USERNAME = "alice";
+    private static final String PASSWORD = "alice-password";
 
     @Test
     public void doTest() throws Exception {
@@ -48,12 +51,12 @@ public class KeycloakRefreshTokenWithJwtValidationTest {
         final String topic = "KeycloakRefreshTokenWithJwtValidationTest";
         final String tokenEndpointUri = "http://" + HOST + ":8080/auth/realms/" + REALM + "/protocol/openid-connect/token";
 
-        String refreshToken = loginWithClientSecretForRefreshToken(URI.create(tokenEndpointUri), CLIENT_ID, CLIENT_SECRET);
+        String refreshToken = loginWithUsernamePasswordForRefreshToken(URI.create(tokenEndpointUri), CLIENT_ID, CLIENT_SECRET, USERNAME, PASSWORD);
 
         Properties defaults = new Properties();
         defaults.setProperty(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, tokenEndpointUri);
         defaults.setProperty(ClientConfig.OAUTH_CLIENT_ID, CLIENT_ID);
-        defaults.setProperty(ClientConfig.OAUTH_CLIENT_SECRET, CLIENT_SECRET);
+        //defaults.setProperty(ClientConfig.OAUTH_CLIENT_SECRET, CLIENT_SECRET);
         defaults.setProperty(ClientConfig.OAUTH_REFRESH_TOKEN, refreshToken);
         defaults.setProperty(ClientConfig.OAUTH_USERNAME_CLAIM, "preferred_username");
 
@@ -117,10 +120,10 @@ public class KeycloakRefreshTokenWithJwtValidationTest {
         return p;
     }
 
-    private String loginWithClientSecretForRefreshToken(URI tokenEndpointUri, String clientId, String clientSecret) throws IOException {
+    private String loginWithUsernamePasswordForRefreshToken(URI tokenEndpointUri, String clientId, String clientSecret, String username, String password) throws IOException {
 
-        String authorization = "Basic " + base64encode(clientId + ':' + clientSecret);
-        StringBuilder body = new StringBuilder("grant_type=client_credentials");
+        String authorization = clientSecret != null ? ("Basic " + base64encode(clientId + ':' + clientSecret)) : null;
+        StringBuilder body = new StringBuilder("grant_type=password&username=" + username + "&password=" + password + "&client_id=" + clientId);
         JsonNode result = HttpUtil.post(tokenEndpointUri,
                 null,
                 null,
@@ -131,7 +134,7 @@ public class KeycloakRefreshTokenWithJwtValidationTest {
 
         JsonNode token = result.get("refresh_token");
         if (token == null) {
-            throw new IllegalStateException("Invalid response from authorization server: no refresh_token");
+            throw new IllegalStateException("Invalid response from authorization server: no refresh_token - " + result);
         }
         return token.asText();
     }

@@ -9,6 +9,7 @@ import io.strimzi.kafka.oauth.common.JSONUtil;
 import io.strimzi.kafka.oauth.common.PrincipalExtractor;
 import io.strimzi.kafka.oauth.common.TimeUtil;
 import io.strimzi.kafka.oauth.common.TokenInfo;
+import io.strimzi.kafka.oauth.jsonpath.JsonPathFilterQuery;
 import org.apache.kafka.common.utils.Time;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +28,14 @@ import static io.strimzi.kafka.oauth.common.LogUtil.mask;
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.base64encode;
 import static io.strimzi.kafka.oauth.validator.TokenValidationException.Status;
 
+/**
+ * This class is responsible for validating the token during session authentication by using an introspection endpoint.
+ * <p>
+ * It works by sending the token to the configured authorization server's introspection endpoint.
+ * The endpoint returns a response with whether the token is valid or not, and it usually also returns additional attributes, that
+ * can be used to enforce additional constraints, and prevent some otherwise valid tokens from authenticating.
+ * </p>
+ */
 public class OAuthIntrospectionValidator implements TokenValidator {
 
     private static final Logger log = LoggerFactory.getLogger(OAuthIntrospectionValidator.class);
@@ -38,10 +47,26 @@ public class OAuthIntrospectionValidator implements TokenValidator {
     private final String clientId;
     private final String clientSecret;
     private final String audience;
+    private final JsonPathFilterQuery customClaimMatcher;
     private final SSLSocketFactory socketFactory;
     private final HostnameVerifier hostnameVerifier;
     private final PrincipalExtractor principalExtractor;
 
+    /**
+     * Create a new instance.
+     *
+     * @param introspectionEndpointUri The introspection endpoint url at the authorization server
+     * @param socketFactory The optional SSL socket factory to use when establishing the connection to authorization server
+     * @param verifier The optional hostname verifier used to validate the TLS certificate by the authorization server
+     * @param principalExtractor The object used to extract the username from the attributes in the server's response
+     * @param issuerUri The required value of the 'iss' claim in JWT token
+     * @param userInfoUri The optional user info endpoint url at the authorization server, used as a failover when user id can't be extracted from the introspection endpoint response
+     * @param validTokenType The optional token type enforcement - only the specified token type is accepted as valid
+     * @param clientId The clientId of the OAuth2 client representing this Kafka broker - needed to authenticate to the introspection endpoint
+     * @param clientSecret The secret of the OAuth2 client representing this Kafka broker - needed to authenticate to the introspection endpoint
+     * @param audience The optional audience check. If specified, the 'aud' attributie of the introspection endpoint response needs to contain the configured clientId
+     * @param customClaimCheck The optional JSONPath filter query for additional custom attribute checking
+     */
     public OAuthIntrospectionValidator(String introspectionEndpointUri,
                                        SSLSocketFactory socketFactory,
                                        HostnameVerifier verifier,
@@ -51,7 +76,8 @@ public class OAuthIntrospectionValidator implements TokenValidator {
                                        String validTokenType,
                                        String clientId,
                                        String clientSecret,
-                                       String audience) {
+                                       String audience,
+                                       String customClaimCheck) {
 
         if (introspectionEndpointUri == null) {
             throw new IllegalArgumentException("introspectionEndpointUri == null");
@@ -98,6 +124,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         this.clientId = clientId;
         this.clientSecret = clientSecret;
         this.audience = audience;
+        this.customClaimMatcher = parseCustomClaimCheck(customClaimCheck);
 
         if (log.isDebugEnabled()) {
             log.debug("Configured OAuthIntrospectionValidator:\n    introspectionEndpointUri: " + introspectionURI
@@ -109,8 +136,21 @@ public class OAuthIntrospectionValidator implements TokenValidator {
                     + "\n    validTokenType: " + validTokenType
                     + "\n    clientId: " + clientId
                     + "\n    clientSecret: " + mask(clientSecret)
-                    + "\n    audience: " + audience);
+                    + "\n    audience: " + audience
+                    + "\n    customClaimCheck: " + customClaimCheck
+            );
         }
+    }
+
+    private JsonPathFilterQuery parseCustomClaimCheck(String customClaimCheck) {
+        if (customClaimCheck != null) {
+            String query = customClaimCheck.trim();
+            if (query.length() == 0) {
+                throw new IllegalArgumentException("Value of customClaimCheck is empty");
+            }
+            return JsonPathFilterQuery.parse(query);
+        }
+        return null;
     }
 
     @SuppressWarnings("checkstyle:NPathComplexity")
@@ -216,6 +256,13 @@ public class OAuthIntrospectionValidator implements TokenValidator {
             List<String> audienceList = value != null ? JSONUtil.asListOfString(value) : Collections.emptyList();
             if (!audienceList.contains(audience)) {
                 throw new TokenValidationException("Token check failed - invalid audience: " + value)
+                        .status(Status.INVALID_TOKEN);
+            }
+        }
+
+        if (customClaimMatcher != null) {
+            if (!customClaimMatcher.matches(response)) {
+                throw new TokenValidationException("Token check failed - custom claim check failed.")
                         .status(Status.INVALID_TOKEN);
             }
         }

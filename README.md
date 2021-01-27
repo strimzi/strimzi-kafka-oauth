@@ -24,10 +24,12 @@ Strimzi Kafka OAuth modules provide support for OAuth2 as authentication mechani
     - [Configuring the listeners](#configuring-the-listeners)
     - [Configuring the JAAS login module](#configuring-the-jaas-login-module)
     - [Enabling the custom callbacks](#enabling-the-custom-callbacks)
+    - [Enabling the custom principal builder](#enabling-the-custom-principal_builder)
     - [Configuring the OAuth2](#configuring-the-oauth2)
       - [Configuring the token validation](#configuring-the-token-validation)
         - [Validation using the JWKS endpoint](#validation-using-the-jwks-endpoint)
         - [Validation using the introspection endpoint](#validation-using-the-introspection-endpoint)
+        - [Custom claim checking](#custom-claim-checking)
       - [Configuring the client side of inter-broker communication](#configuring-the-client-side-of-inter-broker-communication)
     - [Enabling the re-authentication](#enabling-the-re-authentication)
     - [Enforcing the session timeout](#enforcing-the-session-timeout)  
@@ -166,10 +168,11 @@ In order to use that you have to enable the SASL_PLAIN mechanism as well (you ca
 
 #### Configuring the JAAS login module
 
-In JAAS configuration we do three things:
+In JAAS configuration we do four things:
 - Activate a specific JAAS login module - for Strimzi Kafka OAuth that is either:
   - the `org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule` class which implements Kafka's SASL_OAUTHBEARER authentication mechanism, or 
   - the `org.apache.kafka.common.security.plain.PlainLoginModule` class which implements Kafka's SASL_PLAIN authentication mechanism.
+- Activate the custom principal builder - `io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder`.
 - Activate the custom server callback that will provide server-side token validation:
   - For `SASL_OAUTHBEARER` the callback class should be `io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler`.
   - For `SASL_PLAIN` the callback class should be `io.strimzi.kafka.oauth.server.plain.JaasServerOauthOverPlainValidatorCallbackHandler`.
@@ -217,6 +220,12 @@ An example for SASL_PLAIN:
 If the SASL_OAUTHBEARER listener is also used for interbroker communication, then you also have to configure the client callback handler class.
 
     listener.name.client.oauthbearer.sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler 
+
+#### Enabling the custom principal builder
+
+OAuth authentication also requires a custom principal builder to be installed on the broker:
+  
+    principal.builder.class=io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder
 
 #### Configuring the OAuth2
 
@@ -276,7 +285,7 @@ When audience checking is enabled the `oauth.client.id` has to be configured:
 
 If the configured `oauth.client.id` is `kafka`, the following are valid examples of `aud` attribute in the JWT token:
 - "kafka"
-- ["rest-api", "kafka"]
+- \["rest-api", "kafka"\]
 
 JWT tokens contain unique user identification in `sub` claim. However, this is often a long number or a UUID, but we usually prefer to use human readable usernames, which may also be present in JWT token.
 Use `oauth.username.claim` to map the claim (attribute) where the value you want to use as user id is stored:
@@ -340,7 +349,7 @@ Set the following option to `true` to enforce audience checking:
 
 If the configured `oauth.client.id` is `kafka`, the following are valid examples of `aud` attribute in the JWT token:
 - "kafka"
-- ["rest-api", "kafka"]
+- \["rest-api", "kafka"\]
 
 By default, if the Introspection Endpoint response contains `token_type` claim, there is no checking performed on it.
 Some authorization servers use a non-standard `token_type` value. To give the most flexibility, you can specify the valid `token_type` for your authorization server:
@@ -382,6 +391,46 @@ If the user id could not be extracted from Introspection Endpoint response, then
 
 When you have a DEBUG logging configured for the `io.strimzi` category you may need to specify the following to prevent warnings about access token not being JWT:
 - `oauth.access.token.is.jwt` (e.g.: "false")
+
+###### Custom claim checking
+
+You may want to place additional constraints on who can authenticate to your Kafka broker based on the content of JWT access token.
+There is a mechanism available that allows the use of JSONPath filter query which is the JWT access token or the introspection endpoint response is matched against.
+If the match fails, the authentication is denied.
+
+- `oauth.custom.claim.check` (e.g.: "'kafka-user' in @.roles")
+
+For example, if the access token looks like the following:
+```
+   {
+     "aud": ["uma_authorization", "kafka"],
+     "iss": "https://auth-server/token/",
+     "iat": 0,
+     "exp": 600,
+     "sub": "username",
+     "custom": "custom-value",
+     "roles": {
+       "client-roles": {
+         "kafka": ["kafka-user"]
+       }
+     },
+     "custom-level": 9,
+     "orgId": "org-001"
+   }
+```
+
+Here are some examples of valid queries that will pass the check:
+```
+   @.orgId == 'org-001' && 'kafka-user' in @.roles.client-roles.kafka
+   @.custom-level > 7 && @.custom =~ /custom-.*/
+   @.orgId && !@.clientId
+```
+Note, that you should not use `null` in your queries, instead you should check if the attribute is non-empty.
+For example:
+- '@.orgId' is `true` if 'orgId' attribute is set to some non-empty value
+- '!@.clientId' is `true` if clientId attribute is missing or is set to `null` or an empty string
+
+See [JsonPathFilterQuery JavaDoc](oauth-common/src/main/java/io/strimzi/kafka/oauth/jsonpath/JsonPathFilterQuery.java) for more information about the syntax.
 
 ##### Configuring the client side of inter-broker communication
 
@@ -433,8 +482,6 @@ As long as the token has not yet expired (it may have been recently invalidated 
 If you want to install OAuthSessionAuthorizer wrapped around Simple ACL Authorizer install it as follows in `server.properties`:
 
     authorizer.class.name=io.strimzi.kafka.oauth.server.OAuthSessionAuthorizer
-    principal.builder.class=io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder
-    
     strimzi.authorizer.delegate.class.name=kafka.security.auth.SimpleAclAuthorizer
 
 You configure the `SimpleAclAuthorizer` by specifying the same properties as if it was installed under `authorizer.class.name`.
@@ -471,15 +518,16 @@ Strimzi Kafka OAuth provides an alternative authorizer - `io.strimzi.kafka.oauth
 Add the following to `server.properties` file:
 
     authorizer.class.name=io.strimzi.kafka.oauth.server.authorizer.KeycloakRBACAuthorizer
-    principal.builder.class=io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder
 
 Note: Since version 0.6.0 the `io.strimzi.kafka.oauth.server.authorizer.JwtKafkaPrincipalBuilder` has been deprecated. Use the above configuration instead.
+
+You also need a properly configured OAuth authentication support, as described in [Configuring the Kafka broker authentication](configuring_the_kafka_broker_authentication).
 
 #### Configuring the KeycloakRBACAuthorizer
 
 All the configuration properties for KeycloakRBACAuthorizer begin with a `strimzi.authorization.` prefix.
 
-The token endpoint used by KeycloakRBACAuthorizer has to be the same as the one used for authentication:
+The token endpoint used by KeycloakRBACAuthorizer has to be the same as the one used for OAuth authentication:
 - `strimzi.authorization.token.endpoint.uri` (e.g.: "https://localhost:8443/auth/realms/demo/protocol/openid-connect/token" - the endpoint used to exchange the access token for a list of grants)
 - `strimzi.authorization.client.id` (e.g.: "kafka" - the client representing a Kafka Broker which has Authorization Services enabled)
 
@@ -855,7 +903,7 @@ security.protocol=SASL_PLAINTEXT
 sasl.mechanism=PLAIN
 sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required \
   username="team-a-client" \
-  password="team-a-client-secret"
+  password="team-a-client-secret" ;
 ```
 
 Note that when using SASL_PLAIN the credentials are actually sent to the Kafka Broker, which is not the case when SASL_OAUTHBEARER is used, when the client library contacts the OAuth2 authorization service first, to obtain the access token, and then only sends to the Kafka Broker the access token.

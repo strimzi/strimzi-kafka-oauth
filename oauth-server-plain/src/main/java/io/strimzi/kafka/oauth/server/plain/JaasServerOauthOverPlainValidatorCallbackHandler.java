@@ -136,18 +136,34 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
         String password = null;
         org.apache.kafka.common.security.plain.PlainAuthenticateCallback cb = null;
 
-        for (Callback callback : callbacks) {
-            if (callback instanceof javax.security.auth.callback.NameCallback) {
-                username = ((javax.security.auth.callback.NameCallback) callback).getDefaultName();
-            } else if (callback instanceof org.apache.kafka.common.security.plain.PlainAuthenticateCallback) {
-                password = String.valueOf(((org.apache.kafka.common.security.plain.PlainAuthenticateCallback) callback).password());
-                cb = (org.apache.kafka.common.security.plain.PlainAuthenticateCallback) callback;
-            } else {
-                throw new UnsupportedCallbackException(callback);
+        try {
+            for (Callback callback : callbacks) {
+                if (callback instanceof javax.security.auth.callback.NameCallback) {
+                    username = ((javax.security.auth.callback.NameCallback) callback).getDefaultName();
+                } else if (callback instanceof org.apache.kafka.common.security.plain.PlainAuthenticateCallback) {
+                    password = String.valueOf(((org.apache.kafka.common.security.plain.PlainAuthenticateCallback) callback).password());
+                    cb = (org.apache.kafka.common.security.plain.PlainAuthenticateCallback) callback;
+                } else {
+                    throw new UnsupportedCallbackException(callback);
+                }
             }
-        }
 
-        handleCallback(cb, username, password);
+            handleCallback(cb, username, password);
+
+        } catch (UnsupportedCallbackException e) {
+            log.error("Authentication failed due to misconfigured CallbackHandler: ", e);
+            throw e;
+        } catch (SaslAuthenticationException e) {
+            if (log.isDebugEnabled()) {
+                log.debug("Authentication failed for username: [" + username + "]: ", e);
+            }
+            throw e;
+        } catch (Throwable e) {
+            if (log.isDebugEnabled()) {
+                log.debug("Authentication failed for username: [" + username + "]: ", e);
+            }
+            throw new SaslAuthenticationException("Authentication failed for username: [" + username + "] " + getAllCauseMessages(e), e);
+        }
     }
 
     private void handleCallback(PlainAuthenticateCallback callback, String username, String password) {
