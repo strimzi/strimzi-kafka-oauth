@@ -1,12 +1,12 @@
 Strimzi Kafka Image with SNAPSHOT Strimzi Kafka OAuth
 =====================================================
 
-This is a build of a Docker image based on `quay.io/strimzi/kafka:latest-kafka-2.6.0` with added most recently locally built SNAPSHOT version of Strimzi Kafka OAuth libraries.
+This is a build of a Docker image based on `quay.io/strimzi/kafka:0.21.1-kafka-2.6.0` with added most recently locally built SNAPSHOT version of Strimzi Kafka OAuth libraries.
 
 This image adds a `/opt/kafka/libs/oauth` directory, and copies the latest jars for OAuth support in it.
 Then it puts this directory as the first directory on the classpath.
 
-The result is that the most recent Strimzi Kafka OAuth jars and their dependencies are used, because they appear on the classpath before the ones that are part of `quay.io/strimzi/kafka:latest-kafka-2.6.0` which are located in the `/opt/kafka/libs` directory.
+The result is that the most recent Strimzi Kafka OAuth jars and their dependencies are used, because they appear on the classpath before the ones that are part of `quay.io/strimzi/kafka:0.21.1-kafka-2.6.0` which are located in the `/opt/kafka/libs` directory.
 
 
 Building
