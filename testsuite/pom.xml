@@ -12,17 +12,9 @@
 
     <modules>
         <module>docker</module>
-        <module>refresh-token-jwt-keycloak-test</module>
-        <module>client-secret-jwt-keycloak-test</module>
-        <module>access-token-introspection-keycloak-test</module>
-        <module>access-token-introspection-hydra-test</module>
-        <module>client-secret-jwt-hydra-test</module>
-        <module>client-secret-jwt-keycloak-authz-test</module>
-        <module>client-secret-jwt-keycloak-authz-refresh-test</module>
-        <module>jwt-over-plain-keycloak-authz-test</module>
-        <module>introspection-over-plain-keycloak-authz-test</module>
-        <module>client-secret-jwt-keycloak-audience-test</module>
-        <module>client-secret-introspection-keycloak-audience-test</module>
+        <module>keycloak-auth-tests</module>
+        <module>keycloak-authz-tests</module>
+        <module>hydra-test</module>
     </modules>
 
     <licenses>
@@ -41,7 +33,7 @@
         <maven.dependency.version>3.1.1</maven.dependency.version>
         <maven.checkstyle.version>3.1.0</maven.checkstyle.version>
         <maven.surefire.version>2.22.1</maven.surefire.version>
-        <version.arquillian_universe>1.2.0.2</version.arquillian_universe>
+        <version.arquillian_universe>1.5.0.0</version.arquillian_universe>
         <version.junit>4.12</version.junit>
         <bouncycastle.version>1.60</bouncycastle.version>
         <arquillian.cube.version>1.18.2</arquillian.cube.version>
@@ -49,7 +41,7 @@
         <strimzi-oauth.version>1.0.0-SNAPSHOT</strimzi-oauth.version>
         <checkstyle.dir>..</checkstyle.dir>
 
-        <kafka.docker.image>strimzi/kafka:latest-kafka-2.6.0</kafka.docker.image>
+        <kafka.docker.image>quay.io/strimzi/kafka:0.21.1-kafka-2.7.0</kafka.docker.image>
     </properties>
 
     <dependencyManagement>
@@ -321,19 +313,25 @@
         <profile>
             <id>kafka-2_5_0</id>
             <properties>
-                <kafka.docker.image>strimzi/kafka:latest-kafka-2.5.0</kafka.docker.image>
+                <kafka.docker.image>quay.io/strimzi/kafka:0.21.1-kafka-2.5.0</kafka.docker.image>
             </properties>
         </profile>
         <profile>
             <id>kafka-2_5_1</id>
             <properties>
-                <kafka.docker.image>strimzi/kafka:latest-kafka-2.5.1</kafka.docker.image>
+                <kafka.docker.image>quay.io/strimzi/kafka:0.21.1-kafka-2.5.1</kafka.docker.image>
             </properties>
         </profile>
         <profile>
             <id>kafka-2_6_0</id>
             <properties>
-                <kafka.docker.image>strimzi/kafka:latest-kafka-2.6.0</kafka.docker.image>
+                <kafka.docker.image>quay.io/strimzi/kafka:0.21.1-kafka-2.6.0</kafka.docker.image>
+            </properties>
+        </profile>
+        <profile>
+            <id>kafka-2_7_0</id>
+            <properties>
+                <kafka.docker.image>quay.io/strimzi/kafka:0.21.1-kafka-2.7.0</kafka.docker.image>
             </properties>
         </profile>
     </profiles>

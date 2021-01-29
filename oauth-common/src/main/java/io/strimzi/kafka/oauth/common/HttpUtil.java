@@ -74,9 +74,21 @@ public class HttpUtil {
         request(uri, socketFactory, verifier, authorization, contentType, body, null);
     }
 
+    public static void delete(URI uri, String authorization) throws IOException {
+        request(uri, "DELETE", null, null, authorization, null, null, null);
+    }
+
+    public static void delete(URI uri, SSLSocketFactory socketFactory, HostnameVerifier verifier, String authorization) throws IOException {
+        request(uri, "DELETE", socketFactory, verifier, authorization, null, null, null);
+    }
+
+    public static <T> T request(URI uri, SSLSocketFactory socketFactory, HostnameVerifier hostnameVerifier, String authorization, String contentType, String body, Class<T> responseType) throws IOException {
+        return request(uri, null, socketFactory, hostnameVerifier, authorization, contentType, body, responseType);
+    }
+
     // Surpressed because of Spotbugs Java 11 bug - https://github.com/spotbugs/spotbugs/issues/756
     @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
-    public static <T> T request(URI uri, SSLSocketFactory socketFactory, HostnameVerifier hostnameVerifier, String authorization, String contentType, String body, Class<T> responseType) throws IOException {
+    public static <T> T request(URI uri, String method, SSLSocketFactory socketFactory, HostnameVerifier hostnameVerifier, String authorization, String contentType, String body, Class<T> responseType) throws IOException {
         HttpURLConnection con;
         try {
             con = (HttpURLConnection) uri.toURL().openConnection();
@@ -101,7 +113,9 @@ public class HttpUtil {
             con.setDoOutput(true);
         }
 
-        String method = body == null ? "GET" : responseType != null ? "POST" : "PUT";
+        if (method == null) {
+            method = body == null ? "GET" : responseType != null ? "POST" : "PUT";
+        }
         con.setRequestMethod(method);
         if (authorization != null) {
             con.setRequestProperty("Authorization", authorization);

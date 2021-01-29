@@ -158,7 +158,7 @@ import static io.strimzi.kafka.oauth.common.LogUtil.mask;
  * <li><em>oauth.check.access.token.type</em> Configure whether the access token type check is performed or not. <br>
  * This should be set to <em>false</em> if the authorization server does not include <em>typ</em> claim in JWT token. Default value is <em>true</em>.</li>
  * <li><em>oauth.validation.skip.type.check</em> Deprecated. Same as <em>oauth.check.access.token.type</em> with opposite meaning.</li>
- * <li><em>oauth.custom.claim.check</em> The optional mechanism to validate the JWT token or the introspection endpoint response by using any claim or attribute with a JSONPath inspired filter query that evaluates to true or false.
+ * <li><em>oauth.custom.claim.check</em> The optional mechanism to validate the JWT token or the introspection endpoint response by using any claim or attribute with a JSONPath filter query that evaluates to true or false.
  * If it evaluates to true the check passes, otherwise the token is rejected. See {@link JsonPathFilterQuery}.
  * </ul>
  * <p>

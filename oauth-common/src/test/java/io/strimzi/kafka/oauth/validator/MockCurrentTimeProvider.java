@@ -14,19 +14,19 @@ public class MockCurrentTimeProvider implements CurrentTimeProvider {
 
     private long diff = 0;
 
-    public void setTime(long millis) {
+    public synchronized void setTime(long millis) {
         diff = millis - System.currentTimeMillis();
         log.debug("New current time is: " + (System.currentTimeMillis() + diff));
     }
 
-    public long addSeconds(int seconds) {
+    public synchronized long addSeconds(int seconds) {
         diff += 1000 * seconds;
         log.debug("New current time is: plus " + seconds + "s: " + (System.currentTimeMillis() + diff));
         return currentTime();
     }
 
     @Override
-    public long currentTime() {
+    public synchronized long currentTime() {
         return System.currentTimeMillis() + diff;
     }
 }

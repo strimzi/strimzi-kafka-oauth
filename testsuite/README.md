@@ -3,7 +3,7 @@ Testsuite
 
 This module contains integration tests for OAuth 2.0 support - different configurations for client and server are tested.
 
-The tests in this testsuite are all integration tests, making use of Arquillian Cube to start and stop the necessary docker 
+The tests in this testsuite are mostly integration tests, making use of Arquillian Cube to start and stop the necessary docker 
 containers. The tests are bootstrapped through standard maven's 'test' phase, rather than the conventional 'integration-test' 
 phase which is otherwise used when integration tests are intermingled in the same project with unit tests. 
 
@@ -17,6 +17,7 @@ Then, you have to add some entries to your `/etc/hosts` file:
 
     127.0.0.1            keycloak
     127.0.0.1            hydra
+    127.0.0.1            hydra-jwt
     127.0.0.1            kafka
 
 That's needed for host resolution, because Kafka brokers and Kafka clients connecting to Keycloak / Hydra have to use the 
@@ -30,7 +31,7 @@ Running
 
 You may first need to perform the following cleanup of pre-existing containers / network definitions:
 
-    docker rm -f kafka zookeeper keycloak hydra
+    docker rm -f keycloak kafka zookeeper hydra hydra-jwt hydra-import hydra-jwt-import
     docker network rm $(docker network ls | grep test | awk '{print $1}')
     
 To build and run the testsuite you need a running 'docker' daemon, then simply run:
@@ -49,6 +50,7 @@ There are several profiles available to test with a specific version of Kafka im
 - kafka-2_4_0
 - kafka-2_4_1
 - kafka-2_5_0
+- kafka-2_5_1
 - kafka-2_6_0
 
 Only one at a time can be applied. For example:
@@ -60,7 +62,7 @@ If you only want to run a single test, you first have to build the testsuite 'pa
 Note: just building the testsuite module is not enough (`mvn clean install -f testsuite -pl .`)
 
     mvn clean install -f testsuite
-    mvn test -f testsuite/client-secret-jwt-keycloak-test
+    mvn test -f testsuite/keycloak-auth-tests
 
 
 Troubleshooting
@@ -70,7 +72,7 @@ Troubleshooting
 
 An example error message:
 
-    com.github.dockerjava.api.exception.BadRequestException: {"message":"network client-secret-jwt-keycloak-test_default is ambiguous (2 matches found on name)"}
+    com.github.dockerjava.api.exception.BadRequestException: {"message":"network keycloak-auth-tests_default is ambiguous (2 matches found on name)"}
 
 In case of a failed test Arquillian Cube sometimes fails to automatically remove the docker network it created.
 
@@ -146,6 +148,7 @@ Make sure that you added 'kafka', 'keycloak', and 'hydra' to your `/etc/hosts` a
     127.0.0.1    kafka
     127.0.0.1    keycloak
     127.0.0.1    hydra
+    127.0.0.1    hydra-jwt
 
 
 ### How to see Kafka log
@@ -175,6 +178,6 @@ Thus, you don't need to use the latest local build of strimzi/kafka libraries to
 
 But if you want you can specify the kafka image to use for the test as follows:
 
-    mvn clean test -Dkafka.docker.image=strimzi/kafka:build-kafka-2.6.0  -f testsuite/client-secret-jwt-keycloak-authz-over-plain-test
+    mvn clean test -Dkafka.docker.image=strimzi/kafka:build-kafka-2.6.0  -f testsuite/keycloak-auth-tests
 
 This will use the latest locally built kafka image of strimzi-kafka-operator project.
