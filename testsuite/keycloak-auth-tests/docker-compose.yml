@@ -65,6 +65,13 @@ services:
       - KAFKA_INTER_BROKER_LISTENER_NAME=INTROSPECT
       - KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL=OAUTHBEARER
 
+      # Common settings for all the listeners
+      # username extraction from JWT token claim
+      - OAUTH_USERNAME_CLAIM=preferred_username
+      - KAFKA_PRINCIPAL_BUILDER_CLASS=io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+
+      # Configuration of individual listeners
       - KAFKA_LISTENER_NAME_INTROSPECT_OAUTHBEARER_SASL_JAAS_CONFIG=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required    oauth.introspection.endpoint.uri=\"http://keycloak:8080/auth/realms/demo/protocol/openid-connect/token/introspect\"    oauth.client.id=\"kafka-broker\"    oauth.client.secret=\"kafka-broker-secret\"    oauth.valid.issuer.uri=\"http://keycloak:8080/auth/realms/demo\"     oauth.token.endpoint.uri=\"http://keycloak:8080/auth/realms/demo/protocol/openid-connect/token\" ;
       - KAFKA_LISTENER_NAME_INTROSPECT_OAUTHBEARER_SASL_SERVER_CALLBACK_HANDLER_CLASS=io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
       - KAFKA_LISTENER_NAME_INTROSPECT_OAUTHBEARER_SASL_LOGIN_CALLBACK_HANDLER_CLASS=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
@@ -104,9 +111,6 @@ services:
       - KAFKA_LISTENER_NAME_SCRAM_SASL_ENABLED_MECHANISMS=SCRAM-SHA-512
       - KAFKA_LISTENER_NAME_SCRAM_SCRAM__2DSHA__2D512_SASL_JAAS_CONFIG=org.apache.kafka.common.security.scram.ScramLoginModule required    username=\"admin\"    password=\"admin-secret\" ;
 
-      - KAFKA_PRINCIPAL_BUILDER_CLASS=io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder
-
-      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
 
       # For start.sh script to know where the keycloak is listening
       - KEYCLOAK_HOST=${KEYCLOAK_HOST:-keycloak}

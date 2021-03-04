@@ -250,8 +250,8 @@ public class Common {
             return config;
         }
 
-        config.put("username", "$accessToken");
-        config.put("password", tokens.get(name));
+        config.put("username", name);
+        config.put("password", "$accessToken:" + tokens.get(name));
         return config;
     }
 

@@ -31,7 +31,7 @@ Then, you have to add some entries to your `/etc/hosts` file:
 That's needed for host resolution, because Kafka brokers and Kafka clients connecting to Keycloak / Hydra have to use the 
 same hostname to ensure compatibility of generated access tokens.
 
-Also, when Kafka client connects to Kafka broker running inside docker image, the broker will redirect the client to: kafka:9292.
+Also, when Kafka client connects to Kafka broker running inside docker image, the broker will redirect the client to: kafka:9092.
 
 
 Running 

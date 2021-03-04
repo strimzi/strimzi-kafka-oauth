@@ -84,8 +84,8 @@ public class OAuthOverPlainTests {
                 "team-a-client", "team-a-client-secret", true, null, null);
 
         Map<String, String> plainConfig = new HashMap<>();
-        plainConfig.put("username", "$accessToken");
-        plainConfig.put("password", info.token());
+        plainConfig.put("username", "service-account-team-a-client");
+        plainConfig.put("password", "$accessToken:" + info.token());
 
         Properties producerProps = buildProducerConfigPlain(kafkaBootstrap, plainConfig);
         Producer<String, String> producer = new KafkaProducer<>(producerProps);

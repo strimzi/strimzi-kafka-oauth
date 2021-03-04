@@ -1,6 +1,22 @@
 Release Notes
 =============
 
+0.7.1
+-----
+
+### Fixed OAuth over PLAIN intermittent failures
+
+The initial implementation of OAuth over PLAIN was based on an invalid assumptions about how threads are assigned to handle messages from different connections in Kafka. An internal assertion often got triggered during concurrent usage, causing authentication failures.
+
+A breaking change with how `$accessToken` is used in 0.7.0 had to be introduced.
+
+Before, you could authenticate with an access token by setting `username` to `$accessToken` and setting the `password` to the access token string.
+
+Now, you have to set `username` to be the same as the principal name that the broker will extract from the given access token (for example, the value of the claim configured by `oauth.username.claim`) and set the `password` to `$accessToken:` followed by the access token string.
+
+So, compared to before, you now prefix the access token string with `$accessToken:` in the `password` parameter, and you have to be careful to properly set the `username` parameter to the principal name matching that in the access token.
+
+
 0.7.0
 -----
 
