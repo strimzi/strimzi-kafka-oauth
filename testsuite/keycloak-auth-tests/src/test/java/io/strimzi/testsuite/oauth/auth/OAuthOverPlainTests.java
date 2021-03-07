@@ -31,6 +31,7 @@ public class OAuthOverPlainTests {
         clientCredentialsOverPlainWithJwt();
         clientCredentialsOverPlainWithIntrospection();
         accessTokenOverPlainWithIntrospection();
+        clientCredentialsOverPlainWithJwtFloodTest();
     }
 
     static void clientCredentialsOverPlainWithIntrospection() throws Exception {
@@ -154,5 +155,42 @@ public class OAuthOverPlainTests {
 
         Assert.assertEquals("Got message", 1, records.count());
         Assert.assertEquals("Is message text: 'The Message'", "The Message", records.iterator().next().value());
+    }
+
+    /**
+     * This test uses the Kafka listener configured with both OAUTHBEARER and PLAIN.
+     *
+     * It connects concurrently with multiple producers with different client IDs using the PLAIN mechanism, testing the OAuth over PLAIN functionality.
+     *
+     * @throws Exception
+     */
+    static void clientCredentialsOverPlainWithJwtFloodTest() {
+
+        System.out.println("==== KeycloakAuthenticationTest :: clientCredentialsOverPlainWithJwtFloodTest ====");
+
+        final String kafkaBootstrap = "kafka:9102";
+
+        String clientPrefix = "kafka-producer-client-";
+
+        // We do 10 iterations - each time hitting the broker with 5 parallel requests
+        for (int run = 0; run < 10; run++) {
+
+            for (int i = 1; i <= 5; i++) {
+                String clientId = clientPrefix + i;
+                String secret = clientId + "-secret";
+                String topic = "messages-" + i;
+
+                FloodProducer.addProducerThread(kafkaBootstrap, clientId, secret, topic);
+            }
+
+            // Start all threads
+            FloodProducer.startThreads();
+
+            // Wait for all threads to finish
+            FloodProducer.joinThreads();
+
+            // Prepare for the next run
+            FloodProducer.clearThreads();
+        }
     }
 }
