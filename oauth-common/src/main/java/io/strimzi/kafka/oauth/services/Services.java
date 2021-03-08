@@ -19,6 +19,8 @@ public class Services {
 
     private Principals principals = new Principals();
 
+    private Credentials credentials = new Credentials();
+
     public static void configure(Map<String, ?> configs) {
         services = new Services();
     }
@@ -47,5 +49,9 @@ public class Services {
 
     public Principals getPrincipals() {
         return principals;
+    }
+
+    public Credentials getCredentials() {
+        return credentials;
     }
 }

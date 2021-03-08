@@ -117,7 +117,7 @@ public class MultiSaslTests {
         produceToTopic("KeycloakAuthenticationTest-multiSaslTest-oauthbearer", producerProps);
 
         // producing to JWTPLAIN listener using SASL_PLAIN using $accessToken should succeed
-        producerProps = producerConfigPlain(KAFKA_JWTPLAIN_LISTENER, "$accessToken", accessToken);
+        producerProps = producerConfigPlain(KAFKA_JWTPLAIN_LISTENER, username, "$accessToken:" + accessToken);
         produceToTopic("KeycloakAuthenticationTest-multiSaslTest-oauth-over-plain", producerProps);
     }
 

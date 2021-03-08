@@ -26,6 +26,7 @@ public class KeycloakAuthorizationTest {
     @Test
     public void doTest() throws Exception {
         try {
+
             logStart("KeycloakAuthorizationTest :: MultiSaslTests");
             MultiSaslTests.doTests();
 
@@ -40,6 +41,15 @@ public class KeycloakAuthorizationTest {
 
             logStart("KeycloakAuthorizationTest :: OAuthOverPlain + IntrospectionValidationAuthzTest");
             new OAuthOverPlainTest("kafka:9095", true).doTest();
+
+            logStart("KeycloakAuthorizationTest :: OAuthOverPLain + FloodTest");
+            new FloodTest("kafka:9094", true).doTest();
+
+            logStart("KeycloakAuthorizationTest :: JWT FloodTest");
+            new FloodTest("kafka:9092", false).doTest();
+
+            logStart("KeycloakAuthorizationTest :: Introspection FloodTest");
+            new FloodTest("kafka:9093", false).doTest();
 
             // This test has to be the last one - it changes the team-a-client, and team-b-client permissions in Keycloak
             logStart("KeycloakAuthorizationTest :: JwtValidationAuthzTest + RefreshGrants");

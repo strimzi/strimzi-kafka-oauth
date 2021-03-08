@@ -15,6 +15,7 @@ import org.apache.kafka.common.security.auth.SaslAuthenticationContext;
 import org.apache.kafka.common.security.authenticator.DefaultKafkaPrincipalBuilder;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule;
 import org.apache.kafka.common.security.oauthbearer.internals.OAuthBearerSaslServer;
+import org.apache.kafka.common.security.plain.internals.PlainSaslServer;
 
 import javax.security.sasl.SaslServer;
 import java.lang.reflect.Field;
@@ -134,20 +135,22 @@ public class OAuthKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder imp
 
                     return kafkaPrincipal;
                 }
-            }
+            } else if (saslServer instanceof PlainSaslServer) {
+                PlainSaslServer server = (PlainSaslServer) saslServer;
 
-            // if another mechanism - e.g. PLAIN is used to communicate the OAuth token
-            Principals principals = Services.getInstance().getPrincipals();
-            OAuthKafkaPrincipal principal = OAuthKafkaPrincipal.takeFromThreadContext();
-            if (principal != null) {
-                principals.putPrincipal(saslServer, principal);
-                return principal;
-            }
+                // if PLAIN mechanism is used to communicate the OAuth token
+                Principals principals = Services.getInstance().getPrincipals();
+                OAuthKafkaPrincipal principal = (OAuthKafkaPrincipal) Services.getInstance().getCredentials().takeCredentials(server.getAuthorizationID());
+                if (principal != null) {
+                    principals.putPrincipal(saslServer, principal);
+                    return principal;
+                }
 
-            // if principal is required by request / thread other than the one that was just authenticated
-            principal = (OAuthKafkaPrincipal) principals.getPrincipal(saslServer);
-            if (principal != null) {
-                return principal;
+                // if principal is required by request / thread other than the one that was just authenticated
+                principal = (OAuthKafkaPrincipal) principals.getPrincipal(saslServer);
+                if (principal != null) {
+                    return principal;
+                }
             }
         }
 

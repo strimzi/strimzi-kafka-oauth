@@ -103,7 +103,7 @@ public class MultiSaslTests {
         accessToken = Common.loginWithUsernamePassword(
                 URI.create("http://keycloak:8080/auth/realms/kafka-authz/protocol/openid-connect/token"),
                 username, password, "kafka-cli");
-        producerProps = producerConfigPlain(KAFKA_JWTPLAIN_LISTENER, "$accessToken", accessToken);
+        producerProps = producerConfigPlain(KAFKA_JWTPLAIN_LISTENER, username, "$accessToken:" + accessToken);
         produceToTopic("KeycloakAuthenticationTest-multiSaslTest-oauth-over-plain", producerProps);
     }
 
