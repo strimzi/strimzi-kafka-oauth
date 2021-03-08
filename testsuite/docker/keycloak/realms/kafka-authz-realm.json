@@ -108,6 +108,76 @@
         "account" : [ "manage-account", "view-profile" ]
       },
       "groups" : [ ]
+    },
+    {
+      "username": "service-account-kafka-producer-client-1",
+      "enabled": true,
+      "realmRoles" : [ "offline_access" ],
+      "email": "service-account-kafka-producer-client-1@placeholder.org",
+      "serviceAccountClientId": "kafka-producer-client-1"
+    },
+    {
+      "username": "service-account-kafka-producer-client-2",
+      "enabled": true,
+      "realmRoles" : [ "offline_access" ],
+      "email": "service-account-kafka-producer-client-2@placeholder.org",
+      "serviceAccountClientId": "kafka-producer-client-2"
+    },
+    {
+      "username": "service-account-kafka-producer-client-3",
+      "enabled": true,
+      "realmRoles" : [ "offline_access" ],
+      "email": "service-account-kafka-producer-client-3@placeholder.org",
+      "serviceAccountClientId": "kafka-producer-client-3"
+    },
+    {
+      "username": "service-account-kafka-producer-client-4",
+      "enabled": true,
+      "realmRoles" : [ "offline_access" ],
+      "email": "service-account-kafka-producer-client-4@placeholder.org",
+      "serviceAccountClientId": "kafka-producer-client-4"
+    },
+    {
+      "username": "service-account-kafka-producer-client-5",
+      "enabled": true,
+      "realmRoles" : [ "offline_access" ],
+      "email": "service-account-kafka-producer-client-5@placeholder.org",
+      "serviceAccountClientId": "kafka-producer-client-5"
+    },
+    {
+      "username": "service-account-kafka-consumer-client-1",
+      "enabled": true,
+      "realmRoles" : [ "offline_access" ],
+      "email": "service-account-kafka-consumer-client-1@placeholder.org",
+      "serviceAccountClientId": "kafka-consumer-client-1"
+    },
+    {
+      "username": "service-account-kafka-consumer-client-2",
+      "enabled": true,
+      "realmRoles" : [ "offline_access" ],
+      "email": "service-account-kafka-consumer-client-2@placeholder.org",
+      "serviceAccountClientId": "kafka-consumer-client-2"
+    },
+    {
+      "username": "service-account-kafka-consumer-client-3",
+      "enabled": true,
+      "realmRoles" : [ "offline_access" ],
+      "email": "service-account-kafka-consumer-client-3@placeholder.org",
+      "serviceAccountClientId": "kafka-consumer-client-3"
+    },
+    {
+      "username": "service-account-kafka-consumer-client-4",
+      "enabled": true,
+      "realmRoles" : [ "offline_access" ],
+      "email": "service-account-kafka-consumer-client-4@placeholder.org",
+      "serviceAccountClientId": "kafka-consumer-client-4"
+    },
+    {
+      "username": "service-account-kafka-consumer-client-5",
+      "enabled": true,
+      "realmRoles" : [ "offline_access" ],
+      "email": "service-account-kafka-consumer-client-5@placeholder.org",
+      "serviceAccountClientId": "kafka-consumer-client-5"
     }
   ],
   "clients": [
@@ -449,6 +519,231 @@
             "ownerManagedAccess" : false,
             "attributes" : { },
             "uris" : [ ]
+          },
+          {
+            "name": "Topic:messages-1",
+            "type": "topic",
+            "scopes": [
+              {
+                "name": "Delete"
+              },
+              {
+                "name": "Describe"
+              },
+              {
+                "name": "Create"
+              },
+              {
+                "name": "Write"
+              },
+              {
+                "name": "Alter"
+              },
+              {
+                "name": "Read"
+              },
+              {
+                "name": "DescribeConfigs"
+              },
+              {
+                "name": "AlterConfigs"
+              }
+            ]
+          },
+          {
+            "name": "Topic:messages-2",
+            "type": "topic",
+            "scopes": [
+              {
+                "name": "Delete"
+              },
+              {
+                "name": "Describe"
+              },
+              {
+                "name": "Create"
+              },
+              {
+                "name": "Write"
+              },
+              {
+                "name": "Alter"
+              },
+              {
+                "name": "Read"
+              },
+              {
+                "name": "DescribeConfigs"
+              },
+              {
+                "name": "AlterConfigs"
+              }
+            ]
+          },
+          {
+            "name": "Topic:messages-3",
+            "type": "topic",
+            "scopes": [
+              {
+                "name": "Delete"
+              },
+              {
+                "name": "Describe"
+              },
+              {
+                "name": "Create"
+              },
+              {
+                "name": "Write"
+              },
+              {
+                "name": "Alter"
+              },
+              {
+                "name": "Read"
+              },
+              {
+                "name": "DescribeConfigs"
+              },
+              {
+                "name": "AlterConfigs"
+              }
+            ]
+          },
+          {
+            "name": "Topic:messages-4",
+            "type": "topic",
+            "scopes": [
+              {
+                "name": "Delete"
+              },
+              {
+                "name": "Describe"
+              },
+              {
+                "name": "Create"
+              },
+              {
+                "name": "Write"
+              },
+              {
+                "name": "Alter"
+              },
+              {
+                "name": "Read"
+              },
+              {
+                "name": "DescribeConfigs"
+              },
+              {
+                "name": "AlterConfigs"
+              }
+            ]
+          },
+          {
+            "name": "Topic:messages-5",
+            "type": "topic",
+            "scopes": [
+              {
+                "name": "Delete"
+              },
+              {
+                "name": "Describe"
+              },
+              {
+                "name": "Create"
+              },
+              {
+                "name": "Write"
+              },
+              {
+                "name": "Alter"
+              },
+              {
+                "name": "Read"
+              },
+              {
+                "name": "DescribeConfigs"
+              },
+              {
+                "name": "AlterConfigs"
+              }
+            ]
+          },
+          {
+            "name": "Group:g1*",
+            "type": "group",
+            "scopes": [
+              {
+                "name": "Describe"
+              },
+              {
+                "name": "Write"
+              },
+              {
+                "name": "Read"
+              }
+            ]
+          },
+          {
+            "name": "Group:g2*",
+            "type": "group",
+            "scopes": [
+              {
+                "name": "Describe"
+              },
+              {
+                "name": "Write"
+              },
+              {
+                "name": "Read"
+              }
+            ]
+          },
+          {
+            "name": "Group:g3*",
+            "type": "group",
+            "scopes": [
+              {
+                "name": "Describe"
+              },
+              {
+                "name": "Write"
+              },
+              {
+                "name": "Read"
+              }
+            ]
+          },
+          {
+            "name": "Group:g4*",
+            "type": "group",
+            "scopes": [
+              {
+                "name": "Describe"
+              },
+              {
+                "name": "Write"
+              },
+              {
+                "name": "Read"
+              }
+            ]
+          },
+          {
+            "name": "Group:g5*",
+            "type": "group",
+            "scopes": [
+              {
+                "name": "Describe"
+              },
+              {
+                "name": "Write"
+              },
+              {
+                "name": "Read"
+              }
+            ]
           }
         ],
         "policies": [
@@ -625,6 +920,251 @@
               "resources" : "[\"Cluster:*\"]",
               "applyPolicies" : "[\"ClusterManager Group\"]"
             }
+          },
+          {
+            "name": "Producer Client 1",
+            "type": "client",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "clients": "[\"kafka-producer-client-1\"]"
+            }
+          },
+          {
+            "name": "Consumer Client 1",
+            "type": "client",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "clients": "[\"kafka-consumer-client-1\"]"
+            }
+          },
+          {
+            "name": "Producer Client 2",
+            "type": "client",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "clients": "[\"kafka-producer-client-2\"]"
+            }
+          },
+          {
+            "name": "Consumer Client 2",
+            "type": "client",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "clients": "[\"kafka-consumer-client-2\"]"
+            }
+          },
+          {
+            "name": "Producer Client 3",
+            "type": "client",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "clients": "[\"kafka-producer-client-3\"]"
+            }
+          },
+          {
+            "name": "Consumer Client 3",
+            "type": "client",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "clients": "[\"kafka-consumer-client-3\"]"
+            }
+          },
+          {
+            "name": "Producer Client 4",
+            "type": "client",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "clients": "[\"kafka-producer-client-4\"]"
+            }
+          },
+          {
+            "name": "Consumer Client 4",
+            "type": "client",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "clients": "[\"kafka-consumer-client-4\"]"
+            }
+          },
+          {
+            "name": "Producer Client 5",
+            "type": "client",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "clients": "[\"kafka-producer-client-5\"]"
+            }
+          },
+          {
+            "name": "Consumer Client 5",
+            "type": "client",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "clients": "[\"kafka-consumer-client-5\"]"
+            }
+          },
+          {
+            "name": "Producer Client 1 can write to topic 'messages-1'",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "resources": "[\"Topic:messages-1\"]",
+              "scopes": "[\"Delete\",\"Describe\",\"Create\",\"Write\"]",
+              "applyPolicies": "[\"Producer Client 1\"]"
+            }
+          },
+          {
+            "name": "Consumer Client 1 can read from topic 'messages-1'",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "resources": "[\"Topic:messages-1\"]",
+              "scopes": "[\"Describe\",\"Read\"]"
+            }
+          },
+          {
+            "name": "Consumer Client 1 can use any group that starts with 'g1'",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "resources": "[\"Group:g1*\"]",
+              "scopes": "[\"Describe\",\"Write\",\"Read\"]"
+            }
+          },
+          {
+            "name": "Producer Client 2 can write to topic 'messages-2'",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "resources": "[\"Topic:messages-2\"]",
+              "scopes": "[\"Delete\",\"Describe\",\"Create\",\"Write\"]",
+              "applyPolicies": "[\"Producer Client 2\"]"
+            }
+          },
+          {
+            "name": "Consumer Client 2 can read from topic 'messages-2'",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "resources": "[\"Topic:messages-2\"]",
+              "scopes": "[\"Describe\",\"Read\"]"
+            }
+          },
+          {
+            "name": "Consumer Client 2 can use any group that starts with 'g2'",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "resources": "[\"Group:g2*\"]",
+              "scopes": "[\"Describe\",\"Write\",\"Read\"]"
+            }
+          },
+          {
+            "name": "Producer Client 3 can write to topic 'messages-3'",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "resources": "[\"Topic:messages-3\"]",
+              "scopes": "[\"Delete\",\"Describe\",\"Create\",\"Write\"]",
+              "applyPolicies": "[\"Producer Client 3\"]"
+            }
+          },
+          {
+            "name": "Consumer Client 3 can read from topic 'messages-3'",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "resources": "[\"Topic:messages-3\"]",
+              "scopes": "[\"Describe\",\"Read\"]"
+            }
+          },
+          {
+            "name": "Consumer Client 3 can use any group that starts with 'g3'",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "resources": "[\"Group:g3*\"]",
+              "scopes": "[\"Describe\",\"Write\",\"Read\"]"
+            }
+          },
+          {
+            "name": "Producer Client 4 can write to topic 'messages-4'",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "resources": "[\"Topic:messages-4\"]",
+              "scopes": "[\"Delete\",\"Describe\",\"Create\",\"Write\"]",
+              "applyPolicies": "[\"Producer Client 4\"]"
+            }
+          },
+          {
+            "name": "Consumer Client 4 can read from topic 'messages-4'",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "resources": "[\"Topic:messages-4\"]",
+              "scopes": "[\"Describe\",\"Read\"]"
+            }
+          },
+          {
+            "name": "Consumer Client 4 can use any group that starts with 'g4'",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "resources": "[\"Group:g4*\"]",
+              "scopes": "[\"Describe\",\"Write\",\"Read\"]"
+            }
+          },
+          {
+            "name": "Producer Client 5 can write to topic 'messages-5'",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "resources": "[\"Topic:messages-5\"]",
+              "scopes": "[\"Delete\",\"Describe\",\"Create\",\"Write\"]",
+              "applyPolicies": "[\"Producer Client 5\"]"
+            }
+          },
+          {
+            "name": "Consumer Client 5 can read from topic 'messages-5'",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "resources": "[\"Topic:messages-5\"]",
+              "scopes": "[\"Describe\",\"Read\"]"
+            }
+          },
+          {
+            "name": "Consumer Client 5 can use any group that starts with 'g5'",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "resources": "[\"Group:g5*\"]",
+              "scopes": "[\"Describe\",\"Write\",\"Read\"]"
+            }
           }
         ],
         "scopes": [
@@ -675,6 +1215,176 @@
       "serviceAccountsEnabled": false,
       "publicClient": true,
       "fullScopeAllowed": true
+    },
+    {
+      "clientId": "kafka-producer-client-1",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "kafka-producer-client-1-secret",
+      "publicClient": false,
+      "bearerOnly": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "consentRequired" : false,
+      "fullScopeAllowed" : false,
+      "attributes": {
+        "access.token.lifespan": "36000"
+      }
+    },
+    {
+      "clientId": "kafka-producer-client-2",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "kafka-producer-client-2-secret",
+      "publicClient": false,
+      "bearerOnly": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "consentRequired" : false,
+      "fullScopeAllowed" : false,
+      "attributes": {
+        "access.token.lifespan": "36000"
+      }
+    },
+    {
+      "clientId": "kafka-producer-client-3",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "kafka-producer-client-3-secret",
+      "publicClient": false,
+      "bearerOnly": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "consentRequired" : false,
+      "fullScopeAllowed" : false,
+      "attributes": {
+        "access.token.lifespan": "36000"
+      }
+    },
+    {
+      "clientId": "kafka-producer-client-4",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "kafka-producer-client-4-secret",
+      "publicClient": false,
+      "bearerOnly": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "consentRequired" : false,
+      "fullScopeAllowed" : false,
+      "attributes": {
+        "access.token.lifespan": "36000"
+      }
+    },
+    {
+      "clientId": "kafka-producer-client-5",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "kafka-producer-client-5-secret",
+      "publicClient": false,
+      "bearerOnly": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "consentRequired" : false,
+      "fullScopeAllowed" : false,
+      "attributes": {
+        "access.token.lifespan": "36000"
+      }
+    },
+    {
+      "clientId": "kafka-consumer-client-1",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "kafka-consumer-client-1-secret",
+      "publicClient": false,
+      "bearerOnly": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "consentRequired" : false,
+      "fullScopeAllowed" : false,
+      "attributes": {
+        "access.token.lifespan": "36000"
+      }
+    },
+    {
+      "clientId": "kafka-consumer-client-2",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "kafka-consumer-client-2-secret",
+      "publicClient": false,
+      "bearerOnly": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "consentRequired" : false,
+      "fullScopeAllowed" : false,
+      "attributes": {
+        "access.token.lifespan": "36000"
+      }
+    },
+    {
+      "clientId": "kafka-consumer-client-3",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "kafka-consumer-client-3-secret",
+      "publicClient": false,
+      "bearerOnly": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "consentRequired" : false,
+      "fullScopeAllowed" : false,
+      "attributes": {
+        "access.token.lifespan": "36000"
+      }
+    },
+    {
+      "clientId": "kafka-consumer-client-4",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "kafka-consumer-client-4-secret",
+      "publicClient": false,
+      "bearerOnly": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "consentRequired" : false,
+      "fullScopeAllowed" : false,
+      "attributes": {
+        "access.token.lifespan": "36000"
+      }
+    },
+    {
+      "clientId": "kafka-consumer-client-5",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "kafka-consumer-client-5-secret",
+      "publicClient": false,
+      "bearerOnly": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "consentRequired" : false,
+      "fullScopeAllowed" : false,
+      "attributes": {
+        "access.token.lifespan": "36000"
+      }
     }
   ]
 }
