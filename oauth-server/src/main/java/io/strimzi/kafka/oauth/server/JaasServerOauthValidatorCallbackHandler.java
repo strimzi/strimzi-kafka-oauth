@@ -8,6 +8,7 @@ import io.strimzi.kafka.oauth.common.Config;
 import io.strimzi.kafka.oauth.common.ConfigUtil;
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
 import io.strimzi.kafka.oauth.common.PrincipalExtractor;
+import io.strimzi.kafka.oauth.common.TimeUtil;
 import io.strimzi.kafka.oauth.jsonpath.JsonPathFilterQuery;
 import io.strimzi.kafka.oauth.services.Services;
 import io.strimzi.kafka.oauth.services.ValidatorKey;
@@ -423,7 +424,9 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         try {
             TokenInfo ti = validateToken(token);
             callback.token(new BearerTokenWithPayloadImpl(ti));
-
+            if (log.isDebugEnabled()) {
+                log.debug("Set validated token on callback: " + callback.token());
+            }
         } catch (TokenValidationException e) {
             if (log.isDebugEnabled()) {
                 log.debug("Token validation failed for token: " + mask(token), e);
@@ -449,7 +452,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
     private TokenInfo validateToken(String token) {
         TokenInfo result = validator.validate(token);
         if (log.isDebugEnabled()) {
-            log.debug("User validated (Principal:{})", result.principal());
+            log.debug("User validated (Principal:{})", result == null ? "null" : result.principal());
         }
         return result;
     }
@@ -499,6 +502,9 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         private Object payload;
 
         BearerTokenWithPayloadImpl(TokenInfo ti) {
+            if (ti == null) {
+                throw new IllegalArgumentException("TokenInfo == null");
+            }
             this.ti = ti;
         }
 
@@ -548,6 +554,13 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         @Override
         public int hashCode() {
             return Objects.hash(ti);
+        }
+
+        @Override
+        public String toString() {
+            return "BearerTokenWithPayloadImpl (principalName: " + ti.principal() + ", lifetimeMs: " +
+                    ti.expiresAtMs() + " [" + TimeUtil.formatIsoDateTimeUTC(ti.expiresAtMs()) + " UTC], startTimeMs: " +
+                    ti.issuedAtMs() + " [" + TimeUtil.formatIsoDateTimeUTC(ti.issuedAtMs()) + " UTC], scope: " + ti.scope() + ")";
         }
     }
 }

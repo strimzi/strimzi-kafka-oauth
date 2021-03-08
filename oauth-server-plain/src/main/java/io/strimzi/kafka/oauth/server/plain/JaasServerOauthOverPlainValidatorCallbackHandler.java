@@ -9,6 +9,7 @@ import io.strimzi.kafka.oauth.common.OAuthAuthenticator;
 import io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler;
 import io.strimzi.kafka.oauth.server.OAuthKafkaPrincipal;
 import io.strimzi.kafka.oauth.server.ServerConfig;
+import io.strimzi.kafka.oauth.services.Services;
 import org.apache.kafka.common.errors.SaslAuthenticationException;
 import org.apache.kafka.common.security.auth.KafkaPrincipal;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerToken;
@@ -37,7 +38,10 @@ import static io.strimzi.kafka.oauth.common.LogUtil.getAllCauseMessages;
  * parameters.
  * <p>
  * Also, the client can use the access token to authenticate, in which case it sets the <em>username</em> parameter
- * to <em>$accessToken</em>, and set the access token as the <em>password</em> SASL_PLAIN parameter value.
+ * to the same principal the broker will resolve from the access token (depending on the Kafka Broker configuration this
+ * is the value of 'sub' claim or one specified by 'oauth.username.claim' configuration), and set the concatenation of
+ * <em>$accessToken:</em> and the actual access token string as the <em>password</em> SASL_PLAIN parameter value.
+ * It is the <em>$accessToken:</em> prefix that will let the broker know that the password should be treated as an access token.
  * <p>
  * Allowing the use of OAuth credentials over SASL_PLAIN allows all existing Kafka client tools to authenticate to your
  * Kafka cluster even when they have no explicit OAuth support.
@@ -182,26 +186,37 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
     }
 
     private void authenticate(String username, String password) throws UnsupportedCallbackException, IOException {
-        // if username equals '$accessToken' we treat the password as an access token
-        // otherwise, we treat username as clientId, password as client secret and perform client credential auth
-        // to get the access token
-        final String accessToken;
-        if ("$accessToken".equals(username)) {
-            accessToken = password;
+        final String accessTokenPrefix = "$accessToken:";
+
+        boolean checkUsernameMatch = false;
+        String accessToken;
+
+        if (password != null && password.startsWith(accessTokenPrefix)) {
+            accessToken = password.substring(accessTokenPrefix.length());
+            checkUsernameMatch = true;
         } else {
-            accessToken = OAuthAuthenticator.loginWithClientSecret(tokenEndpointUri, getSocketFactory(), getVerifier(), username, password, isJwt(), getPrincipalExtractor(), null)
+            accessToken = OAuthAuthenticator.loginWithClientSecret(tokenEndpointUri, getSocketFactory(), getVerifier(),
+                    username, password, isJwt(), getPrincipalExtractor(), null)
                     .token();
         }
+
         OAuthBearerValidatorCallback[] callbacks = new OAuthBearerValidatorCallback[] {new OAuthBearerValidatorCallback(accessToken)};
         super.handle(callbacks);
 
         OAuthBearerToken token = callbacks[0].token();
         if (token == null) {
-            throw new RuntimeException("Authentication with OAuth token failed");
+            throw new RuntimeException("Authentication with OAuth token has failed (no token returned)");
+        }
+
+        if (checkUsernameMatch) {
+            if (!username.equals(token.principalName())) {
+                throw new SaslAuthenticationException("Username doesn't match the token");
+            }
         }
 
         OAuthKafkaPrincipal kafkaPrincipal = new OAuthKafkaPrincipal(KafkaPrincipal.USER_TYPE,
                 token.principalName(), (BearerTokenWithPayload) token);
-        OAuthKafkaPrincipal.setToThreadContext(kafkaPrincipal);
+
+        Services.getInstance().getCredentials().storeCredentials(username, kafkaPrincipal);
     }
 }

@@ -243,15 +243,15 @@ public class Common {
     }
 
     Map<String, String> buildAuthConfigForPlain(String name) {
-        Map<String, String> config = new HashMap<>();
-        if (name.endsWith("-client")) {
-            config.put("username", name);
-            config.put("password", name + "-secret");
-            return config;
-        }
+        return name.endsWith("-client")
+                ? buildAuthConfigForPlain(name, name + "-secret")
+                : buildAuthConfigForPlain(name, "$accessToken:" + tokens.get(name));
+    }
 
-        config.put("username", "$accessToken");
-        config.put("password", tokens.get(name));
+    Map<String, String> buildAuthConfigForPlain(String clientId, String secret) {
+        Map<String, String> config = new HashMap<>();
+        config.put("username", clientId);
+        config.put("password", secret);
         return config;
     }
 
@@ -279,7 +279,7 @@ public class Common {
         p.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         p.setProperty(ProducerConfig.ACKS_CONFIG, "all");
         p.setProperty(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, "5000");
-        p.setProperty(ProducerConfig.RETRIES_CONFIG, "0");
+        p.setProperty(ProducerConfig.RETRIES_CONFIG, "10");
     }
 
     static Properties buildConsumerConfigOAuthBearer(String kafkaBootstrap, Map<String, String> oauthConfig) {
@@ -298,6 +298,12 @@ public class Common {
         p.setProperty("sasl.login.callback.handler.class", "io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler");
 
         return p;
+    }
+
+    Properties buildProducerConfig(String kafkaBootstrap, boolean usePlain, String clientId, String secret) {
+        return usePlain ?
+                buildProducerConfigPlain(kafkaBootstrap, buildAuthConfigForPlain(clientId, secret)) :
+                buildProducerConfigOAuthBearer(kafkaBootstrap, buildAuthConfigForOAuthBearer(clientId));
     }
 
     static Properties buildProducerConfigPlain(String kafkaBootstrap, Map<String, String> plainConfig) {
