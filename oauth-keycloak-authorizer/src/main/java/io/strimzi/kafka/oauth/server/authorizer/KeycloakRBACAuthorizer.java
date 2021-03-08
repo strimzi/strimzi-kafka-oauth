@@ -207,9 +207,8 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
 
         String users = (String) configs.get("super.users");
         if (users != null) {
-            superUsers = Arrays.asList(users.split(";"))
-                    .stream()
-                    .map(s -> UserSpec.of(s))
+            superUsers = Arrays.stream(users.split(";"))
+                    .map(UserSpec::of)
                     .collect(Collectors.toList());
         }
 
@@ -470,7 +469,7 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
 
                 if (grantLogOn) {
                     GRANT_LOG.debug(message);
-                } else if (denyLogOn) {
+                } else {
                     DENY_LOG.debug(message);
                 }
             }
@@ -511,9 +510,7 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
         // Set up periodic timer to fetch grants for active sessions every refresh seconds
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(new DaemonThreadFactory());
 
-        scheduler.scheduleAtFixedRate(() -> {
-            refreshGrants();
-        }, refreshSeconds, refreshSeconds, TimeUnit.SECONDS);
+        scheduler.scheduleAtFixedRate(this::refreshGrants, refreshSeconds, refreshSeconds, TimeUnit.SECONDS);
 
         return scheduler;
     }
