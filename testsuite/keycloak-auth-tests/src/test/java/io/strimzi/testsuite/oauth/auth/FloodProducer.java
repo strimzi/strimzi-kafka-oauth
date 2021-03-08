@@ -21,7 +21,7 @@ import static io.strimzi.testsuite.oauth.auth.Common.buildProducerConfigPlain;
  * This class uses multiple KafkaProducers, configured with different clientIds to concurrently produce
  * messages as quickly as possible.
  */
-public class FloodProducer implements Runnable {
+public class FloodProducer extends Thread {
 
     private static ArrayList<Thread> threads = new ArrayList<>();
 
@@ -33,6 +33,7 @@ public class FloodProducer implements Runnable {
     final private String clientId;
     final private String secret;
     final private String topic;
+    private Throwable error;
 
     Producer<String, String> producer;
 
@@ -65,6 +66,18 @@ public class FloodProducer implements Runnable {
         }
     }
 
+    public static void checkExceptions() {
+        try {
+            for (Thread t : threads) {
+                ((FloodProducer) t).checkException();
+            }
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Throwable t) {
+            throw new RuntimeException("Test failed due to: ", t);
+        }
+    }
+
     public static void addProducerThread(String kafkaBootstrap, String clientId, String secret, String topic) {
         FloodProducer p = new FloodProducer(kafkaBootstrap, clientId, secret, topic);
         p.initProducer();
@@ -77,8 +90,14 @@ public class FloodProducer implements Runnable {
 
         Properties props = buildProducerConfigPlain(kafkaBootstrap, plainConfig);
         producer = new KafkaProducer<>(props);
+        setName("FloodProducer Runner Thread - " + threads.size());
+        threads.add(this);
+    }
 
-        threads.add(new Thread(this, "FloodProducer Runner Thread - " + threads.size()));
+    private void checkException() throws Throwable {
+        if (error != null) {
+            throw error;
+        }
     }
 
     public void run() {
@@ -102,11 +121,11 @@ public class FloodProducer implements Runnable {
                 }
             }
         } catch (InterruptedException e) {
-            throw new RuntimeException("Interrupted while sending!");
-
+            error = new RuntimeException("Interrupted while sending!");
         } catch (ExecutionException e) {
-            throw new RuntimeException("Failed to send message: ", e);
-
+            error = new RuntimeException("Failed to send message: ", e);
+        } catch (Throwable t) {
+            error = t;
         } finally {
             if (producer != null) {
                 producer.close();

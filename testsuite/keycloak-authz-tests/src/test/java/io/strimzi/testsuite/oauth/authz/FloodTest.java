@@ -78,6 +78,7 @@ public class FloodTest extends Common {
             // Wait for all threads to finish
             joinThreads();
 
+            // Check for errors
             checkExceptions();
 
             // Prepare for the next run

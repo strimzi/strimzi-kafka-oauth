@@ -31,7 +31,7 @@ public class OAuthOverPlainTests {
         clientCredentialsOverPlainWithJwt();
         clientCredentialsOverPlainWithIntrospection();
         accessTokenOverPlainWithIntrospection();
-        clientCredentialsOverPlainWithJwtFloodTest();
+        clientCredentialsOverPlainWithFloodTest();
     }
 
     static void clientCredentialsOverPlainWithIntrospection() throws Exception {
@@ -164,9 +164,9 @@ public class OAuthOverPlainTests {
      *
      * @throws Exception
      */
-    static void clientCredentialsOverPlainWithJwtFloodTest() {
+    static void clientCredentialsOverPlainWithFloodTest() {
 
-        System.out.println("==== KeycloakAuthenticationTest :: clientCredentialsOverPlainWithJwtFloodTest ====");
+        System.out.println("==== KeycloakAuthenticationTest :: clientCredentialsOverPlainWithFloodTest ====");
 
         final String kafkaBootstrap = "kafka:9102";
 
@@ -188,6 +188,9 @@ public class OAuthOverPlainTests {
 
             // Wait for all threads to finish
             FloodProducer.joinThreads();
+
+            // Check for errors
+            FloodProducer.checkExceptions();
 
             // Prepare for the next run
             FloodProducer.clearThreads();
