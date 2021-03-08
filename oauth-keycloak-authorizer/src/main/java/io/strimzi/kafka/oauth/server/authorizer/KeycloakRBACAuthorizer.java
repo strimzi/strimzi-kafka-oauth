@@ -207,9 +207,8 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
 
         String users = (String) configs.get("super.users");
         if (users != null) {
-            superUsers = Arrays.asList(users.split(";"))
-                    .stream()
-                    .map(s -> UserSpec.of(s))
+            superUsers = Arrays.stream(users.split(";"))
+                    .map(UserSpec::of)
                     .collect(Collectors.toList());
         }
 
@@ -383,14 +382,15 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
                     ResourceSpec resourceSpec = ResourceSpec.of(name);
                     if (resourceSpec.match(clusterName, resource.resourceType().name(), resource.name())) {
 
-                        ScopesSpec grantedScopes = ScopesSpec.of(
+                        JsonNode scopes = permission.get("scopes");
+                        ScopesSpec grantedScopes = scopes == null ? null : ScopesSpec.of(
                                 validateScopes(
-                                        JSONUtil.asListOfString(permission.get("scopes"))));
+                                        JSONUtil.asListOfString(scopes)));
 
-                        if (grantedScopes.isGranted(operation.name())) {
+                        if (scopes == null || grantedScopes.isGranted(operation.name())) {
                             if (GRANT_LOG.isDebugEnabled()) {
                                 GRANT_LOG.debug("Authorization GRANTED - cluster: " + clusterName + ", user: " + session.principal() + ", operation: " + operation +
-                                        ", resource: " + resource + "\nGranted scopes for resource (" + resourceSpec + "): " + grantedScopes);
+                                        ", resource: " + resource + "\nGranted scopes for resource (" + resourceSpec + "): " + (grantedScopes == null ? "ALL" : grantedScopes));
                             }
                             return true;
                         }
@@ -469,7 +469,7 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
 
                 if (grantLogOn) {
                     GRANT_LOG.debug(message);
-                } else if (denyLogOn) {
+                } else {
                     DENY_LOG.debug(message);
                 }
             }
@@ -510,9 +510,7 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
         // Set up periodic timer to fetch grants for active sessions every refresh seconds
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(new DaemonThreadFactory());
 
-        scheduler.scheduleAtFixedRate(() -> {
-            refreshGrants();
-        }, refreshSeconds, refreshSeconds, TimeUnit.SECONDS);
+        scheduler.scheduleAtFixedRate(this::refreshGrants, refreshSeconds, refreshSeconds, TimeUnit.SECONDS);
 
         return scheduler;
     }
