@@ -383,14 +383,15 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
                     ResourceSpec resourceSpec = ResourceSpec.of(name);
                     if (resourceSpec.match(clusterName, resource.resourceType().name(), resource.name())) {
 
-                        ScopesSpec grantedScopes = ScopesSpec.of(
+                        JsonNode scopes = permission.get("scopes");
+                        ScopesSpec grantedScopes = scopes == null ? null : ScopesSpec.of(
                                 validateScopes(
-                                        JSONUtil.asListOfString(permission.get("scopes"))));
+                                        JSONUtil.asListOfString(scopes)));
 
-                        if (grantedScopes.isGranted(operation.name())) {
+                        if (scopes == null || grantedScopes.isGranted(operation.name())) {
                             if (GRANT_LOG.isDebugEnabled()) {
                                 GRANT_LOG.debug("Authorization GRANTED - cluster: " + clusterName + ", user: " + session.principal() + ", operation: " + operation +
-                                        ", resource: " + resource + "\nGranted scopes for resource (" + resourceSpec + "): " + grantedScopes);
+                                        ", resource: " + resource + "\nGranted scopes for resource (" + resourceSpec + "): " + (grantedScopes == null ? "ALL" : grantedScopes));
                             }
                             return true;
                         }
