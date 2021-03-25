@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/strimzi/strimzi-kafka-oauth.svg?branch=master)](https://travis-ci.org/strimzi/strimzi-kafka-oauth)
+[![Build Status](https://travis-ci.org/strimzi/strimzi-kafka-oauth.svg?branch=main)](https://travis-ci.org/strimzi/strimzi-kafka-oauth)
 [![GitHub release](https://img.shields.io/github/release/strimzi/strimzi-kafka-oauth.svg)](https://github.com/strimzi/strimzi-kafka-oauth/releases/latest)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.strimzi/oauth/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.strimzi/oauth)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)

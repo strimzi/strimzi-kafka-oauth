@@ -24,7 +24,7 @@ if [ ${JAVA_MAJOR_VERSION} -eq 1 ] ; then
 fi
 
 export PULL_REQUEST=${PULL_REQUEST:-true}
-export BRANCH=${BRANCH:-master}
+export BRANCH=${BRANCH:-main}
 export TAG=${TAG:-latest}
 
 if [ ${JAVA_MAJOR_VERSION} -eq 1 ] ; then
@@ -69,8 +69,8 @@ fi
 # Push only releases
 if [ "$PULL_REQUEST" != "false" ] ; then
     echo "Building Pull Request - nothing to push"
-elif [ "$TAG" = "latest" ] && [ "$BRANCH" != "master" ]; then
-    echo "Not in master branch and not in release tag - nothing to push"
+elif [ "$TAG" = "latest" ] && [ "$BRANCH" != "main" ]; then
+    echo "Not in main branch and not in release tag - nothing to push"
 else
     if [ "${MAIN_BUILD}" = "TRUE" ] ; then
         echo "Pushing JARs"
