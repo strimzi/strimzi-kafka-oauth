@@ -37,8 +37,8 @@
       "name" : "ClusterManager Group",
       "path" : "/ClusterManager Group"
     }, {
-      "name" : "ClusterManager-cluster2 Group",
-      "path" : "/ClusterManager-cluster2 Group"
+      "name" : "ClusterManager-my-cluster Group",
+      "path" : "/ClusterManager-my-cluster Group"
     }, {
       "name" : "Ops Team Group",
       "path" : "/Ops Team Group"
@@ -82,7 +82,7 @@
       "clientRoles" : {
         "account" : [ "view-profile", "manage-account" ]
       },
-      "groups" : [ "/ClusterManager-cluster2 Group" ]
+      "groups" : [ "/ClusterManager-my-cluster Group" ]
     },
     {
       "username" : "service-account-team-a-client",
@@ -312,7 +312,7 @@
             ]
           },
           {
-            "name": "kafka-cluster:cluster2,Topic:b_*",
+            "name": "kafka-cluster:my-cluster,Topic:b_*",
             "type": "Topic",
             "ownerManagedAccess": false,
             "attributes": {},
@@ -345,10 +345,10 @@
             ]
           },
           {
-            "name": "kafka-cluster:cluster2,Cluster:*",
+            "name": "kafka-cluster:my-cluster,Cluster:*",
             "type": "Cluster",
             "ownerManagedAccess": false,
-            "displayName": "Cluster scope on cluster2",
+            "displayName": "Cluster scope on my-cluster",
             "attributes": {},
             "uris": [],
             "scopes": [
@@ -364,10 +364,10 @@
             ]
           },
           {
-            "name": "kafka-cluster:cluster2,Group:*",
+            "name": "kafka-cluster:my-cluster,Group:*",
             "type": "Group",
             "ownerManagedAccess": false,
-            "displayName": "Any group on cluster2",
+            "displayName": "Any group on my-cluster",
             "attributes": {},
             "uris": [],
             "scopes": [
@@ -389,10 +389,10 @@
             ]
           },
           {
-            "name": "kafka-cluster:cluster2,Topic:*",
+            "name": "kafka-cluster:my-cluster,Topic:*",
             "type": "Topic",
             "ownerManagedAccess": false,
-            "displayName": "Any topic on cluster2",
+            "displayName": "Any topic on my-cluster",
             "attributes": {},
             "uris": [],
             "scopes": [
@@ -470,12 +470,12 @@
               "groups" : "[{\"path\":\"/ClusterManager Group\",\"extendChildren\":false}]"
             }
           }, {
-            "name" : "ClusterManager of cluster2 Group",
+            "name" : "ClusterManager of my-cluster Group",
             "type" : "group",
             "logic" : "POSITIVE",
             "decisionStrategy" : "UNANIMOUS",
             "config" : {
-              "groups" : "[{\"path\":\"/ClusterManager-cluster2 Group\",\"extendChildren\":false}]"
+              "groups" : "[{\"path\":\"/ClusterManager-my-cluster Group\",\"extendChildren\":false}]"
             }
           },
           {
@@ -500,12 +500,12 @@
             }
           },
           {
-            "name": "Dev Team B owns topics that start with b_ on cluster cluster2",
+            "name": "Dev Team B owns topics that start with b_ on cluster my-cluster",
             "type": "resource",
             "logic": "POSITIVE",
             "decisionStrategy": "UNANIMOUS",
             "config": {
-              "resources": "[\"kafka-cluster:cluster2,Topic:b_*\"]",
+              "resources": "[\"kafka-cluster:my-cluster,Topic:b_*\"]",
               "applyPolicies": "[\"Dev Team B\"]"
             }
           },
@@ -542,33 +542,33 @@
             }
           },
           {
-            "name": "ClusterManager of cluster2 Group has full access to topics on cluster2",
+            "name": "ClusterManager of my-cluster Group has full access to topics on my-cluster",
             "type": "resource",
             "logic": "POSITIVE",
             "decisionStrategy": "UNANIMOUS",
             "config": {
-              "resources": "[\"kafka-cluster:cluster2,Topic:*\"]",
-              "applyPolicies": "[\"ClusterManager of cluster2 Group\"]"
+              "resources": "[\"kafka-cluster:my-cluster,Topic:*\"]",
+              "applyPolicies": "[\"ClusterManager of my-cluster Group\"]"
             }
           },
           {
-            "name": "ClusterManager of cluster2 Group has full access to consumer groups on cluster2",
+            "name": "ClusterManager of my-cluster Group has full access to consumer groups on my-cluster",
             "type": "resource",
             "logic": "POSITIVE",
             "decisionStrategy": "UNANIMOUS",
             "config": {
-              "resources": "[\"kafka-cluster:cluster2,Group:*\"]",
-              "applyPolicies": "[\"ClusterManager of cluster2 Group\"]"
+              "resources": "[\"kafka-cluster:my-cluster,Group:*\"]",
+              "applyPolicies": "[\"ClusterManager of my-cluster Group\"]"
             }
           },
           {
-            "name": "ClusterManager of cluster2 Group has full access to cluster config on cluster2",
+            "name": "ClusterManager of my-cluster Group has full access to cluster config on my-cluster",
             "type": "resource",
             "logic": "POSITIVE",
             "decisionStrategy": "UNANIMOUS",
             "config": {
-              "resources": "[\"kafka-cluster:cluster2,Cluster:*\"]",
-              "applyPolicies": "[\"ClusterManager of cluster2 Group\"]"
+              "resources": "[\"kafka-cluster:my-cluster,Cluster:*\"]",
+              "applyPolicies": "[\"ClusterManager of my-cluster Group\"]"
             }
           }, {
             "name" : "ClusterManager Group has full access to manage and affect groups",
