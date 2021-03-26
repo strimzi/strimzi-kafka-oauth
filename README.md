@@ -962,3 +962,32 @@ Demo
 For a demo / tutorial covering OAuth2 authentication see [examples README](examples/README.md).
 
 For another demo / tutorial covering token based authorization using Keycloak Authorization Services see [authorization README](examples/README-authz.md)
+
+
+Troubleshooting
+---------------
+
+### Authentication failed due to an invalid token
+
+There are many reasons the token can be invalid, and rejected by Kafka broker during authentication.
+
+Here is a check list of most common problems:
+
+* The client should use the same HOST and PORT when connecting to the Authorization Server as the Kafka broker.
+
+  For example, if you specify `oauth.valid.issuer.uri` to `https://sso/` then the client should use `https://sso/tokens` as a `oauth.token.endpoint.uri`, rather than `http://sso/tokens` or `https://localhost:8443/tokens` or similar that route to the same authorization server endpoint, but using a different HOST and PORT in the url due to going via different routes or tcp tunnels.
+
+* The access token may have expired, and the client has to obtain a new one
+
+* The listener configuration on the Kafka broker may impose additional constraints on the token which the specific token doesn't comply with by using `oauth.custom.claim.check` or `oauth.check.audience` for example.
+
+You can debug the issue by enabling DEBUG level on `io.strimzi` logger on the Kafka broker.
+
+
+### Token validation failed: Unknown signing key (kid:...)
+
+The JWT tokens are signed by the authorization server when they are issued. The signing keys may be rotated or an existing instance of authorization server may be removed and a fresh new instance started in its place. In that situation a mismatch may occur between keys used to sign the tokens the client sends to Kafka broker during authentication, and the list of valid signing keys on the Kafka broker.
+
+The client may have obtained a new access token, but the Kafka broker has not yet refreshed the public keys from JWKS endpoint resulting in a mismatch. The Kafka Broker will automatically refresh JWT keys if it encounters an unknown kid, and the problem will self-correct in this case, you may just need to repeat your request a few times.
+
+It can also happen the other way around. Your existing client may still use the refresh token or the access token issued by the previous Keycloak instance while the Kafka broker has already refreshed the keys from JWKS endpoint - resulting in a mismatch between the private key used by Keycloak to sign the token, and the published public keys (JWKS endpoint). Since the problem is on the client you may need to configure your client with a newly obtained refresh token, or access token. If you configure your client with clientId and secret, it should auto-correct itself, you just need to restart it.
