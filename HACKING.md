@@ -343,7 +343,8 @@ We have to update the oauth library dependency version:
     sed -Ei 's#<strimzi-oauth.version>[0-9a-zA-Z.-]+</strimzi-oauth.version>#<strimzi-oauth.version>1.0.0-SNAPSHOT</strimzi-oauth.version>#g' \
       pom.xml \
       docker-images/kafka/kafka-thirdparty-libs/2.5.x/pom.xml \
-      docker-images/kafka/kafka-thirdparty-libs/2.6.x/pom.xml
+      docker-images/kafka/kafka-thirdparty-libs/2.6.x/pom.xml \
+      docker-images/kafka/kafka-thirdparty-libs/2.7.x/pom.xml
 
 This makes sure the latest strimzi-kafka-oauth library that we built previously is included into Kafka images that we'll build next.
 We can check the change:
@@ -371,7 +372,7 @@ instead of doing the whole `docker_build` again:
     
 Let's make sure the SNAPSHOT Strimzi OAuth libraries are included.
 
-    docker run --rm -ti $DOCKER_REG/strimzi/kafka:latest-kafka-2.6.0 /bin/sh -c 'ls -la /opt/kafka/libs/kafka-oauth*'
+    docker run --rm -ti $DOCKER_REG/strimzi/kafka:0.22.1-kafka-2.7.0 /bin/sh -c 'ls -la /opt/kafka/libs/kafka-oauth*'
 
 This executes a `ls` command inside a new Kafka container, which it removes afterwards.
 The deployed version should be 1.0.0-SNAPSHOT.
@@ -423,13 +424,13 @@ You can deploy Strimzi Cluster Operator the usual way:
 
 Note: If you're running Kubernetes within a VM you need at least 2 CPUs.
 
->Unless you have modified the `install/cluster-operator/050-Deployment-strimzi-cluster-operator.yaml` this will use the latest images from Docker Hub.
+>Unless you have modified the `packaging/install/cluster-operator/060-Deployment-strimzi-cluster-operator.yaml` this will use the latest images from Docker Hub.
 >If you have built the cluster operator locally, and pushed it to the Docker Registry running locally as a docker container, you'll probably want to use those images.
->In that case you need to update the `050-Deployment-strimzi-cluster-operator.yaml` using something like:
+>In that case you need to update the `060-Deployment-strimzi-cluster-operator.yaml` using something like:
 >```
->sed -Ei -e "s#(image|value): strimzi/([a-z0-9-]+):latest#\1: ${DOCKER_REG}/strimzi/\2:latest#" \
+>sed -Ei -e "s#(image|value): quay.io/strimzi/([a-z0-9-]+):latest#\1: ${DOCKER_REG}/strimzi/\2:latest#" \
 >  -e "s#([0-9.]+)=strimzi/([a-zA-Z0-9-]+:[a-zA-Z0-9.-]+-kafka-[0-9.]+)#\1=${DOCKER_REG}/strimzi/\2#" \
->  install/cluster-operator/050-Deployment-strimzi-cluster-operator.yaml
+>  packaging/install/cluster-operator/060-Deployment-strimzi-cluster-operator.yaml
 >```
  
 Using `kubectl get pod` you should see the status of strimzi-cluster-operator pod become `Running` after a few seconds.
@@ -461,7 +462,7 @@ For examples of deploying such a cluster see [/examples/kubernetes/README.md](ex
 
 You can explore the Kafka container more by starting it in interactive mode:
 
-    docker run --rm -ti $DOCKER_REG/strimzi/kafka:latest-kafka-2.4.0 /bin/sh
+    docker run --rm -ti $DOCKER_REG/strimzi/kafka:0.22.1-kafka-2.7.0 /bin/sh
  
 Here you've just started another interactive container from within the existing interactive container session.
 Pretty neat!
