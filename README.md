@@ -986,8 +986,13 @@ You can debug the issue by enabling DEBUG level on `io.strimzi` logger on the Ka
 
 ### Token validation failed: Unknown signing key (kid:...)
 
+Make sure that the authorization server instance used by the Kafka client to obtain the access token is the same as the authorization server endpoints configured on the 
+Kafka broker listener your client is connecting to. That means that the Kafka client and the Kafka broker have to use the same 'user domain' - for example with Keycloak they have to use the same `realm`. Different listeners can be configured to use different authorization servers, so pay attention about the port your client connects to.
+
+There are some other possibilites why this error can occur.
+
 The JWT tokens are signed by the authorization server when they are issued. The signing keys may be rotated or an existing instance of authorization server may be removed and a fresh new instance started in its place. In that situation a mismatch may occur between keys used to sign the tokens the client sends to Kafka broker during authentication, and the list of valid signing keys on the Kafka broker.
 
-The client may have obtained a new access token, but the Kafka broker has not yet refreshed the public keys from JWKS endpoint resulting in a mismatch. The Kafka Broker will automatically refresh JWT keys if it encounters an unknown kid, and the problem will self-correct in this case, you may just need to repeat your request a few times.
+The client may have obtained a new access token, but the Kafka broker has not yet refreshed the public keys from JWKS endpoint resulting in a mismatch. The Kafka Broker will automatically refresh JWT keys if it encounters an unknown `kid`, and the problem will self-correct in this case, you may just need to repeat your request a few times.
 
 It can also happen the other way around. Your existing client may still use the refresh token or the access token issued by the previous Keycloak instance while the Kafka broker has already refreshed the keys from JWKS endpoint - resulting in a mismatch between the private key used by Keycloak to sign the token, and the published public keys (JWKS endpoint). Since the problem is on the client you may need to configure your client with a newly obtained refresh token, or access token. If you configure your client with clientId and secret, it should auto-correct itself, you just need to restart it.
