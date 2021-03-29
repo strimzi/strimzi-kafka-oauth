@@ -115,17 +115,16 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
         ServerConfig config = parseJaasConfig(jaasConfigEntries);
 
         String tokenEndpoint = config.getValue(ServerPlainConfig.OAUTH_TOKEN_ENDPOINT_URI);
-        if (tokenEndpoint == null) {
-            throw new IllegalArgumentException("tokenEndpointUri == null");
+        // if tokenEndpoint is set, it will be used to fetch a token using username/password,
+        // otherwise the password value is interpreted as a token
+        if (tokenEndpoint != null) {
+            try {
+                this.tokenEndpointUri = new URI(tokenEndpoint);
+            } catch (URISyntaxException e) {
+                throw new IllegalArgumentException("Invalid tokenEndpointUri: " + tokenEndpoint, e);
+            }
         }
-        try {
-            this.tokenEndpointUri = new URI(tokenEndpoint);
-        } catch (URISyntaxException e) {
-            throw new IllegalArgumentException("Invalid tokenEndpointUri: " + tokenEndpoint, e);
-        }
-
         super.configure(configs, "OAUTHBEARER", jaasConfigEntries);
-
         log.debug("Configured OAuth over PLAIN:\n    tokenEndpointUri: " + tokenEndpointUri);
     }
 
@@ -193,6 +192,9 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
 
         if (password != null && password.startsWith(accessTokenPrefix)) {
             accessToken = password.substring(accessTokenPrefix.length());
+            checkUsernameMatch = true;
+        } else if (password != null && tokenEndpointUri == null) {
+            accessToken = password;
             checkUsernameMatch = true;
         } else {
             accessToken = OAuthAuthenticator.loginWithClientSecret(tokenEndpointUri, getSocketFactory(), getVerifier(),
