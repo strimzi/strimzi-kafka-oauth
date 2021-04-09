@@ -1016,6 +1016,75 @@ For example, to connect with `kafkacat` you could run:
 
     kafkacat -b my-cluster-kafka-bootstrap:9092 -X security.protocol=SASL_PLAINTEXT -X sasl.mechanism=PLAIN -X sasl.username=team-a-client -X sasl.password="team-a-client-secret" -t a_topic -P
 
+Configuring the client side of inter-broker authentication
+----------------------------------------------------------
+
+It is best to use mutual TLS for inter-broker communication. But if you really want to use `oauth`, there are a few details to get right.
+
+In order to use OAuth for inter-broker connections you have to specify the following two settings:
+- `sasl.mechanism.inter.broker.protocol`
+- `inter.broker.listener.name`
+
+You need to configure the listener with SASL_PLAINTEXT (rather than PLAINTEXT) or SASL_SSL (rather than SSL). For proper security you should use SASL_SSL.
+
+Then, you need to configure the `sasl.jaas.config` with client configuration options, not just the server configuration options.
+
+When you configure your listener to support OAuth, you can configure it to support OAUTHBEARER, and you can also configure it to support the OAuth over PLAIN as explained previously. PLAIN does not make much sense on the broker for inter-broker communication because OAUTHBEARER is supported.
+
+Here is an example of the configuration that uses OAUTHBEARER for inter-broker communication:
+
+```
+# We could use only one listener, but it's customary to use a separate listener 
+# for interbroker communication
+listener.security.protocol.map=REPLICATION:SASL_PLAINTEXT,EXTERNAL:SASL_PLAINTEXT
+sasl.enabled.mechanisms=OAUTHBEARER,PLAIN
+sasl.mechanism.inter.broker.protocol=OAUTHBEARER
+inter.broker.listener.name=REPLICATION
+
+# Because REPLICATION listener is used for inter-broker communication it also requires the 'client-side' login callback handler and corresponding configuration:
+
+listener.name.replication.oauthbearer.sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
+oauth.client.id="kafka" \
+oauth.client.secret="kafka-secret" \
+oauth.token.endpoint.uri="http://sso:8080/auth/realms/demo/protocol/openid-connect/token" \
+oauth.valid.issuer.uri="http://sso:8080/auth/realms/demo" \
+oauth.jwks.endpoint.uri="http://sso:8080/auth/realms/demo/protocol/openid-connect/certs" \
+oauth.username.claim="preferred_username" ;
+
+# Server-side-authentication handler
+listener.name.replication.oauthbearer.sasl.server.callback.handler.class=io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
+
+# Login-as-a-client handler
+listener.name.replication.oauthbearer.sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
+
+
+# The EXTERNAL listener only needs server-side-authentication support because we don't use it for inter-broker communication:
+
+listener.name.external.oauthbearer.sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
+oauth.valid.issuer.uri="http://sso:8080/auth/realms/demo" \
+oauth.jwks.endpoint.uri="http://sso:8080/auth/realms/demo/protocol/openid-connect/certs" \
+oauth.username.claim="preferred_username" \
+unsecuredLoginStringClaim_sub="unused" ;
+
+# The last parameter is needed for configuration to pass OAuthBearerLoginModule validation when we don't specify a custom sasl.login.callback.handler.class
+
+# Server-side-authentication handler
+listener.name.external.oauthbearer.sasl.server.callback.handler.class=io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
+
+
+# On EXTERNAL listener we may also want to support OAuth over PLAIN
+listener.name.external.plain.sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required \
+oauth.token.endpoint.uri="http://sso:8080/auth/realms/demo/protocol/openid-connect/token" \
+oauth.valid.issuer.uri="http://sso:8080/auth/realms/demo" \
+oauth.jwks.endpoint.uri="http://sso:8080/auth/realms/demo/protocol/openid-connect/certs" \
+oauth.username.claim="preferred_username" \
+unsecuredLoginStringClaim_sub="unused" ;
+
+# Server-side-authentication handler
+listener.name.external.plain.sasl.server.callback.handler.class=io.strimzi.kafka.oauth.server.plain.JaasServerOauthOverPlainValidatorCallbackHandler
+This is without authorizer configuration.
+```
+
 
 Configuring the TLS truststore
 ------------------------------
