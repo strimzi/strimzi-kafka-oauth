@@ -24,12 +24,13 @@ Strimzi Kafka OAuth modules provide support for OAuth2 as authentication mechani
     - [Configuring the listeners](#configuring-the-listeners)
     - [Configuring the JAAS login module](#configuring-the-jaas-login-module)
     - [Enabling the custom callbacks](#enabling-the-custom-callbacks)
-    - [Enabling the custom principal builder](#enabling-the-custom-principal_builder)
+    - [Enabling the custom principal builder](#enabling-the-custom-principal-builder)
     - [Configuring the OAuth2](#configuring-the-oauth2)
       - [Configuring the token validation](#configuring-the-token-validation)
         - [Validation using the JWKS endpoint](#validation-using-the-jwks-endpoint)
         - [Validation using the introspection endpoint](#validation-using-the-introspection-endpoint)
         - [Custom claim checking](#custom-claim-checking)
+        - [Configuring the `OAuth over PLAIN`](#configuring-the-oauth-over-plain)
       - [Configuring the client side of inter-broker communication](#configuring-the-client-side-of-inter-broker-communication)
     - [Enabling the re-authentication](#enabling-the-re-authentication)
     - [Enforcing the session timeout](#enforcing-the-session-timeout)  
@@ -161,8 +162,8 @@ The next thing to do is to enable SASL_OAUTHBEARER mechanism:
 
     sasl.enabled.mechanisms=OAUTHBEARER
 
-Since version 0.7.0 there is also support for so called 'OAuth over PLAIN' which allows using the SASL_PLAIN mechanism to authenticate with an OAuth access token or with a client ID and a secret.
-In order to use that you have to enable the SASL_PLAIN mechanism as well (you can enable one or the other or both):
+Since version 0.7.0 there is also support for so called `OAuth over PLAIN` which allows using the SASL_PLAIN mechanism to authenticate with an OAuth access token or with a client ID and a secret.
+In order to use `OAuth over PLAIN` you have to enable the SASL_PLAIN mechanism as well (you can enable one or the other or both):
 
     sasl.enabled.mechanisms=OAUTHBEARER,PLAIN
 
@@ -196,7 +197,8 @@ listener.name.client.plain.sasl.jaas.config=org.apache.kafka.common.security.pla
     oauth.jwks.endpoint.uri="https://server/keys" oauth.token.endpoint.uri="https://server/token";
 ```
 
-Here we additionally specified the `oauth.token.endpoint.uri` configuration key which is the only additional configuration option required for SASL_PLAIN. The other options are the same as for SASL_OAUTHBEARER.
+Here we specified the `oauth.token.endpoint.uri` configuration key which is the additional option for SASL_PLAIN, and is not used by SASL_OAUTHBEARER. The other options are the same as for SASL_OAUTHBEARER.
+
 Any Strimzi Kafka OAuth keys that begin with `oauth.` can be specified this way - scoped to the individual listener.
 
 A value of the scoped `sasl.jaas.config` always starts with the JAAS login module name, followed by `required`, and then followed by zero or more configuration parameters, separated by a whitespace, and ended with a semicolon - `;`
@@ -432,9 +434,25 @@ For example:
 
 See [JsonPathFilterQuery JavaDoc](oauth-common/src/main/java/io/strimzi/kafka/oauth/jsonpath/JsonPathFilterQuery.java) for more information about the syntax.
 
+###### Configuring the `OAuth over PLAIN`
+
+When configuring the listener for `SASL_PLAIN` using `org.apache.kafka.common.security.plain.PlainLoginModule` in its `jaas.sasl.config` (as [explained previously](#configuring-the-listeners)), the `oauth.*` options are the same as when configuring the listener for SASL_OAUTHBEARER.
+
+There is an additional `oauth.*` option you can specify (it's optional):
+
+- `oauth.token.endpoint.uri` (e.g.: "https://localhost:8443/auth/realms/demo/protocol/openid-connect/token")
+
+If this option is not specified the listener treats the `username` parameter of the SASL_PLAIN authentication as the account name, and the `password` parameter as the raw access token which is passed to the validation as if SASL_OAUTHBEARER was used.
+
+However, if this option is specified, the listener, by default, performs `client_credentials` authentication to obtain the access token in the name of the connecting client. It treats the `username` and `password` parameters of SASL_PLAIN authentication as `clientId` and `secret` for `client_credentials` authentication, which the server performs against the authorization server to obtain an access token in client's name. In this mode the client can still authenticate with an access token directly, by specifying the account name as a `username` and specifying the raw access token prepended by a prefix `$accessToken:` as a `password` parameter of SASL_PLAIN authentication. In this case the raw access token will be extracted from the `password` parameter by removing the prefix, and passed directly for validation.
+
+We can also say that by not configuring the `oauth.token.endpoint.uri` we disable `client_credentials` authentication over PLAIN.
+
 ##### Configuring the client side of inter-broker communication
 
 All the Kafka brokers in the cluster should be configured with the same client ID and secret, and the corresponding user should be added to `super.users` since inter-broker client requires super-user permissions.
+
+Only use OAUTHBEARER mechanism for inter-broker communication (don't use PLAIN configured as 'OAuth over PLAIN').
 
 Specify the following `oauth.*` properties:
 - `oauth.token.endpoint.uri` (e.g.: "https://localhost:8443/auth/realms/demo/protocol/openid-connect/token")
@@ -521,7 +539,7 @@ Add the following to `server.properties` file:
 
 Note: Since version 0.6.0 the `io.strimzi.kafka.oauth.server.authorizer.JwtKafkaPrincipalBuilder` has been deprecated. Use the above configuration instead.
 
-You also need a properly configured OAuth authentication support, as described in [Configuring the Kafka broker authentication](configuring_the_kafka_broker_authentication).
+You also need a properly configured OAuth authentication support, as described in [Configuring the Kafka broker authentication](#configuring-the-kafka-broker-authentication).
 
 #### Configuring the KeycloakRBACAuthorizer
 
@@ -894,7 +912,7 @@ The Kafka Broker has to have the SASL_PLAIN mechanism enabled and properly confi
 Then, the standard SASL_PLAIN configuration is used on the client with the following two options:
 - the client can authenticate using the service account client ID and secret. Setting the `username` to the value of client ID, and setting the `password` to the value of client secret. The Kafka broker will use these client credentials to obtain the access token from the authorization server. 
 - the client can authenticate using a long-lived access token obtained through a browser sign-in or through using `curl` or similar CLI tool to obtain the access token with `client credentials` or the `password` authentication, 
-  then setting the `username` to the same principal id that the broker will resolve from the provided access token, and setting `password` to prefix `$accessToken:` followed by the access token string. It is the presence of the `$accessToken:` prefix that tells the broker that it should extract the access token from the `password`
+  then setting the `username` to the same principal id that the broker will resolve from the provided access token, and setting `password` to prefix `$accessToken:` followed by the access token string. It is the presence of the `$accessToken:` prefix that tells the broker that it should extract the access token from the `password`. If `client_credentials` authentication over PLAIN is disabled on the listener, then the access token should be passed as-is, without prefixing it.
 
 For example, when using the Kafka Client Java library the configuration might look like:
 

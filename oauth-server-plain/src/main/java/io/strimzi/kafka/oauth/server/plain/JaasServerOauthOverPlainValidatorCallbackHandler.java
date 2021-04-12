@@ -126,6 +126,9 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
         }
         super.configure(configs, "OAUTHBEARER", jaasConfigEntries);
         log.debug("Configured OAuth over PLAIN:\n    tokenEndpointUri: " + tokenEndpointUri);
+        if (tokenEndpoint == null) {
+            log.debug("tokenEndpointUri is not configured - client_credentials will not be available, password parameter of SASL_PLAIN will automatically be treated as an access token (no '$accessToken:' prefix needed)");
+        }
     }
 
     @Override
