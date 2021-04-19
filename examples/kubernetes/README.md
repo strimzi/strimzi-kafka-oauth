@@ -2,7 +2,7 @@ Examples of Strimzi Kafka Cluster with OAuth
 --------------------------------------------
 
 Here are several examples of Kafka Cluster definitions for deployment with Strimzi Cluster Operator.
-They assume Keycloak is used as an authorization server, with properly configured realms called 'demo', and 'authz'.
+They assume Keycloak is used as an authorization server, with properly configured realms called `demo`, and `kafka-authz`.
 
 * `keycloak.yaml`
 
@@ -12,7 +12,7 @@ They assume Keycloak is used as an authorization server, with properly configure
 
   A single node Kafka cluster using Apache Kafka 2.6.0 with OAuth 2 authentication using the 'demo' realm, and fast local signature validation (with keys loaded from the JWKS endpoint) for validating access tokens.
 
-* `kafka-oauth-single-2_5.yaml`
+* `kafka-oauth-single-2_6.yaml`
 
   Same as `kafka-oauth-single.yaml` except using Apache Kafka 2.5.0.
 
@@ -24,7 +24,7 @@ They assume Keycloak is used as an authorization server, with properly configure
 
   A single node Kafka cluster using Apache Kafka 2.6.0 with OAuth 2 authentication using the `kafka-authz` realm, a fast local signature validation, and Keycloak Authorization Services for token-based authorization.
 
-* `kafka-oauth-single-2_5-authz.yaml`
+* `kafka-oauth-single-2_6-authz.yaml`
 
   Same as `kafka-oauth-single-authz.yaml` except using Apache Kafka 2.5.0.
 
