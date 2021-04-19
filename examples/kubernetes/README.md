@@ -18,7 +18,9 @@ They assume Keycloak is used as an authorization server, with properly configure
 
 * `kafka-oauth-single-introspect.yaml`
 
-  A single node Kafka cluster using Apache Kafka 2.6.0 with OAuth 2 authentication using the `demo` realm, and introspection endpoint for access token validation.
+  A single node Kafka cluster using Apache Kafka 2.6.0 with OAuth 2 authentication using the `demo` realm, and introspection endpoint for access token validation. It requires that a secret is first deployed:
+
+      kubectl create secret generic my-cluster-oauth-client-secret --from-literal=clientSecret=kafka-broker-secret
 
 * `kafka-oauth-single-authz.yaml`
 
@@ -50,6 +52,9 @@ In order to connect to Keycloak Admin Console you need an ip address and a port 
     echo Keycloak port: $KEYCLOAK_PORT 
 
 The actual IP address and port to use in order to reach Keycloak Admin Console from your host machine depends on your Kubernetes installation.
+You can typically make it accessible on 'http://localhost:8080' by using `kubectl port-forward`:
+
+    kubectl port-forward keycloak 8080
 
 
 #### Deploying the Postgres and Keycloak that stores state to Postgres
@@ -69,7 +74,12 @@ Deploy the mountable realm import files for Keycloak:
 And finally, start the Keycloak pod that uses Postgres:
 
     kubectl apply -f keycloak-postgres.yaml
- 
+
+Note: The script assumes that the postgres was deployed in `myproject` namespace. If you deploy it to some other namespace
+e.g. `default` you can fix the script on the fly:
+
+    cat keycloak-postgres.yaml | sed -e 's#.myproject.#.default.#'  | kubectl apply -f -
+
 
 #### Minishift
 
@@ -104,14 +114,17 @@ You can then open: http://localhost:8080/auth/admin and login with admin:admin.
 
 If you use the `keycloak-postgres.yaml` example with the `keycloak-realms-configmap.yaml` file to provide the mounted realm files, then the realms are imported automatically when the Keycloak is started.
 
-Otherwise, this step depends on your development environment because we have to build a custom docker image, and deploy it as a Kubernetes pod, for which we have to push it to the Docker Registry first.
+Alternatively, you can use Keycloak Admin Console GUI to import the realm. There are to realm JSON files in [../docker/keycloak-import/realms] directory which you can import one by one.
 
-First we build the `keycloak-import` docker image:
+Otherwise, you can automate the import by creating the pod job that uses Keycloak Admin API to perform the import.
+This step depends on your development environment because we have to build a custom docker image, and deploy it as a Kubernetes pod, for which we have to push it to the Docker Registry first.
+
+First, we build the `keycloak-import` docker image:
 
     cd ../docker/keycloak-import
     docker build . -t strimzi/keycloak-import
 
-Then we tag and push it to the Docker Registry:
+Then, we tag and push it to the Docker Registry:
 
     docker tag strimzi/keycloak-import $REGISTRY_IP:$REGISTRY_PORT/strimzi/keycloak-import
     docker push $REGISTRY_IP:$REGISTRY_PORT/strimzi/keycloak-import
