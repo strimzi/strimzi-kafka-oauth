@@ -99,7 +99,10 @@ public class CustomCheckTest {
         "@.missing nin [1,2,3]", "true",
         "@.missing && @.missing nin [1,2,3]", "false",
         "\"kafka-user\" in @.['roles'].['client-roles'].['kafka']", "true",
-        "@.roles.client-roles.kafka && \"kafka-admin\" nin @.roles.client-roles.kafka", "true"
+        "@.roles.client-roles.kafka && \"kafka-admin\" nin @.roles.client-roles.kafka", "true",
+        "@.sub == 'username' && ((@.custom &&  @.custom == 'custom-value') || !@.custom)", "true",
+        "@.sub == 'username' && ((@.custom &&  @.custom == 'custom-fail') || !@.custom)", "false",
+        "@.sub == 'username' && ((@.cus &&  @.cus == 'custom-value') || !@.cus)", "true"
     };
 
     /*
