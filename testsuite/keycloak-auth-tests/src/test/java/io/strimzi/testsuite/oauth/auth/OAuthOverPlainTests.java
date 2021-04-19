@@ -12,6 +12,7 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.errors.SaslAuthenticationException;
 import org.junit.Assert;
 
 import java.net.URI;
@@ -19,6 +20,7 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ExecutionException;
 
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithClientSecret;
 import static io.strimzi.testsuite.oauth.auth.Common.buildConsumerConfigPlain;
@@ -32,6 +34,78 @@ public class OAuthOverPlainTests {
         clientCredentialsOverPlainWithIntrospection();
         accessTokenOverPlainWithIntrospection();
         clientCredentialsOverPlainWithFloodTest();
+        accessTokenOverPlainWithClientCredentialsDisabled();
+        clientCredentialsOverPlainWithClientCredentialsDisabled();
+    }
+
+    static void accessTokenOverPlainWithClientCredentialsDisabled() throws Exception {
+
+        System.out.println("==== KeycloakAuthenticationTest :: accessTokenOverPlainWithClientCredentialsDisabled ====");
+
+        final String kafkaBootstrap = "kafka:9103";
+        final String hostPort = "keycloak:8080";
+        final String realm = "kafka-authz";
+
+        final String tokenEndpointUri = "http://" + hostPort + "/auth/realms/" + realm + "/protocol/openid-connect/token";
+
+        // first, request access token using client id and secret
+        TokenInfo info = loginWithClientSecret(URI.create(tokenEndpointUri), null, null,
+                "team-a-client", "team-a-client-secret", true, null, null);
+
+        Map<String, String> plainConfig = new HashMap<>();
+        plainConfig.put("username", "service-account-team-a-client");
+        // we use no prefix ("$accessToken:") because access-token-only mode is in effect
+        plainConfig.put("password", info.token());
+
+        Properties producerProps = buildProducerConfigPlain(kafkaBootstrap, plainConfig);
+        Producer<String, String> producer = new KafkaProducer<>(producerProps);
+
+        final String topic = "KeycloakAuthenticationTest-accessTokenOverPlainWithClientCredentialsDisabled";
+
+
+        producer.send(new ProducerRecord<>(topic, "The Message")).get();
+        System.out.println("Produced The Message");
+
+        Properties consumerProps = buildConsumerConfigPlain(kafkaBootstrap, plainConfig);
+        Consumer<String, String> consumer = new KafkaConsumer<>(consumerProps);
+
+        TopicPartition partition = new TopicPartition(topic, 0);
+        consumer.assign(singletonList(partition));
+
+        while (consumer.partitionsFor(topic, Duration.ofSeconds(1)).size() == 0) {
+            System.out.println("No assignment yet for consumer");
+        }
+        consumer.seekToBeginning(singletonList(partition));
+
+        ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(1));
+
+        Assert.assertEquals("Got message", 1, records.count());
+        Assert.assertEquals("Is message text: 'The Message'", "The Message", records.iterator().next().value());
+    }
+
+    static void clientCredentialsOverPlainWithClientCredentialsDisabled() throws Exception {
+
+        System.out.println("==== KeycloakAuthenticationTest :: clientCredentialsOverPlainWithClientCredentialsDisabled ====");
+
+        final String kafkaBootstrap = "kafka:9103";
+
+        Map<String, String> plainConfig = new HashMap<>();
+        plainConfig.put("username", "team-a-client");
+        plainConfig.put("password", "team-a-client-secret");
+
+        Properties producerProps = buildProducerConfigPlain(kafkaBootstrap, plainConfig);
+        Producer<String, String> producer = new KafkaProducer<>(producerProps);
+
+        final String topic = "KeycloakAuthenticationTest-clientCredentialsOverPlainWithClientCredentialsDisabled";
+
+        try {
+            producer.send(new ProducerRecord<>(topic, "The Message")).get();
+            Assert.fail("Should have failed due to client credentials being disabled on the server");
+        } catch (ExecutionException e) {
+            if (!(e.getCause() instanceof SaslAuthenticationException)) {
+                Assert.fail("Should have failed with AuthenticationException but was " + e.getCause());
+            }
+        }
     }
 
     static void clientCredentialsOverPlainWithIntrospection() throws Exception {
