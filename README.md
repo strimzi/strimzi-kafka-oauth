@@ -108,9 +108,15 @@ Copy the following jars into your Kafka libs directory:
     oauth-server-plain/target/kafka-oauth-server-plain-*.jar
     oauth-keycloak-authorizer/target/kafka-oauth-keycloak-authorizer-*.jar
     oauth-client/target/kafka-oauth-client-*.jar
-    oauth-client/target/lib/keycloak-common-*.jar
-    oauth-client/target/lib/keycloak-core-*.jar
-    oauth-client/target/lib/bcprov-*.jar
+    oauth-common/target/lib/keycloak-common-*.jar
+    oauth-common/target/lib/keycloak-core-*.jar
+    oauth-common/target/lib/bcprov-*.jar
+
+If you want to use custom claim checking, also copy the following:
+
+    oauth-server/target/lib/json-path-*.jar
+    oauth-server/target/lib/json-smart-*.jar
+    oauth-server/target/lib/accessorts-smart-*.jar
 
 Configuring the authorization server
 ------------------------------------
