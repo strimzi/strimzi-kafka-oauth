@@ -491,7 +491,7 @@ Specify the following `oauth.*` properties in `sasl.jaas.config` configuration:
 Also specify the principal corresponding to the client account identified by `oauth.client.id` in `super.users` property in `server.properties` file:
 - `super.users` (e.g.: "User:service-account-kafka") 
 
-This is not a full set of available `oauth.*` properties. All the `oauth.*` properties described in the next chapter about [configuring the Kafka clients](#configuring-the-kafka-client-with-sasloauthbearer) also apply to configuring the client side of inter-broker communication. 
+This is not a full set of available `oauth.*` properties. All the `oauth.*` properties described in the next chapter about [configuring the Kafka clients](#configuring-the-kafka-client-with-sasloauthbearer) also apply to configuring the client side of inter-broker communication.
 
 Here is an example of the configuration that uses OAUTHBEARER for inter-broker authentication:
 
