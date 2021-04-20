@@ -33,7 +33,7 @@ See [Keycloak authorizer NPE](https://github.com/strimzi/strimzi-kafka-oauth/pul
 
 ### OAuth over PLAIN
 
-SASL_PLAIN can now be used to perform the authentication using a service account clientId and secret or a long-lived access token.
+SASL/PLAIN can now be used to perform the authentication using a service account clientId and secret or a long-lived access token.
 
 When configuring OAuth authentication you should configure the custom principal builder factory:
 
@@ -298,7 +298,7 @@ Added Ory Hydra authorization server to examples.
 
 ### Initial OAuth 2 authentication support for Kafka
 
-Support for token-based authentication that plugs into Kafka's SASL_OAUTHBEARER mechanism to provide:
+Support for token-based authentication that plugs into Kafka's SASL/OAUTHBEARER mechanism to provide:
 * Different ways of access token retrieval for Kafka clients (clientId + secret, refresh token, or direct access token)
 * Fast signature-checking token validation mechanism (using authorization server's JWKS endpoint)
 * Introspection based token validation mechanism (using authorization server's introspection endpoint)

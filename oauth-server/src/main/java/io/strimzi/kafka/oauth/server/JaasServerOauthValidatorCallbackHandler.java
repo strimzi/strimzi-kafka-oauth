@@ -50,8 +50,8 @@ import static io.strimzi.kafka.oauth.common.LogUtil.mask;
  * This <em>CallbackHandler</em> implements the OAuth2 support.
  *
  * It is designed for use with the <em>org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule</em> which provides
- * SASL_OAUTHBEARER authentication support to Kafka brokers. With this CallbackHandler installed, the client authenticates
- * with SASL_OAUTHBEARER mechanism, authenticating with an access token which this <em>CallbackHandler</em> validates, and either
+ * SASL/OAUTHBEARER authentication support to Kafka brokers. With this CallbackHandler installed, the client authenticates
+ * with SASL/OAUTHBEARER mechanism, authenticating with an access token which this <em>CallbackHandler</em> validates, and either
  * accepts or rejects.
  * <p>
  * This <em>CallbackHandler</em> supports two different validation mechanism:
@@ -71,11 +71,11 @@ import static io.strimzi.kafka.oauth.common.LogUtil.mask;
  *     #listener.security.protocol.map=CLIENT:SASL_PLAINTEXT
  *     listener.security.protocol.map=CLIENT:SASL_SSL
  *
- *     # Enable SASL_OAUTHBEARER authentication mechanism on your listener in addition to any others
+ *     # Enable SASL/OAUTHBEARER authentication mechanism on your listener in addition to any others
  *     #sasl.enabled.mechanisms: PLAIN,OAUTHBEARER
  *     sasl.enabled.mechanisms: OAUTHBEARER
  *
- *     # Install the SASL_OAUTHBEARER LoginModule using per-listener sasl.jaas.config
+ *     # Install the SASL/OAUTHBEARER LoginModule using per-listener sasl.jaas.config
  *     listener.name.client.oauthbearer.sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
  *         oauth.valid.issuer.uri="https://java-server" \
  *         oauth.jwks.endpoint.uri="http://java-server/certs" \

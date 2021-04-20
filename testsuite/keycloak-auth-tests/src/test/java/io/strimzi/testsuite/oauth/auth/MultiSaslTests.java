@@ -32,7 +32,7 @@ public class MultiSaslTests {
         String username = "bobby";
         String password = "bobby-secret";
 
-        // producing to PLAIN listener using SASL_PLAIN should succeed
+        // producing to PLAIN listener using SASL/PLAIN should succeed
         Properties producerProps = producerConfigPlain(KAFKA_PLAIN_LISTENER, username, password);
         produceToTopic("KeycloakAuthenticationTest-multiSaslTest-plain", producerProps);
 
@@ -49,7 +49,7 @@ public class MultiSaslTests {
         username = "alice";
         password = "alice-secret";
 
-        // producing to PLAIN listener using SASL_PLAIN should fail
+        // producing to PLAIN listener using SASL/PLAIN should fail
         producerProps = producerConfigPlain(KAFKA_PLAIN_LISTENER, username, password);
         try {
             produceToTopic("KeycloakAuthenticationTest-multiSaslTest-plain", producerProps);
@@ -76,7 +76,7 @@ public class MultiSaslTests {
         username = "alice";
         password = "alice-password";
 
-        // producing to PLAIN listener using SASL_PLAIN should fail
+        // producing to PLAIN listener using SASL/PLAIN should fail
         producerProps = producerConfigPlain(KAFKA_PLAIN_LISTENER, username, password);
         try {
             produceToTopic("KeycloakAuthenticationTest-multiSaslTest-plain", producerProps);
@@ -92,14 +92,14 @@ public class MultiSaslTests {
         } catch (Exception ignored) {
         }
 
-        // producing to JWT listener using SASL_OAUTHBEARER using access token should succeed
+        // producing to JWT listener using SASL/OAUTHBEARER using access token should succeed
         String accessToken = Common.loginWithUsernamePassword(
                 URI.create("http://keycloak:8080/auth/realms/demo-ec/protocol/openid-connect/token"),
                 username, password, "kafka");
         producerProps = producerConfigOAuthBearerAccessToken(KAFKA_JWT_LISTENER, accessToken);
         produceToTopic("KeycloakAuthenticationTest-multiSaslTest-oauthbearer", producerProps);
 
-        // producing to JWTPLAIN listener using SASL_PLAIN using $accessToken should succeed
+        // producing to JWTPLAIN listener using SASL/PLAIN using $accessToken should succeed
         accessToken = Common.loginWithUsernamePassword(
                 URI.create("http://keycloak:8080/auth/realms/kafka-authz/protocol/openid-connect/token"),
                 username, password, "kafka-cli");

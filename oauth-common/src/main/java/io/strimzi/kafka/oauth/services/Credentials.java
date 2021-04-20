@@ -27,7 +27,7 @@ public class Credentials {
     /**
      * Store credentials to communicate them from PLAIN callback handler to OAuthKafkaPrincipalBuilder when OAuth over PLAIN is used.
      *
-     * @param clientId A clientId as passed to the 'username' parameter of SASL_PLAIN mechanism
+     * @param clientId A clientId as passed to the 'username' parameter of SASL/PLAIN mechanism
      * @param principal The OAuthKafkaPrincipal containing the validated token
      */
     public synchronized void storeCredentials(String clientId, KafkaPrincipal principal) {
@@ -38,7 +38,7 @@ public class Credentials {
     /**
      * Take credentials in order to associate them with PlainSaslServer
      *
-     * @param clientId A clientId as passed to the 'username' parameter of SASL_PLAIN mechanism
+     * @param clientId A clientId as passed to the 'username' parameter of SASL/PLAIN mechanism
      * @return Stored OAuthKafkaPrincipal
      */
     public synchronized KafkaPrincipal takeCredentials(String clientId) {
