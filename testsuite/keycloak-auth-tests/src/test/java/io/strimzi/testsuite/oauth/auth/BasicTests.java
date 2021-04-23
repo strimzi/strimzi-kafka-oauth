@@ -144,7 +144,6 @@ public class BasicTests {
         TokenInfo info = loginWithClientSecret(URI.create(tokenEndpointUri), null, null, clientId, clientSecret, true, null, null);
 
         Map<String, String> oauthConfig = new HashMap<>();
-        oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, tokenEndpointUri);
         oauthConfig.put(ClientConfig.OAUTH_ACCESS_TOKEN, info.token());
         oauthConfig.put(ClientConfig.OAUTH_USERNAME_CLAIM, "preferred_username");
 
