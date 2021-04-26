@@ -42,11 +42,8 @@ When everything starts up without errors we should have one instance of `keycloa
  
 You can login to the Admin Console by opening `http://localhost:8080/auth/admin` and using `admin` as both username, and a password.
 
-In the upper left corner under the Keycloak icon you should see `Master` selected as a current realm.
-Moving the mouse pointer over it should reveal two additional realms - `Demo` and `Kafka-authz`.
+For this example we are interested in the `kafka-authz` realm. Selecting the realm will open its `Realm Settings`.
 
-For this example we are interested in the `kafka-authz` realm.
-Selecting it will open the `Realm Settings` for the `kafka-authz` realm.
 Next to `Realm Settings` there are other sections we are interested in - `Groups`, `Roles`, `Clients` and `Users`.
 
 Under `Groups` we can see several groups that can be used to mark users as having some permissions.
@@ -55,7 +52,7 @@ Groups are sets of users with name assigned. Typically they are used to geograph
 In Keycloak the groups can be stored in an LDAP identity provider.
 That makes it possible to make some user a member of some group - through a custom LDAP server admin UI for example, which grants them some permissions on Kafka resources.
 
-Under `Users`, click on the `View all users` button and you will see two users defined - `alice` and `bob`. `alice` is a member of the `ClusterManager Group`, and `bob` is a member of `ClusterManager-cluster2 Group`. 
+Under `Users`, click on the `View all users` button and you will see two users defined - `alice` and `bob`. `alice` is a member of the `ClusterManager Group`, and `bob` is a member of `ClusterManager-my-cluster Group`. 
 In Keycloak the users can be stored in an LDAP identity provider.
 
 Under `Roles` we can see several realm roles which can be used to mark users or clients as having some permissions.
@@ -120,9 +117,9 @@ For example:
     Dev Team B can read from topics that start with x_ on any cluster
     Dev Team B can update consumer group offsets that start with x_ on any cluster
 
-    ClusterManager of cluster2 Group has full access to cluster config on cluster2
-    ClusterManager of cluster2 Group has full access to consumer groups on cluster2
-    ClusterManager of cluster2 Group has full access to topics on cluster2
+    ClusterManager of my-cluster Group has full access to cluster config on my-cluster
+    ClusterManager of my-cluster Group has full access to consumer groups on my-cluster
+    ClusterManager of my-cluster Group has full access to topics on my-cluster
     
 If we take a closer look at the `Dev Team A can write ...` permission definition, we see that it combines a resource called `Topic:x_*`, scopes `Describe` and `Write`, and `Dev Team A` policy.
 If we click on the `Dev Team A` policy, we see that it matches all users that have a realm role called `Dev Team A`.
@@ -273,7 +270,7 @@ EOF
 If we look at `team-b-client` client configuration in Keycloak, under `Service Account Roles` we can see that it has `Dev Team B` realm role assigned.
 Looking in Keycloak Console at the `kafka` client's `Authorization` tab where `Permissions` are listed, we can see the permissions that start with 'Dev Team B ...'.
 These match the users and service accounts that have the `Dev Team B` realm role assigned to them. 
-The `Dev Team B` users have full access to topics beginning with 'b_' on Kafka cluster `cluster2` (which is the designated cluster name of the demo cluster we brought up), and read access on topics that start with 'x_'.
+The `Dev Team B` users have full access to topics beginning with 'b_' on Kafka cluster `my-cluster` (which is the designated cluster name of the demo cluster we brought up), and read access on topics that start with 'x_'.
 
 Let's try produce some messages to topic `a_messages` as `team-b-client`:
 
@@ -320,7 +317,7 @@ We now need a power user that can create a topic with all the proper settings - 
 
 ### Power User Can Do Anything
 
-Let's create a configuration for user `bob` who has full ability to manage everything on Kafka cluster `cluster2`.
+Let's create a configuration for user `bob` who has full ability to manage everything on Kafka cluster `my-cluster`.
 
 First, `bob` will authenticate to Keycloak server with his username and password and get a refresh token.
 

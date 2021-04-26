@@ -46,19 +46,19 @@ if [ ${JAVA_MAJOR_VERSION} -eq 1 ] ; then
   set +e
 
   clearDockerEnv
-  docker pull quay.io/strimzi/kafka:0.21.1-kafka-2.7.0
+  docker pull quay.io/strimzi/kafka:0.22.1-kafka-2.7.0
   mvn -e -V -B clean install -f testsuite -Pkafka-2_7_0
   EXIT=$?
   exitIfError
 
   clearDockerEnv
-  docker pull quay.io/strimzi/kafka:0.21.1-kafka-2.6.0
+  docker pull quay.io/strimzi/kafka:0.22.1-kafka-2.6.0
   mvn -e -V -B clean install -f testsuite -Pkafka-2_6_0
   EXIT=$?
   exitIfError
 
   clearDockerEnv
-  docker pull quay.io/strimzi/kafka:0.21.1-kafka-2.5.1
+  docker pull quay.io/strimzi/kafka:0.22.1-kafka-2.5.1
   mvn -e -V -B test -f testsuite -Pkafka-2_5_1
   EXIT=$?
   exitIfError

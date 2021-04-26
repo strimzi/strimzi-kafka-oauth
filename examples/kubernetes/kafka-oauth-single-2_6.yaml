@@ -1,19 +1,21 @@
-apiVersion: kafka.strimzi.io/v1beta1
+apiVersion: kafka.strimzi.io/v1beta2
 kind: Kafka
 metadata:
   name: my-cluster
 spec:
   kafka:
-    version: 2.5.0
+    version: 2.6.0
     replicas: 1
     listeners:
-      plain:
+      - name: plain
+        port: 9092
+        type: internal
+        tls: false
         authentication:
           type: oauth
           validIssuerUri: http://keycloak:8080/auth/realms/demo
           jwksEndpointUri: http://keycloak:8080/auth/realms/demo/protocol/openid-connect/certs
           userNameClaim: preferred_username
-      tls: {}
     logging:
       type: inline
       loggers:
@@ -22,7 +24,7 @@ spec:
       offsets.topic.replication.factor: 1
       transaction.state.log.replication.factor: 1
       transaction.state.log.min.isr: 1
-      log.message.format.version: "2.5"
+      log.message.format.version: "2.6"
     storage:
       type: jbod
       volumes:
