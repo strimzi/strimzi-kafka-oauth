@@ -16,7 +16,7 @@
 
         <keycloak.version>11.0.2</keycloak.version>
         <bouncycastle.version>1.60</bouncycastle.version>
-        <strimzi-oauth.version>0.7.1</strimzi-oauth.version>
+        <strimzi-oauth.version>0.7.2</strimzi-oauth.version>
     </properties>
 
     <licenses>
