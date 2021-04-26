@@ -7,6 +7,7 @@ package io.strimzi.kafka.oauth.server;
 import io.strimzi.kafka.oauth.common.Config;
 import io.strimzi.kafka.oauth.common.ConfigUtil;
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
+import io.strimzi.kafka.oauth.common.IOUtil;
 import io.strimzi.kafka.oauth.common.PrincipalExtractor;
 import io.strimzi.kafka.oauth.common.TimeUtil;
 import io.strimzi.kafka.oauth.jsonpath.JsonPathFilterQuery;
@@ -137,6 +138,7 @@ import static io.strimzi.kafka.oauth.common.LogUtil.mask;
  * <p>
  * Common optional <em>sasl.jaas.config</em> configuration:
  * <ul>
+ * <li><em>oauth.include.error.details</em> If set to `false` only simple errors without details are returned to the client if authentication fails. Default value is <em>true</em></li>
  * <li><em>oauth.crypto.provider.bouncycastle</em> If set to `true` the BouncyCastle crypto provider is installed. <br>
  * Installing BouncyCastle crypto provider adds suport for ECDSA signing algorithm. Default value is <em>false</em>.
  * </li>
@@ -202,6 +204,8 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
     private PrincipalExtractor principalExtractor;
 
+    private boolean includeErrorDetails;
+
     @Override
     public void configure(Map<String, ?> configs, String saslMechanism, List<AppConfigurationEntry> jaasConfigEntries) {
 
@@ -226,9 +230,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
         String validIssuerUri = config.getValue(ServerConfig.OAUTH_VALID_ISSUER_URI);
 
-        if (validIssuerUri == null && config.getValueAsBoolean(ServerConfig.OAUTH_CHECK_ISSUER, true)) {
-            throw new RuntimeException("OAuth validator configuration error: OAUTH_VALID_ISSUER_URI must be set or OAUTH_CHECK_ISSUER has to be set to 'false'");
-        }
+        validateIssuerUri(validIssuerUri);
 
         boolean checkTokenType = isCheckAccessTokenType(config);
         boolean checkAudience = config.getValueAsBoolean(ServerConfig.OAUTH_CHECK_AUDIENCE, false);
@@ -237,13 +239,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         String fallbackUsernameClaim = config.getValue(Config.OAUTH_FALLBACK_USERNAME_CLAIM);
         String fallbackUsernamePrefix = config.getValue(Config.OAUTH_FALLBACK_USERNAME_PREFIX);
 
-        if (fallbackUsernameClaim != null && usernameClaim == null) {
-            throw new RuntimeException("OAuth validator configuration error: OAUTH_USERNAME_CLAIM must be set when OAUTH_FALLBACK_USERNAME_CLAIM is set");
-        }
-
-        if (fallbackUsernamePrefix != null && fallbackUsernameClaim == null) {
-            throw new RuntimeException("OAuth validator configuration error: OAUTH_FALLBACK_USERNAME_CLAIM must be set when OAUTH_FALLBACK_USERNAME_PREFIX is set");
-        }
+        validateFallbackUsernameParameters(usernameClaim, fallbackUsernameClaim, fallbackUsernamePrefix);
 
         principalExtractor = new PrincipalExtractor(
                 usernameClaim,
@@ -262,6 +258,8 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         if (!Services.isAvailable()) {
             Services.configure(configs);
         }
+
+        includeErrorDetails = config.getValueAsBoolean(ServerConfig.OAUTH_INCLUDE_ERROR_DETAILS, true);
 
         String sslTruststore = config.getValue(Config.OAUTH_SSL_TRUSTSTORE_LOCATION);
         String sslPassword = config.getValue(Config.OAUTH_SSL_TRUSTSTORE_PASSWORD);
@@ -396,6 +394,22 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         }
     }
 
+    private void validateIssuerUri(String validIssuerUri) {
+        if (validIssuerUri == null && config.getValueAsBoolean(ServerConfig.OAUTH_CHECK_ISSUER, true)) {
+            throw new RuntimeException("OAuth validator configuration error: OAUTH_VALID_ISSUER_URI must be set or OAUTH_CHECK_ISSUER has to be set to 'false'");
+        }
+    }
+
+    private void validateFallbackUsernameParameters(String usernameClaim, String fallbackUsernameClaim, String fallbackUsernamePrefix) {
+        if (fallbackUsernameClaim != null && usernameClaim == null) {
+            throw new RuntimeException("OAuth validator configuration error: OAUTH_USERNAME_CLAIM must be set when OAUTH_FALLBACK_USERNAME_CLAIM is set");
+        }
+
+        if (fallbackUsernamePrefix != null && fallbackUsernameClaim == null) {
+            throw new RuntimeException("OAuth validator configuration error: OAUTH_FALLBACK_USERNAME_CLAIM must be set when OAUTH_FALLBACK_USERNAME_PREFIX is set");
+        }
+    }
+
     @Override
     public void close() {
 
@@ -428,25 +442,40 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                 log.debug("Set validated token on callback: " + callback.token());
             }
         } catch (TokenValidationException e) {
-            if (log.isDebugEnabled()) {
-                log.debug("Token validation failed for token: " + mask(token), e);
-            }
-            throw new SaslAuthenticationException("Authentication failed due to an invalid token: " + getAllCauseMessages(e), e);
-
+            handleError("Token validation failed for token: " + mask(token), e);
         } catch (RuntimeException e) {
-            // Kafka ignores cause inside thrown exception, and doesn't log it
-            if (log.isDebugEnabled()) {
-                log.debug("Token validation failed due to runtime exception (network issue or misconfiguration): ", e);
-            }
-            // Extract cause and include it in a message string in order for it to be in the server log
-            throw new SaslAuthenticationException("Token validation failed due to runtime exception: " + getAllCauseMessages(e), e);
-
+            handleError("Token validation failed due to runtime exception", e);
         } catch (Throwable e) {
-            // Log cause, because Kafka doesn't
-            log.error("Unexpected failure during signature check:", e);
-
-            throw new SaslAuthenticationException("Unexpected failure during signature check: " + getAllCauseMessages(e), e);
+            handleError("Unexpected failure during signature check", e);
         }
+    }
+
+    private void handleError(String message, Throwable e) {
+        handleErrorWithLogger(log, message, e);
+    }
+
+    /**
+     * Kafka ignores cause inside thrown exception, and doesn't log it.
+     * This method makes sure to log the causes, and prepare the error message for the client.
+     * If <em>includeErrorDetails</em> field is <em>true</em> then the cause exceptions messages will be included
+     * in the error message sent to the client.
+     *
+     * @param logger The Logger to use for logging. This allows extending classes to set their own logger.
+     * @param message The error message
+     * @param e The cause exception
+     */
+    protected void handleErrorWithLogger(Logger logger, String message, Throwable e) {
+        String errId = IOUtil.randomHash();
+        String msg = message + " (ErrId: " + errId + ")" + (includeErrorDetails ? ": " + getAllCauseMessages(e) : "");
+
+        if (e instanceof TokenValidationException || e instanceof RuntimeException || e instanceof SaslAuthenticationException) {
+            if (logger.isDebugEnabled()) {
+                logger.debug(msg, e);
+            }
+        } else {
+            logger.error(msg, e);
+        }
+        throw new OAuthSaslAuthenticationException(message, errId, includeErrorDetails, e);
     }
 
     private TokenInfo validateToken(String token) {

@@ -26,6 +26,9 @@ public class KeycloakAuthenticationTest {
     @Test
     public void doTest() throws Exception {
         try {
+            logStart("KeycloakAuthenticationTest :: ErrorReportingTests");
+            ErrorReportingTests.doTests();
+
             logStart("KeycloakAuthenticationTest :: BasicTests");
             BasicTests.doTests();
 
@@ -40,9 +43,6 @@ public class KeycloakAuthenticationTest {
 
             logStart("KeycloakAuthenticationTest :: MultiSaslTests");
             MultiSaslTests.doTests();
-
-            logStart("KeycloakAuthenticationTest :: ErrorReportingTests");
-            ErrorReportingTests.doTests();
 
         } catch (Throwable e) {
             log.error("Keycloak Authentication Test failed: ", e);

@@ -1,3 +1,7 @@
+/*
+ * Copyright 2017-2020, Strimzi authors.
+ * License: Apache License 2.0 (see the file LICENSE or http://apache.org/licenses/LICENSE-2.0.html).
+ */
 package io.strimzi.testsuite.oauth.auth;
 
 import io.strimzi.kafka.oauth.client.ClientConfig;
@@ -131,7 +135,7 @@ public class ErrorReportingTests {
         TokenInfo info = loginWithClientSecret(URI.create(tokenEndpointUri), null, null, clientId, clientSecret, true, null, null);
 
         Map<String, String> oauthConfig = new HashMap<>();
-        String tokenWithBrokenSig = info.token().substring(0, info.token().length()-6) + "ffffff";
+        String tokenWithBrokenSig = info.token().substring(0, info.token().length() - 6) + "ffffff";
 
         oauthConfig.put(ClientConfig.OAUTH_ACCESS_TOKEN, tokenWithBrokenSig);
         oauthConfig.put(ClientConfig.OAUTH_USERNAME_CLAIM, "preferred_username");
@@ -167,7 +171,7 @@ public class ErrorReportingTests {
         TokenInfo info = loginWithClientSecret(URI.create(tokenEndpointUri), null, null, clientId, clientSecret, true, null, null);
 
         Map<String, String> oauthConfig = new HashMap<>();
-        String tokenWithBrokenSig = info.token().substring(0, info.token().length()-6) + "ffffff";
+        String tokenWithBrokenSig = info.token().substring(0, info.token().length() - 6) + "ffffff";
 
         oauthConfig.put(ClientConfig.OAUTH_ACCESS_TOKEN, tokenWithBrokenSig);
         oauthConfig.put(ClientConfig.OAUTH_USERNAME_CLAIM, "preferred_username");
@@ -318,8 +322,8 @@ public class ErrorReportingTests {
         final String topic = "KeycloakAuthenticationTest-cantConnectIntrospect";
 
         try {
-          producer.send(new ProducerRecord<>(topic, "The Message")).get();
-          Assert.fail("Should fail with ExecutionException");
+            producer.send(new ProducerRecord<>(topic, "The Message")).get();
+            Assert.fail("Should fail with ExecutionException");
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
             Assert.assertEquals("Expected SaslAuthenticationException", SaslAuthenticationException.class, cause.getClass());
