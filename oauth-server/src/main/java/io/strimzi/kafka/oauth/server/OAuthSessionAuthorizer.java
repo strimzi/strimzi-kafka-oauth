@@ -17,7 +17,7 @@ import scala.collection.immutable.Set;
 import static io.strimzi.kafka.oauth.common.LogUtil.mask;
 
 /**
- * An authorizer that grants access only if the access token used during SASL_OAUTHBEARER based authentication
+ * An authorizer that grants access only if the access token used during SASL/OAUTHBEARER based authentication
  * has not yet expired based on expiry time of the token as set by Authorization Server when the token was issued.
  * <p>
  * This authorizer does not detect if the token was invalidated mid-session by explicitly revoking it at the
@@ -43,7 +43,7 @@ import static io.strimzi.kafka.oauth.common.LogUtil.mask;
  *     strimzi.authorizer.grant.when.no.delegate=true
  * </pre>
  * With this setting the OAuthSessionAuthorizer behaves as if there was no authorizer installed - it grants everything with
- * the exception that the sessions using SASL_OAUTHBEARER with expired token will be denied.
+ * the exception that the sessions using SASL/OAUTHBEARER with expired token will be denied.
  * <p>
  * This authorizer doesn't take <em>super.users</em> setting into account. When used without a delegate every user effectively becomes a super user.
  */

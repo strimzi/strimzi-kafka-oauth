@@ -52,6 +52,7 @@ There are several profiles available to test with a specific version of Kafka im
 - kafka-2_5_0
 - kafka-2_5_1
 - kafka-2_6_0
+- kafka-2_7_0
 
 Only one at a time can be applied. For example:
  

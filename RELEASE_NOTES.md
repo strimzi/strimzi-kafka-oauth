@@ -1,6 +1,14 @@
 Release Notes
 =============
 
+0.7.2
+-----
+
+### Introduced 'no-client-credentials' mode with OAuth over PLAIN
+
+It is now possible to not specify the `oauth.token.endpoint.uri` parameter when configuring OAuth over PLAIN on the listener, which
+results in `username` to always be treated as an account id, and `password` to always be treated as a raw access token without any prefix. In this mode the client can't authenticate using client credentials (Client ID + secret) - even if the client sends them, the server will always interpret it as account id, and an access token, resulting in authentication failing due to `invalid token`.
+
 0.7.1
 -----
 
@@ -16,13 +24,16 @@ Now, you have to set `username` to be the same as the principal name that the br
 
 So, compared to before, you now prefix the access token string with `$accessToken:` in the `password` parameter, and you have to be careful to properly set the `username` parameter to the principal name matching that in the access token.
 
+### Fixed 'resource' permissions using Keycloak Authorization Services
+
+See [Keycloak authorizer NPE](https://github.com/strimzi/strimzi-kafka-oauth/pull/97).
 
 0.7.0
 -----
 
 ### OAuth over PLAIN
 
-SASL_PLAIN can now be used to perform the authentication using a service account clientId and secret or a long-lived access token.
+SASL/PLAIN can now be used to perform the authentication using a service account clientId and secret or a long-lived access token.
 
 When configuring OAuth authentication you should configure the custom principal builder factory:
 
@@ -287,7 +298,7 @@ Added Ory Hydra authorization server to examples.
 
 ### Initial OAuth 2 authentication support for Kafka
 
-Support for token-based authentication that plugs into Kafka's SASL_OAUTHBEARER mechanism to provide:
+Support for token-based authentication that plugs into Kafka's SASL/OAUTHBEARER mechanism to provide:
 * Different ways of access token retrieval for Kafka clients (clientId + secret, refresh token, or direct access token)
 * Fast signature-checking token validation mechanism (using authorization server's JWKS endpoint)
 * Introspection based token validation mechanism (using authorization server's introspection endpoint)

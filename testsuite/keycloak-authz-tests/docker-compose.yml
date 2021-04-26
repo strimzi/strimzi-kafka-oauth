@@ -103,7 +103,7 @@ services:
       - KAFKA_STRIMZI_AUTHORIZATION_TOKEN_ENDPOINT_URI=http://keycloak:8080/auth/realms/kafka-authz/protocol/openid-connect/token
       - KAFKA_STRIMZI_AUTHORIZATION_CLIENT_ID=kafka
       - KAFKA_STRIMZI_AUTHORIZATION_CLIENT_SECRET=kafka-secret
-      - KAFKA_STRIMZI_AUTHORIZATION_KAFKA_CLUSTER_NAME=cluster2
+      - KAFKA_STRIMZI_AUTHORIZATION_KAFKA_CLUSTER_NAME=my-cluster
       - KAFKA_STRIMZI_AUTHORIZATION_DELEGATE_TO_KAFKA_ACL=true
 
       # Parameters controlling the refreshing of grants

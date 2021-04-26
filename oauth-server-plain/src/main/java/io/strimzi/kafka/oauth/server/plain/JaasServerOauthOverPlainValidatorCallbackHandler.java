@@ -33,17 +33,17 @@ import static io.strimzi.kafka.oauth.common.LogUtil.getAllCauseMessages;
  * This <em>AuthenticateCallbackHandler</em> implements 'OAuth over PLAIN' support.
  *
  * It is designed for use with the <em>org.apache.kafka.common.security.plain.PlainLoginModule</em> which provides
- * SASL_PLAIN authentication support to Kafka brokers. With this CallbackHandler installed, the client authenticating
- * with SASL_PLAIN mechanism can use the clientId and the secret, setting them as <em>username</em> and <em>password</em>
+ * SASL/PLAIN authentication support to Kafka brokers. With this CallbackHandler installed, the client authenticating
+ * with SASL/PLAIN mechanism can use the clientId and the secret, setting them as <em>username</em> and <em>password</em>
  * parameters.
  * <p>
  * Also, the client can use the access token to authenticate, in which case it sets the <em>username</em> parameter
  * to the same principal the broker will resolve from the access token (depending on the Kafka Broker configuration this
  * is the value of 'sub' claim or one specified by 'oauth.username.claim' configuration), and set the concatenation of
- * <em>$accessToken:</em> and the actual access token string as the <em>password</em> SASL_PLAIN parameter value.
+ * <em>$accessToken:</em> and the actual access token string as the <em>password</em> SASL/PLAIN parameter value.
  * It is the <em>$accessToken:</em> prefix that will let the broker know that the password should be treated as an access token.
  * <p>
- * Allowing the use of OAuth credentials over SASL_PLAIN allows all existing Kafka client tools to authenticate to your
+ * Allowing the use of OAuth credentials over SASL/PLAIN allows all existing Kafka client tools to authenticate to your
  * Kafka cluster even when they have no explicit OAuth support.
  * <p>
  * To install this <em>CallbackHandler</em> in your Kafka listener, specify the following in your 'server.properties':
@@ -64,11 +64,11 @@ import static io.strimzi.kafka.oauth.common.LogUtil.getAllCauseMessages;
  *     listener.name.client.ssl.truststore.password=trustpass
  *     listener.name.client.ssl.truststore.type=PKCS12
  *
- *     # Enable SASL_PLAIN authentication mechanism on your listener in addition to any others
+ *     # Enable SASL/PLAIN authentication mechanism on your listener in addition to any others
  *     #sasl.enabled.mechanisms: PLAIN,OAUTHBEARER
  *     sasl.enabled.mechanisms: PLAIN
  *
- *     # Install the SASL_PLAIN LoginModule using per-listener sasl.jaas.config
+ *     # Install the SASL/PLAIN LoginModule using per-listener sasl.jaas.config
  *     listener.name.client.plain.sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required \
  *         oauth.token.endpoint.uri="https://sso-server/token" \
  *         oauth.valid.issuer.uri="https://java-server" \
@@ -127,7 +127,7 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
         super.configure(configs, "OAUTHBEARER", jaasConfigEntries);
         log.debug("Configured OAuth over PLAIN:\n    tokenEndpointUri: " + tokenEndpointUri);
         if (tokenEndpoint == null) {
-            log.debug("tokenEndpointUri is not configured - client_credentials will not be available, password parameter of SASL_PLAIN will automatically be treated as an access token (no '$accessToken:' prefix needed)");
+            log.debug("tokenEndpointUri is not configured - client_credentials will not be available, password parameter of SASL/PLAIN will automatically be treated as an access token (no '$accessToken:' prefix needed)");
         }
     }
 

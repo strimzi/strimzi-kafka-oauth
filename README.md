@@ -38,15 +38,15 @@ Strimzi Kafka OAuth modules provide support for OAuth2 as authentication mechani
     - [Enabling the KeycloakRBACAuthorizer](#enabling-the-keycloakrbacauthorizer)
     - [Configuring the KeycloakRBACAuthorizer](#configuring-the-keycloakrbacauthorizer)
     - [Configuring the RBAC rules through Keycloak Authorization Services](#configuring-the-rbac-rules-through-keycloak-authorization-services)
-- [Configuring the Kafka client with SASL_OAUTHBEARER](#configuring-the-kafka-client-with-sasl_oauthbearer)
-  - [Enabling SASL_OAUTHBEARER mechanism](#enabling-sasl_oauthbearer-mechanism)
+- [Configuring the Kafka client with SASL/OAUTHBEARER](#configuring-the-kafka-client-with-sasloauthbearer)
+  - [Enabling SASL/OAUTHBEARER mechanism](#enabling-sasloauthbearer-mechanism)
   - [Configuring the JAAS login module](#configuring-the-jaas-login-module-client)
   - [Enabling the custom callbacks](#enabling-the-custom-callbacks-client)
   - [Configuring the OAuth2](#configuring-the-oauth2-client)
   - [Configuring the re-authentication on the client](#configuring-the-re-authentication-on-the-client)
   - [Client config example](#client-config-example)
   - [Handling expired or invalid tokens gracefully](#handling-expired-or-invalid-tokens-gracefully)
-- [Configuring the Kafka client with SASL_PLAIN](#configuring-the-kafka-client-with-sasl_plain)
+- [Configuring the Kafka client with SASL/PLAIN](#configuring-the-kafka-client-with-saslplain)
 - [Configuring the TLS truststore](#configuring-the-tls-truststore)
 - [Demo](#demo)
   
@@ -108,9 +108,15 @@ Copy the following jars into your Kafka libs directory:
     oauth-server-plain/target/kafka-oauth-server-plain-*.jar
     oauth-keycloak-authorizer/target/kafka-oauth-keycloak-authorizer-*.jar
     oauth-client/target/kafka-oauth-client-*.jar
-    oauth-client/target/lib/keycloak-common-*.jar
-    oauth-client/target/lib/keycloak-core-*.jar
-    oauth-client/target/lib/bcprov-*.jar
+    oauth-common/target/lib/keycloak-common-*.jar
+    oauth-common/target/lib/keycloak-core-*.jar
+    oauth-common/target/lib/bcprov-*.jar
+
+If you want to use custom claim checking, also copy the following:
+
+    oauth-server/target/lib/json-path-*.jar
+    oauth-server/target/lib/json-smart-*.jar
+    oauth-server/target/lib/accessorts-smart-*.jar
 
 Configuring the authorization server
 ------------------------------------
@@ -128,7 +134,7 @@ Configuring the Kafka Broker
 ----------------------------
 
 Kafka uses JAAS to bootstrap custom authentication mechanisms. 
-Strimzi Kafka OAuth therefore needs to use JAAS configuration to activate SASL_OAUTHBEARER, and install its own implementations of the callback classes.
+Strimzi Kafka OAuth therefore needs to use JAAS configuration to activate SASL/OAUTHBEARER, and install its own implementations of the callback classes.
 This is true for configuring the server side of the Kafka Broker, as well as for the Kafka client side - when using OAuth 2 for inter-broker communication.
 
 The authentication configuration specific to the Strimzi Kafka OAuth can be specified as part of JAAS configuration in the form of JAAS parameter values. 
@@ -144,7 +150,7 @@ There are several steps to configuring the Kafka Broker:
 
 #### Configuring the listeners
 
-In order to configure Strimzi Kafka OAuth for the listener, you first need to enable SASL security for the listener, and enable SASL_OAUTHBEARER mechanism.
+In order to configure Strimzi Kafka OAuth for the listener, you first need to enable SASL security for the listener, and enable SASL/OAUTHBEARER mechanism.
 
 For example, let's have two listeners, one for inter-broker communication (REPLICATION), and one for Kafka clients to connect (CLIENT):
 
@@ -158,12 +164,12 @@ Note that these are examples, for production you should almost certainly not use
 
 Having these two listeners, the one called `CLIENT` fulfils the precondition for Strimzi Kafka OAuth in that it is configured to use SASL based authentication.
 
-The next thing to do is to enable SASL_OAUTHBEARER mechanism:
+The next thing to do is to enable SASL/OAUTHBEARER mechanism:
 
     sasl.enabled.mechanisms=OAUTHBEARER
 
-Since version 0.7.0 there is also support for so called `OAuth over PLAIN` which allows using the SASL_PLAIN mechanism to authenticate with an OAuth access token or with a client ID and a secret.
-In order to use `OAuth over PLAIN` you have to enable the SASL_PLAIN mechanism as well (you can enable one or the other or both):
+Since version 0.7.0 there is also support for so called `OAuth over PLAIN` which allows using the SASL/PLAIN mechanism to authenticate with an OAuth access token or with a client ID and a secret.
+In order to use `OAuth over PLAIN` you have to enable the SASL/PLAIN mechanism as well (you can enable one or the other or both):
 
     sasl.enabled.mechanisms=OAUTHBEARER,PLAIN
 
@@ -171,12 +177,12 @@ In order to use `OAuth over PLAIN` you have to enable the SASL_PLAIN mechanism a
 
 In JAAS configuration we do four things:
 - Activate a specific JAAS login module - for Strimzi Kafka OAuth that is either:
-  - the `org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule` class which implements Kafka's SASL_OAUTHBEARER authentication mechanism, or 
-  - the `org.apache.kafka.common.security.plain.PlainLoginModule` class which implements Kafka's SASL_PLAIN authentication mechanism.
+  - the `org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule` class which implements Kafka's SASL/OAUTHBEARER authentication mechanism, or 
+  - the `org.apache.kafka.common.security.plain.PlainLoginModule` class which implements Kafka's SASL/PLAIN authentication mechanism.
 - Activate the custom principal builder - `io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder`.
 - Activate the custom server callback that will provide server-side token validation:
-  - For `SASL_OAUTHBEARER` the callback class should be `io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler`.
-  - For `SASL_PLAIN` the callback class should be `io.strimzi.kafka.oauth.server.plain.JaasServerOauthOverPlainValidatorCallbackHandler`.
+  - For `SASL/OAUTHBEARER` the callback class should be `io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler`.
+  - For `SASL/PLAIN` the callback class should be `io.strimzi.kafka.oauth.server.plain.JaasServerOauthOverPlainValidatorCallbackHandler`.
 - Specify the configurations used by the login module, and by our custom extensions - the server callback handler and / or the login callback handler (which we will do in [the next step](#enabling-the-custom-callbacks)).
 
 JAAS configuration can be specified inside `server.properties` file using the listener-scoped `sasl.jaas.config` key. 
@@ -190,14 +196,14 @@ listener.name.client.oauthbearer.sasl.jaas.config=org.apache.kafka.common.securi
 Note the `listener.name.client.oauthbearer.` prefix for the key. The word `client` in the key refers to the `CLIENT` listener. 
 In this case we are configuring the validator with fast local signature check that uses the JWKS endpoint provided by authorization server.
 
-The `oauthbearer` part refers to the sasl mechanism SASL_OAUTHBEARER on the `CLIENT` listener. In order to configure the SASL_PLAIN mechanism you have to use `plain` instead:
+The `oauthbearer` part refers to the sasl mechanism SASL/OAUTHBEARER on the `CLIENT` listener. In order to configure the SASL/PLAIN mechanism you have to use `plain` instead:
 
 ```
 listener.name.client.plain.sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required \
     oauth.jwks.endpoint.uri="https://server/keys" oauth.token.endpoint.uri="https://server/token";
 ```
 
-Here we specified the `oauth.token.endpoint.uri` configuration key which is the additional option for SASL_PLAIN, and is not used by SASL_OAUTHBEARER. The other options are the same as for SASL_OAUTHBEARER.
+Here we specified the `oauth.token.endpoint.uri` configuration key which is the additional option for SASL/PLAIN, and is not used by SASL/OAUTHBEARER. The other options are the same as for SASL/OAUTHBEARER.
 
 Any Strimzi Kafka OAuth keys that begin with `oauth.` can be specified this way - scoped to the individual listener.
 
@@ -210,18 +216,30 @@ The custom callbacks are enabled per listener in `server.properties` using the l
 
 On the Kafka Broker we typically only install the custom server callback - the so called `validator` callback handler.
 
-An example for SASL_OAUTHBEARER:
+An example for SASL/OAUTHBEARER:
 
     listener.name.client.oauthbearer.sasl.server.callback.handler.class=io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
 
-An example for SASL_PLAIN:
+An example for SASL/PLAIN:
 
     listener.name.client.plain.sasl.server.callback.handler.class=io.strimzi.kafka.oauth.server.plain.JaasServerOauthOverPlainValidatorCallbackHandler
 
 
-If the SASL_OAUTHBEARER listener is also used for interbroker communication, then you also have to configure the client callback handler class.
+If the SASL/OAUTHBEARER listener is also used for inter-broker communication, then you also have to configure the client callback handler class.
 
     listener.name.client.oauthbearer.sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler 
+
+If the listener is not used for inter-broker communication, then you don't have to configure the login callback, but in that case make sure to include the following parameter in listener's `sasl.jaas.config`:
+
+    unsecuredLoginStringClaim_sub="unused"
+
+For example:
+```
+listener.name.client.oauthbearer.sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
+oauth.jwks.endpoint.uri="https://server/keys" unsecuredLoginStringClaim_sub="unused";
+```
+
+This prevents an error during the execution of the default `OAuthBearerLoginModule` parameter validation logic.
 
 #### Enabling the custom principal builder
 
@@ -436,25 +454,35 @@ See [JsonPathFilterQuery JavaDoc](oauth-common/src/main/java/io/strimzi/kafka/oa
 
 ###### Configuring the `OAuth over PLAIN`
 
-When configuring the listener for `SASL_PLAIN` using `org.apache.kafka.common.security.plain.PlainLoginModule` in its `jaas.sasl.config` (as [explained previously](#configuring-the-listeners)), the `oauth.*` options are the same as when configuring the listener for SASL_OAUTHBEARER.
+When configuring the listener for `SASL/PLAIN` using `org.apache.kafka.common.security.plain.PlainLoginModule` in its `jaas.sasl.config` (as [explained previously](#configuring-the-listeners)), the `oauth.*` options are the same as when configuring the listener for SASL/OAUTHBEARER.
 
 There is an additional `oauth.*` option you can specify (it's optional):
 
 - `oauth.token.endpoint.uri` (e.g.: "https://localhost:8443/auth/realms/demo/protocol/openid-connect/token")
 
-If this option is not specified the listener treats the `username` parameter of the SASL_PLAIN authentication as the account name, and the `password` parameter as the raw access token which is passed to the validation as if SASL_OAUTHBEARER was used.
+If this option is not specified the listener treats the `username` parameter of the SASL/PLAIN authentication as the account name, and the `password` parameter as the raw access token which is passed to the validation as if SASL/OAUTHBEARER was used.
 
-However, if this option is specified, the listener, by default, performs `client_credentials` authentication to obtain the access token in the name of the connecting client. It treats the `username` and `password` parameters of SASL_PLAIN authentication as `clientId` and `secret` for `client_credentials` authentication, which the server performs against the authorization server to obtain an access token in client's name. In this mode the client can still authenticate with an access token directly, by specifying the account name as a `username` and specifying the raw access token prepended by a prefix `$accessToken:` as a `password` parameter of SASL_PLAIN authentication. In this case the raw access token will be extracted from the `password` parameter by removing the prefix, and passed directly for validation.
+However, if this option is specified, the listener, by default, performs `client_credentials` authentication to obtain the access token in the name of the connecting client. It treats the `username` and `password` parameters of SASL/PLAIN authentication as `clientId` and `secret` for `client_credentials` authentication, which the server performs against the authorization server to obtain an access token in client's name. In this mode the client can still authenticate with an access token directly, by specifying the account name as a `username` and specifying the raw access token prepended by a prefix `$accessToken:` as a `password` parameter of SASL/PLAIN authentication. In this case the raw access token will be extracted from the `password` parameter by removing the prefix, and passed directly for validation.
 
 We can also say that by not configuring the `oauth.token.endpoint.uri` we disable `client_credentials` authentication over PLAIN.
 
 ##### Configuring the client side of inter-broker communication
 
+It is best to use mutual TLS for inter-broker communication. But if you really want to use `oauth`, there are a few details to get right.
+
+In order to use OAuth for inter-broker connections you have to specify the following two settings:
+- `sasl.mechanism.inter.broker.protocol`
+- `inter.broker.listener.name`
+
+You need to configure the listener with SASL_PLAINTEXT (rather than PLAINTEXT) or SASL_SSL (rather than SSL). For proper security you should use SASL_SSL.
+
+Then, you need to configure the `sasl.jaas.config` with client configuration options, not just the server configuration options.
+
 All the Kafka brokers in the cluster should be configured with the same client ID and secret, and the corresponding user should be added to `super.users` since inter-broker client requires super-user permissions.
 
-Only use OAUTHBEARER mechanism for inter-broker communication (don't use PLAIN configured as 'OAuth over PLAIN').
+When you configure your listener to support OAuth, you can configure it to support OAUTHBEARER, but you can also configure it to support the OAuth over PLAIN as explained previously. PLAIN does not make much sense on the broker for inter-broker communication since OAUTHBEARER is supported. Therefore it is best to only use OAUTHBEARER mechanism for inter-broker communication.
 
-Specify the following `oauth.*` properties:
+Specify the following `oauth.*` properties in `sasl.jaas.config` configuration:
 - `oauth.token.endpoint.uri` (e.g.: "https://localhost:8443/auth/realms/demo/protocol/openid-connect/token")
 - `oauth.client.id` (e.g.: "kafka" - this is the client configuration id for Kafka Broker)
 - `oauth.client.secret` (e.g.: "kafka-secret")
@@ -463,7 +491,62 @@ Specify the following `oauth.*` properties:
 Also specify the principal corresponding to the client account identified by `oauth.client.id` in `super.users` property in `server.properties` file:
 - `super.users` (e.g.: "User:service-account-kafka") 
 
-This is not a full set of available `oauth.*` properties. All the `oauth.*` properties described in the next chapter about [configuring the Kafka clients](#configuring-the-kafka-client) also apply to configuring the client side of inter-broker communication. 
+This is not a full set of available `oauth.*` properties. All the `oauth.*` properties described in the next chapter about [configuring the Kafka clients](#configuring-the-kafka-client-with-sasloauthbearer) also apply to configuring the client side of inter-broker communication. 
+
+Here is an example of the configuration that uses OAUTHBEARER for inter-broker authentication:
+
+```
+# We could use only one listener, but it's customary to use a separate listener 
+# for interbroker communication
+listener.security.protocol.map=REPLICATION:SASL_PLAINTEXT,EXTERNAL:SASL_PLAINTEXT
+sasl.enabled.mechanisms=OAUTHBEARER,PLAIN
+sasl.mechanism.inter.broker.protocol=OAUTHBEARER
+inter.broker.listener.name=REPLICATION
+
+# Because REPLICATION listener is used for inter-broker communication it also requires the 'client-side' login callback handler and corresponding configuration:
+
+listener.name.replication.oauthbearer.sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
+oauth.client.id="kafka" \
+oauth.client.secret="kafka-secret" \
+oauth.token.endpoint.uri="http://sso:8080/auth/realms/demo/protocol/openid-connect/token" \
+oauth.valid.issuer.uri="http://sso:8080/auth/realms/demo" \
+oauth.jwks.endpoint.uri="http://sso:8080/auth/realms/demo/protocol/openid-connect/certs" \
+oauth.username.claim="preferred_username" ;
+
+# Server-side-authentication handler
+listener.name.replication.oauthbearer.sasl.server.callback.handler.class=io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
+
+# Login-as-a-client handler
+listener.name.replication.oauthbearer.sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
+
+
+# The EXTERNAL listener only needs server-side-authentication support because we don't use it for inter-broker communication:
+
+listener.name.external.oauthbearer.sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
+oauth.valid.issuer.uri="http://sso:8080/auth/realms/demo" \
+oauth.jwks.endpoint.uri="http://sso:8080/auth/realms/demo/protocol/openid-connect/certs" \
+oauth.username.claim="preferred_username" \
+unsecuredLoginStringClaim_sub="unused" ;
+
+# The last parameter is needed for configuration to pass OAuthBearerLoginModule validation when we don't specify a custom sasl.login.callback.handler.class
+
+# Server-side-authentication handler
+listener.name.external.oauthbearer.sasl.server.callback.handler.class=io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
+
+
+# On EXTERNAL listener we may also want to support OAuth over PLAIN
+listener.name.external.plain.sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required \
+oauth.token.endpoint.uri="http://sso:8080/auth/realms/demo/protocol/openid-connect/token" \
+oauth.valid.issuer.uri="http://sso:8080/auth/realms/demo" \
+oauth.jwks.endpoint.uri="http://sso:8080/auth/realms/demo/protocol/openid-connect/certs" \
+oauth.username.claim="preferred_username" \
+unsecuredLoginStringClaim_sub="unused" ;
+
+# Server-side-authentication handler
+listener.name.external.plain.sasl.server.callback.handler.class=io.strimzi.kafka.oauth.server.plain.JaasServerOauthOverPlainValidatorCallbackHandler
+This is without authorizer configuration.
+```
+
 
 #### Enabling the re-authentication
 
@@ -516,7 +599,7 @@ Instead, specify the following configuration:
 In this case, unless the access token has expired, all the actions will be granted. The broker will behave as if no authorizer was installed, effectively turning every user into a 'super user'.
 The unauthenticated users, or users authenticated with a mechanism other than OAuth will also automatically have all the actions granted.
 
-Note: When using SASL_PLAIN authentication in combination with `KeycloakRBACAuthorizer` or `OAuthSessionAuthorizer` the Kafka client session will expire when the access token expires.
+Note: When using SASL/PLAIN authentication in combination with `KeycloakRBACAuthorizer` or `OAuthSessionAuthorizer` the Kafka client session will expire when the access token expires.
 This will result in sudden appearance of the authorization failures.
 Since there is no way to pass a new access token mid-session (re-authenticate), the client will have to start a new session by establishing a new connection. 
 
@@ -590,7 +673,7 @@ For a more in-depth guide to using Keycloak Authorization Services see [the tuto
 In order to grant Kafka permissions to users or service accounts you have to use the Keycloak Authorization Services rules on the OAuth client that represents the Kafka Broker - typically this client has `kafka` as its client ID.
 The rules exist within the scope of this client, which means that if you have different Kafka clusters configured with different OAuth client IDs they would each have a separate set of permissions even though using the same set of users, and client accounts. 
 
-When the Kafka client authenticates using SASL_OAUTHEARER or SASL_PLAIN configured as 'OAuth over PLAIN' the KeycloakRBACAuthorizer retrieves the list of grants for the current session from the Keycloak server using the access token of the current session.
+When the Kafka client authenticates using SASL/OAUTHEARER or SASL/PLAIN configured as 'OAuth over PLAIN' the KeycloakRBACAuthorizer retrieves the list of grants for the current session from the Keycloak server using the access token of the current session.
 This list of grants is the result of evaluating the Keycloak Authorization Services policies and permissions. 
 
 There are four concepts used to grant permissions: `resources`, `authorization scopes`, `policies`, and `permissions`.
@@ -682,14 +765,14 @@ Each policy should be descriptively named in order to make it very clear what pe
 See [the authorization tutorial](examples/README-authz.md) to get a hands-on understanding of how to configure the permissions through Keycloak Authorization Services.
 
 
-Configuring the Kafka client with SASL_OAUTHBEARER
+Configuring the Kafka client with SASL/OAUTHBEARER
 --------------------------------------------------
 
 Configuring the Kafka client is very similar to configuring the Kafka broker.
 Clients don't have multiple listeners so there is one authentication configuration, which makes things slightly simpler.
 It is more common on the client to compose configuration properties programmatically rather than reading in a properties file (like `server.properties`).
 
-### Enabling SASL_OAUTHBEARER mechanism
+### Enabling SASL/OAUTHBEARER mechanism
 
 In order to use insecure connectivity set the following property:
 
@@ -903,13 +986,13 @@ for (int i = 0; ; i++) {
 }
 ```
 
-Configuring the Kafka client with SASL_PLAIN
+Configuring the Kafka client with SASL/PLAIN
 --------------------------------------------
 
-There is no OAuth specific configuration that would be required on the client when authenticating to Kafka Broker with SASL_PLAIN mechanism.
-The Kafka Broker has to have the SASL_PLAIN mechanism enabled and properly configured with `JaasServerOauthOverPlainValidatorCallbackHandler` validation callback handler. 
+There is no OAuth specific configuration that would be required on the client when authenticating to Kafka Broker with SASL/PLAIN mechanism.
+The Kafka Broker has to have the SASL/PLAIN mechanism enabled and properly configured with `JaasServerOauthOverPlainValidatorCallbackHandler` validation callback handler. 
 
-Then, the standard SASL_PLAIN configuration is used on the client with the following two options:
+Then, the standard SASL/PLAIN configuration is used on the client with the following two options:
 - the client can authenticate using the service account client ID and secret. Setting the `username` to the value of client ID, and setting the `password` to the value of client secret. The Kafka broker will use these client credentials to obtain the access token from the authorization server. 
 - the client can authenticate using a long-lived access token obtained through a browser sign-in or through using `curl` or similar CLI tool to obtain the access token with `client credentials` or the `password` authentication, 
   then setting the `username` to the same principal id that the broker will resolve from the provided access token, and setting `password` to prefix `$accessToken:` followed by the access token string. It is the presence of the `$accessToken:` prefix that tells the broker that it should extract the access token from the `password`. If `client_credentials` authentication over PLAIN is disabled on the listener, then the access token should be passed as-is, without prefixing it.
@@ -924,15 +1007,14 @@ sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule require
   password="team-a-client-secret" ;
 ```
 
-Note that when using SASL_PLAIN the credentials are actually sent to the Kafka Broker, which is not the case when SASL_OAUTHBEARER is used, when the client library contacts the OAuth2 authorization service first, to obtain the access token, and then only sends to the Kafka Broker the access token.
+Note that when using SASL/PLAIN the credentials are actually sent to the Kafka Broker, which is not the case when SASL/OAUTHBEARER is used, when the client library contacts the OAuth2 authorization service first, to obtain the access token, and then only sends to the Kafka Broker the access token.
 On the other hand, the client doesn't need to connect to OAuth2 authorization server first, and there is no need for additionally configuring truststore for TLS connectivity.
 
-The great advantage of SASL_PLAIN is that it can be used by Kafka clients that have no ready-to-use SASL_OAUTHBEARER support - SASL_PLAIN can be used with any Kafka client tool.
+The great advantage of SASL/PLAIN is that it can be used by Kafka clients that have no ready-to-use SASL/OAUTHBEARER support - SASL/PLAIN can be used with any Kafka client tool.
 
 For example, to connect with `kafkacat` you could run:
 
     kafkacat -b my-cluster-kafka-bootstrap:9092 -X security.protocol=SASL_PLAINTEXT -X sasl.mechanism=PLAIN -X sasl.username=team-a-client -X sasl.password="team-a-client-secret" -t a_topic -P
-
 
 
 Configuring the TLS truststore
@@ -962,3 +1044,37 @@ Demo
 For a demo / tutorial covering OAuth2 authentication see [examples README](examples/README.md).
 
 For another demo / tutorial covering token based authorization using Keycloak Authorization Services see [authorization README](examples/README-authz.md)
+
+
+Troubleshooting
+---------------
+
+### Authentication failed due to an invalid token
+
+There are many reasons the token can be invalid, and rejected by Kafka broker during authentication.
+
+Here is a check list of most common problems:
+
+* The client should use the same HOST and PORT when connecting to the Authorization Server as the Kafka broker.
+
+  For example, if you specify `oauth.valid.issuer.uri` to `https://sso/` then the client should use `https://sso/tokens` as a `oauth.token.endpoint.uri`, rather than `http://sso/tokens` or `https://localhost:8443/tokens` or similar that route to the same authorization server endpoint, but using a different HOST and PORT in the url due to going via different routes or tcp tunnels.
+
+* The access token may have expired, and the client has to obtain a new one
+
+* The listener configuration on the Kafka broker may impose additional constraints on the token which the specific token doesn't comply with by using `oauth.custom.claim.check` or `oauth.check.audience` for example.
+
+You can debug the issue by enabling DEBUG level on `io.strimzi` logger on the Kafka broker.
+
+
+### Token validation failed: Unknown signing key (kid:...)
+
+Make sure that the authorization server instance used by the Kafka client to obtain the access token is the same as the authorization server endpoints configured on the 
+Kafka broker listener your client is connecting to. That means that the Kafka client and the Kafka broker have to use the same 'user domain' - for example with Keycloak they have to use the same `realm`. Different listeners can be configured to use different authorization servers, so pay attention about the port your client connects to.
+
+There are some other possibilites why this error can occur.
+
+The JWT tokens are signed by the authorization server when they are issued. The signing keys may be rotated or an existing instance of authorization server may be removed and a fresh new instance started in its place. In that situation a mismatch may occur between keys used to sign the tokens the client sends to Kafka broker during authentication, and the list of valid signing keys on the Kafka broker.
+
+The client may have obtained a new access token, but the Kafka broker has not yet refreshed the public keys from JWKS endpoint resulting in a mismatch. The Kafka Broker will automatically refresh JWT keys if it encounters an unknown `kid`, and the problem will self-correct in this case, you may just need to repeat your request a few times.
+
+It can also happen the other way around. Your existing client may still use the refresh token or the access token issued by the previous authorization server instance while the Kafka broker has already refreshed the keys from JWKS endpoint - resulting in a mismatch between the private key used by authorization server to sign the token, and the published public keys (JWKS endpoint). Since the problem is on the client you may need to configure your client with a newly obtained refresh token, or access token. If you configure your client with clientId and secret, it should auto-correct by itself, you just need to restart it.
