@@ -544,63 +544,9 @@ unsecuredLoginStringClaim_sub="unused" ;
 
 # Server-side-authentication handler
 listener.name.external.plain.sasl.server.callback.handler.class=io.strimzi.kafka.oauth.server.plain.JaasServerOauthOverPlainValidatorCallbackHandler
+```
+
 This is without authorizer configuration.
-```
-
-
-Here is an example of the configuration that uses OAUTHBEARER for inter-broker authentication:
-
-```
-# We could use only one listener, but it's customary to use a separate listener 
-# for interbroker communication
-listener.security.protocol.map=REPLICATION:SASL_PLAINTEXT,EXTERNAL:SASL_PLAINTEXT
-sasl.enabled.mechanisms=OAUTHBEARER,PLAIN
-sasl.mechanism.inter.broker.protocol=OAUTHBEARER
-inter.broker.listener.name=REPLICATION
-
-# Because REPLICATION listener is used for inter-broker communication it also requires the 'client-side' login callback handler and corresponding configuration:
-
-listener.name.replication.oauthbearer.sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
-oauth.client.id="kafka" \
-oauth.client.secret="kafka-secret" \
-oauth.token.endpoint.uri="http://sso:8080/auth/realms/demo/protocol/openid-connect/token" \
-oauth.valid.issuer.uri="http://sso:8080/auth/realms/demo" \
-oauth.jwks.endpoint.uri="http://sso:8080/auth/realms/demo/protocol/openid-connect/certs" \
-oauth.username.claim="preferred_username" ;
-
-# Server-side-authentication handler
-listener.name.replication.oauthbearer.sasl.server.callback.handler.class=io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
-
-# Login-as-a-client handler
-listener.name.replication.oauthbearer.sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
-
-
-# The EXTERNAL listener only needs server-side-authentication support because we don't use it for inter-broker communication:
-
-listener.name.external.oauthbearer.sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
-oauth.valid.issuer.uri="http://sso:8080/auth/realms/demo" \
-oauth.jwks.endpoint.uri="http://sso:8080/auth/realms/demo/protocol/openid-connect/certs" \
-oauth.username.claim="preferred_username" \
-unsecuredLoginStringClaim_sub="unused" ;
-
-# The last parameter is needed for configuration to pass OAuthBearerLoginModule validation when we don't specify a custom sasl.login.callback.handler.class
-
-# Server-side-authentication handler
-listener.name.external.oauthbearer.sasl.server.callback.handler.class=io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
-
-
-# On EXTERNAL listener we may also want to support OAuth over PLAIN
-listener.name.external.plain.sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required \
-oauth.token.endpoint.uri="http://sso:8080/auth/realms/demo/protocol/openid-connect/token" \
-oauth.valid.issuer.uri="http://sso:8080/auth/realms/demo" \
-oauth.jwks.endpoint.uri="http://sso:8080/auth/realms/demo/protocol/openid-connect/certs" \
-oauth.username.claim="preferred_username" \
-unsecuredLoginStringClaim_sub="unused" ;
-
-# Server-side-authentication handler
-listener.name.external.plain.sasl.server.callback.handler.class=io.strimzi.kafka.oauth.server.plain.JaasServerOauthOverPlainValidatorCallbackHandler
-This is without authorizer configuration.
-```
 
 
 #### Enabling the re-authentication

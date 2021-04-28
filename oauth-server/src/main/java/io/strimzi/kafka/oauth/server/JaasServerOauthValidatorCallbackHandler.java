@@ -468,13 +468,21 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         String errId = IOUtil.randomHash();
         String msg = message + " (ErrId: " + errId + ")" + (includeErrorDetails ? ": " + getAllCauseMessages(e) : "");
 
-        if (e instanceof TokenValidationException || e instanceof RuntimeException || e instanceof SaslAuthenticationException) {
+        if (e instanceof TokenValidationException  || e instanceof SaslAuthenticationException) {
+            if (logger.isDebugEnabled()) {
+                logger.debug(msg, e);
+            }
+            message = e.getMessage();
+            e = e.getCause() != null ? e.getCause() : e;
+
+        } else if (e instanceof RuntimeException) {
             if (logger.isDebugEnabled()) {
                 logger.debug(msg, e);
             }
         } else {
             logger.error(msg, e);
         }
+
         throw new OAuthSaslAuthenticationException(message, errId, includeErrorDetails, e);
     }
 
