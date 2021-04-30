@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2020, Strimzi authors.
+ * Copyright 2017-2021, Strimzi authors.
  * License: Apache License 2.0 (see the file LICENSE or http://apache.org/licenses/LICENSE-2.0.html).
  */
 package io.strimzi.testsuite.oauth.auth;
@@ -24,7 +24,7 @@ import static io.strimzi.testsuite.oauth.auth.Common.buildProducerConfigPlain;
 
 public class ErrorReportingTests {
 
-    static void doTests() throws Exception {
+    void doTests() throws Exception {
         unparseableJwtToken();
         corruptTokenIntrospect();
         invalidJwtTokenKid();
@@ -37,12 +37,22 @@ public class ErrorReportingTests {
         cantConnectIntrospect();
     }
 
-    private static void unparseableJwtToken() throws Exception {
+    String getKafkaBootstrap(int port) {
+        return "kafka:" + port;
+    }
+
+    void commonChecks(Throwable cause) {
+        String message = cause.toString();
+        Assert.assertEquals("Expected SaslAuthenticationException", SaslAuthenticationException.class, cause.getClass());
+        Assert.assertTrue("Error message is sanitised", message.substring(message.length() - 16).startsWith("ErrId:"));
+    }
+
+    private void unparseableJwtToken() throws Exception {
         String token = "unparseable";
 
-        System.out.println("==== KeycloakAuthenticationTest :: unparseableJwtToken ====");
+        System.out.println("==== KeycloakErrorsTest :: unparseableJwtToken ====");
 
-        final String kafkaBootstrap = "kafka:9096";
+        final String kafkaBootstrap = getKafkaBootstrap(9303);
 
         Map<String, String> oauthConfig = new HashMap<>();
         oauthConfig.put(ClientConfig.OAUTH_ACCESS_TOKEN, token);
@@ -51,24 +61,29 @@ public class ErrorReportingTests {
         Properties producerProps = buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
         Producer<String, String> producer = new KafkaProducer<>(producerProps);
 
-        final String topic = "KeycloakAuthenticationTest-unparseableJwtTokenTest";
+        final String topic = "KeycloakErrorsTest-unparseableJwtTokenTest";
 
         try {
             producer.send(new ProducerRecord<>(topic, "The Message")).get();
             Assert.fail("Should fail with ExecutionException");
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
-            Assert.assertEquals("Expected SaslAuthenticationException", SaslAuthenticationException.class, cause.getClass());
-            Assert.assertTrue(cause.toString().contains("Failed to parse JWT"));
+            cause.printStackTrace();
+            commonChecks(cause);
+            checkUnparseableJwtTokenErrorMessage(cause.toString());
         }
     }
 
-    private static void corruptTokenIntrospect() throws Exception {
+    void checkUnparseableJwtTokenErrorMessage(String message) {
+        Assert.assertTrue(message.contains("Token signature validation failed"));
+    }
+
+    private void corruptTokenIntrospect() throws Exception {
         String token = "corrupt";
 
-        System.out.println("==== KeycloakAuthenticationTest :: corruptTokenIntrospect ====");
+        System.out.println("==== KeycloakErrorsTest :: corruptTokenIntrospect ====");
 
-        final String kafkaBootstrap = "kafka:9093";
+        final String kafkaBootstrap = getKafkaBootstrap(9302);
 
         Map<String, String> oauthConfig = new HashMap<>();
         oauthConfig.put(ClientConfig.OAUTH_ACCESS_TOKEN, token);
@@ -77,23 +92,28 @@ public class ErrorReportingTests {
         Properties producerProps = buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
         Producer<String, String> producer = new KafkaProducer<>(producerProps);
 
-        final String topic = "KeycloakAuthenticationTest-corruptTokenIntrospect";
+        final String topic = "KeycloakErrorsTest-corruptTokenIntrospect";
 
         try {
             producer.send(new ProducerRecord<>(topic, "The Message")).get();
             Assert.fail("Should fail with ExecutionException");
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
-            Assert.assertEquals("Expected SaslAuthenticationException", SaslAuthenticationException.class, cause.getClass());
-            Assert.assertTrue(cause.toString().contains("Token has expired"));
+            cause.printStackTrace();
+            commonChecks(cause);
+            checkCorruptTokenIntrospectErrorMessage(cause.getMessage());
         }
     }
 
-    private static void invalidJwtTokenKid() throws Exception {
-        System.out.println("==== KeycloakAuthenticationTest :: invalidJwtTokenKid ====");
+    void checkCorruptTokenIntrospectErrorMessage(String message) {
+        Assert.assertTrue(message.contains("Token has expired"));
+    }
+
+    private void invalidJwtTokenKid() throws Exception {
+        System.out.println("==== KeycloakErrorsTest :: invalidJwtTokenKid ====");
 
         // We authenticate against 'demo' realm, but use it with listener configured with 'kafka-authz' realm
-        final String kafkaBootstrap = "kafka:9096";
+        final String kafkaBootstrap = getKafkaBootstrap(9303);
         final String hostPort = "keycloak:8080";
 
         final String tokenEndpointUri = "http://" + hostPort + "/auth/realms/demo/protocol/openid-connect/token";
@@ -107,22 +127,27 @@ public class ErrorReportingTests {
         Properties producerProps = buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
         Producer<String, String> producer = new KafkaProducer<>(producerProps);
 
-        final String topic = "KeycloakAuthenticationTest-invalidJwtTokenKidTest";
+        final String topic = "KeycloakErrorsTest-invalidJwtTokenKidTest";
 
         try {
             producer.send(new ProducerRecord<>(topic, "The Message")).get();
             Assert.fail("Should fail with ExecutionException");
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
-            Assert.assertEquals("Expected SaslAuthenticationException", SaslAuthenticationException.class, cause.getClass());
-            Assert.assertTrue(cause.toString().contains("Unknown signing key (kid:"));
+            cause.printStackTrace();
+            commonChecks(cause);
+            checkInvalidJwtTokenKidErrorMessage(cause.getMessage());
         }
     }
 
-    private static void forgedJwtSig() throws Exception {
-        System.out.println("==== KeycloakAuthenticationTest :: forgedJwtSig ====");
+    void checkInvalidJwtTokenKidErrorMessage(String message) {
+        Assert.assertTrue(message.contains("Unknown signing key (kid:"));
+    }
 
-        final String kafkaBootstrap = "kafka:9092";
+    private void forgedJwtSig() throws Exception {
+        System.out.println("==== KeycloakErrorsTest :: forgedJwtSig ====");
+
+        final String kafkaBootstrap = getKafkaBootstrap(9301);
         final String hostPort = "keycloak:8080";
         final String realm = "demo-ec";
 
@@ -143,22 +168,27 @@ public class ErrorReportingTests {
         Properties producerProps = buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
         Producer<String, String> producer = new KafkaProducer<>(producerProps);
 
-        final String topic = "KeycloakAuthenticationTest-forgedJwtSig";
+        final String topic = "KeycloakErrorsTest-forgedJwtSig";
 
         try {
             producer.send(new ProducerRecord<>(topic, "The Message")).get();
             Assert.fail("Should fail with ExecutionException");
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
-            Assert.assertEquals("Expected SaslAuthenticationException", SaslAuthenticationException.class, cause.getClass());
-            Assert.assertTrue(cause.toString().contains("Invalid token signature"));
+            cause.printStackTrace();
+            commonChecks(cause);
+            checkForgedJwtSigErrorMessage(cause.getMessage());
         }
     }
 
-    private static void forgedJwtSigIntrospect() throws Exception {
-        System.out.println("==== KeycloakAuthenticationTest :: forgedJwtSigIntrospect ====");
+    void checkForgedJwtSigErrorMessage(String message) {
+        Assert.assertTrue(message.contains("Invalid token signature"));
+    }
 
-        final String kafkaBootstrap = "kafka:9093";
+    private void forgedJwtSigIntrospect() throws Exception {
+        System.out.println("==== KeycloakErrorsTest :: forgedJwtSigIntrospect ====");
+
+        final String kafkaBootstrap = getKafkaBootstrap(9302);
         final String hostPort = "keycloak:8080";
         final String realm = "demo";
 
@@ -179,23 +209,27 @@ public class ErrorReportingTests {
         Properties producerProps = buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
         Producer<String, String> producer = new KafkaProducer<>(producerProps);
 
-        final String topic = "KeycloakAuthenticationTest-forgedJwtSigIntrospect";
+        final String topic = "KeycloakErrorsTest-forgedJwtSigIntrospect";
 
         try {
             producer.send(new ProducerRecord<>(topic, "The Message")).get();
             Assert.fail("Should fail with ExecutionException");
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
-            Assert.assertEquals("Expected SaslAuthenticationException", SaslAuthenticationException.class, cause.getClass());
-            Assert.assertTrue(cause.toString().contains("Token has expired"));
+            cause.printStackTrace();
+            commonChecks(cause);
+            checkForgedJwtSigIntrospectErrorMessage(cause.getMessage());
         }
-
     }
 
-    private static void expiredJwtToken() throws Exception {
-        System.out.println("==== KeycloakAuthenticationTest :: expiredJwtToken ====");
+    void checkForgedJwtSigIntrospectErrorMessage(String message) {
+        Assert.assertTrue(message.contains("Token has expired"));
+    }
 
-        final String kafkaBootstrap = "kafka:9104";
+    private void expiredJwtToken() throws Exception {
+        System.out.println("==== KeycloakErrorsTest :: expiredJwtToken ====");
+
+        final String kafkaBootstrap = getKafkaBootstrap(9305);
         final String hostPort = "keycloak:8080";
         final String realm = "expiretest";
 
@@ -217,22 +251,27 @@ public class ErrorReportingTests {
         Properties producerProps = buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
         Producer<String, String> producer = new KafkaProducer<>(producerProps);
 
-        final String topic = "KeycloakAuthenticationTest-expiredJwtTokenTest";
+        final String topic = "KeycloakErrorsTest-expiredJwtTokenTest";
 
         try {
             producer.send(new ProducerRecord<>(topic, "The Message")).get();
             Assert.fail("Should fail with ExecutionException");
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
-            Assert.assertEquals("Expected SaslAuthenticationException", SaslAuthenticationException.class, cause.getClass());
-            Assert.assertTrue(cause.toString().contains("Token expired at: "));
+            cause.printStackTrace();
+            commonChecks(cause);
+            checkExpiredJwtTokenErrorMessage(cause.getMessage());
         }
     }
 
-    private static void badClientIdOAuthOverPlain() throws Exception {
-        System.out.println("==== KeycloakAuthenticationTest :: badClientIdOAuthOverPlain ====");
+    void checkExpiredJwtTokenErrorMessage(String message) {
+        Assert.assertTrue(message.contains("Token expired at: "));
+    }
 
-        final String kafkaBootstrap = "kafka:9097";
+    private void badClientIdOAuthOverPlain() throws Exception {
+        System.out.println("==== KeycloakErrorsTest :: badClientIdOAuthOverPlain ====");
+
+        final String kafkaBootstrap = getKafkaBootstrap(9304);
 
         Map<String, String> plainConfig = new HashMap<>();
         plainConfig.put("username", "team-a-inexistent");
@@ -241,22 +280,27 @@ public class ErrorReportingTests {
         Properties producerProps = buildProducerConfigPlain(kafkaBootstrap, plainConfig);
         Producer<String, String> producer = new KafkaProducer<>(producerProps);
 
-        final String topic = "KeycloakAuthenticationTest-badClientIdOAuthOverPlainTest";
+        final String topic = "KeycloakErrorsTest-badClientIdOAuthOverPlainTest";
 
         try {
             producer.send(new ProducerRecord<>(topic, "The Message")).get();
             Assert.fail("Should fail with ExecutionException");
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
-            Assert.assertEquals("Expected SaslAuthenticationException", SaslAuthenticationException.class, cause.getClass());
-            Assert.assertTrue(cause.toString().contains("credentials for user could not be verified"));
+            cause.printStackTrace();
+            commonChecks(cause);
+            checkBadClientIdOAuthOverPlainErrorMessage(cause.getMessage());
         }
     }
 
-    private static void badSecretOAuthOverPlain() throws Exception {
-        System.out.println("==== KeycloakAuthenticationTest :: badSecretOAuthOverPlain ====");
+    void checkBadClientIdOAuthOverPlainErrorMessage(String message) {
+        Assert.assertTrue(message.contains("credentials for user could not be verified"));
+    }
 
-        final String kafkaBootstrap = "kafka:9097";
+    private void badSecretOAuthOverPlain() throws Exception {
+        System.out.println("==== KeycloakErrorsTest :: badSecretOAuthOverPlain ====");
+
+        final String kafkaBootstrap = getKafkaBootstrap(9304);
 
         Map<String, String> plainConfig = new HashMap<>();
         plainConfig.put("username", "team-a-client");
@@ -265,22 +309,27 @@ public class ErrorReportingTests {
         Properties producerProps = buildProducerConfigPlain(kafkaBootstrap, plainConfig);
         Producer<String, String> producer = new KafkaProducer<>(producerProps);
 
-        final String topic = "KeycloakAuthenticationTest-badSecretOAuthOverPlainTest";
+        final String topic = "KeycloakErrorsTest-badSecretOAuthOverPlainTest";
 
         try {
             producer.send(new ProducerRecord<>(topic, "The Message")).get();
             Assert.fail("Should fail with ExecutionException");
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
-            Assert.assertEquals("Expected SaslAuthenticationException", SaslAuthenticationException.class, cause.getClass());
-            Assert.assertTrue(cause.toString().contains("credentials for user could not be verified"));
+            cause.printStackTrace();
+            commonChecks(cause);
+            checkBadCSecretOAuthOverPlainErrorMessage(cause.getMessage());
         }
     }
 
-    private static void cantConnectPlainWithClientCredentials() throws Exception {
-        System.out.println("==== KeycloakAuthenticationTest :: cantConnectPlainWithClientCredentials ====");
+    void checkBadCSecretOAuthOverPlainErrorMessage(String message) {
+        Assert.assertTrue(message.contains("credentials for user could not be verified"));
+    }
 
-        final String kafkaBootstrap = "kafka:9105";
+    private void cantConnectPlainWithClientCredentials() throws Exception {
+        System.out.println("==== KeycloakErrorsTest :: cantConnectPlainWithClientCredentials ====");
+
+        final String kafkaBootstrap = getKafkaBootstrap(9306);
 
         Map<String, String> plainConfig = new HashMap<>();
         plainConfig.put("username", "team-a-client");
@@ -289,22 +338,27 @@ public class ErrorReportingTests {
         Properties producerProps = buildProducerConfigPlain(kafkaBootstrap, plainConfig);
         Producer<String, String> producer = new KafkaProducer<>(producerProps);
 
-        final String topic = "KeycloakAuthenticationTest-cantConnectPlainWithClientCredentials";
+        final String topic = "KeycloakErrorsTest-cantConnectPlainWithClientCredentials";
 
         try {
             producer.send(new ProducerRecord<>(topic, "The Message")).get();
             Assert.fail("Should fail with ExecutionException");
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
-            Assert.assertEquals("Expected SaslAuthenticationException", SaslAuthenticationException.class, cause.getClass());
-            Assert.assertTrue(cause.toString().contains("credentials for user could not be verified"));
+            cause.printStackTrace();
+            commonChecks(cause);
+            checkCantConnectPlainWithClientCredentialsErrorMessage(cause.getMessage());
         }
     }
 
-    private static void cantConnectIntrospect() throws Exception {
-        System.out.println("==== KeycloakAuthenticationTest :: cantConnectIntrospect ====");
+    void checkCantConnectPlainWithClientCredentialsErrorMessage(String message) {
+        Assert.assertTrue(message.contains("credentials for user could not be verified"));
+    }
 
-        final String kafkaBootstrap = "kafka:9106";
+    private void cantConnectIntrospect() throws Exception {
+        System.out.println("==== KeycloakErrorsTest :: cantConnectIntrospect ====");
+
+        final String kafkaBootstrap = getKafkaBootstrap(9307);
         final String hostPort = "keycloak:8080";
         final String realm = "kafka-authz";
 
@@ -319,15 +373,20 @@ public class ErrorReportingTests {
         Properties producerProps = buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
         Producer<String, String> producer = new KafkaProducer<>(producerProps);
 
-        final String topic = "KeycloakAuthenticationTest-cantConnectIntrospect";
+        final String topic = "KeycloakErrorsTest-cantConnectIntrospect";
 
         try {
             producer.send(new ProducerRecord<>(topic, "The Message")).get();
             Assert.fail("Should fail with ExecutionException");
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
-            Assert.assertEquals("Expected SaslAuthenticationException", SaslAuthenticationException.class, cause.getClass());
-            Assert.assertTrue(cause.toString().contains("Failed to connect"));
+            cause.printStackTrace();
+            commonChecks(cause);
+            checkCantConnectIntrospectErrorMessage(cause.getMessage());
         }
+    }
+
+    void checkCantConnectIntrospectErrorMessage(String message) {
+        Assert.assertTrue(message.contains("Connection refused"));
     }
 }
