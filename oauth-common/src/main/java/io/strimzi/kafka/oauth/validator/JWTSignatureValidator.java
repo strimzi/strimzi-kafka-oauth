@@ -317,7 +317,7 @@ public class JWTSignatureValidator implements TokenValidator {
             if (e.getCause() != null && e.getCause() instanceof TokenSignatureInvalidException) {
                 throw new TokenSignatureException("Signature check failed: Invalid token signature", e.getCause());
             } else {
-                throw new TokenSignatureException("Token validation failed", e);
+                throw new TokenSignatureException("Token validation failed - " + e.getMessage(), e);
             }
         } catch (TokenValidationException e) {
             // just rethrow

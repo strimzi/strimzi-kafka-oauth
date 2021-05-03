@@ -66,7 +66,7 @@ public class AudienceTests {
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
             Assert.assertTrue("instanceOf AuthenticationException", cause instanceof AuthenticationException);
-            Assert.assertTrue("audience check failed", cause.toString().contains("audience"));
+            Assert.assertTrue("'audience not available' error mesage", cause.toString().contains("audience not available"));
         }
     }
 
@@ -110,7 +110,7 @@ public class AudienceTests {
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
             Assert.assertTrue("instanceOf AuthenticationException", cause instanceof AuthenticationException);
-            Assert.assertTrue("audience check failed", cause.toString().contains("audience"));
+            Assert.assertTrue("'Invalid audience' error message", cause.toString().contains("Invalid audience"));
         }
     }
 }
