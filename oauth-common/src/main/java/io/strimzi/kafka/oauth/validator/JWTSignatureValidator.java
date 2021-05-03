@@ -15,6 +15,7 @@ import io.strimzi.kafka.oauth.jsonpath.JsonPathFilterQuery;
 import org.apache.kafka.common.utils.Time;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.keycloak.TokenVerifier;
+import org.keycloak.common.VerificationException;
 import org.keycloak.crypto.AsymmetricSignatureVerifierContext;
 import org.keycloak.crypto.KeyWrapper;
 import org.keycloak.exceptions.TokenSignatureInvalidException;
@@ -277,7 +278,7 @@ public class JWTSignatureValidator implements TokenValidator {
         try {
             kid = tokenVerifier.getHeader().getKeyId();
         } catch (Exception e) {
-            throw new TokenValidationException("Token signature validation failed: " + token, e)
+            throw new TokenValidationException("Token validation failed: Failed to parse JWT: " + token, e)
                     .status(Status.INVALID_TOKEN);
         }
 
@@ -311,12 +312,18 @@ public class JWTSignatureValidator implements TokenValidator {
             t = tokenVerifier.getToken();
 
         } catch (TokenSignatureInvalidException e) {
-            throw new TokenSignatureException("Signature check failed:", e);
+            throw new TokenSignatureException("Signature check failed: Invalid token signature", e);
+        } catch (VerificationException e) {
+            if (e.getCause() != null && e.getCause() instanceof TokenSignatureInvalidException) {
+                throw new TokenSignatureException("Signature check failed: Invalid token signature", e.getCause());
+            } else {
+                throw new TokenSignatureException("Token validation failed", e);
+            }
         } catch (TokenValidationException e) {
             // just rethrow
             throw e;
         } catch (Exception e) {
-            throw new TokenValidationException("Token validation failed:", e);
+            throw new TokenValidationException("Token validation failed", e);
         }
 
         long expiresMillis = t.getExp() != null ? t.getExp().intValue() * 1000L : 0L;

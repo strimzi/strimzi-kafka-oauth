@@ -38,12 +38,14 @@ public class ErrorReportingTests {
     }
 
     String getKafkaBootstrap(int port) {
-        return "kafka:" + port;
+        return "kafka:" + (port - 100);
     }
 
     void commonChecks(Throwable cause) {
-        String message = cause.toString();
         Assert.assertEquals("Expected SaslAuthenticationException", SaslAuthenticationException.class, cause.getClass());
+    }
+
+    void checkErrId(String message) {
         Assert.assertTrue("Error message is sanitised", message.substring(message.length() - 16).startsWith("ErrId:"));
     }
 
@@ -75,7 +77,8 @@ public class ErrorReportingTests {
     }
 
     void checkUnparseableJwtTokenErrorMessage(String message) {
-        Assert.assertTrue(message.contains("Token signature validation failed"));
+        checkErrId(message);
+        Assert.assertTrue(message.contains("Failed to parse JWT"));
     }
 
     private void corruptTokenIntrospect() throws Exception {
@@ -106,7 +109,8 @@ public class ErrorReportingTests {
     }
 
     void checkCorruptTokenIntrospectErrorMessage(String message) {
-        Assert.assertTrue(message.contains("Token has expired"));
+        checkErrId(message);
+        Assert.assertTrue(message.contains("Token not active"));
     }
 
     private void invalidJwtTokenKid() throws Exception {
@@ -141,6 +145,7 @@ public class ErrorReportingTests {
     }
 
     void checkInvalidJwtTokenKidErrorMessage(String message) {
+        checkErrId(message);
         Assert.assertTrue(message.contains("Unknown signing key (kid:"));
     }
 
@@ -182,6 +187,7 @@ public class ErrorReportingTests {
     }
 
     void checkForgedJwtSigErrorMessage(String message) {
+        checkErrId(message);
         Assert.assertTrue(message.contains("Invalid token signature"));
     }
 
@@ -223,7 +229,8 @@ public class ErrorReportingTests {
     }
 
     void checkForgedJwtSigIntrospectErrorMessage(String message) {
-        Assert.assertTrue(message.contains("Token has expired"));
+        checkErrId(message);
+        Assert.assertTrue(message.contains("Token not active"));
     }
 
     private void expiredJwtToken() throws Exception {
@@ -265,6 +272,7 @@ public class ErrorReportingTests {
     }
 
     void checkExpiredJwtTokenErrorMessage(String message) {
+        checkErrId(message);
         Assert.assertTrue(message.contains("Token expired at: "));
     }
 
@@ -294,6 +302,7 @@ public class ErrorReportingTests {
     }
 
     void checkBadClientIdOAuthOverPlainErrorMessage(String message) {
+        // errId can not be propagated over PLAIN so it is not present
         Assert.assertTrue(message.contains("credentials for user could not be verified"));
     }
 
@@ -323,6 +332,7 @@ public class ErrorReportingTests {
     }
 
     void checkBadCSecretOAuthOverPlainErrorMessage(String message) {
+        // errId can not be propagated over PLAIN so it is not present
         Assert.assertTrue(message.contains("credentials for user could not be verified"));
     }
 
@@ -352,6 +362,7 @@ public class ErrorReportingTests {
     }
 
     void checkCantConnectPlainWithClientCredentialsErrorMessage(String message) {
+        // errId can not be propagated over PLAIN so it is not present
         Assert.assertTrue(message.contains("credentials for user could not be verified"));
     }
 
@@ -387,6 +398,7 @@ public class ErrorReportingTests {
     }
 
     void checkCantConnectIntrospectErrorMessage(String message) {
-        Assert.assertTrue(message.contains("Connection refused"));
+        checkErrId(message);
+        Assert.assertTrue(message.contains("Runtime failure during token validation"));
     }
 }

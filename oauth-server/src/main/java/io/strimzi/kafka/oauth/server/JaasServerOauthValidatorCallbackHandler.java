@@ -444,9 +444,9 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         } catch (TokenValidationException e) {
             handleError("Token validation failed for token: " + mask(token), e);
         } catch (RuntimeException e) {
-            handleError("Token validation failed due to runtime exception", e);
+            handleError("Runtime failure during token validation", e);
         } catch (Throwable e) {
-            handleError("Unexpected failure during signature check", e);
+            handleError("Unexpected failure during token validation", e);
         }
     }
 
