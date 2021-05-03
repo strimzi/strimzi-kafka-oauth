@@ -70,7 +70,6 @@ public class ErrorReportingTests {
             Assert.fail("Should fail with ExecutionException");
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
-            cause.printStackTrace();
             commonChecks(cause);
             checkUnparseableJwtTokenErrorMessage(cause.toString());
         }
@@ -102,7 +101,6 @@ public class ErrorReportingTests {
             Assert.fail("Should fail with ExecutionException");
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
-            cause.printStackTrace();
             commonChecks(cause);
             checkCorruptTokenIntrospectErrorMessage(cause.getMessage());
         }
@@ -138,7 +136,6 @@ public class ErrorReportingTests {
             Assert.fail("Should fail with ExecutionException");
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
-            cause.printStackTrace();
             commonChecks(cause);
             checkInvalidJwtTokenKidErrorMessage(cause.getMessage());
         }
@@ -180,7 +177,6 @@ public class ErrorReportingTests {
             Assert.fail("Should fail with ExecutionException");
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
-            cause.printStackTrace();
             commonChecks(cause);
             checkForgedJwtSigErrorMessage(cause.getMessage());
         }
@@ -222,7 +218,6 @@ public class ErrorReportingTests {
             Assert.fail("Should fail with ExecutionException");
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
-            cause.printStackTrace();
             commonChecks(cause);
             checkForgedJwtSigIntrospectErrorMessage(cause.getMessage());
         }
@@ -265,7 +260,6 @@ public class ErrorReportingTests {
             Assert.fail("Should fail with ExecutionException");
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
-            cause.printStackTrace();
             commonChecks(cause);
             checkExpiredJwtTokenErrorMessage(cause.getMessage());
         }
@@ -295,7 +289,6 @@ public class ErrorReportingTests {
             Assert.fail("Should fail with ExecutionException");
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
-            cause.printStackTrace();
             commonChecks(cause);
             checkBadClientIdOAuthOverPlainErrorMessage(cause.getMessage());
         }
@@ -325,7 +318,6 @@ public class ErrorReportingTests {
             Assert.fail("Should fail with ExecutionException");
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
-            cause.printStackTrace();
             commonChecks(cause);
             checkBadCSecretOAuthOverPlainErrorMessage(cause.getMessage());
         }
@@ -355,7 +347,6 @@ public class ErrorReportingTests {
             Assert.fail("Should fail with ExecutionException");
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
-            cause.printStackTrace();
             commonChecks(cause);
             checkCantConnectPlainWithClientCredentialsErrorMessage(cause.getMessage());
         }
@@ -391,7 +382,6 @@ public class ErrorReportingTests {
             Assert.fail("Should fail with ExecutionException");
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
-            cause.printStackTrace();
             commonChecks(cause);
             checkCantConnectIntrospectErrorMessage(cause.getMessage());
         }

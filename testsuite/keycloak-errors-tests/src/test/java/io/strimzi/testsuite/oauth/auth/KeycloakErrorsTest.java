@@ -29,9 +29,6 @@ public class KeycloakErrorsTest {
             logStart("KeycloakErrorsTest :: ErrorReportingTests");
             new ErrorReportingTests().doTests();
 
-            logStart("KeycloakErrorsTest :: ErrorReportingWithDetailsTests");
-            new ErrorReportingWithDetailsTests().doTests();
-
         } catch (Throwable e) {
             log.error("Keycloak Errors Test failed: ", e);
             throw e;
@@ -40,9 +37,7 @@ public class KeycloakErrorsTest {
 
     private void logStart(String msg) {
         System.out.println();
-        System.out.println();
         System.out.println("========    "  + msg);
-        System.out.println();
         System.out.println();
     }
 }

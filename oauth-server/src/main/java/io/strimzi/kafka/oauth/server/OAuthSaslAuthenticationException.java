@@ -6,22 +6,18 @@ package io.strimzi.kafka.oauth.server;
 
 import org.apache.kafka.common.errors.SaslAuthenticationException;
 
-import static io.strimzi.kafka.oauth.common.LogUtil.getAllCauseMessages;
-
 public class OAuthSaslAuthenticationException extends SaslAuthenticationException {
 
     private String errId;
-    private boolean includeDetails = true;
 
     public OAuthSaslAuthenticationException(String message, String errId) {
         super(message);
         this.errId = errId;
     }
 
-    public OAuthSaslAuthenticationException(String message, String errId, boolean includeDetails, Throwable cause) {
+    public OAuthSaslAuthenticationException(String message, String errId, Throwable cause) {
         super(message, cause);
         this.errId = errId;
-        this.includeDetails = includeDetails && cause != null;
     }
 
     public String getErrId() {
@@ -30,6 +26,6 @@ public class OAuthSaslAuthenticationException extends SaslAuthenticationExceptio
 
     @Override
     public String getMessage() {
-        return super.getMessage() + " (ErrId: " + errId + ")" + (includeDetails ? ": " + getAllCauseMessages(getCause()) : "");
+        return super.getMessage() + " (ErrId: " + errId + ")";
     }
 }

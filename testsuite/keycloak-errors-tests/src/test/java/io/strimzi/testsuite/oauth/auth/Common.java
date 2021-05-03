@@ -39,7 +39,7 @@ public class Common {
         p.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         p.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         p.setProperty(ProducerConfig.ACKS_CONFIG, "all");
-        p.setProperty(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, "5000");
+        p.setProperty(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, "300000");
         p.setProperty(ProducerConfig.RETRIES_CONFIG, "0");
     }
 
