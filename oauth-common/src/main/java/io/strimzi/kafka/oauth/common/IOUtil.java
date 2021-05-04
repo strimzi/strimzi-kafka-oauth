@@ -28,11 +28,11 @@ public class IOUtil {
         }
     }
 
-    public static String randomHash() {
-        return randomHash(8);
+    public static String randomHexString() {
+        return randomHexString(8);
     }
 
-    public static String randomHash(int length) {
+    public static String randomHexString(int length) {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < length; i++) {
             sb.append(Integer.toHexString(RANDOM.nextInt(16)));

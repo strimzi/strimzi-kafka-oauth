@@ -1018,7 +1018,6 @@ For example, to connect with `kafkacat` you could run:
     kafkacat -b my-cluster-kafka-bootstrap:9092 -X security.protocol=SASL_PLAINTEXT -X sasl.mechanism=PLAIN -X sasl.username=team-a-client -X sasl.password="team-a-client-secret" -t a_topic -P
 
 
-
 Configuring the TLS truststore
 ------------------------------
 

@@ -460,7 +460,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
      * @param e The cause exception
      */
     protected void handleErrorWithLogger(Logger logger, String message, Throwable e) {
-        String errId = IOUtil.randomHash();
+        String errId = IOUtil.randomHexString();
         String msg = message + " (ErrId: " + errId + ")";
 
         if (e instanceof TokenValidationException  || e instanceof SaslAuthenticationException) {
