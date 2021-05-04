@@ -24,7 +24,7 @@ services:
       - KEYCLOAK_PASSWORD=admin
       - KEYCLOAK_HTTPS_PORT=8443
       - PROXY_ADDRESS_FORWARDING=true
-      - KEYCLOAK_IMPORT=/opt/jboss/keycloak/realms/demo-realm.json,/opt/jboss/keycloak/realms/kafka-authz-realm.json,/opt/jboss/keycloak/realms/demo-ec-realm.json,/opt/jboss/keycloak/realms/flood-realm.json,/opt/jboss/keycloak/realms/expiretest-realm.json
+      - KEYCLOAK_IMPORT=/opt/jboss/keycloak/realms/demo-realm.json,/opt/jboss/keycloak/realms/kafka-authz-realm.json,/opt/jboss/keycloak/realms/demo-ec-realm.json,/opt/jboss/keycloak/realms/flood-realm.json
 
   kafka:
     image: ${KAFKA_DOCKER_IMAGE}

@@ -11,7 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Tests for OAuth authentication using Keycloak
+ * Tests for errors during OAuth authentication using Keycloak
  *
  * This test assumes there are multiple listeners configured with SASL OAUTHBEARER mechanism, but each configured differently
  * - configured with different options, or different realms. For OAuth over PLAIN tests the listeners are configured with SASL PLAIN mechanism.
