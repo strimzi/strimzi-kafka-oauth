@@ -87,8 +87,7 @@
         <jsonpath.version>2.5.0</jsonpath.version>
         <junit.version>4.13.1</junit.version>
         <slf4j.version>1.7.26</slf4j.version>
-        <keycloak.version>12.0.1</keycloak.version>
-        <bouncycastle.version>1.60</bouncycastle.version>
+        <nimbus.jose.version>9.9</nimbus.jose.version>
     </properties>
 
     <distributionManagement>
@@ -180,19 +179,9 @@
                 <version>${jsonpath.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.keycloak</groupId>
-                <artifactId>keycloak-core</artifactId>
-                <version>${keycloak.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.keycloak</groupId>
-                <artifactId>keycloak-common</artifactId>
-                <version>${keycloak.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.bouncycastle</groupId>
-                <artifactId>bcprov-jdk15on</artifactId>
-                <version>${bouncycastle.version}</version>
+                <groupId>com.nimbusds</groupId>
+                <artifactId>nimbus-jose-jwt</artifactId>
+                <version>${nimbus.jose.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.github.spotbugs</groupId>
