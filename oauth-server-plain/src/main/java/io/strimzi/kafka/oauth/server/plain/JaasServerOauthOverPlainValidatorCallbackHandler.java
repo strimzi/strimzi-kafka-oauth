@@ -143,7 +143,7 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
     /**
      * The callback method. Note that we can't control the error message that is sent to the client when PLAIN is used.
      * The error message is hardcoded in <em>org.apache.kafka.common.security.plain.internals.PlainSaslServer</em> class.
-     * What that means is that even though we generate an <em>errId</em> and log it on the server, that <em>errId</em> can not be
+     * What that means is that even though we generate an <em>ErrId</em> and log it on the server, that <em>ErrId</em> can not be
      * propagated to the client.
      */
     @Override
