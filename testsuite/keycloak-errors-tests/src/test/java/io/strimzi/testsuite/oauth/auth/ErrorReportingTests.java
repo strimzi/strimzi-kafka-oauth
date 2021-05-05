@@ -38,7 +38,7 @@ public class ErrorReportingTests {
     }
 
     String getKafkaBootstrap(int port) {
-        return "kafka:" + (port - 100);
+        return "kafka:" + port;
     }
 
     void commonChecks(Throwable cause) {
@@ -54,7 +54,7 @@ public class ErrorReportingTests {
 
         System.out.println("==== KeycloakErrorsTest :: unparseableJwtToken ====");
 
-        final String kafkaBootstrap = getKafkaBootstrap(9303);
+        final String kafkaBootstrap = getKafkaBootstrap(9203);
 
         Map<String, String> oauthConfig = new HashMap<>();
         oauthConfig.put(ClientConfig.OAUTH_ACCESS_TOKEN, token);
@@ -85,7 +85,7 @@ public class ErrorReportingTests {
 
         System.out.println("==== KeycloakErrorsTest :: corruptTokenIntrospect ====");
 
-        final String kafkaBootstrap = getKafkaBootstrap(9302);
+        final String kafkaBootstrap = getKafkaBootstrap(9202);
 
         Map<String, String> oauthConfig = new HashMap<>();
         oauthConfig.put(ClientConfig.OAUTH_ACCESS_TOKEN, token);
@@ -115,7 +115,7 @@ public class ErrorReportingTests {
         System.out.println("==== KeycloakErrorsTest :: invalidJwtTokenKid ====");
 
         // We authenticate against 'demo' realm, but use it with listener configured with 'kafka-authz' realm
-        final String kafkaBootstrap = getKafkaBootstrap(9303);
+        final String kafkaBootstrap = getKafkaBootstrap(9203);
         final String hostPort = "keycloak:8080";
 
         final String tokenEndpointUri = "http://" + hostPort + "/auth/realms/demo/protocol/openid-connect/token";
@@ -149,7 +149,7 @@ public class ErrorReportingTests {
     private void forgedJwtSig() throws Exception {
         System.out.println("==== KeycloakErrorsTest :: forgedJwtSig ====");
 
-        final String kafkaBootstrap = getKafkaBootstrap(9301);
+        final String kafkaBootstrap = getKafkaBootstrap(9201);
         final String hostPort = "keycloak:8080";
         final String realm = "demo-ec";
 
@@ -190,7 +190,7 @@ public class ErrorReportingTests {
     private void forgedJwtSigIntrospect() throws Exception {
         System.out.println("==== KeycloakErrorsTest :: forgedJwtSigIntrospect ====");
 
-        final String kafkaBootstrap = getKafkaBootstrap(9302);
+        final String kafkaBootstrap = getKafkaBootstrap(9202);
         final String hostPort = "keycloak:8080";
         final String realm = "demo";
 
@@ -231,7 +231,7 @@ public class ErrorReportingTests {
     private void expiredJwtToken() throws Exception {
         System.out.println("==== KeycloakErrorsTest :: expiredJwtToken ====");
 
-        final String kafkaBootstrap = getKafkaBootstrap(9305);
+        final String kafkaBootstrap = getKafkaBootstrap(9205);
         final String hostPort = "keycloak:8080";
         final String realm = "expiretest";
 
@@ -273,7 +273,7 @@ public class ErrorReportingTests {
     private void badClientIdOAuthOverPlain() throws Exception {
         System.out.println("==== KeycloakErrorsTest :: badClientIdOAuthOverPlain ====");
 
-        final String kafkaBootstrap = getKafkaBootstrap(9304);
+        final String kafkaBootstrap = getKafkaBootstrap(9204);
 
         Map<String, String> plainConfig = new HashMap<>();
         plainConfig.put("username", "team-a-inexistent");
@@ -302,7 +302,7 @@ public class ErrorReportingTests {
     private void badSecretOAuthOverPlain() throws Exception {
         System.out.println("==== KeycloakErrorsTest :: badSecretOAuthOverPlain ====");
 
-        final String kafkaBootstrap = getKafkaBootstrap(9304);
+        final String kafkaBootstrap = getKafkaBootstrap(9204);
 
         Map<String, String> plainConfig = new HashMap<>();
         plainConfig.put("username", "team-a-client");
@@ -331,7 +331,7 @@ public class ErrorReportingTests {
     private void cantConnectPlainWithClientCredentials() throws Exception {
         System.out.println("==== KeycloakErrorsTest :: cantConnectPlainWithClientCredentials ====");
 
-        final String kafkaBootstrap = getKafkaBootstrap(9306);
+        final String kafkaBootstrap = getKafkaBootstrap(9206);
 
         Map<String, String> plainConfig = new HashMap<>();
         plainConfig.put("username", "team-a-client");
@@ -360,7 +360,7 @@ public class ErrorReportingTests {
     private void cantConnectIntrospect() throws Exception {
         System.out.println("==== KeycloakErrorsTest :: cantConnectIntrospect ====");
 
-        final String kafkaBootstrap = getKafkaBootstrap(9307);
+        final String kafkaBootstrap = getKafkaBootstrap(9207);
         final String hostPort = "keycloak:8080";
         final String realm = "kafka-authz";
 
