@@ -178,7 +178,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         }
 
         if (!active) {
-            throw new TokenExpiredException("Token has expired");
+            throw new TokenValidationException("Token validation failed: Token not active");
         }
 
         JsonNode value = null;

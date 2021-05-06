@@ -7,8 +7,12 @@ package io.strimzi.kafka.oauth.common;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Random;
 
 public class IOUtil {
+
+    private static final Random RANDOM = new Random();
+
     public static void copy(InputStream input, OutputStream output) throws IOException {
         byte[] buf = new byte[4096];
 
@@ -22,5 +26,17 @@ public class IOUtil {
                 input.close();
             } catch (Exception e) { }
         }
+    }
+
+    public static String randomHexString() {
+        return randomHexString(8);
+    }
+
+    public static String randomHexString(int length) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < length; i++) {
+            sb.append(Integer.toHexString(RANDOM.nextInt(16)));
+        }
+        return sb.toString();
     }
 }

@@ -5,9 +5,11 @@
 package io.strimzi.kafka.oauth.server.plain;
 
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
+import io.strimzi.kafka.oauth.common.HttpException;
 import io.strimzi.kafka.oauth.common.OAuthAuthenticator;
 import io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler;
 import io.strimzi.kafka.oauth.server.OAuthKafkaPrincipal;
+import io.strimzi.kafka.oauth.server.OAuthSaslAuthenticationException;
 import io.strimzi.kafka.oauth.server.ServerConfig;
 import io.strimzi.kafka.oauth.services.Services;
 import org.apache.kafka.common.errors.SaslAuthenticationException;
@@ -27,8 +29,6 @@ import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
 
-import static io.strimzi.kafka.oauth.common.LogUtil.getAllCauseMessages;
-
 /**
  * This <em>AuthenticateCallbackHandler</em> implements 'OAuth over PLAIN' support.
  *
@@ -37,11 +37,14 @@ import static io.strimzi.kafka.oauth.common.LogUtil.getAllCauseMessages;
  * with SASL/PLAIN mechanism can use the clientId and the secret, setting them as <em>username</em> and <em>password</em>
  * parameters.
  * <p>
- * Also, the client can use the access token to authenticate, in which case it sets the <em>username</em> parameter
+ * Also, the client can use the access token to authenticate. In this case the client should set the <em>username</em> parameter
  * to the same principal the broker will resolve from the access token (depending on the Kafka Broker configuration this
- * is the value of 'sub' claim or one specified by 'oauth.username.claim' configuration), and set the concatenation of
- * <em>$accessToken:</em> and the actual access token string as the <em>password</em> SASL/PLAIN parameter value.
- * It is the <em>$accessToken:</em> prefix that will let the broker know that the password should be treated as an access token.
+ * is the value of 'sub' claim or one specified by 'oauth.username.claim' configuration). The <em>password</em> parameter depends on
+ * whether the 'oauth.token.endpoint.uri' is configured on the server or not. If configured, the <em>password</em> parameter value
+ * should be set to the constant <em>$accessToken:</em> followed by the actual access token string.
+ * The <em>$accessToken:</em> prefix lets the broker know that the password should be treated as an access token.
+ * If not configured, the client ID + secret (client credentials) mechanism is not available and the 'password' parameter is
+ * interpreted as a raw access token without a prefix.
  * <p>
  * Allowing the use of OAuth credentials over SASL/PLAIN allows all existing Kafka client tools to authenticate to your
  * Kafka cluster even when they have no explicit OAuth support.
@@ -88,11 +91,12 @@ import static io.strimzi.kafka.oauth.common.LogUtil.getAllCauseMessages;
  * `server.properties`. When not specified as the parameters to <em>sasl.jaas.config</em>, the configuration keys will apply to all listeners.
  * </blockquote>
  * <p>
- * Required <em>sasl.jaas.config</em> configuration:
+ * Optional <em>sasl.jaas.config</em> configuration:
  * </p>
  * <ul>
  * <li><em>oauth.token.endpoint.uri</em> A URL of the authorization server's token endpoint.<br>
  * The token endpoint is used to authenticate to authorization server with the <em>clientId</em> and the <em>secret</em> received over username and password parameters.
+ * If set, both clientId + secret, and userId + access token are available. Otherwise only userId + access token authentication is available.
  * </li>
  * </ul>
  * <p>
@@ -136,6 +140,12 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
         super.close();
     }
 
+    /**
+     * The callback method. Note that we can't control the error message that is sent to the client when PLAIN is used.
+     * The error message is hardcoded in <em>org.apache.kafka.common.security.plain.internals.PlainSaslServer</em> class.
+     * What that means is that even though we generate an <em>ErrId</em> and log it on the server, that <em>ErrId</em> can not be
+     * propagated to the client.
+     */
     @Override
     public void handle(Callback[] callbacks) throws UnsupportedCallbackException {
         String username = null;
@@ -156,35 +166,26 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
 
             handleCallback(cb, username, password);
 
+        } catch (OAuthSaslAuthenticationException e) {
+            // Logged already
+            throw e;
         } catch (UnsupportedCallbackException e) {
-            log.error("Authentication failed due to misconfigured CallbackHandler: ", e);
-            throw e;
+            handleErrorWithLogger(log, "Authentication failed due to misconfiguration", e);
         } catch (SaslAuthenticationException e) {
-            if (log.isDebugEnabled()) {
-                log.debug("Authentication failed for username: [" + username + "]: ", e);
-            }
-            throw e;
+            handleErrorWithLogger(log, e.getMessage(), e);
+        } catch (HttpException e) {
+            handleErrorWithLogger(log, "Authentication failed: Invalid clientId or secret", e);
         } catch (Throwable e) {
-            if (log.isDebugEnabled()) {
-                log.debug("Authentication failed for username: [" + username + "]: ", e);
-            }
-            throw new SaslAuthenticationException("Authentication failed for username: [" + username + "] " + getAllCauseMessages(e), e);
+            handleErrorWithLogger(log, "Authentication failed for username: [" + username + "]", e);
         }
     }
 
-    private void handleCallback(PlainAuthenticateCallback callback, String username, String password) {
+    private void handleCallback(PlainAuthenticateCallback callback, String username, String password) throws Exception {
         if (callback == null) throw new IllegalArgumentException("callback == null");
         if (username == null) throw new IllegalArgumentException("username == null");
 
-        try {
-            authenticate(username, password);
-            callback.authenticated(true);
-
-        } catch (SaslAuthenticationException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new SaslAuthenticationException("Authentication failed: " + getAllCauseMessages(e), e);
-        }
+        authenticate(username, password);
+        callback.authenticated(true);
     }
 
     private void authenticate(String username, String password) throws UnsupportedCallbackException, IOException {
