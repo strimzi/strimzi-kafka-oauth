@@ -83,16 +83,8 @@
                             <artifactId>kafka-oauth-keycloak-authorizer</artifactId>
                         </artifactItem>
                         <artifactItem>
-                            <groupId>org.keycloak</groupId>
-                            <artifactId>keycloak-core</artifactId>
-                        </artifactItem>
-                        <artifactItem>
-                            <groupId>org.keycloak</groupId>
-                            <artifactId>keycloak-common</artifactId>
-                        </artifactItem>
-                        <artifactItem>
-                            <groupId>org.bouncycastle</groupId>
-                            <artifactId>bcprov-jdk15on</artifactId>
+                            <groupId>com.nimbusds</groupId>
+                            <artifactId>nimbus-jose-jwt</artifactId>
                         </artifactItem>
                     </artifactItems>
                     <outputDirectory>target/libs</outputDirectory>

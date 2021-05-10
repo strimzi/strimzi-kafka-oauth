@@ -42,6 +42,7 @@ services:
       - 9101:9101
       - 9102:9102
       - 9103:9103
+      #- 5006:5006
     volumes:
       - ${PWD}/../docker/target/kafka/libs:/opt/kafka/libs/strimzi
       - ${PWD}/../docker/kafka/config:/opt/kafka/config/strimzi
@@ -51,6 +52,10 @@ services:
       - -c
       - cd /opt/kafka/strimzi && ./start.sh
     environment:
+      #- KAFKA_DEBUG=y
+      #- DEBUG_SUSPEND_FLAG=y
+      #- JAVA_DEBUG_PORT=0.0.0.0:5006
+
       - KAFKA_BROKER_ID=1
       - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
       - KAFKA_LISTENERS=JWT://kafka:9092,INTROSPECT://kafka:9093,AUDIENCE://kafka:9094,AUDIENCEINTROSPECT://kafka:9095,JWTPLAIN://kafka:9096,INTROSPECTPLAIN://kafka:9097,CUSTOM://kafka:9098,CUSTOMINTROSPECT://kafka:9099,PLAIN://kafka:9100,SCRAM://kafka:9101,FLOOD://kafka:9102,JWTPLAINWITHOUTCC://kafka:9103

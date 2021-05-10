@@ -77,8 +77,6 @@ public class ValidatorKey {
         private final int jwksExpirySeconds;
         private final int jwksRefreshMinPauseSeconds;
         private final boolean checkAccessTokenType;
-        private final boolean enableBouncy;
-        private final int bouncyPosition;
 
         @SuppressWarnings("checkstyle:parameternumber")
         public JwtValidatorKey(String validIssuerUri,
@@ -97,9 +95,7 @@ public class ValidatorKey {
                         int jwksRefreshSeconds,
                         int jwksExpirySeconds,
                         int jwksRefreshMinPauseSeconds,
-                        boolean checkAccessTokenType,
-                        boolean enableBouncy,
-                        int bouncyPosition) {
+                        boolean checkAccessTokenType) {
 
             super(validIssuerUri, audience, customClaimCheck, usernameClaim, fallbackUsernameClaim, fallbackUsernamePrefix, sslTruststore, sslStorePassword, sslStoreType, sslRandom, hasHostnameVerifier);
             this.jwksEndpointUri = jwksEndpointUri;
@@ -107,8 +103,6 @@ public class ValidatorKey {
             this.jwksExpirySeconds = jwksExpirySeconds;
             this.jwksRefreshMinPauseSeconds = jwksRefreshMinPauseSeconds;
             this.checkAccessTokenType = checkAccessTokenType;
-            this.enableBouncy = enableBouncy;
-            this.bouncyPosition = bouncyPosition;
         }
 
         @Override
@@ -121,14 +115,12 @@ public class ValidatorKey {
                     jwksExpirySeconds == that.jwksExpirySeconds &&
                     jwksRefreshMinPauseSeconds == that.jwksRefreshMinPauseSeconds &&
                     checkAccessTokenType == that.checkAccessTokenType &&
-                    enableBouncy == that.enableBouncy &&
-                    bouncyPosition == that.bouncyPosition &&
                     Objects.equals(jwksEndpointUri, that.jwksEndpointUri);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(super.hashCode(), jwksEndpointUri, jwksRefreshSeconds, jwksExpirySeconds, jwksRefreshMinPauseSeconds, checkAccessTokenType, enableBouncy, bouncyPosition);
+            return Objects.hash(super.hashCode(), jwksEndpointUri, jwksRefreshSeconds, jwksExpirySeconds, jwksRefreshMinPauseSeconds, checkAccessTokenType);
         }
     }
 

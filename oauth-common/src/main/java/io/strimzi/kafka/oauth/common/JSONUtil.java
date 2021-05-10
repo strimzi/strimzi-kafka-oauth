@@ -7,10 +7,11 @@ package io.strimzi.kafka.oauth.common;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.keycloak.util.JsonSerialization;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -25,7 +26,17 @@ public class JSONUtil {
     }
 
     public static <T> T readJSON(InputStream is, Class<T> clazz) throws IOException {
+        if (clazz == String.class) {
+            // just read and convert to UTF-8 String
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            IOUtil.copy(is, baos);
+            return clazz.cast(new String(baos.toByteArray(), StandardCharsets.UTF_8));
+        }
         return MAPPER.readValue(is, clazz);
+    }
+
+    public static <T> T readJSON(String jsonString, Class<T> clazz) throws IOException {
+        return MAPPER.readValue(jsonString, clazz);
     }
 
     /**
@@ -38,11 +49,10 @@ public class JSONUtil {
         if (value instanceof JsonNode)
             return (JsonNode) value;
 
-        // We re-serialise and deserialize into generic json object
+        // Convert efficiently into generic json object
         try {
-            String jsonString = JsonSerialization.writeValueAsString(value);
-            return JsonSerialization.readValue(jsonString, JsonNode.class);
-        } catch (IOException e) {
+            return MAPPER.convertValue(value, JsonNode.class);
+        } catch (RuntimeException e) {
             throw new RuntimeException("Failed to convert value to JSON (" + value + ")", e);
         }
     }

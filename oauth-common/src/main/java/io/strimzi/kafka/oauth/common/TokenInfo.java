@@ -4,7 +4,7 @@
  */
 package io.strimzi.kafka.oauth.common;
 
-import org.keycloak.representations.AccessToken;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -12,19 +12,26 @@ import java.util.Set;
 
 public class TokenInfo {
 
+    public static final String SCOPE = "scope";
+    public static final String IAT = "iat";
+    public static final String EXP = "exp";
+    public static final String ISS = "iss";
+    public static final String TYP = "typ";
+    public static final String AUD = "aud";
+
     private String token;
     private Set<String> scopes = new HashSet<>();
     private long expiresAt;
     private String principal;
     private long issuedAt;
-    private AccessToken payload;
+    private JsonNode payload;
 
-    public TokenInfo(AccessToken payload, String token, String principal) {
+    public TokenInfo(JsonNode payload, String token, String principal) {
         this(token,
-                payload.getScope(),
+                payload.has(SCOPE) ? payload.get(SCOPE).asText() : null,
                 principal,
-                payload.getIat() == null ? 0 : payload.getIat() * 1000L,
-                payload.getExp() == null ? 0 : payload.getExp() * 1000L);
+                payload.get(IAT).asInt(0) * 1000L,
+                payload.get(EXP).asInt(0) * 1000L);
         this.payload = payload;
     }
 
@@ -61,7 +68,7 @@ public class TokenInfo {
         return issuedAt;
     }
 
-    public AccessToken payload() {
+    public JsonNode payload() {
         return payload;
     }
 }

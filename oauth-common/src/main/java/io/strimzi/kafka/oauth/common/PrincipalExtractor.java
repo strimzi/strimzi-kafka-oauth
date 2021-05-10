@@ -5,8 +5,6 @@
 package io.strimzi.kafka.oauth.common;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.keycloak.jose.jws.JWSInput;
-import org.keycloak.representations.AccessToken;
 
 import static io.strimzi.kafka.oauth.common.JSONUtil.getClaimFromJWT;
 
@@ -22,17 +20,6 @@ public class PrincipalExtractor {
         this.usernameClaim = usernameClaim;
         this.fallbackUsernameClaim = fallbackUsernameClaim;
         this.fallbackUsernamePrefix = fallbackUsernamePrefix;
-    }
-
-    public String getPrincipal(AccessToken token, JWSInput jws) {
-        if (usernameClaim != null) {
-            try {
-                return getPrincipal(jws.readJsonContent(JsonNode.class));
-            } catch (Exception e) {
-                throw new RuntimeException("Failed to parse access token", e);
-            }
-        }
-        return null;
     }
 
     public String getPrincipal(JsonNode json) {
@@ -53,10 +40,6 @@ public class PrincipalExtractor {
         }
 
         return null;
-    }
-
-    public String getSub(AccessToken token) {
-        return token.getSubject();
     }
 
     public String getSub(JsonNode json) {
