@@ -319,5 +319,11 @@
                 <kafka.docker.image>quay.io/strimzi/kafka:0.22.1-kafka-2.7.0</kafka.docker.image>
             </properties>
         </profile>
+        <profile>
+            <!--
+                When using this profile you can use -Dkafka.docker.image=YOUR_IMAGE
+            -->
+            <id>custom</id>
+        </profile>
     </profiles>
 </project>
