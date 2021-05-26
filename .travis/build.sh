@@ -39,21 +39,27 @@ mvn spotbugs:check
 if [ ${JAVA_MAJOR_VERSION} -eq 1 ] ; then
 
   docker pull oryd/hydra:v1.8.5
-  docker pull quay.io/keycloak/keycloak:12.0.2
+  docker pull quay.io/keycloak/keycloak:13.0.0
 
   mvn test-compile spotbugs:check -e -V -B -f testsuite
 
   set +e
 
   clearDockerEnv
-  docker pull quay.io/strimzi/kafka:0.22.1-kafka-2.7.0
+  docker pull quay.io/strimzi/kafka:0.23.0-kafka-2.8.0
+  mvn -e -V -B clean install -f testsuite -Pkafka-2_8_0
+  EXIT=$?
+  exitIfError
+
+  clearDockerEnv
+  docker pull quay.io/strimzi/kafka:0.23.0-kafka-2.7.0
   mvn -e -V -B clean install -f testsuite -Pkafka-2_7_0
   EXIT=$?
   exitIfError
 
   clearDockerEnv
-  docker pull quay.io/strimzi/kafka:0.22.1-kafka-2.6.0
-  mvn -e -V -B clean install -f testsuite -Pkafka-2_6_0
+  docker pull quay.io/strimzi/kafka:0.23.0-kafka-2.6.2
+  mvn -e -V -B clean install -f testsuite -Pkafka-2_6_2
   EXIT=$?
   exitIfError
 
