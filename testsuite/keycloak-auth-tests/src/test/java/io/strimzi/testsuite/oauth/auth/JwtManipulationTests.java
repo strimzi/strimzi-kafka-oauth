@@ -194,8 +194,6 @@ public class JwtManipulationTests {
                 "\"],\"certificate\":[]}}";
 
         HttpUtil.post(URI.create("http://" + hostPort + "/auth/admin/realms/" + realm + "/components"), "Bearer " + accessToken, "application/json", body, String.class);
-
-        System.out.println("Bu!");
     }
 
 
