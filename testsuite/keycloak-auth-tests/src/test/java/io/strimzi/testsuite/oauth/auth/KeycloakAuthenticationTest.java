@@ -41,6 +41,9 @@ public class KeycloakAuthenticationTest {
             logStart("KeycloakAuthenticationTest :: MultiSaslTests");
             MultiSaslTests.doTests();
 
+            logStart("KeycloakAuthenticationTest :: JwtManipulationTests");
+            new JwtManipulationTests().doTests();
+
         } catch (Throwable e) {
             log.error("Keycloak Authentication Test failed: ", e);
             throw e;

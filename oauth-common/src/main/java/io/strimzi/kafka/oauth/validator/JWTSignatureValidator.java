@@ -258,7 +258,7 @@ public class JWTSignatureValidator implements TokenValidator {
                 cache = newCache;
             }
             lastFetchTime = System.currentTimeMillis();
-        } catch (Exception ex) {
+        } catch (Throwable ex) {
             throw new RuntimeException("Failed to fetch public keys needed to validate JWT signatures: " + keysUri, ex);
         }
     }
@@ -302,7 +302,11 @@ public class JWTSignatureValidator implements TokenValidator {
             throw new TokenValidationException("Token validation failed", e);
         }
 
-        long expiresMillis = t.get(TokenInfo.EXP).asInt(0) * 1000L;
+        JsonNode exp = t.get(TokenInfo.EXP);
+        if (exp == null) {
+            throw new TokenValidationException("Token validation failed: Expiry not set");
+        }
+        long expiresMillis = exp.asInt(0) * 1000L;
         if (Time.SYSTEM.milliseconds() > expiresMillis) {
             throw new TokenExpiredException("Token expired at: " + expiresMillis + " (" +
                     TimeUtil.formatIsoDateTimeUTC(expiresMillis) + " UTC)");
@@ -338,21 +342,30 @@ public class JWTSignatureValidator implements TokenValidator {
     @SuppressWarnings({"deprecation", "unchecked"})
     private void validateTokenPayload(JsonNode token) {
         if (issuerUri != null) {
-            String issuer = token.get(TokenInfo.ISS).asText();
+            JsonNode iss = token.get(TokenInfo.ISS);
+            if (iss == null) {
+                throw new TokenValidationException("Token validation failed: Issuer not set");
+            }
+            String issuer = iss.asText();
             if (!issuerUri.equals(issuer)) {
-                throw new TokenValidationException("Issuer not allowed: " + issuer);
+                throw new TokenValidationException("Token validation failed: Issuer not allowed: " + issuer);
             }
         }
         if (checkAccessTokenType) {
-            String type = token.get(TokenInfo.TYP).asText();
+            JsonNode typ = token.get(TokenInfo.TYP);
+            if (typ == null) {
+                throw new TokenValidationException("Token validation failed: Token type not set");
+            }
+            String type = typ.asText();
             if (!"Bearer".equals(type)) {
-                throw new TokenValidationException("Token type not allowed: " + type);
+                throw new TokenValidationException("Token validation failed: Token type not allowed: " + type);
             }
         }
         if (audience != null) {
-            List<String> aud = JSONUtil.asListOfString(token.get(TokenInfo.AUD));
+            JsonNode audNode = token.get(TokenInfo.AUD);
+            List<String> aud = audNode == null ? Collections.emptyList() : JSONUtil.asListOfString(audNode);
             if (!aud.contains(audience)) {
-                throw new TokenValidationException("Expected audience not available in the token");
+                throw new TokenValidationException("Token validation failed: Expected audience not available in the token");
             }
         }
     }

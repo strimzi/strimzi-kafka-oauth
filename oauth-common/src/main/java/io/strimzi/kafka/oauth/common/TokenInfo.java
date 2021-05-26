@@ -30,7 +30,7 @@ public class TokenInfo {
         this(token,
                 payload.has(SCOPE) ? payload.get(SCOPE).asText() : null,
                 principal,
-                payload.get(IAT).asInt(0) * 1000L,
+                payload.has(IAT) ? payload.get(IAT).asInt(0) * 1000L : 0L,
                 payload.get(EXP).asInt(0) * 1000L);
         this.payload = payload;
     }
