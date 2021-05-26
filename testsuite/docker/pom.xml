@@ -19,6 +19,7 @@
     </properties>
 
     <modules>
+        <module>kafka</module>
         <module>hydra-import</module>
     </modules>
 
