@@ -35,7 +35,6 @@ import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.strimzi.kafka.oauth.validator.TokenValidationException.Status;
 
@@ -56,8 +55,6 @@ import static io.strimzi.kafka.oauth.validator.TokenValidationException.Status;
 public class JWTSignatureValidator implements TokenValidator {
 
     private static final Logger log = LoggerFactory.getLogger(JWTSignatureValidator.class);
-
-    private static AtomicBoolean bouncyInstalled =  new AtomicBoolean(false);
 
     private static DefaultJWSVerifierFactory verifierFactory = new DefaultJWSVerifierFactory();
 

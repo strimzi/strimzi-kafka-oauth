@@ -1,6 +1,13 @@
 Release Notes
 =============
 
+0.8.0
+-----
+
+### Replaced keycloak-core library with nimbus-jose-jwt
+
+Now JWT token validation uses a different third-party library. As a result ECDSA support no longer requires the BouncyCastle library. Also, some JWT tokens that would fail previously, can now be handled, widening the support of different authorization servers.
+
 0.7.2
 -----
 

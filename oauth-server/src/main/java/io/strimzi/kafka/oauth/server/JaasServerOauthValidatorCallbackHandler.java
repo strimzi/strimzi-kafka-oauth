@@ -132,11 +132,6 @@ import static io.strimzi.kafka.oauth.common.TokenIntrospection.debugLogJWT;
  * <p>
  * Common optional <em>sasl.jaas.config</em> configuration:
  * <ul>
- * <li><em>oauth.crypto.provider.bouncycastle</em> If set to `true` the BouncyCastle crypto provider is installed. <br>
- * Installing BouncyCastle crypto provider adds suport for ECDSA signing algorithm. Default value is <em>false</em>.
- * </li>
- * <li><em>oauth.crypto.provider.bouncycastle.position</em> The position in the list of crypto providers where BouncyCastle provider should be installed.<br>
- * The position counting starts at 1. Any value less than 1 installs the provider at the end of the crypto providers list. Default value is '0'.</li>
  * <li><em>oauth.username.claim</em> The attribute key that should be used to extract the user id. If not set `sub` attribute is used.<br>
  * The attribute key refers to the JWT token claim when fast local validation is used, or to attribute in the response by introspection endpoint when introspection based validation is used. It has no default value.</li>
  * <li><em>oauth.fallback.username.claim</em> The fallback username claim to be used for the user id if the attribute key specified by `oauth.username.claim` <br>

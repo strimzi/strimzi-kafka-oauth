@@ -36,7 +36,6 @@
         <maven.surefire.version>2.22.1</maven.surefire.version>
         <version.arquillian_universe>1.5.0.0</version.arquillian_universe>
         <version.junit>4.12</version.junit>
-        <bouncycastle.version>1.60</bouncycastle.version>
         <arquillian.cube.version>1.18.2</arquillian.cube.version>
         <spotbugs.version>3.1.12</spotbugs.version>
         <strimzi-oauth.version>1.0.0-SNAPSHOT</strimzi-oauth.version>
@@ -91,11 +90,6 @@
         <dependency>
             <groupId>io.strimzi</groupId>
             <artifactId>kafka-oauth-keycloak-authorizer</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.bouncycastle</groupId>
-            <artifactId>bcprov-jdk15on</artifactId>
-            <version>${bouncycastle.version}</version>
         </dependency>
 
     </dependencies>

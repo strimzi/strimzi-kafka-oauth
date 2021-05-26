@@ -108,9 +108,7 @@ Copy the following jars into your Kafka libs directory:
     oauth-server-plain/target/kafka-oauth-server-plain-*.jar
     oauth-keycloak-authorizer/target/kafka-oauth-keycloak-authorizer-*.jar
     oauth-client/target/kafka-oauth-client-*.jar
-    oauth-common/target/lib/keycloak-common-*.jar
-    oauth-common/target/lib/keycloak-core-*.jar
-    oauth-common/target/lib/bcprov-*.jar
+    oauth-common/target/lib/nimbus-jose-jwt-*.jar
 
 If you want to use custom claim checking, also copy the following:
 
@@ -329,8 +327,10 @@ For example, if the following configuration is set:
 Then, if the token contains `"username": "alice"` claim then the principal will be `User:alice`.
 Otherwise, if the token contains `"client_id": "my-producer"` claim then the principal will be `User:client-account-my-producer`. 
 
-If your authorization server uses ECDSA encryption then you need to enable the BouncyCastle JCE crypto provider:
+If your authorization server uses ECDSA encryption you used to need to enable the BouncyCastle JCE crypto provider:
 - `oauth.crypto.provider.bouncycastle` (e.g.: "true")
+
+Since version 0.8.0 this is no longer needed, and this configuration option is ignored.
 
 Depending on your authorization server you may need to relax some checks: 
 - `oauth.check.access.token.type` (e.g.: "false" - do not require `"typ": "Bearer"` in JWT token)
