@@ -111,7 +111,7 @@ public class JwtManipulationTests {
         claims3.put("auth_time", "2021-05-25T10:00:00.000Z");
         claims3.put("ver", "1.0");
 
-        signedToken = createSignedToken(kid, privateKey, claims2);
+        signedToken = createSignedToken(kid, privateKey, claims3);
 
         // Run the test again with the forged token
         testWithToken(signedToken);
