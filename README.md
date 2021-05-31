@@ -330,7 +330,8 @@ Otherwise, if the token contains `"client_id": "my-producer"` claim then the pri
 If your authorization server uses ECDSA encryption you used to need to enable the BouncyCastle JCE crypto provider:
 - `oauth.crypto.provider.bouncycastle` (e.g.: "true")
 
-Since version 0.8.0 this is no longer needed, and this configuration option is ignored.
+Since version 0.8.0 this is no longer needed, and this configuration option is ignored, as well as the option:
+- `oauth.crypto.provider.bouncycastle.position`
 
 Depending on your authorization server you may need to relax some checks: 
 - `oauth.check.access.token.type` (e.g.: "false" - do not require `"typ": "Bearer"` in JWT token)

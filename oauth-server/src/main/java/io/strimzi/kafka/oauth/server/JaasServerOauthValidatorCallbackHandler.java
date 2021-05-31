@@ -213,6 +213,13 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
         validateIssuerUri(validIssuerUri);
 
+        if (config.getValue("oauth.crypto.provider.bouncycastle") != null) {
+            log.warn("The OAUTH_CRYPTO_PROVIDER_BOUNCYCASTLE option has been deprecated. ECDSA is automatically available without the need for BouncyCastle JCE provider.");
+        }
+        if (config.getValue("oauth.crypto.provider.bouncycastle.position") != null) {
+            log.warn("The OAUTH_CRYPTO_PROVIDER_BOUNCYCASTLE_POSITION option has been deprecated. ECDSA is automatically available without the need for BouncyCastle JCE provider.");
+        }
+
         boolean checkTokenType = isCheckAccessTokenType(config);
         boolean checkAudience = config.getValueAsBoolean(ServerConfig.OAUTH_CHECK_AUDIENCE, false);
 
