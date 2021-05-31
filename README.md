@@ -114,7 +114,7 @@ If you want to use custom claim checking, also copy the following:
 
     oauth-server/target/lib/json-path-*.jar
     oauth-server/target/lib/json-smart-*.jar
-    oauth-server/target/lib/accessorts-smart-*.jar
+    oauth-server/target/lib/accessors-smart-*.jar
 
 Configuring the authorization server
 ------------------------------------
