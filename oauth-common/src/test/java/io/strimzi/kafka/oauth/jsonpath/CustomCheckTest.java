@@ -5,10 +5,10 @@
 package io.strimzi.kafka.oauth.jsonpath;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.strimzi.kafka.oauth.common.JSONUtil;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.keycloak.util.JsonSerialization;
 
 import java.util.ArrayList;
 import java.util.Formatter;
@@ -146,7 +146,7 @@ public class CustomCheckTest {
             "@.exp < 'unclosed string"                 // unclosed string
         };
 
-        JsonNode json = JsonSerialization.readValue(jsonString, JsonNode.class);
+        JsonNode json = JSONUtil.readJSON(jsonString, JsonNode.class);
 
         testQueries(json, queries);
         testQueries(json, poorWhitespaceQueries);
@@ -202,7 +202,7 @@ public class CustomCheckTest {
         final int count = 10000;
         for (int i = 0; i < count; i++) {
             fmt.format(jsonTemplate, i);
-            JsonNode json = JsonSerialization.readValue(jsonString.toString(), JsonNode.class);
+            JsonNode json = JSONUtil.readJSON(jsonString.toString(), JsonNode.class);
             tokens.add(json);
             jsonString.setLength(0);
         }

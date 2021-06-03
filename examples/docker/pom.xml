@@ -14,8 +14,7 @@
         <plugins.dependency.version>3.1.1</plugins.dependency.version>
         <plugins.resources.version>3.1.0</plugins.resources.version>
 
-        <keycloak.version>11.0.2</keycloak.version>
-        <bouncycastle.version>1.60</bouncycastle.version>
+        <nimbus.jose.version>9.9.2</nimbus.jose.version>
         <strimzi-oauth.version>1.0.0-SNAPSHOT</strimzi-oauth.version>
     </properties>
 
@@ -54,19 +53,9 @@
                 <version>${strimzi-oauth.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.keycloak</groupId>
-                <artifactId>keycloak-core</artifactId>
-                <version>${keycloak.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.keycloak</groupId>
-                <artifactId>keycloak-common</artifactId>
-                <version>${keycloak.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.bouncycastle</groupId>
-                <artifactId>bcprov-jdk15on</artifactId>
-                <version>${bouncycastle.version}</version>
+                <groupId>com.nimbusds</groupId>
+                <artifactId>nimbus-jose-jwt</artifactId>
+                <version>${nimbus.jose.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

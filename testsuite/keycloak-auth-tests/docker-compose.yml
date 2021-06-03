@@ -2,7 +2,7 @@ version: '3'
 
 services:
   keycloak:
-    image: quay.io/keycloak/keycloak:12.0.2
+    image: quay.io/keycloak/keycloak:13.0.0
     container_name: keycloak
     ports:
       - 8080:8080
@@ -24,7 +24,7 @@ services:
       - KEYCLOAK_PASSWORD=admin
       - KEYCLOAK_HTTPS_PORT=8443
       - PROXY_ADDRESS_FORWARDING=true
-      - KEYCLOAK_IMPORT=/opt/jboss/keycloak/realms/demo-realm.json,/opt/jboss/keycloak/realms/kafka-authz-realm.json,/opt/jboss/keycloak/realms/demo-ec-realm.json,/opt/jboss/keycloak/realms/flood-realm.json
+      - KEYCLOAK_IMPORT=/opt/jboss/keycloak/realms/demo-realm.json,/opt/jboss/keycloak/realms/kafka-authz-realm.json,/opt/jboss/keycloak/realms/demo-ec-realm.json,/opt/jboss/keycloak/realms/flood-realm.json,/opt/jboss/keycloak/realms/forge-realm.json
 
   kafka:
     image: ${KAFKA_DOCKER_IMAGE}
@@ -42,6 +42,8 @@ services:
       - 9101:9101
       - 9102:9102
       - 9103:9103
+      - 9104:9104
+      #- 5006:5006
     volumes:
       - ${PWD}/../docker/target/kafka/libs:/opt/kafka/libs/strimzi
       - ${PWD}/../docker/kafka/config:/opt/kafka/config/strimzi
@@ -51,10 +53,14 @@ services:
       - -c
       - cd /opt/kafka/strimzi && ./start.sh
     environment:
+      #- KAFKA_DEBUG=y
+      #- DEBUG_SUSPEND_FLAG=y
+      #- JAVA_DEBUG_PORT=0.0.0.0:5006
+
       - KAFKA_BROKER_ID=1
       - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
-      - KAFKA_LISTENERS=JWT://kafka:9092,INTROSPECT://kafka:9093,AUDIENCE://kafka:9094,AUDIENCEINTROSPECT://kafka:9095,JWTPLAIN://kafka:9096,INTROSPECTPLAIN://kafka:9097,CUSTOM://kafka:9098,CUSTOMINTROSPECT://kafka:9099,PLAIN://kafka:9100,SCRAM://kafka:9101,FLOOD://kafka:9102,JWTPLAINWITHOUTCC://kafka:9103
-      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=JWT:SASL_PLAINTEXT,INTROSPECT:SASL_PLAINTEXT,AUDIENCE:SASL_PLAINTEXT,AUDIENCEINTROSPECT:SASL_PLAINTEXT,JWTPLAIN:SASL_PLAINTEXT,INTROSPECTPLAIN:SASL_PLAINTEXT,CUSTOM:SASL_PLAINTEXT,CUSTOMINTROSPECT:SASL_PLAINTEXT,PLAIN:SASL_PLAINTEXT,SCRAM:SASL_PLAINTEXT,FLOOD:SASL_PLAINTEXT,JWTPLAINWITHOUTCC:SASL_PLAINTEXT
+      - KAFKA_LISTENERS=JWT://kafka:9092,INTROSPECT://kafka:9093,AUDIENCE://kafka:9094,AUDIENCEINTROSPECT://kafka:9095,JWTPLAIN://kafka:9096,INTROSPECTPLAIN://kafka:9097,CUSTOM://kafka:9098,CUSTOMINTROSPECT://kafka:9099,PLAIN://kafka:9100,SCRAM://kafka:9101,FLOOD://kafka:9102,JWTPLAINWITHOUTCC://kafka:9103,FORGE://kafka:9104
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=JWT:SASL_PLAINTEXT,INTROSPECT:SASL_PLAINTEXT,AUDIENCE:SASL_PLAINTEXT,AUDIENCEINTROSPECT:SASL_PLAINTEXT,JWTPLAIN:SASL_PLAINTEXT,INTROSPECTPLAIN:SASL_PLAINTEXT,CUSTOM:SASL_PLAINTEXT,CUSTOMINTROSPECT:SASL_PLAINTEXT,PLAIN:SASL_PLAINTEXT,SCRAM:SASL_PLAINTEXT,FLOOD:SASL_PLAINTEXT,JWTPLAINWITHOUTCC:SASL_PLAINTEXT,FORGE:SASL_PLAINTEXT
       - KAFKA_SASL_ENABLED_MECHANISMS=OAUTHBEARER
       - KAFKA_INTER_BROKER_LISTENER_NAME=INTROSPECT
       - KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL=OAUTHBEARER
@@ -70,7 +76,7 @@ services:
       - KAFKA_LISTENER_NAME_INTROSPECT_OAUTHBEARER_SASL_SERVER_CALLBACK_HANDLER_CLASS=io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
       - KAFKA_LISTENER_NAME_INTROSPECT_OAUTHBEARER_SASL_LOGIN_CALLBACK_HANDLER_CLASS=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
 
-      - KAFKA_LISTENER_NAME_JWT_OAUTHBEARER_SASL_JAAS_CONFIG=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required    oauth.jwks.endpoint.uri=\"http://keycloak:8080/auth/realms/demo-ec/protocol/openid-connect/certs\"    oauth.valid.issuer.uri=\"http://keycloak:8080/auth/realms/demo-ec\"    oauth.crypto.provider.bouncycastle=\"true\"    unsecuredLoginStringClaim_sub=\"admin\" ;
+      - KAFKA_LISTENER_NAME_JWT_OAUTHBEARER_SASL_JAAS_CONFIG=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required    oauth.jwks.endpoint.uri=\"http://keycloak:8080/auth/realms/demo-ec/protocol/openid-connect/certs\"    oauth.valid.issuer.uri=\"http://keycloak:8080/auth/realms/demo-ec\"    unsecuredLoginStringClaim_sub=\"admin\" ;
       - KAFKA_LISTENER_NAME_JWT_OAUTHBEARER_SASL_SERVER_CALLBACK_HANDLER_CLASS=io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
 
       - KAFKA_LISTENER_NAME_AUDIENCE_OAUTHBEARER_SASL_JAAS_CONFIG=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required    oauth.jwks.endpoint.uri=\"http://keycloak:8080/auth/realms/kafka-authz/protocol/openid-connect/certs\"    oauth.valid.issuer.uri=\"http://keycloak:8080/auth/realms/kafka-authz\"    oauth.check.audience=\"true\"    oauth.client.id=\"kafka\"    unsecuredLoginStringClaim_sub=\"admin\" ;
@@ -116,9 +122,12 @@ services:
       - KAFKA_LISTENER_NAME_JWTPLAINWITHOUTCC_PLAIN_SASL_JAAS_CONFIG=org.apache.kafka.common.security.plain.PlainLoginModule required    oauth.client.id=\"kafka\"    oauth.client.secret=\"kafka-secret\"    oauth.jwks.endpoint.uri=\"http://keycloak:8080/auth/realms/kafka-authz/protocol/openid-connect/certs\"    oauth.valid.issuer.uri=\"http://keycloak:8080/auth/realms/kafka-authz\"    unsecuredLoginStringClaim_sub=\"admin\" ;
       - KAFKA_LISTENER_NAME_JWTPLAINWITHOUTCC_PLAIN_SASL_SERVER_CALLBACK_HANDLER_CLASS=io.strimzi.kafka.oauth.server.plain.JaasServerOauthOverPlainValidatorCallbackHandler
 
+      - KAFKA_LISTENER_NAME_FORGE_OAUTHBEARER_SASL_JAAS_CONFIG=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required    oauth.jwks.endpoint.uri=\"http://keycloak:8080/auth/realms/forge/protocol/openid-connect/certs\"    oauth.valid.issuer.uri=\"http://keycloak:8080/auth/realms/forge\"    unsecuredLoginStringClaim_sub=\"admin\" ;
+      - KAFKA_LISTENER_NAME_FORGE_OAUTHBEARER_SASL_SERVER_CALLBACK_HANDLER_CLASS=io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
+
       # For start.sh script to know where the keycloak is listening
       - KEYCLOAK_HOST=${KEYCLOAK_HOST:-keycloak}
-      - REALM=${REALM:-flood}
+      - REALM=${REALM:-forge}
 
   zookeeper:
     image: ${KAFKA_DOCKER_IMAGE}

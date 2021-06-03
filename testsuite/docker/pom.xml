@@ -19,6 +19,7 @@
     </properties>
 
     <modules>
+        <module>kafka</module>
         <module>hydra-import</module>
     </modules>
 
@@ -45,20 +46,6 @@
             <groupId>io.strimzi</groupId>
             <artifactId>kafka-oauth-common</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.keycloak</groupId>
-            <artifactId>keycloak-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.keycloak</groupId>
-            <artifactId>keycloak-common</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.bouncycastle</groupId>
-            <artifactId>bcprov-jdk15on</artifactId>
-            <version>${bouncycastle.version}</version>
-        </dependency>
-
     </dependencies>
 
     <build>
@@ -195,16 +182,8 @@
                             <artifactId>kafka-oauth-common</artifactId>
                         </artifactItem>
                         <artifactItem>
-                            <groupId>org.keycloak</groupId>
-                            <artifactId>keycloak-core</artifactId>
-                        </artifactItem>
-                        <artifactItem>
-                            <groupId>org.keycloak</groupId>
-                            <artifactId>keycloak-common</artifactId>
-                        </artifactItem>
-                        <artifactItem>
-                            <groupId>org.bouncycastle</groupId>
-                            <artifactId>bcprov-jdk15on</artifactId>
+                            <groupId>com.nimbusds</groupId>
+                            <artifactId>nimbus-jose-jwt</artifactId>
                         </artifactItem>
                         <artifactItem>
                             <groupId>com.jayway.jsonpath</groupId>

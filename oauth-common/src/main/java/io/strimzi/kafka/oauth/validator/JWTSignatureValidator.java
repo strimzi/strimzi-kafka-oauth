@@ -5,6 +5,13 @@
 package io.strimzi.kafka.oauth.validator;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.nimbusds.jose.crypto.factories.DefaultJWSVerifierFactory;
+import com.nimbusds.jose.jwk.ECKey;
+import com.nimbusds.jose.jwk.JWK;
+import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jose.jwk.KeyUse;
+import com.nimbusds.jose.jwk.RSAKey;
+import com.nimbusds.jwt.SignedJWT;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.strimzi.kafka.oauth.common.HttpUtil;
 import io.strimzi.kafka.oauth.common.JSONUtil;
@@ -13,17 +20,6 @@ import io.strimzi.kafka.oauth.common.TimeUtil;
 import io.strimzi.kafka.oauth.common.TokenInfo;
 import io.strimzi.kafka.oauth.jsonpath.JsonPathFilterQuery;
 import org.apache.kafka.common.utils.Time;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.keycloak.TokenVerifier;
-import org.keycloak.common.VerificationException;
-import org.keycloak.crypto.AsymmetricSignatureVerifierContext;
-import org.keycloak.crypto.KeyWrapper;
-import org.keycloak.exceptions.TokenSignatureInvalidException;
-import org.keycloak.jose.jwk.JSONWebKeySet;
-import org.keycloak.jose.jwk.JWK;
-import org.keycloak.representations.AccessToken;
-import org.keycloak.util.JWKSUtils;
-import org.keycloak.util.TokenUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,15 +27,14 @@ import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSocketFactory;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.security.Provider;
 import java.security.PublicKey;
-import java.security.Security;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.strimzi.kafka.oauth.validator.TokenValidationException.Status;
 
@@ -52,7 +47,7 @@ import static io.strimzi.kafka.oauth.validator.TokenValidationException.Status;
  * </p>
  * <p>
  * A single threaded refresh job is run periodically or upon detecting an unknown signing key, that fetches the latest trusted public keys
- * for signatare validation from authorization server. If the refresh job is unsuccessful it employs the so called 'exponential back-off'
+ * for signature validation from authorization server. If the refresh job is unsuccessful it employs the so called 'exponential back-off'
  * to retry later in order to reduce any out-of-sync time with the authorization server while still not flooding the server
  * with endless consecutive requests.
  * </p>
@@ -61,9 +56,7 @@ public class JWTSignatureValidator implements TokenValidator {
 
     private static final Logger log = LoggerFactory.getLogger(JWTSignatureValidator.class);
 
-    private static AtomicBoolean bouncyInstalled =  new AtomicBoolean(false);
-
-    private static final TokenVerifier.TokenTypeCheck TOKEN_TYPE_CHECK = new TokenVerifier.TokenTypeCheck(TokenUtil.TOKEN_TYPE_BEARER);
+    private static DefaultJWSVerifierFactory verifierFactory = new DefaultJWSVerifierFactory();
 
     private final BackOffTaskScheduler fastScheduler;
 
@@ -96,8 +89,6 @@ public class JWTSignatureValidator implements TokenValidator {
      * @param checkAccessTokenType Should the 'typ' claim in the token be validated (be equal to 'Bearer')
      * @param audience The optional audience
      * @param customClaimCheck The optional JSONPath filter query for additional custom claim checking
-     * @param enableBouncyCastleProvider Should BouncyCastle JCE provider be enabled - required for ECDSA support
-     * @param bouncyCastleProviderPosition Position in JCE providers list - it is added to the end of the list by default
      */
     public JWTSignatureValidator(String keysEndpointUri,
                                  SSLSocketFactory socketFactory,
@@ -109,9 +100,7 @@ public class JWTSignatureValidator implements TokenValidator {
                                  int expirySeconds,
                                  boolean checkAccessTokenType,
                                  String audience,
-                                 String customClaimCheck,
-                                 boolean enableBouncyCastleProvider,
-                                 int bouncyCastleProviderPosition) {
+                                 String customClaimCheck) {
 
         if (keysEndpointUri == null) {
             throw new IllegalArgumentException("keysEndpointUri == null");
@@ -150,19 +139,6 @@ public class JWTSignatureValidator implements TokenValidator {
         this.audience = audience;
         this.customClaimMatcher = parseCustomClaimCheck(customClaimCheck);
 
-        if (enableBouncyCastleProvider && !bouncyInstalled.getAndSet(true)) {
-            int installedPosition = Security.insertProviderAt(new BouncyCastleProvider(), bouncyCastleProviderPosition);
-            log.info("BouncyCastle security provider installed at position: " + installedPosition);
-
-            if (log.isDebugEnabled()) {
-                StringBuilder sb = new StringBuilder("Installed security providers:\n");
-                for (Provider p: Security.getProviders()) {
-                    sb.append("  - " + p.toString() + "  [" + p.getClass().getName() + "]\n");
-                    sb.append("   " + p.getInfo() + "\n");
-                }
-                log.debug(sb.toString());
-            }
-        }
 
         // get the signing keys for signature validation before the first authorization requests start coming
         // fail fast if keys refresh doesn't work - it means network issues or authorization server not responding
@@ -188,9 +164,7 @@ public class JWTSignatureValidator implements TokenValidator {
                     + "\n    certsExpirySeconds: " + expirySeconds
                     + "\n    checkAccessTokenType: " + checkAccessTokenType
                     + "\n    audience: " + audience
-                    + "\n    customClaimCheck: " + customClaimCheck
-                    + "\n    enableBouncyCastleProvider: " + enableBouncyCastleProvider
-                    + "\n    bouncyCastleProviderPosition: " + bouncyCastleProviderPosition);
+                    + "\n    customClaimCheck: " + customClaimCheck);
         }
     }
 
@@ -254,8 +228,26 @@ public class JWTSignatureValidator implements TokenValidator {
 
     private void fetchKeys() {
         try {
-            JSONWebKeySet jwks = HttpUtil.get(keysUri, socketFactory, hostnameVerifier, null, JSONWebKeySet.class);
-            Map<String, PublicKey> newCache = JWKSUtils.getKeysForUse(jwks, JWK.Use.SIG);
+            Map<String, PublicKey> newCache = new HashMap<>();
+            JWKSet jwks = JWKSet.parse(HttpUtil.get(keysUri, socketFactory, hostnameVerifier, null, String.class));
+
+            for (JWK jwk: jwks.getKeys()) {
+                if (jwk.getKeyUse().equals(KeyUse.SIGNATURE)) {
+
+                    PublicKey publicKey;
+
+                    if (jwk instanceof ECKey) {
+                        publicKey = ((ECKey) jwk).toPublicKey();
+                    } else if (jwk instanceof RSAKey) {
+                        publicKey = ((RSAKey) jwk).toPublicKey();
+                    } else {
+                        log.warn("Unsupported JWK key type: " + jwk.getKeyType());
+                        continue;
+                    }
+                    newCache.put(jwk.getKeyID(), publicKey);
+                }
+            }
+
             newCache = Collections.unmodifiableMap(newCache);
             if (!cache.equals(newCache)) {
                 log.info("JWKS keys change detected. Keys updated.");
@@ -263,7 +255,7 @@ public class JWTSignatureValidator implements TokenValidator {
                 cache = newCache;
             }
             lastFetchTime = System.currentTimeMillis();
-        } catch (Exception ex) {
+        } catch (Throwable ex) {
             throw new RuntimeException("Failed to fetch public keys needed to validate JWT signatures: " + keysUri, ex);
         }
     }
@@ -272,20 +264,18 @@ public class JWTSignatureValidator implements TokenValidator {
             justification = "We tell TokenVerifier to parse AccessToken. It will return AccessToken or fail.")
     public TokenInfo validate(String token) {
 
-        TokenVerifier<AccessToken> tokenVerifier = initializeTokenVerifier(token);
-
-        String kid = null;
+        SignedJWT jwt;
+        String kid;
         try {
-            kid = tokenVerifier.getHeader().getKeyId();
+            jwt = SignedJWT.parse(token);
+            kid = jwt.getHeader().getKeyID();
         } catch (Exception e) {
             throw new TokenValidationException("Token validation failed: Failed to parse JWT: " + token, e)
                     .status(Status.INVALID_TOKEN);
         }
 
-        AccessToken t;
-
+        JsonNode t;
         try {
-            KeyWrapper keywrap = new KeyWrapper();
             PublicKey pub = getPublicKey(kid);
             if (pub == null) {
                 if (oldCache.get(kid) != null) {
@@ -296,29 +286,12 @@ public class JWTSignatureValidator implements TokenValidator {
                     throw new TokenValidationException("Token validation failed: Unknown signing key (kid:" + kid + ")");
                 }
             }
-            keywrap.setPublicKey(pub);
-            keywrap.setAlgorithm(tokenVerifier.getHeader().getAlgorithm().name());
-            keywrap.setKid(kid);
 
-            log.debug("Signature algorithm used: [{}]", pub.getAlgorithm());
-            AsymmetricSignatureVerifierContext ctx = isAlgorithmEC(pub.getAlgorithm()) ?
-                    new ECDSASignatureVerifierContext(keywrap) :
-                    new AsymmetricSignatureVerifierContext(keywrap);
-            tokenVerifier.verifierContext(ctx);
-
-            log.debug("SignatureVerifierContext set to: {}", ctx);
-
-            tokenVerifier.verify();
-            t = tokenVerifier.getToken();
-
-        } catch (TokenSignatureInvalidException e) {
-            throw new TokenSignatureException("Signature check failed: Invalid token signature", e);
-        } catch (VerificationException e) {
-            if (e.getCause() != null && e.getCause() instanceof TokenSignatureInvalidException) {
-                throw new TokenSignatureException("Signature check failed: Invalid token signature", e.getCause());
-            } else {
-                throw new TokenSignatureException("Token validation failed - " + e.getMessage(), e);
+            if (!jwt.verify(verifierFactory.createJWSVerifier(jwt.getHeader(), pub))) {
+                throw new TokenSignatureException("Signature check failed: Invalid token signature");
             }
+            t = JSONUtil.asJson(jwt.getPayload().toJSONObject());
+
         } catch (TokenValidationException e) {
             // just rethrow
             throw e;
@@ -326,36 +299,36 @@ public class JWTSignatureValidator implements TokenValidator {
             throw new TokenValidationException("Token validation failed", e);
         }
 
-        long expiresMillis = t.getExp() != null ? t.getExp().intValue() * 1000L : 0L;
+        JsonNode exp = t.get(TokenInfo.EXP);
+        if (exp == null) {
+            throw new TokenValidationException("Token validation failed: Expiry not set");
+        }
+        long expiresMillis = exp.asInt(0) * 1000L;
         if (Time.SYSTEM.milliseconds() > expiresMillis) {
             throw new TokenExpiredException("Token expired at: " + expiresMillis + " (" +
                     TimeUtil.formatIsoDateTimeUTC(expiresMillis) + " UTC)");
         }
 
-        JsonNode tokenJson = null;
+        validateTokenPayload(t);
 
         if (customClaimMatcher != null) {
-            tokenJson = JSONUtil.asJson(t);
-            if (!customClaimMatcher.matches(tokenJson)) {
+            if (!customClaimMatcher.matches(t)) {
                 throw new TokenValidationException("Token validation failed: Custom claim check failed");
             }
         }
 
-        String principal = extractPrincipal(t, tokenJson);
+        String principal = extractPrincipal(t);
         return new TokenInfo(t, token, principal);
     }
 
-    private String extractPrincipal(AccessToken t, JsonNode tokenJson) {
+    private String extractPrincipal(JsonNode tokenJson) {
         String principal = null;
 
         if (principalExtractor.isConfigured()) {
-            if (tokenJson == null) {
-                tokenJson = JSONUtil.asJson(t);
-            }
             principal = principalExtractor.getPrincipal(tokenJson);
         }
         if (principal == null && !principalExtractor.isConfigured()) {
-            principal = principalExtractor.getSub(t);
+            principal = principalExtractor.getSub(tokenJson);
         }
         if (principal == null) {
             throw new RuntimeException("Failed to extract principal - check usernameClaim, fallbackUsernameClaim configuration");
@@ -364,24 +337,33 @@ public class JWTSignatureValidator implements TokenValidator {
     }
 
     @SuppressWarnings({"deprecation", "unchecked"})
-    private TokenVerifier<AccessToken> initializeTokenVerifier(String token) {
-        TokenVerifier<AccessToken> tokenVerifier = TokenVerifier.create(token, AccessToken.class);
-
+    private void validateTokenPayload(JsonNode token) {
         if (issuerUri != null) {
-            tokenVerifier.realmUrl(issuerUri);
+            JsonNode iss = token.get(TokenInfo.ISS);
+            if (iss == null) {
+                throw new TokenValidationException("Token validation failed: Issuer not set");
+            }
+            String issuer = iss.asText();
+            if (!issuerUri.equals(issuer)) {
+                throw new TokenValidationException("Token validation failed: Issuer not allowed: " + issuer);
+            }
         }
         if (checkAccessTokenType) {
-            tokenVerifier.withChecks(TOKEN_TYPE_CHECK);
+            JsonNode typ = token.get(TokenInfo.TYP);
+            if (typ == null) {
+                throw new TokenValidationException("Token validation failed: Token type not set");
+            }
+            String type = typ.asText();
+            if (!"Bearer".equals(type)) {
+                throw new TokenValidationException("Token validation failed: Token type not allowed: " + type);
+            }
         }
         if (audience != null) {
-            tokenVerifier.audience(audience);
+            JsonNode audNode = token.get(TokenInfo.AUD);
+            List<String> aud = audNode == null ? Collections.emptyList() : JSONUtil.asListOfString(audNode);
+            if (!aud.contains(audience)) {
+                throw new TokenValidationException("Token validation failed: Expected audience not available in the token");
+            }
         }
-        return tokenVerifier;
     }
-
-    private static boolean isAlgorithmEC(String algorithm) {
-        return "EC".equals(algorithm) || "ECDSA".equals(algorithm);
-    }
-
-
 }

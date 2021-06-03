@@ -36,13 +36,12 @@
         <maven.surefire.version>2.22.1</maven.surefire.version>
         <version.arquillian_universe>1.5.0.0</version.arquillian_universe>
         <version.junit>4.12</version.junit>
-        <bouncycastle.version>1.60</bouncycastle.version>
         <arquillian.cube.version>1.18.2</arquillian.cube.version>
         <spotbugs.version>3.1.12</spotbugs.version>
         <strimzi-oauth.version>1.0.0-SNAPSHOT</strimzi-oauth.version>
         <checkstyle.dir>..</checkstyle.dir>
 
-        <kafka.docker.image>quay.io/strimzi/kafka:0.22.1-kafka-2.7.0</kafka.docker.image>
+        <kafka.docker.image>quay.io/strimzi/kafka:0.23.0-kafka-2.8.0</kafka.docker.image>
     </properties>
 
     <dependencyManagement>
@@ -91,19 +90,6 @@
         <dependency>
             <groupId>io.strimzi</groupId>
             <artifactId>kafka-oauth-keycloak-authorizer</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.keycloak</groupId>
-            <artifactId>keycloak-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.keycloak</groupId>
-            <artifactId>keycloak-common</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.bouncycastle</groupId>
-            <artifactId>bcprov-jdk15on</artifactId>
-            <version>${bouncycastle.version}</version>
         </dependency>
 
     </dependencies>
@@ -211,16 +197,8 @@
                             <artifactId>kafka-oauth-common</artifactId>
                         </artifactItem>
                         <artifactItem>
-                            <groupId>org.keycloak</groupId>
-                            <artifactId>keycloak-core</artifactId>
-                        </artifactItem>
-                        <artifactItem>
-                            <groupId>org.keycloak</groupId>
-                            <artifactId>keycloak-common</artifactId>
-                        </artifactItem>
-                        <artifactItem>
-                            <groupId>org.bouncycastle</groupId>
-                            <artifactId>bcprov-jdk15on</artifactId>
+                            <groupId>com.nimbusds</groupId>
+                            <artifactId>nimbus-jose-jwt</artifactId>
                         </artifactItem>
                     </artifactItems>
                     <outputDirectory>target/kafka/libs</outputDirectory>
@@ -294,21 +272,21 @@
 
     <profiles>
         <profile>
-            <id>kafka-2_3_0</id>
+            <id>kafka-2_3_1</id>
             <properties>
-                <kafka.docker.image>strimzi/kafka:latest-kafka-2.3.0</kafka.docker.image>
+                <kafka.docker.image>quay.io/strimzi/kafka:0.17.0-kafka-2.3.1</kafka.docker.image>
             </properties>
         </profile>
         <profile>
             <id>kafka-2_4_0</id>
             <properties>
-                <kafka.docker.image>strimzi/kafka:latest-kafka-2.4.0</kafka.docker.image>
+                <kafka.docker.image>quay.io/strimzi/kafka:0.19.0-kafka-2.4.0</kafka.docker.image>
             </properties>
         </profile>
         <profile>
             <id>kafka-2_4_1</id>
             <properties>
-                <kafka.docker.image>strimzi/kafka:latest-kafka-2.4.1</kafka.docker.image>
+                <kafka.docker.image>quay.io/strimzi/kafka:0.19.0-kafka-2.4.1</kafka.docker.image>
             </properties>
         </profile>
         <profile>
@@ -326,14 +304,38 @@
         <profile>
             <id>kafka-2_6_0</id>
             <properties>
-                <kafka.docker.image>quay.io/strimzi/kafka:0.22.1-kafka-2.6.0</kafka.docker.image>
+                <kafka.docker.image>quay.io/strimzi/kafka:0.23.0-kafka-2.6.0</kafka.docker.image>
+            </properties>
+        </profile>
+        <profile>
+            <id>kafka-2_6_2</id>
+            <properties>
+                <kafka.docker.image>quay.io/strimzi/kafka:0.23.0-kafka-2.6.2</kafka.docker.image>
             </properties>
         </profile>
         <profile>
             <id>kafka-2_7_0</id>
             <properties>
-                <kafka.docker.image>quay.io/strimzi/kafka:0.22.1-kafka-2.7.0</kafka.docker.image>
+                <kafka.docker.image>quay.io/strimzi/kafka:0.23.0-kafka-2.7.0</kafka.docker.image>
             </properties>
+        </profile>
+        <profile>
+            <id>kafka-2_7_1</id>
+            <properties>
+                <kafka.docker.image>quay.io/strimzi/kafka:0.23.0-kafka-2.7.1</kafka.docker.image>
+            </properties>
+        </profile>
+        <profile>
+            <id>kafka-2_8_0</id>
+            <properties>
+                <kafka.docker.image>quay.io/strimzi/kafka:0.23.0-kafka-2.8.0</kafka.docker.image>
+            </properties>
+        </profile>
+        <profile>
+            <!--
+                When using this profile you can use -Dkafka.docker.image=YOUR_IMAGE
+            -->
+            <id>custom</id>
         </profile>
     </profiles>
 </project>

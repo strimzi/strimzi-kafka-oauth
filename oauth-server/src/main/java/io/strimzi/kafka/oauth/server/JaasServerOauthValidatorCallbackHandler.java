@@ -22,9 +22,6 @@ import org.apache.kafka.common.errors.SaslAuthenticationException;
 import org.apache.kafka.common.security.auth.AuthenticateCallbackHandler;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerValidatorCallback;
-import org.keycloak.jose.jws.JWSInput;
-import org.keycloak.jose.jws.JWSInputException;
-import org.keycloak.representations.AccessToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,9 +30,6 @@ import javax.net.ssl.SSLSocketFactory;
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.login.AppConfigurationEntry;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -45,6 +39,7 @@ import java.util.function.Supplier;
 
 import static io.strimzi.kafka.oauth.common.DeprecationUtil.isAccessTokenJwt;
 import static io.strimzi.kafka.oauth.common.LogUtil.mask;
+import static io.strimzi.kafka.oauth.common.TokenIntrospection.debugLogJWT;
 
 /**
  * This <em>CallbackHandler</em> implements the OAuth2 support.
@@ -137,11 +132,6 @@ import static io.strimzi.kafka.oauth.common.LogUtil.mask;
  * <p>
  * Common optional <em>sasl.jaas.config</em> configuration:
  * <ul>
- * <li><em>oauth.crypto.provider.bouncycastle</em> If set to `true` the BouncyCastle crypto provider is installed. <br>
- * Installing BouncyCastle crypto provider adds suport for ECDSA signing algorithm. Default value is <em>false</em>.
- * </li>
- * <li><em>oauth.crypto.provider.bouncycastle.position</em> The position in the list of crypto providers where BouncyCastle provider should be installed.<br>
- * The position counting starts at 1. Any value less than 1 installs the provider at the end of the crypto providers list. Default value is '0'.</li>
  * <li><em>oauth.username.claim</em> The attribute key that should be used to extract the user id. If not set `sub` attribute is used.<br>
  * The attribute key refers to the JWT token claim when fast local validation is used, or to attribute in the response by introspection endpoint when introspection based validation is used. It has no default value.</li>
  * <li><em>oauth.fallback.username.claim</em> The fallback username claim to be used for the user id if the attribute key specified by `oauth.username.claim` <br>
@@ -218,15 +208,17 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         socketFactory = ConfigUtil.createSSLFactory(config);
         verifier = ConfigUtil.createHostnameVerifier(config);
 
-
         String jwksUri = config.getValue(ServerConfig.OAUTH_JWKS_ENDPOINT_URI);
-
-        boolean enableBouncy = config.getValueAsBoolean(ServerConfig.OAUTH_CRYPTO_PROVIDER_BOUNCYCASTLE, false);
-        int bouncyPosition = config.getValueAsInt(ServerConfig.OAUTH_CRYPTO_PROVIDER_BOUNCYCASTLE_POSITION, 0);
-
         String validIssuerUri = config.getValue(ServerConfig.OAUTH_VALID_ISSUER_URI);
 
         validateIssuerUri(validIssuerUri);
+
+        if (config.getValue("oauth.crypto.provider.bouncycastle") != null) {
+            log.warn("The OAUTH_CRYPTO_PROVIDER_BOUNCYCASTLE option has been deprecated. ECDSA is automatically available without the need for BouncyCastle JCE provider.");
+        }
+        if (config.getValue("oauth.crypto.provider.bouncycastle.position") != null) {
+            log.warn("The OAUTH_CRYPTO_PROVIDER_BOUNCYCASTLE_POSITION option has been deprecated. ECDSA is automatically available without the need for BouncyCastle JCE provider.");
+        }
 
         boolean checkTokenType = isCheckAccessTokenType(config);
         boolean checkAudience = config.getValueAsBoolean(ServerConfig.OAUTH_CHECK_AUDIENCE, false);
@@ -285,9 +277,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                     jwksRefreshSeconds,
                     jwksExpirySeconds,
                     jwksMinPauseSeconds,
-                    checkTokenType,
-                    enableBouncy,
-                    bouncyPosition);
+                    checkTokenType);
 
             factory = () -> new JWTSignatureValidator(
                     jwksUri,
@@ -300,9 +290,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                     jwksExpirySeconds,
                     checkTokenType,
                     audience,
-                    customClaimCheck,
-                    enableBouncy,
-                    bouncyPosition);
+                    customClaimCheck);
 
         } else {
 
@@ -493,23 +481,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         if (!log.isDebugEnabled() || !isJwt) {
             return;
         }
-
-        JWSInput parser;
-        try {
-            parser = new JWSInput(token);
-            log.debug("Token: {}", parser.readContentAsString());
-        } catch (JWSInputException e) {
-            log.debug("[IGNORED] Token doesn't seem to be JWT token: " + mask(token), e);
-            return;
-        }
-
-        try {
-            AccessToken t = parser.readJsonContent(AccessToken.class);
-            log.debug("Access token expires at (UTC): " + LocalDateTime.ofEpochSecond(t.getExp() == null ? 0 : t.getExp(), 0, ZoneOffset.UTC).format(DateTimeFormatter.ISO_DATE_TIME));
-        } catch (JWSInputException e) {
-            // Try parse as refresh token:
-            log.debug("[IGNORED] Failed to parse JWT token's payload", e);
-        }
+        debugLogJWT(log, token);
     }
 
     public boolean isJwt() {
