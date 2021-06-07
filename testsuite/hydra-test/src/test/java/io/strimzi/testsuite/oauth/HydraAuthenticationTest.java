@@ -51,11 +51,22 @@ public class HydraAuthenticationTest {
         defaults.setProperty(ClientConfig.OAUTH_SSL_TRUSTSTORE_TYPE, "pkcs12");
         ConfigProperties.resolveAndExportToSystemProperties(defaults);
 
-        opaqueAccessTokenWithIntrospectValidationTest();
-        clientCredentialsWithJwtValidationTest();
+        opaqueAccessTokenWithIntrospectValidationTest("HydraAuthenticationTest-opaqueAccessTokenWithIntrospectValidationTest");
+        clientCredentialsWithJwtValidationTest("HydraAuthenticationTest-clientCredentialsWithJwtValidationTest");
     }
 
-    public void opaqueAccessTokenWithIntrospectValidationTest() throws Exception {
+    @Test
+    public void doTestWithPem() throws Exception {
+        Properties defaults = new Properties();
+        defaults.setProperty(ClientConfig.OAUTH_SSL_TRUSTSTORE_LOCATION, "../docker/target/kafka/certs/ca.crt");
+        defaults.setProperty(ClientConfig.OAUTH_SSL_TRUSTSTORE_TYPE, "PEM");
+        ConfigProperties.resolveAndExportToSystemProperties(defaults);
+
+        opaqueAccessTokenWithIntrospectValidationTest("HydraAuthenticationTest-withPem-opaqueAccessTokenWithIntrospectValidationTest");
+        clientCredentialsWithJwtValidationTest("HydraAuthenticationTest-withPem-clientCredentialsWithJwtValidationTest");
+    }
+
+    public void opaqueAccessTokenWithIntrospectValidationTest(String topic) throws Exception {
         System.out.println("==== HydraAuthenticationTest :: opaqueAccessTokenWithIntrospectValidationTest ====");
 
         final String kafkaBootstrap = "kafka:9092";
@@ -79,9 +90,6 @@ public class HydraAuthenticationTest {
         Properties producerProps = buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
         Producer<String, String> producer = new KafkaProducer<>(producerProps);
 
-
-        final String topic = "HydraAuthenticationTest-opaqueAccessTokenWithIntrospectValidationTest";
-
         producer.send(new ProducerRecord<>(topic, "The Message")).get();
         System.out.println("Produced The Message");
 
@@ -102,7 +110,7 @@ public class HydraAuthenticationTest {
         Assert.assertEquals("Is message text: 'The Message'", "The Message", records.iterator().next().value());
     }
 
-    public void clientCredentialsWithJwtValidationTest() throws Exception {
+    public void clientCredentialsWithJwtValidationTest(String topic) throws Exception {
         System.out.println("==== HydraAuthenticationTest :: clientCredentialsWithJwtValidationTest ====");
 
         final String kafkaBootstrap = "kafka:9093";
@@ -117,9 +125,6 @@ public class HydraAuthenticationTest {
 
         Properties producerProps = buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
         Producer<String, String> producer = new KafkaProducer<>(producerProps);
-
-
-        final String topic = "HydraAuthenticationTest-clientCredentialsWithJwtValidationTest";
 
         producer.send(new ProducerRecord<>(topic, "The Message")).get();
         System.out.println("Produced The Message");
