@@ -10,7 +10,7 @@ Now JWT token validation uses a different third-party library. As a result ECDSA
 
 ### Option `oauth.audience` has been added to client and server configuration
 
-Sometimes authorization server may require `audience` option to 
+Sometimes authorization server may require `audience` option to be passed when authenticating to the token endpoint.
 
 ### Pass the configured `oauth.scope` option on the Kafka broker as `scope` when performing clientId + secret authentication on the broker
 
