@@ -12,6 +12,7 @@ import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
+import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.security.KeyStore;
 import java.security.SecureRandom;
@@ -31,12 +32,13 @@ public class SSLUtil {
         KeyStore store;
 
         if ("PEM".equals(type)) {
-            try (FileInputStream is = new FileInputStream(truststore)) {
+            try (BufferedInputStream is = new BufferedInputStream(new FileInputStream(truststore))) {
                 store = KeyStore.getInstance("PKCS12");
                 store.load(null, null);
 
+                CertificateFactory certFactory = CertificateFactory.getInstance("X509");
+
                 while (is.available() > 0) {
-                    CertificateFactory certFactory = CertificateFactory.getInstance("X509");
                     X509Certificate cert = (X509Certificate) certFactory.generateCertificate(is);
                     String alias = cert.getSubjectX500Principal().getName() + "_" + cert.getSerialNumber().toString(16);
                     store.setCertificateEntry(alias, cert);
