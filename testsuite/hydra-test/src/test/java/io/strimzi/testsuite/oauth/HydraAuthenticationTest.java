@@ -26,6 +26,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
@@ -49,21 +51,48 @@ public class HydraAuthenticationTest {
         defaults.setProperty(ClientConfig.OAUTH_SSL_TRUSTSTORE_LOCATION, "../docker/target/kafka/certs/ca-truststore.p12");
         defaults.setProperty(ClientConfig.OAUTH_SSL_TRUSTSTORE_PASSWORD, "changeit");
         defaults.setProperty(ClientConfig.OAUTH_SSL_TRUSTSTORE_TYPE, "pkcs12");
-        ConfigProperties.resolveAndExportToSystemProperties(defaults);
 
-        opaqueAccessTokenWithIntrospectValidationTest("HydraAuthenticationTest-opaqueAccessTokenWithIntrospectValidationTest");
-        clientCredentialsWithJwtValidationTest("HydraAuthenticationTest-clientCredentialsWithJwtValidationTest");
+        try {
+            ConfigProperties.resolveAndExportToSystemProperties(defaults);
+
+            opaqueAccessTokenWithIntrospectValidationTest("HydraAuthenticationTest-opaqueAccessTokenWithIntrospectValidationTest");
+            clientCredentialsWithJwtValidationTest("HydraAuthenticationTest-clientCredentialsWithJwtValidationTest");
+        } finally {
+            ConfigProperties.clearSystemProperties(defaults);
+        }
     }
 
     @Test
-    public void doTestWithPem() throws Exception {
+    public void doTestWithPemFromFile() throws Exception {
         Properties defaults = new Properties();
-        defaults.setProperty(ClientConfig.OAUTH_SSL_TRUSTSTORE_LOCATION, "../docker/target/kafka/certs/ca.crt");
+        defaults.setProperty(ClientConfig.OAUTH_SSL_TRUSTSTORE_LOCATION, "../docker/certificates/ca.crt");
         defaults.setProperty(ClientConfig.OAUTH_SSL_TRUSTSTORE_TYPE, "PEM");
-        ConfigProperties.resolveAndExportToSystemProperties(defaults);
 
-        opaqueAccessTokenWithIntrospectValidationTest("HydraAuthenticationTest-withPem-opaqueAccessTokenWithIntrospectValidationTest");
-        clientCredentialsWithJwtValidationTest("HydraAuthenticationTest-withPem-clientCredentialsWithJwtValidationTest");
+        try {
+            ConfigProperties.resolveAndExportToSystemProperties(defaults);
+
+            opaqueAccessTokenWithIntrospectValidationTest("HydraAuthenticationTest-withPemFromFile-opaqueAccessTokenWithIntrospectValidationTest");
+            clientCredentialsWithJwtValidationTest("HydraAuthenticationTest-withPemFromFile-clientCredentialsWithJwtValidationTest");
+        } finally {
+            ConfigProperties.clearSystemProperties(defaults);
+        }
+    }
+
+    @Test
+    public void doTestWithPemFromString() throws Exception {
+        Properties defaults = new Properties();
+        defaults.setProperty(ClientConfig.OAUTH_SSL_TRUSTSTORE_CERTIFICATES, new String(Files.readAllBytes(Paths.get("../docker/certificates/ca.crt"))));
+        //defaults.setProperty(ClientConfig.OAUTH_SSL_TRUSTSTORE_LOCATION, null);
+        defaults.setProperty(ClientConfig.OAUTH_SSL_TRUSTSTORE_TYPE, "PEM");
+
+        try {
+            ConfigProperties.resolveAndExportToSystemProperties(defaults);
+
+            opaqueAccessTokenWithIntrospectValidationTest("HydraAuthenticationTest-withPemFromString-opaqueAccessTokenWithIntrospectValidationTest");
+            clientCredentialsWithJwtValidationTest("HydraAuthenticationTest-withPemFromString-clientCredentialsWithJwtValidationTest");
+        } finally {
+            ConfigProperties.clearSystemProperties(defaults);
+        }
     }
 
     public void opaqueAccessTokenWithIntrospectValidationTest(String topic) throws Exception {
@@ -93,6 +122,8 @@ public class HydraAuthenticationTest {
         producer.send(new ProducerRecord<>(topic, "The Message")).get();
         System.out.println("Produced The Message");
 
+        producer.close();
+
         Properties consumerProps = buildConsumerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
         Consumer<String, String> consumer = new KafkaConsumer<>(consumerProps);
 
@@ -105,6 +136,8 @@ public class HydraAuthenticationTest {
         consumer.seekToBeginning(Collections.singletonList(partition));
 
         ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(1));
+
+        consumer.close();
 
         Assert.assertEquals("Got message", 1, records.count());
         Assert.assertEquals("Is message text: 'The Message'", "The Message", records.iterator().next().value());
@@ -129,6 +162,8 @@ public class HydraAuthenticationTest {
         producer.send(new ProducerRecord<>(topic, "The Message")).get();
         System.out.println("Produced The Message");
 
+        producer.close();
+
         Properties consumerProps = buildConsumerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
         Consumer<String, String> consumer = new KafkaConsumer<>(consumerProps);
 
@@ -141,6 +176,8 @@ public class HydraAuthenticationTest {
         consumer.seekToBeginning(Collections.singletonList(partition));
 
         ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(1));
+
+        consumer.close();
 
         Assert.assertEquals("Got message", 1, records.count());
         Assert.assertEquals("Is message text: 'The Message'", "The Message", records.iterator().next().value());

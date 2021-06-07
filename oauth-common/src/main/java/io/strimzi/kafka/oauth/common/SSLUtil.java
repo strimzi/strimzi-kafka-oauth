@@ -13,46 +13,52 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.util.Locale;
 
 public class SSLUtil {
 
     @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION",
             justification = "Avoid enumerating all checked exceptions in try-with-resources")
-    public static SSLSocketFactory createSSLFactory(String truststore, String password, String type, String rnd) {
-
-        if (truststore == null) {
-            return null;
-        }
-
+    public static SSLSocketFactory createSSLFactory(String truststore, String truststoreData, String password, String type, String rnd) {
         KeyStore store;
 
-        if ("PEM".equals(type)) {
-            try (BufferedInputStream is = new BufferedInputStream(new FileInputStream(truststore))) {
-                store = KeyStore.getInstance("PKCS12");
-                store.load(null, null);
-
-                CertificateFactory certFactory = CertificateFactory.getInstance("X509");
-
-                while (is.available() > 0) {
-                    X509Certificate cert = (X509Certificate) certFactory.generateCertificate(is);
-                    String alias = cert.getSubjectX500Principal().getName() + "_" + cert.getSerialNumber().toString(16);
-                    store.setCertificateEntry(alias, cert);
+        if (type != null && "pem".equals(type.toLowerCase(Locale.ENGLISH))) {
+            if (truststoreData != null) {
+                try (ByteArrayInputStream is = new ByteArrayInputStream(truststoreData.getBytes(StandardCharsets.UTF_8))) {
+                    store = loadPEMCertificates(is);
+                } catch (Exception e) {
+                    throw new RuntimeException("Failed to load PEM truststore: " + truststore, e);
                 }
-            } catch (Exception e) {
-                throw new RuntimeException("Failed to load PEM truststore: " + truststore, e);
+            } else if (truststore != null) {
+                try (BufferedInputStream is = new BufferedInputStream(new FileInputStream(truststore))) {
+                    store = loadPEMCertificates(is);
+                } catch (Exception e) {
+                    throw new RuntimeException("Failed to load PEM truststore: " + truststore, e);
+                }
+            } else {
+                return null;
             }
-        } else {
+        } else if (truststore != null) {
             try (FileInputStream is = new FileInputStream(truststore)) {
                 store = KeyStore.getInstance(type != null ? type : KeyStore.getDefaultType());
                 store.load(is, password.toCharArray());
             } catch (Exception e) {
                 throw new RuntimeException("Failed to load truststore: " + truststore, e);
             }
+        } else {
+            return null;
         }
 
         X509TrustManager tm;
@@ -96,5 +102,20 @@ public class SSLUtil {
 
     public static HostnameVerifier createAnyHostHostnameVerifier() {
         return (hostname, session) -> true;
+    }
+
+    private static KeyStore loadPEMCertificates(InputStream is) throws KeyStoreException, IOException, CertificateException, NoSuchAlgorithmException {
+        KeyStore store = KeyStore.getInstance("PKCS12");
+        store.load(null, null);
+
+        CertificateFactory certFactory = CertificateFactory.getInstance("X509");
+
+        while (is.available() > 0) {
+            X509Certificate cert = (X509Certificate) certFactory.generateCertificate(is);
+            String alias = cert.getSubjectX500Principal().getName() + "_" + cert.getSerialNumber().toString(16);
+            store.setCertificateEntry(alias, cert);
+        }
+
+        return store;
     }
 }

@@ -1027,10 +1027,17 @@ That goes for the Kafka Brokers, as well as for the Kafka clients.
  
 You may need to provide a custom truststore for connecting to your authorization server or may need to turn off certificate hostname verification.
 
-Use the following configuration properties to configure a truststore:
+Use the following configuration properties to configure a JKS or PKCS12 truststore:
 - `oauth.ssl.truststore.location` (e.g.: "/path/to/truststore.p12")
 - `oauth.ssl.truststore.password` (e.g.: "changeit")
 - `oauth.ssl.truststore.type` (e.g.: "pkcs12")      
+
+You can also use PEM certificates:
+- `oauth.ssl.truststore.location` (e.g.: "/path/to/ca.crt")
+- `oauth.ssl.truststore.certificates` (e.g.: "-----BEGIN CERTIFICATE-----\n....")
+- `oauth.ssl.truststore.type` (e.g.: "PEM")
+
+_(Use always only one of the `oauth.ssl.truststore.location` and `oauth.ssl.truststore.certificates` options)._
 
 You may want to explicitly set the random number implementation provider to use a non-default one:
 - `oauth.ssl.secure.random.implementation` (e.g.: "SHA1PRNG")

@@ -12,11 +12,12 @@ public class ConfigUtil {
 
     public static SSLSocketFactory createSSLFactory(Config config) {
         String truststore = config.getValue(Config.OAUTH_SSL_TRUSTSTORE_LOCATION);
+        String truststoreData = config.getValue(Config.OAUTH_SSL_TRUSTSTORE_CERTIFICATES);
         String password = config.getValue(Config.OAUTH_SSL_TRUSTSTORE_PASSWORD);
         String type = config.getValue(Config.OAUTH_SSL_TRUSTSTORE_TYPE);
         String rnd = config.getValue(Config.OAUTH_SSL_SECURE_RANDOM_IMPLEMENTATION);
 
-        return SSLUtil.createSSLFactory(truststore, password, type, rnd);
+        return SSLUtil.createSSLFactory(truststore, truststoreData, password, type, rnd);
     }
 
     public static HostnameVerifier createHostnameVerifier(Config config) {
