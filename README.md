@@ -846,6 +846,12 @@ Some authorization servers require that scope is specified:
 
 Scope is sent to the Token Endpoint when obtaining the access token.
 
+Similarly, sometimes the authorization server may require that audience is specified:
+
+- `oauth.audience`
+
+Audience is sent to the Token Endpoint when obtaining the access token.
+
 For debug purposes you may want to properly configure which JWT token attribute contains the user id of the account used to obtain the access token:
 
 - `oauth.username.claim` (e.g.: "preferred_username")

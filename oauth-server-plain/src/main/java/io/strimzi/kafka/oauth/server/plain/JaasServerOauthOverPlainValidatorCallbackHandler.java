@@ -60,7 +60,7 @@ import java.util.Map;
  *     listener.security.protocol.map=CLIENT:SASL_SSL
  *
  *     # Configure the keystore and truststore for SASL_SSL
- *     listener.name.client.ssl.keystore.lccation=/tmp/kafka/cluster.keystore.p12
+ *     listener.name.client.ssl.keystore.location=/tmp/kafka/cluster.keystore.p12
  *     listener.name.client.ssl.keystore.password=keypass
  *     listener.name.client.ssl.keystore.type=PKCS12
  *     listener.name.client.ssl.truststore.location=/tmp/kafka/cluster.truststore.p12
@@ -98,6 +98,10 @@ import java.util.Map;
  * The token endpoint is used to authenticate to authorization server with the <em>clientId</em> and the <em>secret</em> received over username and password parameters.
  * If set, both clientId + secret, and userId + access token are available. Otherwise only userId + access token authentication is available.
  * </li>
+ * <li><em>oauth.scope</em> A `scope` parameter passed to token endpoint when authenticating with <em>clientId</em> and the <em>secret</em> to obtain the token.
+ * </li>
+ * <li><em>oauth.audience</em> An `audience` parameter passed to token endpoint when authenticating with <em>clientId</em> and the <em>secret</em> to obtain the token.
+ * </li>
  * </ul>
  * <p>
  * The rest of the configuration is the same as for {@link JaasServerOauthValidatorCallbackHandler}.
@@ -108,6 +112,8 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
     private static final Logger log = LoggerFactory.getLogger(JaasServerOauthOverPlainValidatorCallbackHandler.class);
 
     private URI tokenEndpointUri;
+    private String scope;
+    private String audience;
 
     @Override
     public void configure(Map<String, ?> configs, String saslMechanism, List<AppConfigurationEntry> jaasConfigEntries) {
@@ -128,8 +134,16 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
                 throw new IllegalArgumentException("Invalid tokenEndpointUri: " + tokenEndpoint, e);
             }
         }
+
+        scope = config.getValue(ServerConfig.OAUTH_SCOPE);
+        audience = config.getValue(ServerConfig.OAUTH_AUDIENCE);
+
         super.configure(configs, "OAUTHBEARER", jaasConfigEntries);
-        log.debug("Configured OAuth over PLAIN:\n    tokenEndpointUri: " + tokenEndpointUri);
+
+        log.debug("Configured OAuth over PLAIN:\n    tokenEndpointUri: " + tokenEndpointUri
+                + "\n    scope: " + scope
+                + "\n    audience: " + audience);
+
         if (tokenEndpoint == null) {
             log.debug("tokenEndpointUri is not configured - client_credentials will not be available, password parameter of SASL/PLAIN will automatically be treated as an access token (no '$accessToken:' prefix needed)");
         }
@@ -202,7 +216,7 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
             checkUsernameMatch = true;
         } else {
             accessToken = OAuthAuthenticator.loginWithClientSecret(tokenEndpointUri, getSocketFactory(), getVerifier(),
-                    username, password, isJwt(), getPrincipalExtractor(), null)
+                    username, password, isJwt(), getPrincipalExtractor(), scope, audience)
                     .token();
         }
 

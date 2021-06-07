@@ -45,6 +45,7 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
     private String clientId;
     private String clientSecret;
     private String scope;
+    private String audience;
     private URI tokenEndpoint;
 
     private boolean isJwt;
@@ -94,6 +95,7 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
             }
 
             scope = config.getValue(Config.OAUTH_SCOPE);
+            audience = config.getValue(Config.OAUTH_AUDIENCE);
             socketFactory = ConfigUtil.createSSLFactory(config);
             hostnameVerifier = ConfigUtil.createHostnameVerifier(config);
         }
@@ -120,6 +122,7 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
                     + "\n    clientId: " + clientId
                     + "\n    clientSecret: " + mask(clientSecret)
                     + "\n    scope: " + scope
+                    + "\n    audience: " + audience
                     + "\n    isJwt: " + isJwt
                     + "\n    maxTokenExpirySeconds: " + maxTokenExpirySeconds
                     + "\n    principalExtractor: " + principalExtractor);
@@ -153,9 +156,9 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
             // we could check if it's a JWT - in that case we could check if it's expired
             result = loginWithAccessToken(token, isJwt, principalExtractor);
         } else if (refreshToken != null) {
-            result = loginWithRefreshToken(tokenEndpoint, socketFactory, hostnameVerifier, refreshToken, clientId, clientSecret, isJwt, principalExtractor, scope);
+            result = loginWithRefreshToken(tokenEndpoint, socketFactory, hostnameVerifier, refreshToken, clientId, clientSecret, isJwt, principalExtractor, scope, audience);
         } else if (clientSecret != null) {
-            result = loginWithClientSecret(tokenEndpoint, socketFactory, hostnameVerifier, clientId, clientSecret, isJwt, principalExtractor, scope);
+            result = loginWithClientSecret(tokenEndpoint, socketFactory, hostnameVerifier, clientId, clientSecret, isJwt, principalExtractor, scope, audience);
         } else {
             throw new IllegalStateException("Invalid oauth client configuration - no credentials");
         }

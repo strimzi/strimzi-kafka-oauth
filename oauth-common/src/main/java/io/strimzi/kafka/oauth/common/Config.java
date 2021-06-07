@@ -12,6 +12,7 @@ public class Config {
     public static final String OAUTH_CLIENT_ID = "oauth.client.id";
     public static final String OAUTH_CLIENT_SECRET = "oauth.client.secret";
     public static final String OAUTH_SCOPE = "oauth.scope";
+    public static final String OAUTH_AUDIENCE = "oauth.audience";
     public static final String OAUTH_USERNAME_CLAIM = "oauth.username.claim";
     public static final String OAUTH_FALLBACK_USERNAME_CLAIM = "oauth.fallback.username.claim";
     public static final String OAUTH_FALLBACK_USERNAME_PREFIX = "oauth.fallback.username.prefix";

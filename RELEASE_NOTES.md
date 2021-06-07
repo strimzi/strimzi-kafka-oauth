@@ -8,6 +8,14 @@ Release Notes
 
 Now JWT token validation uses a different third-party library. As a result ECDSA support no longer requires the BouncyCastle library. Also, some JWT tokens that would fail previously, can now be handled, widening the support of different authorization servers.
 
+### Option `oauth.audience` has been added to client and server configuration
+
+Sometimes authorization server may require `audience` option to 
+
+### Pass the configured `oauth.scope` option on the Kafka broker as `scope` when performing clientId + secret authentication on the broker
+
+While the option has existed, it was only used for inter-broker authentication, but not for `OAuth over PLAIN`. 
+
 0.7.2
 -----
 
