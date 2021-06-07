@@ -15,6 +15,8 @@ import javax.net.ssl.X509TrustManager;
 import java.io.FileInputStream;
 import java.security.KeyStore;
 import java.security.SecureRandom;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 
 public class SSLUtil {
 
@@ -27,11 +29,28 @@ public class SSLUtil {
         }
 
         KeyStore store;
-        try (FileInputStream is = new FileInputStream(truststore)) {
-            store = KeyStore.getInstance(type != null ? type : KeyStore.getDefaultType());
-            store.load(is, password.toCharArray());
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to load truststore: " + truststore, e);
+
+        if ("PEM".equals(type)) {
+            try (FileInputStream is = new FileInputStream(truststore)) {
+                store = KeyStore.getInstance("PKCS12");
+                store.load(null, null);
+
+                while (is.available() > 0) {
+                    CertificateFactory certFactory = CertificateFactory.getInstance("X509");
+                    X509Certificate cert = (X509Certificate) certFactory.generateCertificate(is);
+                    String alias = cert.getSubjectX500Principal().getName() + "_" + cert.getSerialNumber().toString(16);
+                    store.setCertificateEntry(alias, cert);
+                }
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to load PEM truststore: " + truststore, e);
+            }
+        } else {
+            try (FileInputStream is = new FileInputStream(truststore)) {
+                store = KeyStore.getInstance(type != null ? type : KeyStore.getDefaultType());
+                store.load(is, password.toCharArray());
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to load truststore: " + truststore, e);
+            }
         }
 
         X509TrustManager tm;
