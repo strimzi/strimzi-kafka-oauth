@@ -6,7 +6,7 @@ Release Notes
 
 ### Support for PEM certificates
 
-PEM certificates can be now used directly without being converted to Java Keystore or PKCS12 formats.
+PEM certificates can now be used directly without being converted to Java Keystore or PKCS12 formats.
 To use PEM certificates, set the `oauth.ssl.truststore.type` option to `PEM` and either specify location of the PEM file in `oauth.ssl.truststore.location` or set the certificates directly in `oauth.ssl.truststore.certificates`.  
 
 ### Replaced keycloak-core library with nimbus-jose-jwt

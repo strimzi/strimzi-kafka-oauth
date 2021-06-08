@@ -30,13 +30,6 @@ public class ConfigProperties {
         }
     }
 
-    public static void clearSystemProperties(Properties defaults) {
-        Properties p = new ConfigProperties(defaults).resolveTo(new Properties());
-        for (Object key: p.keySet()) {
-            System.clearProperty(key.toString());
-        }
-    }
-
     public static Properties resolve(Properties defaults) {
         return new ConfigProperties(defaults).resolveTo(new Properties());
     }

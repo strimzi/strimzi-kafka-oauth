@@ -58,7 +58,7 @@ public class HydraAuthenticationTest {
             opaqueAccessTokenWithIntrospectValidationTest("HydraAuthenticationTest-opaqueAccessTokenWithIntrospectValidationTest");
             clientCredentialsWithJwtValidationTest("HydraAuthenticationTest-clientCredentialsWithJwtValidationTest");
         } finally {
-            ConfigProperties.clearSystemProperties(defaults);
+            clearSystemProperties(defaults);
         }
     }
 
@@ -74,7 +74,7 @@ public class HydraAuthenticationTest {
             opaqueAccessTokenWithIntrospectValidationTest("HydraAuthenticationTest-withPemFromFile-opaqueAccessTokenWithIntrospectValidationTest");
             clientCredentialsWithJwtValidationTest("HydraAuthenticationTest-withPemFromFile-clientCredentialsWithJwtValidationTest");
         } finally {
-            ConfigProperties.clearSystemProperties(defaults);
+            clearSystemProperties(defaults);
         }
     }
 
@@ -91,7 +91,7 @@ public class HydraAuthenticationTest {
             opaqueAccessTokenWithIntrospectValidationTest("HydraAuthenticationTest-withPemFromString-opaqueAccessTokenWithIntrospectValidationTest");
             clientCredentialsWithJwtValidationTest("HydraAuthenticationTest-withPemFromString-clientCredentialsWithJwtValidationTest");
         } finally {
-            ConfigProperties.clearSystemProperties(defaults);
+            clearSystemProperties(defaults);
         }
     }
 
@@ -222,5 +222,12 @@ public class HydraAuthenticationTest {
 
         p.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBootstrap);
         return p;
+    }
+
+    private static void clearSystemProperties(Properties defaults) {
+        Properties p = new ConfigProperties(defaults).resolveTo(new Properties());
+        for (Object key: p.keySet()) {
+            System.clearProperty(key.toString());
+        }
     }
 }
