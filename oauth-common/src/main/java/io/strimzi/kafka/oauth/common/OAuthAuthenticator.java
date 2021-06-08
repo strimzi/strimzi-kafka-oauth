@@ -45,9 +45,18 @@ public class OAuthAuthenticator {
                                                   HostnameVerifier hostnameVerifier,
                                                   String clientId, String clientSecret, boolean isJwt,
                                                   PrincipalExtractor principalExtractor, String scope) throws IOException {
+
+        return loginWithClientSecret(tokenEndpointUrl, socketFactory, hostnameVerifier,
+                clientId, clientSecret, isJwt, principalExtractor, scope, null);
+    }
+
+    public static TokenInfo loginWithClientSecret(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
+                                                  HostnameVerifier hostnameVerifier,
+                                                  String clientId, String clientSecret, boolean isJwt,
+                                                  PrincipalExtractor principalExtractor, String scope, String audience) throws IOException {
         if (log.isDebugEnabled()) {
-            log.debug("loginWithClientSecret() - tokenEndpointUrl: {}, clientId: {}, clientSecret: {}, scope: {}",
-                    tokenEndpointUrl, clientId, mask(clientSecret), scope);
+            log.debug("loginWithClientSecret() - tokenEndpointUrl: {}, clientId: {}, clientSecret: {}, scope: {}, audience: {}",
+                    tokenEndpointUrl, clientId, mask(clientSecret), scope, audience);
         }
 
         String authorization = "Basic " + base64encode(clientId + ':' + clientSecret);
@@ -55,6 +64,9 @@ public class OAuthAuthenticator {
         StringBuilder body = new StringBuilder("grant_type=client_credentials");
         if (scope != null) {
             body.append("&scope=").append(urlencode(scope));
+        }
+        if (audience != null) {
+            body.append("&audience=").append(urlencode(audience));
         }
 
         return post(tokenEndpointUrl, socketFactory, hostnameVerifier, authorization, body.toString(), isJwt, principalExtractor);
@@ -64,9 +76,18 @@ public class OAuthAuthenticator {
                                                   HostnameVerifier hostnameVerifier, String refreshToken,
                                                   String clientId, String clientSecret, boolean isJwt,
                                                   PrincipalExtractor principalExtractor, String scope) throws IOException {
+
+        return loginWithRefreshToken(tokenEndpointUrl, socketFactory, hostnameVerifier,
+                refreshToken, clientId, clientSecret, isJwt, principalExtractor, scope, null);
+    }
+
+    public static TokenInfo loginWithRefreshToken(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
+                                                  HostnameVerifier hostnameVerifier, String refreshToken,
+                                                  String clientId, String clientSecret, boolean isJwt,
+                                                  PrincipalExtractor principalExtractor, String scope, String audience) throws IOException {
         if (log.isDebugEnabled()) {
-            log.debug("loginWithRefreshToken() - tokenEndpointUrl: {}, refreshToken: {}, clientId: {}, clientSecret: {}, scope: {}",
-                    tokenEndpointUrl, refreshToken, clientId, mask(clientSecret), scope);
+            log.debug("loginWithRefreshToken() - tokenEndpointUrl: {}, refreshToken: {}, clientId: {}, clientSecret: {}, scope: {}, audience: {}",
+                    tokenEndpointUrl, refreshToken, clientId, mask(clientSecret), scope, audience);
         }
 
         String authorization = clientSecret != null ?
@@ -79,6 +100,9 @@ public class OAuthAuthenticator {
 
         if (scope != null) {
             body.append("&scope=").append(urlencode(scope));
+        }
+        if (audience != null) {
+            body.append("&audience=").append(urlencode(audience));
         }
 
         return post(tokenEndpointUrl, socketFactory, hostnameVerifier, authorization, body.toString(), isJwt, principalExtractor);
