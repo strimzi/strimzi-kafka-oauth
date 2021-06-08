@@ -4,6 +4,11 @@ Release Notes
 0.8.0
 -----
 
+### Support for PEM certificates
+
+PEM certificates can now be used directly without being converted to Java Keystore or PKCS12 formats.
+To use PEM certificates, set the `oauth.ssl.truststore.type` option to `PEM` and either specify location of the PEM file in `oauth.ssl.truststore.location` or set the certificates directly in `oauth.ssl.truststore.certificates`.  
+
 ### Replaced keycloak-core library with nimbus-jose-jwt
 
 Now JWT token validation uses a different third-party library. As a result ECDSA support no longer requires the BouncyCastle library. Also, some JWT tokens that would fail previously, can now be handled, widening the support of different authorization servers.

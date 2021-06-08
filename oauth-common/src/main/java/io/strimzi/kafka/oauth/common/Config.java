@@ -17,6 +17,7 @@ public class Config {
     public static final String OAUTH_FALLBACK_USERNAME_CLAIM = "oauth.fallback.username.claim";
     public static final String OAUTH_FALLBACK_USERNAME_PREFIX = "oauth.fallback.username.prefix";
     public static final String OAUTH_SSL_TRUSTSTORE_LOCATION = "oauth.ssl.truststore.location";
+    public static final String OAUTH_SSL_TRUSTSTORE_CERTIFICATES = "oauth.ssl.truststore.certificates";
     public static final String OAUTH_SSL_TRUSTSTORE_PASSWORD = "oauth.ssl.truststore.password";
     public static final String OAUTH_SSL_TRUSTSTORE_TYPE = "oauth.ssl.truststore.type";
     public static final String OAUTH_SSL_SECURE_RANDOM_IMPLEMENTATION = "oauth.ssl.secure.random.implementation";

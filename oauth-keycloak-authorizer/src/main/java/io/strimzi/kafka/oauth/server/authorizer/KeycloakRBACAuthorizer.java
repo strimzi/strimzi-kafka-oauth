@@ -267,6 +267,8 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
             ClientConfig.OAUTH_TOKEN_ENDPOINT_URI,
             AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_LOCATION,
             Config.OAUTH_SSL_TRUSTSTORE_LOCATION,
+            AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_CERTIFICATES,
+            Config.OAUTH_SSL_TRUSTSTORE_CERTIFICATES,
             AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_PASSWORD,
             Config.OAUTH_SSL_TRUSTSTORE_PASSWORD,
             AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_TYPE,
@@ -288,6 +290,8 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
     static SSLSocketFactory createSSLFactory(Config config) {
         String truststore = ConfigUtil.getConfigWithFallbackLookup(config,
                 AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_LOCATION, Config.OAUTH_SSL_TRUSTSTORE_LOCATION);
+        String truststoreData = ConfigUtil.getConfigWithFallbackLookup(config,
+                AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_CERTIFICATES, Config.OAUTH_SSL_TRUSTSTORE_CERTIFICATES);
         String password = ConfigUtil.getConfigWithFallbackLookup(config,
                 AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_PASSWORD, Config.OAUTH_SSL_TRUSTSTORE_PASSWORD);
         String type = ConfigUtil.getConfigWithFallbackLookup(config,
@@ -295,7 +299,7 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
         String rnd = ConfigUtil.getConfigWithFallbackLookup(config,
                 AuthzConfig.STRIMZI_AUTHORIZATION_SSL_SECURE_RANDOM_IMPLEMENTATION, Config.OAUTH_SSL_SECURE_RANDOM_IMPLEMENTATION);
 
-        return SSLUtil.createSSLFactory(truststore, password, type, rnd);
+        return SSLUtil.createSSLFactory(truststore, truststoreData, password, type, rnd);
     }
 
     static HostnameVerifier createHostnameVerifier(Config config) {

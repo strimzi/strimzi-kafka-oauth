@@ -25,3 +25,6 @@ velocity.log
 
 # MacOS Desktop Services Store files
 **/.DS_Store
+
+# Kafka log from test suite
+testsuite/kafka.log
