@@ -14,7 +14,7 @@
         <plugins.dependency.version>3.1.1</plugins.dependency.version>
         <plugins.resources.version>3.1.0</plugins.resources.version>
 
-        <nimbus.jose.version>9.9.2</nimbus.jose.version>
+        <nimbus.jose.version>9.10</nimbus.jose.version>
         <strimzi-oauth.version>1.0.0-SNAPSHOT</strimzi-oauth.version>
     </properties>
 
