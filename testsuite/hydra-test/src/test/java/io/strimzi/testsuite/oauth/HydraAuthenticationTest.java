@@ -96,7 +96,7 @@ public class HydraAuthenticationTest {
     }
 
     public void opaqueAccessTokenWithIntrospectValidationTest(String topic) throws Exception {
-        System.out.println("==== HydraAuthenticationTest :: opaqueAccessTokenWithIntrospectValidationTest ====");
+        System.out.println("==== " + topic + " ====");
 
         final String kafkaBootstrap = "kafka:9092";
         final String hostPort = "hydra:4444";
@@ -144,7 +144,7 @@ public class HydraAuthenticationTest {
     }
 
     public void clientCredentialsWithJwtValidationTest(String topic) throws Exception {
-        System.out.println("==== HydraAuthenticationTest :: clientCredentialsWithJwtValidationTest ====");
+        System.out.println("==== " + topic + " ====");
 
         final String kafkaBootstrap = "kafka:9093";
         final String hostPort = "hydra-jwt:4454";

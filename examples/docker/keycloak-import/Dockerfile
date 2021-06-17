@@ -1,4 +1,4 @@
-FROM quay.io/keycloak/keycloak:12.0.2
+FROM quay.io/keycloak/keycloak:13.0.1
 
 RUN mkdir /opt/jboss/realms
 COPY realms/* /opt/jboss/realms/
