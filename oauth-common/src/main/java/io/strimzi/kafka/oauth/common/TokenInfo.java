@@ -17,6 +17,7 @@ public class TokenInfo {
     public static final String EXP = "exp";
     public static final String ISS = "iss";
     public static final String TYP = "typ";
+    public static final String TOKEN_TYPE = "token_type";
     public static final String AUD = "aud";
 
     private String token;

@@ -349,13 +349,16 @@ public class JWTSignatureValidator implements TokenValidator {
             }
         }
         if (checkAccessTokenType) {
-            JsonNode typ = token.get(TokenInfo.TYP);
-            if (typ == null) {
-                throw new TokenValidationException("Token validation failed: Token type not set");
+            JsonNode type = token.get(TokenInfo.TYP);
+            if (type == null) {
+                type = token.get(TokenInfo.TOKEN_TYPE);
+                if (type == null) {
+                    throw new TokenValidationException("Token validation failed: Token type not set ('token_type' or 'typ' claim not present)");
+                }
             }
-            String type = typ.asText();
-            if (!"Bearer".equals(type)) {
-                throw new TokenValidationException("Token validation failed: Token type not allowed: " + type);
+            String value = type.asText();
+            if (!"Bearer".equals(value)) {
+                throw new TokenValidationException("Token validation failed: Token type not allowed: " + value);
             }
         }
         if (audience != null) {
