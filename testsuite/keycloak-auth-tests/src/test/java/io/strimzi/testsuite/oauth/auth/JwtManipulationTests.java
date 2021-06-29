@@ -67,6 +67,7 @@ public class JwtManipulationTests {
 
         testWithToken(producerToken);
 
+
         // Forge the token, copying information from original token as needed
         JsonNode producerJwtJSON = JSONUtil.asJson(producerJwt.getPayload().toJSONObject());
 
@@ -78,9 +79,8 @@ public class JwtManipulationTests {
         claims.put("preferred_username", producerJwtJSON.get("preferred_username").asText());
 
         String signedToken = createSignedToken(kid, privateKey, claims);
-
-        // Run the test again with the forged token
         testWithToken(signedToken);
+
 
         // Let's test with more complex tokens
         HashMap<String, String> claims2 = (HashMap<String, String>) claims.clone();
@@ -98,10 +98,10 @@ public class JwtManipulationTests {
         claims2.put("ver", "1.0");
 
         signedToken = createSignedToken(kid, privateKey, claims2);
-
-        // Run the test again with the forged token
         testWithToken(signedToken);
 
+
+        // Test with the token that used to to break with Keycloak Common helper library
         HashMap<String, String> claims3 = (HashMap<String, String>) claims.clone();
         claims3.put("aud", "urn:company:kafka");
         claims3.put("iat", String.valueOf(Instant.EPOCH.getEpochSecond()));
@@ -112,8 +112,26 @@ public class JwtManipulationTests {
         claims3.put("ver", "1.0");
 
         signedToken = createSignedToken(kid, privateKey, claims3);
+        testWithToken(signedToken);
 
-        // Run the test again with the forged token
+
+        // Test using 'token_type' claim instead of 'typ' claim in the access token:
+        // First remove 'typ' claim and see it fail
+        HashMap<String, String> claims4 = (HashMap<String, String>) claims.clone();
+        claims4.remove("typ");
+
+        signedToken = createSignedToken(kid, privateKey, claims4);
+        try {
+            testWithToken(signedToken);
+            Assert.fail("Should never be reached");
+        } catch (Exception e) {
+            Assert.assertTrue("Token type not set error", e.toString().contains("Token type not set"));
+        }
+
+        // Add 'token_typ' claim and see it pass
+        claims4.put("token_type", "Bearer");
+
+        signedToken = createSignedToken(kid, privateKey, claims4);
         testWithToken(signedToken);
 
     }
