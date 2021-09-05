@@ -23,39 +23,49 @@ public class KeycloakAuthorizationTests {
 
     private static final Logger log = LoggerFactory.getLogger(KeycloakAuthorizationTests.class);
 
+    private static final String JWT_LISTENER = "kafka:9092";
+    private static final String INTROSPECT_LISTENER = "kafka:9093";
+    private static final String JWTPLAIN_LISTENER = "kafka:9094";
+    private static final String INTROSPECTPLAIN_LISTENER = "kafka:9095";
+    private static final String JWTREFRESH_LISTENER = "kafka:9096";
+
     @Test
     public void doTest() throws Exception {
         try {
+
             logStart("KeycloakAuthorizationTest :: ConfigurationTest");
             ConfigurationTest.doTest();
+
+            logStart("KeycloakAuthorizationTest :: MetricsTest");
+            MetricsTest.doTest();
 
             logStart("KeycloakAuthorizationTest :: MultiSaslTests");
             MultiSaslTest.doTest();
 
             logStart("KeycloakAuthorizationTest :: JwtValidationAuthzTest");
-            new BasicTest("kafka:9092", false).doTest();
+            new BasicTest(JWT_LISTENER, false).doTest();
 
             logStart("KeycloakAuthorizationTest :: IntrospectionValidationAuthzTest");
-            new BasicTest("kafka:9093", false).doTest();
+            new BasicTest(INTROSPECT_LISTENER, false).doTest();
 
             logStart("KeycloakAuthorizationTest :: OAuthOverPlain + JwtValidationAuthzTest");
-            new OAuthOverPlainTest("kafka:9094", true).doTest();
+            new OAuthOverPlainTest(JWTPLAIN_LISTENER, true).doTest();
 
             logStart("KeycloakAuthorizationTest :: OAuthOverPlain + IntrospectionValidationAuthzTest");
-            new OAuthOverPlainTest("kafka:9095", true).doTest();
+            new OAuthOverPlainTest(INTROSPECTPLAIN_LISTENER, true).doTest();
 
             logStart("KeycloakAuthorizationTest :: OAuthOverPLain + FloodTest");
-            new FloodTest("kafka:9094", true).doTest();
+            new FloodTest(JWTPLAIN_LISTENER, true).doTest();
 
             logStart("KeycloakAuthorizationTest :: JWT FloodTest");
-            new FloodTest("kafka:9092", false).doTest();
+            new FloodTest(JWT_LISTENER, false).doTest();
 
             logStart("KeycloakAuthorizationTest :: Introspection FloodTest");
-            new FloodTest("kafka:9093", false).doTest();
+            new FloodTest(INTROSPECT_LISTENER, false).doTest();
 
             // This test has to be the last one - it changes the team-a-client, and team-b-client permissions in Keycloak
             logStart("KeycloakAuthorizationTest :: JwtValidationAuthzTest + RefreshGrants");
-            new RefreshTest("kafka:9096", false).doTest();
+            new RefreshTest(JWTREFRESH_LISTENER, false).doTest();
 
         } catch (Throwable e) {
             log.error("Keycloak Authorization Test failed: ", e);

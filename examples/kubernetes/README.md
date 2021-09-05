@@ -6,29 +6,35 @@ They assume Keycloak is used as an authorization server, with properly configure
 
 * `keycloak.yaml`
 
-  A Keycloak pod you can use to start an ephemeral instance of Keycloak. Any changes to realms will be lost when the pod shuts down. This is the first yaml you'll want to deploy.
+  A Keycloak pod you can use to start an ephemeral instance of Keycloak. Any changes to realms will be lost when the pod shuts down.
+
+* `keycloak-postgres.yaml`, `postgres.yaml`, `postgres-pvc.yaml`, `keycloak-realms-configmap.yaml`
+
+  An alternative to `keycloak.yaml`, this set of yamls deploys a standalone persistent instance of Keycloak.
 
 * `kafka-oauth-single.yaml`
 
-  A single node Kafka cluster using Apache Kafka 2.6.0 with OAuth 2 authentication using the 'demo' realm, and fast local signature validation (with keys loaded from the JWKS endpoint) for validating access tokens.
-
-* `kafka-oauth-single-2_6.yaml`
-
-  Same as `kafka-oauth-single.yaml` except using Apache Kafka 2.5.0.
+  A single node Kafka cluster with OAuth 2 authentication using the 'demo' realm, and fast local signature validation (with keys loaded from the JWKS endpoint) for validating access tokens.
 
 * `kafka-oauth-single-introspect.yaml`
 
-  A single node Kafka cluster using Apache Kafka 2.6.0 with OAuth 2 authentication using the `demo` realm, and introspection endpoint for access token validation. It requires that a secret is first deployed:
+  A single node Kafka cluster with OAuth 2 authentication using the `demo` realm, and introspection endpoint for access token validation. It requires that a secret is first deployed:
 
       kubectl create secret generic my-cluster-oauth-client-secret --from-literal=clientSecret=kafka-broker-secret
 
 * `kafka-oauth-single-authz.yaml`
 
-  A single node Kafka cluster using Apache Kafka 2.6.0 with OAuth 2 authentication using the `kafka-authz` realm, a fast local signature validation, and Keycloak Authorization Services for token-based authorization.
+  A single node Kafka cluster with OAuth 2 authentication using the `kafka-authz` realm, a fast local signature validation, and Keycloak Authorization Services for token-based authorization.
 
-* `kafka-oauth-single-2_6-authz.yaml`
+* `kafka-oauth-over-plain-single-authz.yaml`
 
-  Same as `kafka-oauth-single-authz.yaml` except using Apache Kafka 2.5.0.
+  A single node Kafka cluster with OAuth over PLAIN enabled.
+
+* `kafka-oauth-single-authz-metrics.yaml`
+
+  A single node Kafka cluster with OAuth 2 authentication with OAuth metrics enabled.
+  See [README-metrics.md]() for how to setup this example.
+
 
 ### Deploying Keycloak and accessing the Keycloak Admin Console
 
@@ -78,7 +84,7 @@ And finally, start the Keycloak pod that uses Postgres:
 Note: The script assumes that the postgres was deployed in `myproject` namespace. If you deploy it to some other namespace
 e.g. `default` you can fix the script on the fly:
 
-    cat keycloak-postgres.yaml | sed -e 's#.myproject.#.default.#'  | kubectl apply -f -
+    cat keycloak-postgres.yaml | sed -e 's/myproject/default/'  | kubectl apply -f -
 
 
 #### Minishift

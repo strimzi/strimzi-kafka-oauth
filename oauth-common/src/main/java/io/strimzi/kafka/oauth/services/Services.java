@@ -21,8 +21,12 @@ public class Services {
 
     private final Credentials credentials = new Credentials();
 
-    public static void configure(Map<String, ?> configs) {
-        services = new Services();
+    private Metrics metrics = new Metrics();
+
+    public static synchronized void configure(Map<String, ?> configs) {
+        if (services == null) {
+            services = new Services();
+        }
     }
 
     public static Services getInstance() {
@@ -53,5 +57,9 @@ public class Services {
 
     public Credentials getCredentials() {
         return credentials;
+    }
+
+    public Metrics getMetrics() {
+        return metrics;
     }
 }

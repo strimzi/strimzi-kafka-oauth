@@ -11,6 +11,11 @@ import io.strimzi.kafka.oauth.common.TimeUtil;
 import io.strimzi.kafka.oauth.common.TokenInfo;
 import io.strimzi.kafka.oauth.jsonpath.JsonPathFilterQuery;
 import io.strimzi.kafka.oauth.jsonpath.JsonPathQuery;
+import io.strimzi.kafka.oauth.metrics.IntrospectHttpMetricKeyProducer;
+import io.strimzi.kafka.oauth.metrics.MetricKeyProducer;
+import io.strimzi.kafka.oauth.metrics.UserInfoHttpMetricKeyProducer;
+import io.strimzi.kafka.oauth.services.Metrics;
+import io.strimzi.kafka.oauth.services.Services;
 import org.apache.kafka.common.utils.Time;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,6 +48,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
 
     private static final Logger log = LoggerFactory.getLogger(OAuthIntrospectionValidator.class);
 
+    private final String validatorId;
     private final URI introspectionURI;
     private final String validIssuerURI;
     private final URI userInfoURI;
@@ -60,8 +66,15 @@ public class OAuthIntrospectionValidator implements TokenValidator {
     private final int connectTimeoutSeconds;
     private final int readTimeoutSeconds;
 
+    private final boolean enableMetrics;
+    private final Metrics metrics = Services.getInstance().getMetrics();
+    private final MetricKeyProducer introspectHttpMetricKeyProducer;
+    private final MetricKeyProducer userInfoHttpMetricKeyProducer;
+
     /**
      * Create a new instance.
+     *
+     * @param id A unique id to associate with this validator for the purpose of validator lifecycle and metrics tracking
      * @param introspectionEndpointUri The introspection endpoint url at the authorization server
      * @param socketFactory The optional SSL socket factory to use when establishing the connection to authorization server
      * @param verifier The optional hostname verifier used to validate the TLS certificate by the authorization server
@@ -77,9 +90,11 @@ public class OAuthIntrospectionValidator implements TokenValidator {
      * @param customClaimCheck The optional JSONPath filter query for additional custom attribute checking
      * @param connectTimeoutSeconds The maximum time to wait for connection to authorization server to be established (in seconds)
      * @param readTimeoutSeconds The maximum time to wait for response from authorization server after connection has been established and request sent (in seconds)
+     * @param enableMetrics The switch that enables metrics collection
      */
     @SuppressWarnings("checkstyle:ParameterNumber")
-    public OAuthIntrospectionValidator(String introspectionEndpointUri,
+    public OAuthIntrospectionValidator(String id,
+                                       String introspectionEndpointUri,
                                        SSLSocketFactory socketFactory,
                                        HostnameVerifier verifier,
                                        PrincipalExtractor principalExtractor,
@@ -93,51 +108,25 @@ public class OAuthIntrospectionValidator implements TokenValidator {
                                        String audience,
                                        String customClaimCheck,
                                        int connectTimeoutSeconds,
-                                       int readTimeoutSeconds) {
+                                       int readTimeoutSeconds,
+                                       boolean enableMetrics) {
 
-        if (introspectionEndpointUri == null) {
-            throw new IllegalArgumentException("introspectionEndpointUri == null");
-        }
+        this.validatorId = checkValidatorId(id);
 
-        try {
-            this.introspectionURI = new URI(introspectionEndpointUri);
-        } catch (URISyntaxException e) {
-            throw new IllegalArgumentException("Invalid introspection endpoint uri: " + introspectionEndpointUri, e);
-        }
+        this.introspectionURI = checkIntrospectionUri(introspectionEndpointUri);
 
-        if (socketFactory != null && !"https".equals(introspectionURI.getScheme())) {
-            throw new IllegalArgumentException("SSL socket factory set but introspectionEndpointUri not 'https'");
-        }
-        this.socketFactory = socketFactory;
+        this.socketFactory = checkSocketFactory(socketFactory);
 
-        if (verifier != null && !"https".equals(introspectionURI.getScheme())) {
-            throw new IllegalArgumentException("Certificate hostname verifier set but keysEndpointUri not 'https'");
-        }
-        this.hostnameVerifier = verifier;
+        this.hostnameVerifier = checkHostnameVerifier(verifier);
 
         this.principalExtractor = principalExtractor != null ? principalExtractor : new PrincipalExtractor();
 
         this.groupsMatcher = parseGroupsQuery(groupsClaimQuery);
         this.groupsDelimiter = parseGroupsDelimiter(groupsClaimDelimiter);
 
-        if (issuerUri != null) {
-            try {
-                new URI(issuerUri);
-            } catch (URISyntaxException e) {
-                throw new IllegalArgumentException("Invalid issuer uri: " + issuerUri, e);
-            }
-        }
-        this.validIssuerURI = issuerUri;
+        this.validIssuerURI = checkIssuerUri(issuerUri);
 
-        if (userInfoUri != null) {
-            try {
-                this.userInfoURI = new URI(userInfoUri);
-            } catch (URISyntaxException e) {
-                throw new IllegalArgumentException("Invalid userInfo uri: " + userInfoUri, e);
-            }
-        } else {
-            this.userInfoURI = null;
-        }
+        this.userInfoURI = checkUserInfoUri(userInfoUri);
 
         this.validTokenType = validTokenType;
         this.clientId = clientId;
@@ -148,8 +137,14 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         this.connectTimeoutSeconds = connectTimeoutSeconds;
         this.readTimeoutSeconds = readTimeoutSeconds;
 
+        this.enableMetrics = enableMetrics;
+        introspectHttpMetricKeyProducer = new IntrospectHttpMetricKeyProducer(validatorId, introspectionURI);
+        userInfoHttpMetricKeyProducer = userInfoURI != null ? new UserInfoHttpMetricKeyProducer(validatorId, userInfoURI) : null;
+
         if (log.isDebugEnabled()) {
-            log.debug("Configured OAuthIntrospectionValidator:\n    introspectionEndpointUri: " + introspectionURI
+            log.debug("Configured OAuthIntrospectionValidator:"
+                    + "\n    id: " + id
+                    + "\n    introspectionEndpointUri: " + introspectionURI
                     + "\n    sslSocketFactory: " + socketFactory
                     + "\n    hostnameVerifier: " + hostnameVerifier
                     + "\n    principalExtractor: " + principalExtractor
@@ -164,8 +159,64 @@ public class OAuthIntrospectionValidator implements TokenValidator {
                     + "\n    customClaimCheck: " + customClaimCheck
                     + "\n    connectTimeoutSeconds: " + connectTimeoutSeconds
                     + "\n    readTimeoutSeconds: " + readTimeoutSeconds
+                    + "\n    enableMetrics: " + enableMetrics
             );
         }
+    }
+
+    private HostnameVerifier checkHostnameVerifier(HostnameVerifier verifier) {
+        if (verifier != null && !"https".equals(introspectionURI.getScheme())) {
+            throw new IllegalArgumentException("Certificate hostname verifier set but keysEndpointUri not 'https'");
+        }
+        return verifier;
+    }
+
+    private URI checkUserInfoUri(String userInfoUri) {
+        if (userInfoUri != null) {
+            try {
+                return new URI(userInfoUri);
+            } catch (URISyntaxException e) {
+                throw new IllegalArgumentException("Invalid userInfo uri: " + userInfoUri, e);
+            }
+        }
+        return null;
+    }
+
+    private String checkIssuerUri(String issuerUri) {
+        if (issuerUri != null) {
+            try {
+                new URI(issuerUri);
+            } catch (URISyntaxException e) {
+                throw new IllegalArgumentException("Invalid issuer uri: " + issuerUri, e);
+            }
+        }
+        return issuerUri;
+    }
+
+    private SSLSocketFactory checkSocketFactory(SSLSocketFactory socketFactory) {
+        if (socketFactory != null && !"https".equals(introspectionURI.getScheme())) {
+            throw new IllegalArgumentException("SSL socket factory set but introspectionEndpointUri not 'https'");
+        }
+        return socketFactory;
+    }
+
+    private URI checkIntrospectionUri(String introspectionEndpointUri) {
+        if (introspectionEndpointUri == null) {
+            throw new IllegalArgumentException("introspectionEndpointUri == null");
+        }
+
+        try {
+            return new URI(introspectionEndpointUri);
+        } catch (URISyntaxException e) {
+            throw new IllegalArgumentException("Invalid introspection endpoint uri: " + introspectionEndpointUri, e);
+        }
+    }
+
+    private String checkValidatorId(String validatorId) {
+        if (validatorId == null) {
+            throw new IllegalArgumentException("validatorId == null");
+        }
+        return validatorId;
     }
 
     private JsonPathFilterQuery parseCustomClaimCheck(String customClaimCheck) {
@@ -202,6 +253,8 @@ public class OAuthIntrospectionValidator implements TokenValidator {
     @SuppressWarnings("checkstyle:NPathComplexity")
     public TokenInfo validate(String token) {
 
+        long requestStartTime = System.currentTimeMillis();
+
         String authorization = clientSecret != null ?
                 "Basic " + base64encode(clientId + ':' + clientSecret) :
                 null;
@@ -212,7 +265,11 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         try {
             response = post(introspectionURI, socketFactory, hostnameVerifier, authorization,
                     "application/x-www-form-urlencoded", body.toString(), JsonNode.class, connectTimeoutSeconds, readTimeoutSeconds);
+
+            addIntrospectHttpMetricSuccessTime(requestStartTime);
+
         } catch (IOException e) {
+            addIntrospectHttpMetricErrorTime(e, requestStartTime);
             throw new RuntimeException("Failed to introspect token - send, fetch or parse failed: ", e);
         }
 
@@ -285,11 +342,20 @@ public class OAuthIntrospectionValidator implements TokenValidator {
 
     private JsonNode getUserInfoEndpointResponse(String token) {
         String authorization = "Bearer " + token;
+        JsonNode response;
+
+        long requestStartTime = System.currentTimeMillis();
         try {
-            return get(userInfoURI, socketFactory, hostnameVerifier, authorization, JsonNode.class, connectTimeoutSeconds, readTimeoutSeconds);
+            response = get(userInfoURI, socketFactory, hostnameVerifier, authorization, JsonNode.class, connectTimeoutSeconds, readTimeoutSeconds);
+
+            addUserInfoHttpMetricSuccessTime(requestStartTime);
+
         } catch (IOException e) {
+            addUserInfoHttpMetricErrorTime(e, requestStartTime);
             throw new RuntimeException("Request to User Info Endpoint failed: ", e);
         }
+
+        return response;
     }
 
     private String getPrincipalFromUserInfoEndpoint(JsonNode userInfoJson) {
@@ -334,6 +400,35 @@ public class OAuthIntrospectionValidator implements TokenValidator {
                 throw new TokenValidationException("Token check failed - Custom claim check failed.")
                         .status(Status.INVALID_TOKEN);
             }
+        }
+    }
+
+    @Override
+    public String getValidatorId() {
+        return validatorId;
+    }
+
+    private void addIntrospectHttpMetricSuccessTime(long startTime) {
+        if (enableMetrics) {
+            metrics.addTime(introspectHttpMetricKeyProducer.successKey(), System.currentTimeMillis() - startTime);
+        }
+    }
+
+    private void addIntrospectHttpMetricErrorTime(Throwable e, long startTime) {
+        if (enableMetrics) {
+            metrics.addTime(introspectHttpMetricKeyProducer.errorKey(e), System.currentTimeMillis() - startTime);
+        }
+    }
+
+    private void addUserInfoHttpMetricSuccessTime(long startTime) {
+        if (enableMetrics) {
+            metrics.addTime(userInfoHttpMetricKeyProducer.successKey(), System.currentTimeMillis() - startTime);
+        }
+    }
+
+    private void addUserInfoHttpMetricErrorTime(Throwable e, long startTime) {
+        if (enableMetrics) {
+            metrics.addTime(userInfoHttpMetricKeyProducer.errorKey(e), System.currentTimeMillis() - startTime);
         }
     }
 }

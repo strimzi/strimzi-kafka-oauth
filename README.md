@@ -49,6 +49,7 @@ Strimzi Kafka OAuth modules provide support for OAuth2 as authentication mechani
 - [Configuring the Kafka client with SASL/PLAIN](#configuring-the-kafka-client-with-saslplain)
 - [Configuring the TLS truststore](#configuring-the-tls-truststore)
 - [Configuring the network timeouts for communication with authorization server](#configuring-the-network-timeouts-for-communication-with-authorization-server)
+- [Configuring the metrics](#configuring-the-metrics)
 - [Demo](#demo)
   
 <!-- /TOC -->
@@ -346,6 +347,11 @@ You can control the minimum pause between two consecutive scheduled keys refresh
 - `oauth.jwks.refresh.min.pause.seconds` (e.g.: "0" - no minimum pause)
 
 All access tokens can be invalidated by rotating the keys on authorization server and expiring old keys.
+
+During the Kafka broker startup, a request to the JWKS endpoint immediately tries to load the keys.
+If JWKS keys can not be loaded or can not be successfully parsed during startup, the Kafka broker will exit.
+That behaviour can be turned off:
+- `oauth.fail.fast` (e.g.: "false" - it is "true" by default)
 
 ###### Validation using the introspection endpoint
 
@@ -1108,6 +1114,167 @@ These configuration properties can be used to configure timeouts for `KeycloakRB
 You may want to set these options globally as system properties or env vars to apply for all the listeners and the `KeycoakRBACAuthorizer` in which case you would use `oauth.` prefix. But when configured specifically for `KeycloakRBACAuthorizer` in `server.properties` you have to use `strimzi.authorization.` prefix.
 
 NOTE: These options are available since version 0.10.0. Before, one could only apply JDK network options `sun.net.client.defaultConnectTimeout`, and `sun.net.client.defaultReadTimeout` as described [here](https://docs.oracle.com/javase/8/docs/technotes/guides/net/properties.html), and the default was `no timeout`.
+
+Configuring the metrics
+-----------------------
+
+By default, the gathering and exporting of metrics is disabled. Metrics are available to get an insight into the performance and failures during token validation, authorization operations and client authentication to the authorization server. You can also monitor the authorization server requests by background services such as refreshing of JWKS keys and refreshing of grants when `KeycloakRBACAuthorizer` is used.
+
+You can enable metrics for token validation on the Kafka broker or for client authentication on the client by setting the following JAAS option to `true`:
+- `oauth.enable.metrics` (e.g.: "true")
+
+You can enable metrics for `KeycloakRBACAuthorizer` by setting an analogous option in Kafka broker's `server.properties` file:
+- `strimzi.authorization.enable.metrics` (e.g.: "true")
+
+If `OAUTH_ENABLE_METRICS` env variable is set or if `oauth.enable.metrics` system property is set, that will both also enable the metrics for `KeycloakRBACAuthorizer`.
+
+If `oauth.config.id` is specified in JAAS configuration of the listener or the client, it will be available in MBean / metric name as `contextId` attribute. If not specified, it will be calculated from JAAS configuration for the validator or default to `client` in client JAAS config, or `keycloak-authorizer` for KeycloakRBACAuthorizer metrics.
+
+Metrics are exposed through JMX managed beans. They can also be exposed as Prometheus metrics by using the Prometheus JMX Exporter agent, and mapping the JMX metrics names to prometheus metrics names.
+
+When metrics are enabled, managed beans are registered on demand, containing the attributes that are easily translated into Prometheus metrics.
+
+Each registered MBean contains two variables - `count`, and `timeTotal`.
+The `count` contains the number of requests of the specific context (as represented by attributes).
+The `totalTime` contains the cumulative time in milliseconds spent in the requests of the specific context.
+
+Two reads of `count` and `timeTotal` allow to calculate the average request time within the time interval as `delta Time / delta Count`.
+
+The following MBeans are registered, depending on which parts of `strimzi-kafka-oauth` are in use.
+
+For fast local JWT token based validation there are:
+
+- The metrics for validation requests which occur as part of the authentication:  
+  - `strimzi.oauth:name=validation_requests,context=$CONFIG_ID,mechanism=$MECHANISM,type=jwks,host="$HOST:$PORT",path="$JWKS_ENDPOINT_PATH",outcome=success`
+  - `strimzi.oauth:name=validation_requests,context=$CONFIG_ID,mechanism=$MECHANISM,type=jwks,host="$HOST:$PORT",path="$JWKS_ENDPOINT_PATH",outcome=error,error_type=$ERROR_TYPE`
+
+- The metrics for http requests to JWKS endpoint of the authorization server that are periodically performed in the background:
+  - `strimzi.oauth:name=http_requests,context=$CONFIG_ID,type=jwks,host="$HOST:$PORT",path="$JWKS_ENDPOINT_PATH",outcome=success,status=200`
+  - `strimzi.oauth:name=http_requests,context=$CONFIG_ID,type=jwks,host="$HOST:$PORT",path="$JWKS_ENDPOINT_PATH",outcome=error,error_type=http,status=$STATUS`
+
+For introspection based validation there are:
+
+- The metrics for validation requests which occur as part of the authentication:
+  - `strimzi.oauth:name=validation_requests,context=$CONFIG_ID,mechanism=$MECHANISM,type=introspect,host="$HOST:$PORT",path="$INTROSPECTION_ENDPOINT_PATH",outcome=success`
+  - `strimzi.oauth:name=validation_requests,context=$CONFIG_ID,mechanism=$MECHANISM,type=introspect,host="$HOST:$PORT",path="$INTROSPECTION_ENDPOINT_PATH",outcome=error,error_type=$ERROR_TYPE`
+
+- The metrics for http requests to introspect endpoint during validation requests:
+  - `strimzi.oauth:name=http_requests,context=$CONFIG_ID,type=introspect,host="$HOST:$PORT",path="$INTROSPECTION_ENDPOINT_PATH",outcome=success,status=200`
+  - `strimzi.oauth:name=http_requests,context=$CONFIG_ID,type=introspect,host="$HOST:$PORT",path="$INTROSPECTION_ENDPOINT_PATH",outcome=error,error_type=http,status=$STATUS`
+
+- The metrics for http requests to userinfo endpoint during validation requests (if configured):
+  - `strimzi.oauth:name=http_requests,context=$CONFIG_ID,type=userinfo,host="$HOST:$PORT",path="$USERINFO_ENDPOINT_PATH",outcome=success,status=200`
+  - `strimzi.oauth:name=http_requests,context=$CONFIG_ID,type=userinfo,host="$HOST:$PORT",path="$USERINFO_ENDPOINT_PATH",outcome=error,error_type=http,status=$STATUS`
+
+For validation performed using OAuth over PLAIN there are additionally:
+
+- The metrics for http requests to obtain the access token in client's name:
+  - `strimzi.oauth:name=http_requests,context=$CONFIG_ID,type=plain,host="$HOST:$PORT",path="$TOKEN_ENDPOINT_PATH",outcome=success,status=200`
+  - `strimzi.oauth:name=http_requests,context=$CONFIG_ID,type=plain,host="$HOST:$PORT",path="$TOKEN_ENDPOINT_PATH",outcome=error,error_type=http,status=$STATUS`
+  
+For Keycloak authorization there are:
+
+- The metrics for authorization requests:
+  - `strimzi.oauth:name=authorization_requests,context=$CONFIG_ID,type=keycloak-authorization,host="$HOST:$PORT",path="$TOKEN_ENDPOINT_PATH",outcome=success`
+  - `strimzi.oauth:name=authorization_requests,context=$CONFIG_ID,type=keycloak-authorization,host="$HOST:$PORT",path="$TOKEN_ENDPOINT_PATH",outcome=error,error_type=$ERROR_TYPE`
+
+- The metrics for http requests to retrieve or refresh grants for the authenticated user:
+  - `strimzi.oauth:name=http_requests,context=$CONFIG_ID,type=grants,host="$HOST:$PORT",path="$TOKEN_ENDPOINT_PATH",outcome=success,status=200`
+  - `strimzi.oauth:name=http_requests,context=$CONFIG_ID,type=grants,host="$HOST:$PORT",path="$TOKEN_ENDPOINT_PATH",outcome=error,error_type=http,status=$STATUS`
+
+For client-side authentication there are:
+
+- The metrics for client authentication requests:
+  - `strimzi.oauth:name=authentication_requests,context=$CONFIG_ID,type=client-auth,host="$HOST:$PORT",path="$TOKEN_ENDPOINT_PATH",outcome=success`
+  - `strimzi.oauth:name=authentication_requests,context=$CONFIG_ID,type=client-auth,host="$HOST:$PORT",path="$TOKEN_ENDPOINT_PATH",outcome=error,error_type=$ERROR_TYPE`
+
+- The metrics for http requests to obtain the access token:
+  - `strimzi.oauth:name=http_requests,context=$CONFIG_ID,type=client-auth,host="$HOST:$PORT",path="$TOKEN_ENDPOINT_PATH",outcome=success,status=200`
+  - `strimzi.oauth:name=http_requests,context=$CONFIG_ID,type=client-auth,host="$HOST:$PORT",path="$TOKEN_ENDPOINT_PATH",outcome=error,error_type=http,status=$STATUS`
+
+
+  
+### Using the metrics with Prometheus
+
+The [metrics-config.json](testsuite/docker/kafka/config/metrics-config.json) file contains the definitions for mapping the metrics from MBeans to Prometheus metrics names.
+
+The following metrics are exposed as the result of the mapping.
+
+For fast local JWT token based validation there are:
+
+- The metrics for validation requests which occur as part of the authentication:
+  - `strimzi_oauth_validation_requests_count{type="jwks"}`
+  - `strimzi_oauth_validation_requests_timetotal{type="jwks"}`
+
+- The metrics for http requests to JWKS endpoint of the authorization server that are periodically performed in the background:
+  - `strimzi_oauth_http_requests_count{type="jwks"}`
+  - `strimzi_oauth_http_requests_timetotal{type="jwks}`
+
+For introspection based validation there are:
+
+- The metrics for validation requests which occur as part of the authentication:
+  - `strimzi_oauth_validation_requests_count{type="introspect"}`
+  - `strimzi_oauth_validation_requests_timetotal{type="introspect"}`
+
+- The metrics for http requests to introspect endpoint during validation requests:
+  - `strimzi_oauth_http_requests_count{type="introspect"}`
+  - `strimzi_oauth_http_requests_timetotal{type="introspect"}`
+
+- The metrics for http requests to userinfo endpoint during validation requests (if configured):
+  - `strimzi_oauth_http_requests_count{type="userinfo"}`
+  - `strimzi_oauth_http_requests_timetotal{type="userinfo"}`
+
+For validation performed using OAuth over PLAIN there are additionally:
+
+- The metrics for http requests to obtain the access token in client's name:
+  - `strimzi_oauth_http_requests_count{type="plain"}`
+  - `strimzi_oauth_http_requests_timetotal{type="plain"}`
+
+For Keycloak authorization there are:
+
+- The metrics for authorization requests:
+  - `strimzi_oauth_authorization_requests_count{type="keycloak-authorization"}`
+  - `strimzi_oauth_authorization_requests_timetotal{type="keycloak-authorization"}`
+
+- The metrics for http requests to retrieve or refresh grants for the authenticated user:
+  - `strimzi_oauth_http_requests_count{type="keycloak-authorization"}`
+  - `strimzi_oauth_http_requests_timetotal{type="keycloak-authorization"}`
+
+For client-side authentication there are:
+
+- The metrics for client authentication requests:
+  - `strimzi_oauth_authentication_requests_count{type="client-auth"}`
+  - `strimzi_oauth_authentication_requests_timetotal{type="client-auth"}`
+
+- The metrics for http requests to obtain the access token:
+  - `strimzi_oauth_http_requests_count{type="client-auth"}`
+  - `strimzi_oauth_http_requests_timetotal{type="client-auth"}`
+
+
+### Some examples of PromQL queries
+
+- Get the average request time in ms during the last minute across all http requests to a specific authorization server:
+```
+    rate(strimzi_oauth_http_requests_timetotal{host="sso:443"}[1m] / rate(strimzi_oaouth_http_requests_count{host="sso:443"}[1m]
+```
+Note, that this gives reliable results if scrape period is 15 seconds. If scrape period is longer, you should use a multiple of 4 as a minimum time span to average across. For example, if scrape period is 30 seconds, use 2m span instead of 1m.
+
+- Get the number of http requests in the last minute: 
+```
+    idelta(strimzi_oauth_http_requests_count[1m])
+```
+
+- Get the network error counts across all http requests in the last minute:
+```
+    idelta(strimzi_oauth_http_requests_count{outcome="error",error_type="connect"}[1m])
+```
+
+- Get the TLS error counts across all http requests in the last minute:
+```
+    idelta(strimzi_oauth_http_requests_count{outcome="error",error_type="tls"}[1m])
+```
+
+
 
 Demo
 ----

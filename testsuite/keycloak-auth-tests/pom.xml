@@ -39,6 +39,10 @@
             <artifactId>arquillian-cube-docker</artifactId>
             <type>pom</type>
         </dependency>
+        <dependency>
+            <groupId>io.strimzi.oauth.testsuite</groupId>
+            <artifactId>common</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>io.strimzi</groupId>

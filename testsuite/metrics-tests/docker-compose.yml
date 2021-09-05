@@ -1,0 +1,99 @@
+version: '3'
+
+services:
+  mockoauth:
+    image: strimzi-oauth-testsuite/mock-oauth-server
+    container_name: mockoauth
+    ports:
+      - 8090:8090
+      - 8091:8091
+      - 5005:5005
+    volumes:
+      - ${PWD}/../docker/certificates:/application/config
+
+    environment:
+      - JAVA_DEBUG=y
+      - DEBUG_SUSPEND_FLAG=n
+      - JAVA_DEBUG_PORT=0.0.0.0:5005
+
+      - KEYSTORE_ONE_PATH=/application/config/mockoauth.server.keystore.p12
+      - KEYSTORE_ONE_PASSWORD=changeit
+      - KEYSTORE_TWO_PATH=/application/config/mockoauth.server.keystore_2.p12
+      - KEYSTORE_TWO_PASSWORD=changeit
+      - KEYSTORE_EXPIRED_PATH=/application/config/mockoauth.server.keystore_expired.p12
+      - KEYSTORE_EXPIRED_PASSWORD=changeit
+
+  kafka:
+    image: ${KAFKA_DOCKER_IMAGE}
+    container_name: kafka
+    ports:
+      - 9091:9091
+      - 9092:9092
+      - 9093:9093
+      - 9094:9094
+      - 9095:9095
+      - 9404:9404
+      - 5006:5006
+    volumes:
+      - ${PWD}/../docker/target/kafka/libs:/opt/kafka/libs/strimzi
+      - ${PWD}/../docker/kafka/config:/opt/kafka/config/strimzi
+      - ${PWD}/../docker/target/kafka/certs:/opt/kafka/config/strimzi/certs
+      - ${PWD}/../docker/kafka/scripts:/opt/kafka/strimzi
+    command:
+      - /bin/bash
+      - -c
+      - cd /opt/kafka/strimzi && ./start_no_wait.sh
+    environment:
+      #- KAFKA_DEBUG=y
+      #- DEBUG_SUSPEND_FLAG=y
+      #- JAVA_DEBUG_PORT=0.0.0.0:5006
+
+      - KAFKA_BROKER_ID=1
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_LISTENERS=INTERBROKER://kafka:9091,JWT://kafka:9092,INTROSPECT://kafka:9093,JWTPLAIN://kafka:9094,PLAIN://kafka:9095
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=INTERBROKER:PLAINTEXT,JWT:SASL_PLAINTEXT,INTROSPECT:SASL_PLAINTEXT,JWTPLAIN:SASL_PLAINTEXT,PLAIN:SASL_PLAINTEXT
+      - KAFKA_SASL_ENABLED_MECHANISMS=OAUTHBEARER
+      - KAFKA_INTER_BROKER_LISTENER_NAME=INTERBROKER
+
+      # Common settings for all the listeners
+      # username extraction from JWT token claim
+      - KAFKA_PRINCIPAL_BUILDER_CLASS=io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+
+      # Configuration of individual listeners
+      - KAFKA_LISTENER_NAME_INTROSPECT_OAUTHBEARER_SASL_JAAS_CONFIG=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required    oauth.config.id=\"INTROSPECT\"    oauth.introspection.endpoint.uri=\"https://mockoauth:8090/introspect\"    oauth.client.id=\"kafka-broker\"    oauth.client.secret=\"kafka-broker-secret\"    oauth.valid.issuer.uri=\"https://mockoauth:8090\"    unsecuredLoginStringClaim_sub=\"admin\" ;
+      - KAFKA_LISTENER_NAME_INTROSPECT_OAUTHBEARER_SASL_SERVER_CALLBACK_HANDLER_CLASS=io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
+      #- KAFKA_LISTENER_NAME_INTROSPECT_OAUTHBEARER_SASL_LOGIN_CALLBACK_HANDLER_CLASS=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
+
+      - KAFKA_LISTENER_NAME_JWT_OAUTHBEARER_SASL_JAAS_CONFIG=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required    oauth.config.id=\"JWT\"    oauth.fail.fast=\"false\"    oauth.jwks.endpoint.uri=\"https://mockoauth:8090/jwks\"    oauth.jwks.refresh.seconds=\"20\"    oauth.valid.issuer.uri=\"https://mockoauth:8090\"    unsecuredLoginStringClaim_sub=\"admin\" ;
+      - KAFKA_LISTENER_NAME_JWT_OAUTHBEARER_SASL_SERVER_CALLBACK_HANDLER_CLASS=io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
+
+      - KAFKA_LISTENER_NAME_JWTPLAIN_SASL_ENABLED_MECHANISMS=OAUTHBEARER,PLAIN
+      - KAFKA_LISTENER_NAME_JWTPLAIN_OAUTHBEARER_SASL_JAAS_CONFIG=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required    oauth.config.id=\"JWTPLAIN\"    oauth.fail.fast=\"false\"    oauth.jwks.endpoint.uri=\"https://mockoauth:8090/jwks\"    oauth.valid.issuer.uri=\"https://mockoauth:8090\"    unsecuredLoginStringClaim_sub=\"admin\" ;
+      - KAFKA_LISTENER_NAME_JWTPLAIN_OAUTHBEARER_SASL_SERVER_CALLBACK_HANDLER_CLASS=io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
+
+      - KAFKA_LISTENER_NAME_JWTPLAIN_PLAIN_SASL_JAAS_CONFIG=org.apache.kafka.common.security.plain.PlainLoginModule required    oauth.config.id=\"JWTPLAIN\"    oauth.token.endpoint.uri=\"https://mockoauth:8090/token\"    oauth.client.id=\"kafka\"    oauth.client.secret=\"kafka-secret\"    oauth.fail.fast=\"false\"    oauth.jwks.endpoint.uri=\"https://mockoauth:8090/jwks\"    oauth.valid.issuer.uri=\"https://mockoauth:8090\"    unsecuredLoginStringClaim_sub=\"admin\" ;
+      - KAFKA_LISTENER_NAME_JWTPLAIN_PLAIN_SASL_SERVER_CALLBACK_HANDLER_CLASS=io.strimzi.kafka.oauth.server.plain.JaasServerOauthOverPlainValidatorCallbackHandler
+
+      - KAFKA_LISTENER_NAME_PLAIN_SASL_ENABLED_MECHANISMS=PLAIN
+      - KAFKA_LISTENER_NAME_PLAIN_PLAIN_SASL_JAAS_CONFIG=org.apache.kafka.common.security.plain.PlainLoginModule required    username=\"admin\"    password=\"admin-password\"    user_admin=\"admin-password\" ;
+
+      # Truststore config for connecting to secured authorization server
+      - OAUTH_SSL_TRUSTSTORE_LOCATION=/opt/kafka/config/strimzi/certs/ca-truststore.p12
+      - OAUTH_SSL_TRUSTSTORE_PASSWORD=changeit
+      - OAUTH_SSL_TRUSTSTORE_TYPE=pkcs12
+      - OAUTH_ENABLE_METRICS=true
+
+  zookeeper:
+    image: ${KAFKA_DOCKER_IMAGE}
+    container_name: zookeeper
+    ports:
+      - 2181:2181
+    volumes:
+      - ${PWD}/../docker/zookeeper/scripts:/opt/kafka/strimzi
+    command:
+      - /bin/bash
+      - -c
+      - cd /opt/kafka/strimzi && ./start.sh
+    environment:
+      - LOG_DIR=/tmp/logs

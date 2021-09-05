@@ -47,7 +47,7 @@ public class OAuthAuthenticator {
                                                   PrincipalExtractor principalExtractor, String scope) throws IOException {
 
         return loginWithClientSecret(tokenEndpointUrl, socketFactory, hostnameVerifier,
-                clientId, clientSecret, isJwt, principalExtractor, scope, null, HttpUtil.DEFAULT_CONNECT_TIMEOUT, HttpUtil.DEFAULT_READ_TIMEOUT);
+                clientId, clientSecret, isJwt, principalExtractor, scope, null, HttpUtil.DEFAULT_CONNECT_TIMEOUT, HttpUtil.DEFAULT_READ_TIMEOUT, null);
     }
 
     public static TokenInfo loginWithClientSecret(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
@@ -56,13 +56,14 @@ public class OAuthAuthenticator {
                                                   PrincipalExtractor principalExtractor, String scope, String audience) throws IOException {
 
         return loginWithClientSecret(tokenEndpointUrl, socketFactory, hostnameVerifier,
-                clientId, clientSecret, isJwt, principalExtractor, scope, audience, HttpUtil.DEFAULT_CONNECT_TIMEOUT, HttpUtil.DEFAULT_READ_TIMEOUT);
+                clientId, clientSecret, isJwt, principalExtractor, scope, audience, HttpUtil.DEFAULT_CONNECT_TIMEOUT, HttpUtil.DEFAULT_READ_TIMEOUT, null);
     }
 
     public static TokenInfo loginWithClientSecret(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
                                                   HostnameVerifier hostnameVerifier,
                                                   String clientId, String clientSecret, boolean isJwt,
-                                                  PrincipalExtractor principalExtractor, String scope, String audience, int connectTimeout, int readTimeout) throws IOException {
+                                                  PrincipalExtractor principalExtractor, String scope, String audience,
+                                                  int connectTimeout, int readTimeout, MetricsHandler metrics) throws IOException {
         if (log.isDebugEnabled()) {
             log.debug("loginWithClientSecret() - tokenEndpointUrl: {}, clientId: {}, clientSecret: {}, scope: {}, audience: {}, connectTimeout: {}, readTimeout: {}",
                     tokenEndpointUrl, clientId, mask(clientSecret), scope, audience, connectTimeout, readTimeout);
@@ -78,7 +79,7 @@ public class OAuthAuthenticator {
             body.append("&audience=").append(urlencode(audience));
         }
 
-        return post(tokenEndpointUrl, socketFactory, hostnameVerifier, authorization, body.toString(), isJwt, principalExtractor, connectTimeout, readTimeout);
+        return post(tokenEndpointUrl, socketFactory, hostnameVerifier, authorization, body.toString(), isJwt, principalExtractor, connectTimeout, readTimeout, metrics);
     }
 
     public static TokenInfo loginWithRefreshToken(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
@@ -101,7 +102,16 @@ public class OAuthAuthenticator {
     public static TokenInfo loginWithRefreshToken(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
                                                   HostnameVerifier hostnameVerifier, String refreshToken,
                                                   String clientId, String clientSecret, boolean isJwt,
-                                                  PrincipalExtractor principalExtractor, String scope, String audience, int connectTimeout, int readTimeout) throws IOException {
+                                                  PrincipalExtractor principalExtractor, String scope, String audience,
+                                                  int connectTimeout, int readTimeout) throws IOException {
+        return loginWithRefreshToken(tokenEndpointUrl, socketFactory, hostnameVerifier, refreshToken, clientId, clientSecret, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout, null);
+    }
+
+    public static TokenInfo loginWithRefreshToken(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
+                                                  HostnameVerifier hostnameVerifier, String refreshToken,
+                                                  String clientId, String clientSecret, boolean isJwt,
+                                                  PrincipalExtractor principalExtractor, String scope, String audience,
+                                                  int connectTimeout, int readTimeout, MetricsHandler metrics) throws IOException {
         if (log.isDebugEnabled()) {
             log.debug("loginWithRefreshToken() - tokenEndpointUrl: {}, refreshToken: {}, clientId: {}, clientSecret: {}, scope: {}, audience: {}, connectTimeout: {}, readTimeout: {}",
                     tokenEndpointUrl, refreshToken, clientId, mask(clientSecret), scope, audience, connectTimeout, readTimeout);
@@ -122,24 +132,36 @@ public class OAuthAuthenticator {
             body.append("&audience=").append(urlencode(audience));
         }
 
-        return post(tokenEndpointUrl, socketFactory, hostnameVerifier, authorization, body.toString(), isJwt, principalExtractor, connectTimeout, readTimeout);
+        return post(tokenEndpointUrl, socketFactory, hostnameVerifier, authorization, body.toString(), isJwt, principalExtractor, connectTimeout, readTimeout, metrics);
     }
 
     private static TokenInfo post(URI tokenEndpointUri, SSLSocketFactory socketFactory, HostnameVerifier hostnameVerifier,
-                                  String authorization, String body, boolean isJwt, PrincipalExtractor principalExtractor, int connectTimeout, int readTimeout) throws IOException {
+                                  String authorization, String body, boolean isJwt, PrincipalExtractor principalExtractor,
+                                  int connectTimeout, int readTimeout, MetricsHandler metrics) throws IOException {
 
         long now = System.currentTimeMillis();
+        JsonNode result;
+        try {
+            result = HttpUtil.post(tokenEndpointUri,
+                    socketFactory,
+                    hostnameVerifier,
+                    authorization,
+                    "application/x-www-form-urlencoded",
+                    body,
+                    JsonNode.class,
+                    connectTimeout,
+                    readTimeout);
 
-        JsonNode result = HttpUtil.post(tokenEndpointUri,
-                socketFactory,
-                hostnameVerifier,
-                authorization,
-                "application/x-www-form-urlencoded",
-                body,
-                JsonNode.class,
-                connectTimeout,
-                readTimeout);
+            if (metrics != null) {
+                metrics.addSuccessRequestTime(System.currentTimeMillis() - now);
+            }
 
+        } catch (Throwable e) {
+            if (metrics != null) {
+                metrics.addErrorRequestTime(e, System.currentTimeMillis() - now);
+            }
+            throw e;
+        }
         JsonNode token = result.get("access_token");
         if (token == null) {
             throw new IllegalStateException("Invalid response from authorization server: no access_token");

@@ -1,0 +1,122 @@
+{
+  "lowercaseOutputName": true,
+  "rules": [
+    {
+      "pattern": "strimzi.oauth<name=http_requests, context=(.+), type=(.+), host=\"(.+)\", path=\"(.+)\", outcome=(.+), error_type=(.+), status=(.+)><>(.+):",
+      "name": "strimzi_oauth_http_requests_$8",
+      "type": "COUNTER",
+      "labels": {
+        "context": "$1",
+        "type": "$2",
+        "host": "$3",
+        "path": "$4",
+        "outcome": "$5",
+        "error_type": "$6",
+        "status": "$7"
+      }
+    },
+    {
+      "pattern": "strimzi.oauth<name=http_requests, context=(.+), type=(.+), host=\"(.+)\", path=\"(.+)\", outcome=(.+), status=(.+)><>(.+):",
+      "name": "strimzi_oauth_http_requests_$7",
+      "type": "COUNTER",
+      "labels": {
+        "context": "$1",
+        "type": "$2",
+        "host": "$3",
+        "path": "$4",
+        "outcome": "$5",
+        "status": "$6"
+      }
+    },
+    {
+      "pattern": "strimzi.oauth<name=http_requests, context=(.+), type=(.+), host=\"(.+)\", path=\"(.+)\", outcome=(.+), error_type=(.+)><>(.+):",
+      "name": "strimzi_oauth_http_requests_$7",
+      "type": "COUNTER",
+      "labels": {
+        "context": "$1",
+        "type": "$2",
+        "host": "$3",
+        "path": "$4",
+        "outcome": "$5",
+        "error_type": "$6"
+      }
+    },
+    {
+      "pattern": "strimzi.oauth<name=validation_requests, context=(.+), mechanism=(.+), type=(.+), host=\"(.+)\", path=\"(.+)\", outcome=(.+), error_type=(.+)><>(.+):",
+      "name": "strimzi_oauth_validation_requests_$8",
+      "type": "COUNTER",
+      "labels": {
+        "context": "$1",
+        "mechanism": "$2",
+        "type": "$3",
+        "host": "$4",
+        "path": "$5",
+        "outcome": "$6",
+        "error_type": "$7"
+      }
+    },
+    {
+      "pattern": "strimzi.oauth<name=validation_requests, context=(.+), mechanism=(.+), type=(.+), host=\"(.+)\", path=\"(.+)\", outcome=(.+)><>(.+):",
+      "name": "strimzi_oauth_validation_requests_$7",
+      "type": "COUNTER",
+      "labels": {
+        "context": "$1",
+        "mechanism": "$2",
+        "type": "$3",
+        "host": "$4",
+        "path": "$5",
+        "outcome": "$6"
+      }
+    },
+    {
+      "pattern": "strimzi.oauth<name=authentication_requests, context=(.+), type=(.+), host=\"(.+)\", path=\"(.+)\", outcome=(.+), error_type=(.+)><>(.+):",
+      "name": "strimzi_oauth_authentication_requests_$7",
+      "type": "COUNTER",
+      "labels": {
+        "context": "$1",
+        "type": "$2",
+        "host": "$3",
+        "path": "$4",
+        "outcome": "$5",
+        "error_type": "$6"
+      }
+    },
+    {
+      "pattern": "strimzi.oauth<name=authentication_requests, context=(.+), type=(.+), host=\"(.+)\", path=\"(.+)\", outcome=(.+)><>(.+):",
+      "name": "strimzi_oauth_authentication_requests_$6",
+      "type": "COUNTER",
+      "labels": {
+        "context": "$1",
+        "type": "$2",
+        "host": "$3",
+        "path": "$4",
+        "outcome": "$5"
+      }
+    },
+    {
+      "pattern": "strimzi.oauth<name=authorization_requests, context=(.+), type=(.+), host=\"(.+)\", path=\"(.+)\", outcome=(.+), error_type=(.+)><>(.+):",
+      "name": "strimzi_oauth_authorization_requests_$7",
+      "type": "COUNTER",
+      "labels": {
+        "context": "$1",
+        "type": "$2",
+        "host": "$3",
+        "path": "$4",
+        "outcome": "$5",
+        "error_type": "$6"
+      }
+    },
+    {
+      "pattern": "strimzi.oauth<name=authorization_requests, context=(.+), type=(.+), host=\"(.+)\", path=\"(.+)\", outcome=(.+)><>(.+):",
+      "name": "strimzi_oauth_authorization_requests_$6",
+      "type": "COUNTER",
+      "labels": {
+        "context": "$1",
+        "type": "$2",
+        "host": "$3",
+        "path": "$4",
+        "outcome": "$5"
+      }
+    }
+  ]
+}

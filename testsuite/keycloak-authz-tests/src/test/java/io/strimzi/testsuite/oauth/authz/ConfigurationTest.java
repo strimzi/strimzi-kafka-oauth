@@ -8,11 +8,11 @@ import org.junit.Assert;
 
 import java.util.List;
 
-import static io.strimzi.testsuite.oauth.authz.Common.getKafkaLogsForString;
+import static io.strimzi.testsuite.oauth.common.TestUtil.getKafkaLogsForString;
 
 public class ConfigurationTest {
 
-    public static void doTest() throws Exception {
+    public static void doTest() {
         // get kafka log and make sure KeycloakRBACAuthorizer has been configured with expected settings
         List<String> lines = getKafkaLogsForString("Configured KeycloakRBACAuthorizer");
         Assert.assertTrue("Kafka log should contain string: 'KeycloakRBACAuthorizer'", lines.size() > 0);

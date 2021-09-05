@@ -4,6 +4,7 @@
  */
 package io.strimzi.kafka.oauth.common;
 
+import io.strimzi.kafka.oauth.services.Services;
 import io.strimzi.kafka.oauth.validator.OAuthIntrospectionValidator;
 import org.junit.Assert;
 import org.junit.Test;
@@ -16,6 +17,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.net.URI;
+import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 
 public class HttpUtilTimeoutTest {
@@ -24,6 +26,8 @@ public class HttpUtilTimeoutTest {
 
     @Test
     public void testHttpTimeouts() throws Exception {
+        Services.configure(Collections.emptyMap());
+
         CompletableFuture<ServerSocket> future = new CompletableFuture<>();
         new Thread(() -> {
             try {
@@ -108,9 +112,9 @@ public class HttpUtilTimeoutTest {
 
             // Test validator
             try {
-                OAuthIntrospectionValidator validator = new OAuthIntrospectionValidator("http://192.168.255.255:26309",
+                OAuthIntrospectionValidator validator = new OAuthIntrospectionValidator("test", "http://192.168.255.255:26309",
                         null, null, new PrincipalExtractor(), null, null, "http://172.0.0.13/", null, "Bearer",
-                        "kafka", "kafka-secret", null, null, timeout, timeout);
+                        "kafka", "kafka-secret", null, null, timeout, timeout, false);
 
                 start = System.currentTimeMillis();
                 validator.validate("token");
@@ -119,20 +123,10 @@ public class HttpUtilTimeoutTest {
             } catch (Exception e) {
                 Throwable cause = e.getCause();
                 long diff = System.currentTimeMillis() - start;
-                if (cause instanceof SocketTimeoutException) {
-                    Assert.assertTrue("Unexpected error: " + cause, cause.toString().contains("connect timed out"));
-                    Assert.assertTrue("Unexpected diff: " + diff, diff >= timeout * 1000 && diff < timeout * 1000 + 1000);
-                } else if (cause instanceof IOException) {
-                    if (cause.getCause() instanceof ConnectException) {
-                        LOG.warn("Connect timeout test skipped due to immediate ConnectException");
-                    } else {
-                        LOG.error("Unexpected exception: ", cause);
-                        Assert.fail();
-                    }
-                } else {
-                    LOG.error("Unexpected exception: ", e);
-                    Assert.fail();
-                }
+
+                Assert.assertTrue("Wrong exception: " + e + " caused by " + cause, cause instanceof SocketTimeoutException);
+                Assert.assertTrue("Unexpected error: " + cause, cause.toString().contains("connect timed out"));
+                Assert.assertTrue("Unexpected diff: " + diff, diff >= timeout * 1000 && diff < timeout * 1000 + 1000);
             }
 
         } finally {

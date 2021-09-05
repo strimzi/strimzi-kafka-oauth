@@ -22,21 +22,15 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.junit.Assert;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
-import java.util.regex.Pattern;
 
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithClientSecret;
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
@@ -372,45 +366,5 @@ public class Common {
 
         admin.deleteTopics(Arrays.asList(TOPIC_A, TOPIC_B, TOPIC_X, "non-existing-topic"));
         admin.deleteConsumerGroups(Arrays.asList(groupFor(TOPIC_A), groupFor(TOPIC_B), groupFor(TOPIC_X), groupFor("non-existing-topic")));
-    }
-
-
-    /**
-     * Get Kafka log by executing 'docker logs kafka', then extract only the entries
-     * (possibly multi-line when there's a stacktrace) that contain the passed filter.
-     *
-     * @param filter The string to look for (not a regex) in the log
-     * @return A list of lines from the log that match the filter (logging entries that contain the filter string)
-     */
-    public static List<String> getKafkaLogsForString(String filter) {
-        try {
-            boolean inmatch = false;
-            ArrayList result = new ArrayList();
-            Pattern pat = Pattern.compile("\\[\\d\\d\\d\\d-\\d\\d-\\d\\d .*");
-
-            Process p = Runtime.getRuntime().exec(new String[] {"docker", "logs", "kafka"});
-            try (BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream(), StandardCharsets.ISO_8859_1))) {
-                String line;
-                while ((line = r.readLine()) != null) {
-                    // is new logging entry?
-                    if (pat.matcher(line).matches()) {
-                        // contains the err string?
-                        inmatch = line.contains(filter);
-                        if (inmatch) {
-                            result.add(line);
-                        }
-                    } else if (inmatch) {
-                        result.add(line);
-                    } else {
-                        inmatch = false;
-                    }
-                }
-            }
-
-            return result;
-
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to get 'kafka' log", e);
-        }
     }
 }

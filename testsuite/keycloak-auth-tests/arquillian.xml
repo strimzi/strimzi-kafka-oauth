@@ -18,7 +18,7 @@
             kafka:
               await:
                 strategy: docker_health
-                iterations: 50
+                iterations: 500
                 sleepPollingTime: 5 s
                 command: ["sh", "-c", "grep 'started (kafka.server.KafkaServer)' &lt; /tmp/logs/server.log"]
               beforeStop:

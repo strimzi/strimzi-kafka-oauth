@@ -4,6 +4,7 @@
  */
 package io.strimzi.kafka.oauth.common;
 
+import java.net.URI;
 import java.util.Locale;
 import java.util.Properties;
 
@@ -25,6 +26,8 @@ public class Config {
     public static final String OAUTH_ACCESS_TOKEN_IS_JWT = "oauth.access.token.is.jwt";
     public static final String OAUTH_CONNECT_TIMEOUT_SECONDS = "oauth.connect.timeout.seconds";
     public static final String OAUTH_READ_TIMEOUT_SECONDS = "oauth.read.timeout.seconds";
+    public static final String OAUTH_CONFIG_ID = "oauth.config.id";
+    public static final String OAUTH_ENABLE_METRICS = "oauth.enable.metrics";
 
     @Deprecated
     public static final String OAUTH_TOKENS_NOT_JWT = "oauth.tokens.not.jwt";
@@ -135,6 +138,21 @@ public class Config {
             return result != null ? isTrue(result) : fallback;
         } catch (Exception e) {
             throw new RuntimeException("Bad boolean value for key: " + key + ", value: " + result);
+        }
+    }
+
+    /**
+     * Get value for ptoperty key as a URI
+     *
+     * @param key Config key
+     * @return Config value
+     */
+    public URI getValueAsURI(String key) {
+        String result = getValue(key);
+        try {
+            return URI.create(result);
+        } catch (Exception e) {
+            throw new RuntimeException("Bad URI value for key: " + key + ", value: " + result);
         }
     }
 

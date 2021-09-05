@@ -13,7 +13,11 @@ import io.strimzi.kafka.oauth.common.HttpException;
 import io.strimzi.kafka.oauth.common.JSONUtil;
 import io.strimzi.kafka.oauth.common.SSLUtil;
 import io.strimzi.kafka.oauth.common.TimeUtil;
+import io.strimzi.kafka.oauth.metrics.MetricKeyProducer;
 import io.strimzi.kafka.oauth.server.OAuthKafkaPrincipal;
+import io.strimzi.kafka.oauth.server.authorizer.metrics.GrantsHttpMetricKeyProducer;
+import io.strimzi.kafka.oauth.server.authorizer.metrics.KeycloakAuthorizationMetricKeyProducer;
+import io.strimzi.kafka.oauth.services.Metrics;
 import io.strimzi.kafka.oauth.services.Services;
 import io.strimzi.kafka.oauth.services.SessionFuture;
 import io.strimzi.kafka.oauth.services.Sessions;
@@ -104,8 +108,6 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
  * <li><em>strimzi.authorization.delegate.to.kafka.acl</em> Whether authorization decision should be delegated to ACLAuthorizer if DENIED by Keycloak Authorization Services policies.<br>
  * The default value is <em>false</em>
  * </li>
- * </ul>
- * <ul>
  * <li><em>strimzi.authorization.grants.refresh.period.seconds</em> The time interval for refreshing the grants of the active sessions. The scheduled job iterates over active sessions and fetches a fresh list of grants for each.<br>
  * The default value is <em>60</em>
  * </li>
@@ -119,6 +121,10 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
  * <li><em>strimzi.authorization.read.timeout.seconds</em> The maximum time to wait to read the response from the authorization server after the connection has been established and request sent.<br>
  * The default value is <em>60</em>.
  * If not present, <em>oauth.read.timeout.seconds</em> is used as a fallback configuration key to avoid unnecessary duplication when already present.
+ * </li>
+ * <li><em>strimzi.authorization.enable.metrics</em> Set this to 'true' to enable authorizer metrics.<br>
+ * The default value is <em>false</em>.
+ * If not present, <em>oauth.enable.metrics</em> is used as a fallback configuration key to avoid unnecessary duplication when already present as ENV or a system property with intent to enable OAuth and Keycloak authorizer metrics at the broker level.
  * </li>
  * </ul>
  * <p>
@@ -173,6 +179,10 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
 
     private ExecutorService workerPool;
 
+    private Metrics metrics;
+    private boolean enableMetrics;
+    private MetricKeyProducer authzMetricKeyProducer;
+    private MetricKeyProducer grantsMetricKeyProducer;
 
     public KeycloakRBACAuthorizer() {
         super();
@@ -247,6 +257,12 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
         if (!Services.isAvailable()) {
             Services.configure(configs);
         }
+        metrics = Services.getInstance().getMetrics();
+
+        enableMetrics = config.getValueAsBoolean(Config.OAUTH_ENABLE_METRICS, false);
+
+        authzMetricKeyProducer = new KeycloakAuthorizationMetricKeyProducer("keycloak-authorizer", tokenEndpointUrl);
+        grantsMetricKeyProducer = new GrantsHttpMetricKeyProducer("keycloak-authorizer", tokenEndpointUrl);
 
         if (log.isDebugEnabled()) {
             log.debug("Configured KeycloakRBACAuthorizer:\n    tokenEndpointUri: " + tokenEndpointUrl
@@ -260,6 +276,7 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
                     + "\n    grantsRefreshPoolSize: " + grantsRefreshPoolSize
                     + "\n    connectTimeoutSeconds: " + connectTimeoutSeconds
                     + "\n    readTimeoutSeconds: " + readTimeoutSeconds
+                    + "\n    enableMetrics: " + enableMetrics
             );
         }
     }
@@ -303,7 +320,8 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
             AuthzConfig.STRIMZI_AUTHORIZATION_CONNECT_TIMEOUT_SECONDS,
             Config.OAUTH_CONNECT_TIMEOUT_SECONDS,
             AuthzConfig.STRIMZI_AUTHORIZATION_READ_TIMEOUT_SECONDS,
-            Config.OAUTH_READ_TIMEOUT_SECONDS
+            Config.OAUTH_READ_TIMEOUT_SECONDS,
+            Config.OAUTH_ENABLE_METRICS
         };
 
         // Copy over the keys
@@ -356,6 +374,8 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
     public List<AuthorizationResult> authorize(AuthorizableRequestContext requestContext, List<Action> actions) {
 
         JsonNode grants = null;
+        long startTime = System.currentTimeMillis();
+        List<AuthorizationResult> result;
 
         try {
             KafkaPrincipal principal = requestContext.principal();
@@ -371,6 +391,7 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
                                     ", cluster: " + clusterName + ", operation: " + action.operation() + ", resource: " + fromResourcePattern(action.resourcePattern()));
                         }
                     }
+                    addAuthzMetricSuccessTime(startTime);
                     return Collections.nCopies(actions.size(), AuthorizationResult.ALLOWED);
                 }
             }
@@ -378,7 +399,10 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
             if (!(principal instanceof OAuthKafkaPrincipal)) {
                 // If user wasn't authenticated over OAuth, and simple ACL delegation is enabled
                 // we delegate to simple ACL
-                return delegateIfRequested(requestContext, actions, null);
+                result = delegateIfRequested(requestContext, actions, null);
+
+                addAuthzMetricSuccessTime(startTime);
+                return result;
             }
 
             //
@@ -391,6 +415,7 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
             BearerTokenWithPayload token = jwtPrincipal.getJwt();
 
             if (denyIfTokenInvalid(token)) {
+                addAuthzMetricSuccessTime(startTime);
                 return Collections.nCopies(actions.size(), AuthorizationResult.DENIED);
             }
 
@@ -405,10 +430,12 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
             }
 
             if (grants != null) {
-                return allowOrDenyBasedOnGrants(requestContext, actions, grants);
+                result = allowOrDenyBasedOnGrants(requestContext, actions, grants);
+            } else {
+                result = delegateIfRequested(requestContext, actions, null);
             }
-
-            return delegateIfRequested(requestContext, actions, null);
+            addAuthzMetricSuccessTime(startTime);
+            return result;
 
         } catch (Throwable t) {
             log.error("An unexpected exception has occurred: ", t);
@@ -416,6 +443,7 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
                 DENY_LOG.debug("Authorization DENIED due to error - user: " + requestContext.principal() +
                         ", cluster: " + clusterName + ", actions: " + actions + ",\n permissions: " + grants);
             }
+            addAuthzMetricErrorTime(t, startTime);
             return Collections.nCopies(actions.size(), AuthorizationResult.DENIED);
         }
     }
@@ -456,7 +484,6 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
             }
             results.addAll(delegateIfRequested(requestContext, Collections.singletonList(action), grants));
         }
-
         return results;
     }
 
@@ -474,16 +501,21 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
     private JsonNode handleFetchingGrants(BearerTokenWithPayload token) {
         // Fetch authorization grants
         JsonNode grants = null;
+
         try {
             grants = fetchAuthorizationGrants(token.value());
             if (grants == null) {
                 grants = JSONUtil.newObjectNode();
             }
-        } catch (HttpException e) {
-            if (e.getStatus() == 403) {
-                grants = JSONUtil.newObjectNode();
+        } catch (Throwable e) {
+            if (e instanceof HttpException) {
+                if (((HttpException) e).getStatus() == 403) {
+                    grants = JSONUtil.newObjectNode();
+                } else {
+                    log.warn("Unexpected status while fetching authorization data - will retry next time: " + e.getMessage());
+                }
             } else {
-                log.warn("Unexpected status while fetching authorization data - will retry next time: " + e.getMessage());
+                throw e;
             }
         }
         if (grants != null) {
@@ -553,14 +585,17 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
                 .append("&response_mode=permissions");
 
         JsonNode response;
+        long startTime = System.currentTimeMillis();
 
         try {
             response = post(tokenEndpointUrl, socketFactory, hostnameVerifier, authorization,
                     "application/x-www-form-urlencoded", body.toString(), JsonNode.class, connectTimeoutSeconds, readTimeoutSeconds);
-
+            addGrantsHttpMetricSuccessTime(startTime);
         } catch (HttpException e) {
+            addGrantsHttpMetricErrorTime(e, startTime);
             throw e;
         } catch (Exception e) {
+            addGrantsHttpMetricErrorTime(e, startTime);
             throw new RuntimeException("Failed to fetch authorization data from authorization server: ", e);
         }
 
@@ -731,4 +766,29 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
         }
         return super.acls(filter);
     }
+
+    private void addAuthzMetricSuccessTime(long startTime) {
+        if (enableMetrics) {
+            metrics.addTime(authzMetricKeyProducer.successKey(), System.currentTimeMillis() - startTime);
+        }
+    }
+
+    private void addAuthzMetricErrorTime(Throwable e, long startTime) {
+        if (enableMetrics) {
+            metrics.addTime(authzMetricKeyProducer.errorKey(e), System.currentTimeMillis() - startTime);
+        }
+    }
+
+    private void addGrantsHttpMetricSuccessTime(long startTime) {
+        if (enableMetrics) {
+            metrics.addTime(grantsMetricKeyProducer.successKey(), System.currentTimeMillis() - startTime);
+        }
+    }
+
+    private void addGrantsHttpMetricErrorTime(Throwable e, long startTime) {
+        if (enableMetrics) {
+            metrics.addTime(grantsMetricKeyProducer.errorKey(e), System.currentTimeMillis() - startTime);
+        }
+    }
+
 }

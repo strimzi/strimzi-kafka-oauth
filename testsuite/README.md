@@ -11,7 +11,7 @@ phase which is otherwise used when integration tests are intermingled in the sam
 Preparing
 =========
 
-Make sure that the following ports on your host machine are free: 9092, 2181 (Kafka), 8080, 8443 (Keycloak), 4444, 4445 (Hydra).
+Make sure that the following ports on your host machine are free: 9092, 2181 (Kafka), 8080, 8443 (Keycloak), 4444, 4445 (Hydra), 8091, 8090 (Mock OAuth Server).
 
 Then, you have to add some entries to your `/etc/hosts` file:
 
@@ -19,6 +19,7 @@ Then, you have to add some entries to your `/etc/hosts` file:
     127.0.0.1            hydra
     127.0.0.1            hydra-jwt
     127.0.0.1            kafka
+    127.0.0.1            mockoauth
 
 That's needed for host resolution, because Kafka brokers and Kafka clients connecting to Keycloak / Hydra have to use the 
 same hostname to ensure compatibility of generated access tokens.
@@ -150,6 +151,7 @@ Make sure that you added 'kafka', 'keycloak', and 'hydra' to your `/etc/hosts` a
     127.0.0.1    keycloak
     127.0.0.1    hydra
     127.0.0.1    hydra-jwt
+    127.0.0.1    mockoauth
 
 
 ### How to see Kafka log

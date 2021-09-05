@@ -7,6 +7,7 @@ package io.strimzi.kafka.oauth.common;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.math.BigInteger;
 import java.util.Random;
 
 public class IOUtil {
@@ -38,5 +39,25 @@ public class IOUtil {
             sb.append(Integer.toHexString(RANDOM.nextInt(16)));
         }
         return sb.toString();
+    }
+
+    public static String asHexString(byte[] bytes) {
+        StringBuilder sb = new StringBuilder(2 * bytes.length);
+        for (int i = 0; i < bytes.length; i++) {
+            int val = 0xFF & bytes[i];
+            if (val < 16) {
+                sb.append('0');
+            }
+            sb.append(Integer.toHexString(val));
+        }
+        return sb.toString();
+    }
+
+    public static String hashForObjects(Object... args) {
+        StringBuilder sb = new StringBuilder();
+        for (Object o: args) {
+            sb.append("|").append(o != null ? o : "\0\0\0");
+        }
+        return asHexString(BigInteger.valueOf(sb.toString().hashCode()).toByteArray());
     }
 }
