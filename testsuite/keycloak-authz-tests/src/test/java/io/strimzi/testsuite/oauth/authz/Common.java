@@ -232,6 +232,12 @@ public class Common {
             : buildConsumerConfigOAuthBearer(kafkaBootstrap, buildAuthConfigForOAuthBearer(name));
     }
 
+    Properties buildConsumerConfig(String kafkaBootstrap, boolean usePlain, String clientId, String secret) {
+        return usePlain ?
+                buildConsumerConfigPlain(kafkaBootstrap, buildAuthConfigForPlain(clientId, secret)) :
+                buildConsumerConfigOAuthBearer(kafkaBootstrap, buildAuthConfigForOAuthBearer(clientId));
+    }
+
     Map<String, String> buildAuthConfigForOAuthBearer(String name) {
         Map<String, String> config = new HashMap<>();
 

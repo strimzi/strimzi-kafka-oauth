@@ -140,15 +140,17 @@ public class OAuthKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder imp
 
                 // if PLAIN mechanism is used to communicate the OAuth token
                 Principals principals = Services.getInstance().getPrincipals();
-                OAuthKafkaPrincipal principal = (OAuthKafkaPrincipal) Services.getInstance().getCredentials().takeCredentials(server.getAuthorizationID());
+
+                // If the principal has already been stored in Principals, don't take it from Credentials
+                OAuthKafkaPrincipal principal = (OAuthKafkaPrincipal) principals.getPrincipal(saslServer);
                 if (principal != null) {
-                    principals.putPrincipal(saslServer, principal);
                     return principal;
                 }
 
-                // if principal is required by request / thread other than the one that was just authenticated
-                principal = (OAuthKafkaPrincipal) principals.getPrincipal(saslServer);
+                // Take it from Credentials - it shuld be present there, and store it in Principals for any subsequent use
+                principal = (OAuthKafkaPrincipal) Services.getInstance().getCredentials().takeCredentials(server.getAuthorizationID());
                 if (principal != null) {
+                    principals.putPrincipal(saslServer, principal);
                     return principal;
                 }
             }
