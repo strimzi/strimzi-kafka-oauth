@@ -18,7 +18,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ConnectException;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 
@@ -92,8 +91,8 @@ public class HttpUtil {
         HttpURLConnection con;
         try {
             con = (HttpURLConnection) uri.toURL().openConnection();
-        } catch (MalformedURLException e) {
-            throw new IllegalArgumentException("Malformed token endpoint url: " + uri);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to initialise connection to: " + uri, e);
         }
 
         if (con instanceof HttpsURLConnection) {
