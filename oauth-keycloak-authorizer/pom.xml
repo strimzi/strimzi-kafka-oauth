@@ -40,7 +40,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka_2.12</artifactId>
+            <artifactId>kafka_2.13</artifactId>
             <exclusions>
                 <exclusion>
                     <groupId>org.apache.zookeeper</groupId>

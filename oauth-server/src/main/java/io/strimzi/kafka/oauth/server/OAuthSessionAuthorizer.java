@@ -7,12 +7,24 @@ package io.strimzi.kafka.oauth.server;
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
 import io.strimzi.kafka.oauth.common.Config;
 import io.strimzi.kafka.oauth.common.TimeUtil;
-import kafka.network.RequestChannel;
+import org.apache.kafka.common.Endpoint;
+import org.apache.kafka.common.acl.AclBinding;
+import org.apache.kafka.common.acl.AclBindingFilter;
 import org.apache.kafka.common.security.auth.KafkaPrincipal;
+import org.apache.kafka.server.authorizer.AclCreateResult;
+import org.apache.kafka.server.authorizer.AclDeleteResult;
+import org.apache.kafka.server.authorizer.Action;
+import org.apache.kafka.server.authorizer.AuthorizableRequestContext;
+import org.apache.kafka.server.authorizer.AuthorizationResult;
+import org.apache.kafka.server.authorizer.Authorizer;
+import org.apache.kafka.server.authorizer.AuthorizerServerInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import scala.collection.immutable.Map;
-import scala.collection.immutable.Set;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.CompletionStage;
 
 import static io.strimzi.kafka.oauth.common.LogUtil.mask;
 
@@ -32,7 +44,7 @@ import static io.strimzi.kafka.oauth.common.LogUtil.mask;
  * authorizer using the <em>strimzi.authorizer.delegate.class.name</em> configuration property.
  * For example:
  * <pre>
- *     strimzi.authorizer.delegate.class.name=kafka.security.auth.SimpleAclAuthorizer
+ *     strimzi.authorizer.delegate.class.name=kafka.security.authorizer.AclAuthorizer
  * </pre>
  * The specified delegate authorizer should be configured according to its documentation, as if it was installed as the
  * main authorizer (using <em>authorizer.class.name</em>).
@@ -47,14 +59,14 @@ import static io.strimzi.kafka.oauth.common.LogUtil.mask;
  * <p>
  * This authorizer doesn't take <em>super.users</em> setting into account. When used without a delegate every user effectively becomes a super user.
  */
-@SuppressWarnings("deprecation")
-public class OAuthSessionAuthorizer implements kafka.security.auth.Authorizer {
+
+public class OAuthSessionAuthorizer implements Authorizer {
 
     static final Logger log = LoggerFactory.getLogger(OAuthSessionAuthorizer.class);
     static final Logger GRANT_LOG = LoggerFactory.getLogger(OAuthSessionAuthorizer.class.getName() + ".grant");
     static final Logger DENY_LOG = LoggerFactory.getLogger(OAuthSessionAuthorizer.class.getName() + ".deny");
 
-    private kafka.security.auth.Authorizer delegate;
+    private Authorizer delegate;
 
     @Override
     public void configure(java.util.Map<String, ?> configs) {
@@ -63,11 +75,11 @@ public class OAuthSessionAuthorizer implements kafka.security.auth.Authorizer {
         if (className != null) {
             try {
                 Class delegateClass = Thread.currentThread().getContextClassLoader().loadClass(className);
-                if (!kafka.security.auth.Authorizer.class.isAssignableFrom(delegateClass)) {
-                    throw new IllegalArgumentException("The class specified by " + ServerConfig.STRIMZI_AUTHORIZER_DELEGATE_CLASS_NAME + " is not an instance of kafka.security.auth.Authorizer");
+                if (!Authorizer.class.isAssignableFrom(delegateClass)) {
+                    throw new IllegalArgumentException("The class specified by " + ServerConfig.STRIMZI_AUTHORIZER_DELEGATE_CLASS_NAME + " is not an instance of org.apache.kafka.server.authorizer.Authorizer");
                 }
 
-                delegate = (kafka.security.auth.Authorizer) delegateClass.<kafka.security.auth.Authorizer>newInstance();
+                delegate = (Authorizer) delegateClass.newInstance();
 
                 // Configure the delegate
                 delegate.configure(configs);
@@ -91,36 +103,36 @@ public class OAuthSessionAuthorizer implements kafka.security.auth.Authorizer {
     }
 
     @Override
-    public boolean authorize(RequestChannel.Session session, kafka.security.auth.Operation operation, kafka.security.auth.Resource resource) {
+    public List<AuthorizationResult> authorize(AuthorizableRequestContext requestContext, List<Action> actions) {
 
-        KafkaPrincipal principal = session.principal();
+        KafkaPrincipal principal = requestContext.principal();
 
         if (!(principal instanceof OAuthKafkaPrincipal)) {
             // If user wasn't authenticated over OAuth, there's nothing for us to check
             if (delegate != null) {
-                return delegate.authorize(session, operation, resource);
+                return delegate.authorize(requestContext, actions);
             } else {
                 if (GRANT_LOG.isDebugEnabled()) {
-                    GRANT_LOG.debug("Authorization GRANTED - no access token: " + session.principal() + ", operation: " + operation + ", resource: " + resource);
+                    GRANT_LOG.debug("Authorization GRANTED - no access token: " + principal + ", actions: " + actions);
                 }
-                return true;
+                return Collections.nCopies(actions.size(), AuthorizationResult.ALLOWED);
             }
         }
 
         BearerTokenWithPayload token = ((OAuthKafkaPrincipal) principal).getJwt();
 
         if (denyIfTokenInvalid(token)) {
-            return false;
+            return Collections.nCopies(actions.size(), AuthorizationResult.DENIED);
         }
 
         if (delegate == null) {
             if (GRANT_LOG.isDebugEnabled()) {
-                GRANT_LOG.debug("Authorization GRANTED - access token still valid: " + session.principal() + ", operation: " + operation + ", resource: " + resource + ", token: " + mask(token.value()));
+                GRANT_LOG.debug("Authorization GRANTED - access token still valid: " + principal + ", actions: " + actions + ", token: " + mask(token.value()));
             }
-            return true;
+            return Collections.nCopies(actions.size(), AuthorizationResult.ALLOWED);
         }
 
-        return delegate.authorize(session, operation, resource);
+        return delegate.authorize(requestContext, actions);
     }
 
     private boolean denyIfTokenInvalid(BearerTokenWithPayload token) {
@@ -135,37 +147,27 @@ public class OAuthSessionAuthorizer implements kafka.security.auth.Authorizer {
     }
 
     @Override
-    public void addAcls(Set<kafka.security.auth.Acl> acls, kafka.security.auth.Resource resource) {
-        delegate.addAcls(acls, resource);
-    }
-
-    @Override
-    public boolean removeAcls(Set<kafka.security.auth.Acl> acls, kafka.security.auth.Resource resource) {
-        return delegate.removeAcls(acls, resource);
-    }
-
-    @Override
-    public boolean removeAcls(kafka.security.auth.Resource resource) {
-        return delegate.removeAcls(resource);
-    }
-
-    @Override
-    public Set<kafka.security.auth.Acl> getAcls(kafka.security.auth.Resource resource) {
-        return delegate.getAcls(resource);
-    }
-
-    @Override
-    public Map<kafka.security.auth.Resource, Set<kafka.security.auth.Acl>> getAcls(KafkaPrincipal principal) {
-        return delegate.getAcls(principal);
-    }
-
-    @Override
-    public Map<kafka.security.auth.Resource, Set<kafka.security.auth.Acl>> getAcls() {
-        return delegate.getAcls();
-    }
-
-    @Override
-    public void close() {
+    public void close() throws IOException {
         delegate.close();
+    }
+
+    @Override
+    public java.util.Map<Endpoint, ? extends CompletionStage<Void>> start(AuthorizerServerInfo serverInfo) {
+        return delegate.start(serverInfo);
+    }
+
+    @Override
+    public List<? extends CompletionStage<AclCreateResult>> createAcls(AuthorizableRequestContext requestContext, List<AclBinding> aclBindings) {
+        return delegate.createAcls(requestContext, aclBindings);
+    }
+
+    @Override
+    public List<? extends CompletionStage<AclDeleteResult>> deleteAcls(AuthorizableRequestContext requestContext, List<AclBindingFilter> aclBindingFilters) {
+        return delegate.deleteAcls(requestContext, aclBindingFilters);
+    }
+
+    @Override
+    public Iterable<AclBinding> acls(AclBindingFilter filter) {
+        return delegate.acls(filter);
     }
 }
