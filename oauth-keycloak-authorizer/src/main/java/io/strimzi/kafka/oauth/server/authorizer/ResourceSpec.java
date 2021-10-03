@@ -12,11 +12,11 @@ import java.util.Locale;
 public class ResourceSpec {
 
     public enum ResourceType {
-        Topic,
-        Group,
-        Cluster,
-        TransactionalId,
-        DelegationToken
+        TOPIC,
+        GROUP,
+        CLUSTER,
+        TRANSACTIONAL_ID,
+        DELEGATION_TOKEN
     }
 
     private String clusterName;
@@ -123,15 +123,15 @@ public class ResourceSpec {
             }
 
             if (type.equals("topic")) {
-                spec.resourceType = ResourceType.Topic;
+                spec.resourceType = ResourceType.TOPIC;
             } else if (type.equals("group")) {
-                spec.resourceType = ResourceType.Group;
+                spec.resourceType = ResourceType.GROUP;
             } else if (type.equals("cluster")) {
-                spec.resourceType = ResourceType.Cluster;
+                spec.resourceType = ResourceType.CLUSTER;
             } else if (type.equals("transactionalid")) {
-                spec.resourceType = ResourceType.TransactionalId;
+                spec.resourceType = ResourceType.TRANSACTIONAL_ID;
             } else if (type.equals("delegationtoken")) {
-                spec.resourceType = ResourceType.DelegationToken;
+                spec.resourceType = ResourceType.DELEGATION_TOKEN;
             } else {
                 throw new RuntimeException("Failed to parse Resource: " + name + " - unsupported segment type: " + subSpec[0]);
             }

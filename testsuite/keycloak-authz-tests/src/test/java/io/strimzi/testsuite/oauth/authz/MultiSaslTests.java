@@ -35,10 +35,10 @@ public class MultiSaslTests {
         // Producing to PLAIN listener using SASL/PLAIN should succeed.
         // The necessary ACLs have been added by 'docker/kafka-acls/scripts/add-acls.sh'
         Properties producerProps = producerConfigPlain(KAFKA_PLAIN_LISTENER, username, password);
-        produceToTopic("KeycloakAuthenticationTest-multiSaslTest-plain", producerProps);
+        produceToTopic("KeycloakAuthorizationTest-multiSaslTest-plain", producerProps);
 
         try {
-            produceToTopic("KeycloakAuthenticationTest-multiSaslTest-plain-denied", producerProps);
+            produceToTopic("KeycloakAuthorizationTest-multiSaslTest-plain-denied", producerProps);
             Assert.fail("Should have failed");
         } catch (Exception ignored) {
         }
@@ -47,7 +47,7 @@ public class MultiSaslTests {
         // User 'bobby' has not been configured for SCRAM in 'docker/kafka/scripts/start.sh'
         producerProps = producerConfigScram(KAFKA_SCRAM_LISTENER, username, password);
         try {
-            produceToTopic("KeycloakAuthenticationTest-multiSaslTest-scram", producerProps);
+            produceToTopic("KeycloakAuthorizationTest-multiSaslTest-scram", producerProps);
             Assert.fail("Should have failed");
         } catch (Exception ignored) {
         }
@@ -61,7 +61,7 @@ public class MultiSaslTests {
         // User 'alice' has not been configured for PLAIN in PLAIN listener configuration in 'docker-compose.yml'
         producerProps = producerConfigPlain(KAFKA_PLAIN_LISTENER, username, password);
         try {
-            produceToTopic("KeycloakAuthenticationTest-multiSaslTest-plain", producerProps);
+            produceToTopic("KeycloakAuthorizationTest-multiSaslTest-plain", producerProps);
             Assert.fail("Should have failed");
         } catch (Exception ignored) {
         }
@@ -69,9 +69,9 @@ public class MultiSaslTests {
         // Producing to SCRAM listener using SASL_SCRAM-SHA-512 should succeed.
         // The necessary ACLs have been added by 'docker/kafka-acls/scripts/add-acls.sh'
         producerProps = producerConfigScram(KAFKA_SCRAM_LISTENER, username, password);
-        produceToTopic("KeycloakAuthenticationTest-multiSaslTest-scram", producerProps);
+        produceToTopic("KeycloakAuthorizationTest-multiSaslTest-scram", producerProps);
         try {
-            produceToTopic("KeycloakAuthenticationTest-multiSaslTest-scram-denied", producerProps);
+            produceToTopic("KeycloakAuthorizationTest-multiSaslTest-scram-denied", producerProps);
             Assert.fail("Should have failed");
         } catch (Exception ignored) {
         }
@@ -95,7 +95,7 @@ public class MultiSaslTests {
         // User 'alice' was not configured for PLAIN in 'docker-compose.yml'
         producerProps = producerConfigPlain(KAFKA_PLAIN_LISTENER, username, password);
         try {
-            produceToTopic("KeycloakAuthenticationTest-multiSaslTest-plain", producerProps);
+            produceToTopic("KeycloakAuthorizationTest-multiSaslTest-plain", producerProps);
             Assert.fail("Should have failed");
         } catch (Exception ignored) {
         }
@@ -104,7 +104,7 @@ public class MultiSaslTests {
         // User 'alice' was configured for SASL in 'docker/kafka/scripts/start.sh' but with a different password
         producerProps = producerConfigScram(KAFKA_SCRAM_LISTENER, username, password);
         try {
-            produceToTopic("KeycloakAuthenticationTest-multiSaslTest-scram", producerProps);
+            produceToTopic("KeycloakAuthorizationTest-multiSaslTest-scram", producerProps);
             Assert.fail("Should have failed");
         } catch (Exception ignored) {
         }
@@ -114,11 +114,11 @@ public class MultiSaslTests {
                 URI.create("http://keycloak:8080/auth/realms/kafka-authz/protocol/openid-connect/token"),
                 username, password, "kafka-cli");
         producerProps = producerConfigOAuthBearerAccessToken(KAFKA_JWT_LISTENER, accessToken);
-        produceToTopic("KeycloakAuthenticationTest-multiSaslTest-oauthbearer", producerProps);
+        produceToTopic("KeycloakAuthorizationTest-multiSaslTest-oauthbearer", producerProps);
 
         // producing to JWTPLAIN listener using SASL/PLAIN using $accessToken should succeed
         producerProps = producerConfigPlain(KAFKA_JWTPLAIN_LISTENER, username, "$accessToken:" + accessToken);
-        produceToTopic("KeycloakAuthenticationTest-multiSaslTest-oauth-over-plain", producerProps);
+        produceToTopic("KeycloakAuthorizationTest-multiSaslTest-oauth-over-plain", producerProps);
     }
 
     private static Properties producerConfigScram(String kafkaBootstrap, String username, String password) {

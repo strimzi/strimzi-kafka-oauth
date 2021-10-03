@@ -280,6 +280,7 @@ public class Common {
         p.setProperty(ProducerConfig.ACKS_CONFIG, "all");
         p.setProperty(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, "5000");
         p.setProperty(ProducerConfig.RETRIES_CONFIG, "10");
+        p.setProperty(ProducerConfig.MAX_BLOCK_MS_CONFIG, "300000");
     }
 
     static Properties buildConsumerConfigOAuthBearer(String kafkaBootstrap, Map<String, String> oauthConfig) {
