@@ -322,13 +322,25 @@
         <profile>
             <id>kafka-2_7_1</id>
             <properties>
-                <kafka.docker.image>quay.io/strimzi/kafka:0.23.0-kafka-2.7.1</kafka.docker.image>
+                <kafka.docker.image>quay.io/strimzi/kafka:0.25.0-kafka-2.7.1</kafka.docker.image>
             </properties>
         </profile>
         <profile>
             <id>kafka-2_8_0</id>
             <properties>
-                <kafka.docker.image>quay.io/strimzi/kafka:0.23.0-kafka-2.8.0</kafka.docker.image>
+                <kafka.docker.image>quay.io/strimzi/kafka:0.25.0-kafka-2.8.0</kafka.docker.image>
+            </properties>
+        </profile>
+        <profile>
+            <id>kafka-2_8_1</id>
+            <properties>
+                <kafka.docker.image>quay.io/strimzi/kafka:latest-kafka-2.8.1</kafka.docker.image>
+            </properties>
+        </profile>
+        <profile>
+            <id>kafka-3_0_0</id>
+            <properties>
+                <kafka.docker.image>quay.io/strimzi/kafka:latest-kafka-3.0.0</kafka.docker.image>
             </properties>
         </profile>
         <profile>
