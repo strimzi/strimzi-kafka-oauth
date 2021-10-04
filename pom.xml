@@ -81,7 +81,6 @@
         <sonatype.nexus.staging>1.6.3</sonatype.nexus.staging>
 
         <kafka.version>3.0.0</kafka.version>
-        <scala.version>2.13.6</scala.version>
         <jackson.version>2.10.5</jackson.version>
         <jackson.databind.version>2.10.5.1</jackson.databind.version>
         <jsonpath.version>2.6.0</jsonpath.version>
@@ -133,11 +132,6 @@
                 <groupId>org.apache.kafka</groupId>
                 <artifactId>kafka_2.13</artifactId>
                 <version>${kafka.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.scala-lang</groupId>
-                <artifactId>scala-library</artifactId>
-                <version>${scala.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.strimzi</groupId>
@@ -405,7 +399,6 @@
             </activation>
             <properties>
                 <kafka.version>2.4.0</kafka.version>
-                <scala.version>2.12.10</scala.version>
             </properties>
         </profile>
     </profiles>

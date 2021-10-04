@@ -429,7 +429,7 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
                                     JSONUtil.asListOfString(scopes)));
 
                     if (scopes == null || grantedScopes.isGranted(action.operation().name())) {
-                        if (GRANT_LOG.isDebugEnabled()) {
+                        if (GRANT_LOG.isDebugEnabled() && action.logIfAllowed()) {
                             GRANT_LOG.debug("Authorization GRANTED - cluster: " + clusterName + ", user: " + requestContext.principal() +
                                     ", operation: " + action.operation() + ", resource: " + fromResourcePattern(action.resourcePattern()) +
                                     "\nGranted scopes for resource (" + resourceSpec + "): " + (grantedScopes == null ? "ALL" : grantedScopes));
@@ -519,9 +519,11 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
 
         if (DENY_LOG.isDebugEnabled()) {
             for (Action action: actions) {
-                DENY_LOG.debug("Authorization DENIED -" + nonAuthMessageFragment + " user: " + context.principal() +
-                        ", cluster: " + clusterName + ", operation: " + action.operation() +
-                        ", resource: " + fromResourcePattern(action.resourcePattern()) + ",\n permissions: " + authz);
+                if (action.logIfDenied()) {
+                    DENY_LOG.debug("Authorization DENIED -" + nonAuthMessageFragment + " user: " + context.principal() +
+                            ", cluster: " + clusterName + ", operation: " + action.operation() +
+                            ", resource: " + fromResourcePattern(action.resourcePattern()) + ",\n permissions: " + authz);
+                }
             }
         }
         return Collections.nCopies(actions.size(), AuthorizationResult.DENIED);
