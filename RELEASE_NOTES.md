@@ -1,6 +1,36 @@
 Release Notes
 =============
 
+0.9.0
+-----
+
+### KeycloakRBACAuthorizer and OAuthSessionAuthorizer migrated to KIP-504
+
+The authorizers have been migrated to Authorizer API that has been introduced in Kafka 2.4.0. 
+As a result the authorizer no longer works in Kafka 2.3.x and earlier versions.
+
+The logging to `.grant` and `.deny` logs now takes into account hints from Kafka about whether the authorization decision for specific action should be logged or not.
+
+### Fixed a parsing bug in KeycloakRBACAuthorizer 
+
+Fixed a bug when parsing a `kafka-cluster` section of a Keycloak authorization services resource pattern.
+
+If Keycloak authorization services grants were targeted using a pattern ending with `*` as in `kafka-cluster:*,Topic:my_topic` or `kafka-cluster:prod_*,Topic:my_topic`, the parsing was invalid and resulted in matching of the grant rule to always fail (authorization was denied).
+
+Using just `Topic:my_topic` would correctly match any cluster, and `kafka-cluster:my-cluster,Topic:my_topic` would match only if `my-cluster` was set as a cluster name.
+
+### Fixed concurrency issue with OAuth over PLAIN
+
+If multiple producers or consumers were used concurrently with the same credentials there was a high likelihood of principal presenting as KafkaPrincipal rather than OAuthKafkaPrincipal after successful authentication. As a result, custom authorizer would not recognise and properly match such a session during authorization check. Depending on the custom authorizer it could result in the delegation of authorization decisions to ACL Authorizer, or it might result in denial of permissions.
+
+### Improved error reporting when using Quarkus native without the https enabled
+
+When preparing an https connection to authorization server the reported error would say that the URL was malformed, and the actual cause was not logged.
+
+### Token type check now also passes if 'token_type: "Bearer"' claim is present in JWT token
+
+By default enabled option `oauth.check.access.token.type` triggeres a token type check which checks that the value of `typ` claim in JWT token is set to `Bearer`. If `typ` claim is not present it now falls back to checking if `token_type` claim with value `Bearer` is present in the access token.
+
 0.8.0
 -----
 

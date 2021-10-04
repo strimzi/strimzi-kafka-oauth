@@ -159,15 +159,8 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
     private boolean delegateToKafkaACL = false;
 
     // Turning it to false will not enforce access token expiry time (only for debugging purposes during development)
-    private boolean denyWhenTokenInvalid = true;
+    private final boolean denyWhenTokenInvalid = true;
 
-    // Less or equal zero means to never check
-    private int grantsRefreshPeriodSeconds;
-
-    // Number of threads that can perform token endpoint requests at the same time
-    private int grantsRefreshPoolSize;
-
-    private ScheduledExecutorService periodicScheduler;
     private ExecutorService workerPool;
 
 
@@ -224,15 +217,18 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
                     .collect(Collectors.toList());
         }
 
-        grantsRefreshPoolSize = config.getValueAsInt(AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_REFRESH_POOL_SIZE, 5);
+        // Number of threads that can perform token endpoint requests at the same time
+        final int grantsRefreshPoolSize = config.getValueAsInt(AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_REFRESH_POOL_SIZE, 5);
         if (grantsRefreshPoolSize < 1) {
             throw new RuntimeException("Invalid value of 'strimzi.authorization.grants.refresh.pool.size': " + grantsRefreshPoolSize + ". Has to be >= 1.");
         }
-        grantsRefreshPeriodSeconds = config.getValueAsInt(AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_REFRESH_PERIOD_SECONDS, 60);
+
+        // Less or equal zero means to never check
+        final int grantsRefreshPeriodSeconds = config.getValueAsInt(AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_REFRESH_PERIOD_SECONDS, 60);
 
         if (grantsRefreshPeriodSeconds > 0) {
             workerPool = Executors.newFixedThreadPool(grantsRefreshPoolSize);
-            periodicScheduler = setupRefreshGrantsJob(grantsRefreshPeriodSeconds);
+            setupRefreshGrantsJob(grantsRefreshPeriodSeconds);
         }
 
         if (!Services.isAvailable()) {
@@ -439,7 +435,7 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
                     }
                 }
             }
-            results.addAll(delegateIfRequested(requestContext, Arrays.asList(action), grants));
+            results.addAll(delegateIfRequested(requestContext, Collections.singletonList(action), grants));
         }
 
         return results;
@@ -552,13 +548,11 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
         return response;
     }
 
-    private ScheduledExecutorService setupRefreshGrantsJob(int refreshSeconds) {
+    private void setupRefreshGrantsJob(int refreshSeconds) {
         // Set up periodic timer to fetch grants for active sessions every refresh seconds
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(new DaemonThreadFactory());
 
         scheduler.scheduleAtFixedRate(this::refreshGrants, refreshSeconds, refreshSeconds, TimeUnit.SECONDS);
-
-        return scheduler;
     }
 
     private void refreshGrants() {
@@ -586,9 +580,9 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
             };
 
             Sessions sessions = Services.getInstance().getSessions();
-            List<SessionFuture> scheduled = scheduleGrantsRefresh(filter, sessions);
+            List<SessionFuture<?>> scheduled = scheduleGrantsRefresh(filter, sessions);
 
-            for (SessionFuture f: scheduled) {
+            for (SessionFuture<?> f: scheduled) {
                 try {
                     f.get();
                 } catch (ExecutionException e) {
@@ -646,8 +640,8 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
         }
     }
 
-    private List<SessionFuture> scheduleGrantsRefresh(Predicate<BearerTokenWithPayload> filter, Sessions sessions) {
-        List<SessionFuture> scheduled = sessions.executeTask(workerPool, filter, token -> {
+    private List<SessionFuture<?>> scheduleGrantsRefresh(Predicate<BearerTokenWithPayload> filter, Sessions sessions) {
+        return sessions.executeTask(workerPool, filter, token -> {
             if (log.isTraceEnabled()) {
                 log.trace("Fetch grants for session: " + token.getSessionId() + ", token: " + mask(token.value()));
             }
@@ -671,7 +665,6 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
                 token.setPayload(newGrants);
             }
         });
-        return scheduled;
     }
 
     @Override

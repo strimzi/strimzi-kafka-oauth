@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
@@ -74,17 +75,17 @@ public class OAuthSessionAuthorizer implements Authorizer {
 
         if (className != null) {
             try {
-                Class delegateClass = Thread.currentThread().getContextClassLoader().loadClass(className);
+                Class<?> delegateClass = Thread.currentThread().getContextClassLoader().loadClass(className);
                 if (!Authorizer.class.isAssignableFrom(delegateClass)) {
                     throw new IllegalArgumentException("The class specified by " + ServerConfig.STRIMZI_AUTHORIZER_DELEGATE_CLASS_NAME + " is not an instance of org.apache.kafka.server.authorizer.Authorizer");
                 }
 
-                delegate = (Authorizer) delegateClass.newInstance();
+                delegate = (Authorizer) delegateClass.getConstructor().newInstance();
 
                 // Configure the delegate
                 delegate.configure(configs);
 
-            } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+            } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
                 throw new RuntimeException("Failed to instantiate and configure the delegate authorizer: " + className, e);
             }
         } else {

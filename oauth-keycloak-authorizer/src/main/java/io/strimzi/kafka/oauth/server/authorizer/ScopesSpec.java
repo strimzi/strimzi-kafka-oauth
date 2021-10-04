@@ -22,7 +22,7 @@ public class ScopesSpec {
         CLUSTER_ACTION,
         IDEMPOTENT_WRITE;
 
-        public static final AuthzScope of(String grantValue) {
+        public static AuthzScope of(String grantValue) {
             final String value = grantValue.toUpperCase(Locale.ROOT);
             switch (value) {
                 case "ALTERCONFIGS":
@@ -39,7 +39,7 @@ public class ScopesSpec {
         }
     }
 
-    private EnumSet<AuthzScope> granted;
+    private final EnumSet<AuthzScope> granted;
 
     private ScopesSpec(EnumSet<AuthzScope> grants) {
         this.granted = grants;

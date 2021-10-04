@@ -29,7 +29,7 @@ public class Sessions {
      * The WeakHashMap is used to not prevent JVM from garbage collecting the completed and otherwise terminated sessions,
      * while we're still able to iterate over the active sessions.
      */
-    private Map<BearerTokenWithPayload, Object> activeSessions = Collections.synchronizedMap(new WeakHashMap<>());
+    private final Map<BearerTokenWithPayload, Object> activeSessions = Collections.synchronizedMap(new WeakHashMap<>());
 
     public void put(BearerTokenWithPayload token) {
         activeSessions.put(token, NONE);
@@ -39,7 +39,7 @@ public class Sessions {
         activeSessions.remove(token);
     }
 
-    public List<SessionFuture> executeTask(ExecutorService executor, Predicate<BearerTokenWithPayload> filter,
+    public List<SessionFuture<?>> executeTask(ExecutorService executor, Predicate<BearerTokenWithPayload> filter,
                                            Consumer<BearerTokenWithPayload> task) {
         cleanupExpired();
 
@@ -47,7 +47,7 @@ public class Sessions {
         // we first make a local copy, then iterate over the copy
         ArrayList<BearerTokenWithPayload> values = new ArrayList<>(activeSessions.keySet());
 
-        List<SessionFuture> results = new ArrayList<>(values.size());
+        List<SessionFuture<?>> results = new ArrayList<>(values.size());
         for (BearerTokenWithPayload token: values) {
             if (filter.test(token)) {
                 SessionFuture<?> current = new SessionFuture<>(token, executor.submit(() -> task.accept(token)));

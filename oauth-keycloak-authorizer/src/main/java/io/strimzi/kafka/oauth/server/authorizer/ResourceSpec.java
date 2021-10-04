@@ -83,14 +83,10 @@ public class ResourceSpec {
             throw new IllegalArgumentException("name == null");
         }
         if (resourceStartsWith) {
-            if (!name.startsWith(resourceName)) {
-                return false;
-            }
-        } else if (!name.equals(resourceName)) {
-            return false;
+            return name.startsWith(resourceName);
+        } else {
+            return name.equals(resourceName);
         }
-
-        return true;
     }
 
     public static ResourceSpec of(String name) {
@@ -122,18 +118,24 @@ public class ResourceSpec {
                 throw new RuntimeException("Failed to parse Resource: " + name + " - resource part specified multiple times");
             }
 
-            if (type.equals("topic")) {
-                spec.resourceType = ResourceType.TOPIC;
-            } else if (type.equals("group")) {
-                spec.resourceType = ResourceType.GROUP;
-            } else if (type.equals("cluster")) {
-                spec.resourceType = ResourceType.CLUSTER;
-            } else if (type.equals("transactionalid")) {
-                spec.resourceType = ResourceType.TRANSACTIONAL_ID;
-            } else if (type.equals("delegationtoken")) {
-                spec.resourceType = ResourceType.DELEGATION_TOKEN;
-            } else {
-                throw new RuntimeException("Failed to parse Resource: " + name + " - unsupported segment type: " + subSpec[0]);
+            switch (type) {
+                case "topic":
+                    spec.resourceType = ResourceType.TOPIC;
+                    break;
+                case "group":
+                    spec.resourceType = ResourceType.GROUP;
+                    break;
+                case "cluster":
+                    spec.resourceType = ResourceType.CLUSTER;
+                    break;
+                case "transactionalid":
+                    spec.resourceType = ResourceType.TRANSACTIONAL_ID;
+                    break;
+                case "delegationtoken":
+                    spec.resourceType = ResourceType.DELEGATION_TOKEN;
+                    break;
+                default:
+                    throw new RuntimeException("Failed to parse Resource: " + name + " - unsupported segment type: " + subSpec[0]);
             }
 
             if (pat.endsWith("*")) {
