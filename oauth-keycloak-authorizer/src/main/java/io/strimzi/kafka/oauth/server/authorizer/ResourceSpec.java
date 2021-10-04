@@ -110,7 +110,7 @@ public class ResourceSpec {
                     throw new RuntimeException("Failed to parse Resource: " + name + " - cluster part specified multiple times");
                 }
                 if (pat.endsWith("*")) {
-                    spec.clusterName = pat.substring(pat.length() - 1);
+                    spec.clusterName = pat.substring(0, pat.length() - 1);
                     spec.clusterStartsWith = true;
                 } else {
                     spec.clusterName = pat;
