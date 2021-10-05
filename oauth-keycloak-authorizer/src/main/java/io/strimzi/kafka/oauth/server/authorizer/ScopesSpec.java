@@ -6,23 +6,40 @@ package io.strimzi.kafka.oauth.server.authorizer;
 
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Locale;
 
 public class ScopesSpec {
 
     public enum AuthzScope {
-        Create,
-        Read,
-        Write,
-        Delete,
-        Alter,
-        Describe,
-        AlterConfigs,
-        DescribeConfigs,
-        ClusterAction,
-        IdempotentWrite
+        CREATE,
+        READ,
+        WRITE,
+        DELETE,
+        ALTER,
+        DESCRIBE,
+        ALTER_CONFIGS,
+        DESCRIBE_CONFIGS,
+        CLUSTER_ACTION,
+        IDEMPOTENT_WRITE;
+
+        public static AuthzScope of(String grantValue) {
+            final String value = grantValue.toUpperCase(Locale.ROOT);
+            switch (value) {
+                case "ALTERCONFIGS":
+                    return ALTER_CONFIGS;
+                case "DESCRIBECONFIGS":
+                    return DESCRIBE_CONFIGS;
+                case "CLUSTERACTION":
+                    return CLUSTER_ACTION;
+                case "IDEMPOTENTWRITE":
+                    return IDEMPOTENT_WRITE;
+                default:
+                    return AuthzScope.valueOf(value);
+            }
+        }
     }
 
-    private EnumSet<AuthzScope> granted;
+    private final EnumSet<AuthzScope> granted;
 
     private ScopesSpec(EnumSet<AuthzScope> grants) {
         this.granted = grants;

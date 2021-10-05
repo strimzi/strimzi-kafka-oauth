@@ -19,11 +19,20 @@ import io.strimzi.kafka.oauth.services.SessionFuture;
 import io.strimzi.kafka.oauth.services.Sessions;
 import io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder;
 import io.strimzi.kafka.oauth.validator.DaemonThreadFactory;
-import kafka.network.RequestChannel;
+import kafka.security.authorizer.AclAuthorizer;
+import org.apache.kafka.common.Endpoint;
+import org.apache.kafka.common.acl.AclBinding;
+import org.apache.kafka.common.acl.AclBindingFilter;
+import org.apache.kafka.common.resource.ResourcePattern;
 import org.apache.kafka.common.security.auth.KafkaPrincipal;
+import org.apache.kafka.server.authorizer.AclCreateResult;
+import org.apache.kafka.server.authorizer.AclDeleteResult;
+import org.apache.kafka.server.authorizer.Action;
+import org.apache.kafka.server.authorizer.AuthorizableRequestContext;
+import org.apache.kafka.server.authorizer.AuthorizationResult;
+import org.apache.kafka.server.authorizer.AuthorizerServerInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import scala.collection.immutable.Set;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSocketFactory;
@@ -35,6 +44,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
@@ -42,6 +53,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -89,7 +101,7 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
  * <li><em>strimzi.authorization.kafka.cluster.name</em> The name of this cluster, used to target permissions to specific Kafka cluster, making it possible to manage multiple clusters within the same Keycloak realm.<br>
  * The default value is <em>kafka-cluster</em>
  * </li>
- * <li><em>strimzi.authorization.delegate.to.kafka.acl</em> Whether authorization decision should be delegated to SimpleACLAuthorizer if DENIED by Keycloak Authorization Services policies.<br>
+ * <li><em>strimzi.authorization.delegate.to.kafka.acl</em> Whether authorization decision should be delegated to ACLAuthorizer if DENIED by Keycloak Authorization Services policies.<br>
  * The default value is <em>false</em>
  * </li>
  * </ul>
@@ -129,7 +141,7 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
  * </p>
  */
 @SuppressWarnings("deprecation")
-public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthorizer {
+public class KeycloakRBACAuthorizer extends AclAuthorizer {
 
     private static final String PRINCIPAL_BUILDER_CLASS = OAuthKafkaPrincipalBuilder.class.getName();
     private static final String DEPRECATED_PRINCIPAL_BUILDER_CLASS = JwtKafkaPrincipalBuilder.class.getName();
@@ -147,15 +159,8 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
     private boolean delegateToKafkaACL = false;
 
     // Turning it to false will not enforce access token expiry time (only for debugging purposes during development)
-    private boolean denyWhenTokenInvalid = true;
+    private final boolean denyWhenTokenInvalid = true;
 
-    // Less or equal zero means to never check
-    private int grantsRefreshPeriodSeconds;
-
-    // Number of threads that can perform token endpoint requests at the same time
-    private int grantsRefreshPoolSize;
-
-    private ScheduledExecutorService periodicScheduler;
     private ExecutorService workerPool;
 
 
@@ -212,15 +217,18 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
                     .collect(Collectors.toList());
         }
 
-        grantsRefreshPoolSize = config.getValueAsInt(AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_REFRESH_POOL_SIZE, 5);
+        // Number of threads that can perform token endpoint requests at the same time
+        final int grantsRefreshPoolSize = config.getValueAsInt(AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_REFRESH_POOL_SIZE, 5);
         if (grantsRefreshPoolSize < 1) {
             throw new RuntimeException("Invalid value of 'strimzi.authorization.grants.refresh.pool.size': " + grantsRefreshPoolSize + ". Has to be >= 1.");
         }
-        grantsRefreshPeriodSeconds = config.getValueAsInt(AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_REFRESH_PERIOD_SECONDS, 60);
+
+        // Less or equal zero means to never check
+        final int grantsRefreshPeriodSeconds = config.getValueAsInt(AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_REFRESH_PERIOD_SECONDS, 60);
 
         if (grantsRefreshPeriodSeconds > 0) {
             workerPool = Executors.newFixedThreadPool(grantsRefreshPoolSize);
-            periodicScheduler = setupRefreshGrantsJob(grantsRefreshPeriodSeconds);
+            setupRefreshGrantsJob(grantsRefreshPeriodSeconds);
         }
 
         if (!Services.isAvailable()) {
@@ -322,35 +330,36 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
      * Should that not be the case, the side effect could be to make more calls to token endpoint than necessary.
      * Other than that it should not affect proper functioning of this authorizer.
      *
-     * @param session Current session
-     * @param operation Operation to authorize
-     * @param resource Resource to authorize
-     * @return true if permission is granted
+     * @param requestContext Request context including request type, security protocol and listener name
+     * @param actions Actions being authorized including resource and operation for each action
+     * @return List of authorization results for each action in the same order as the provided actions
      */
-    @Override
-    public boolean authorize(RequestChannel.Session session, kafka.security.auth.Operation operation, kafka.security.auth.Resource resource) {
+    public List<AuthorizationResult> authorize(AuthorizableRequestContext requestContext, List<Action> actions) {
 
         JsonNode grants = null;
 
         try {
-            KafkaPrincipal principal = session.principal();
+            KafkaPrincipal principal = requestContext.principal();
 
             for (UserSpec u : superUsers) {
                 if (principal.getPrincipalType().equals(u.getType())
                         && principal.getName().equals(u.getName())) {
 
-                    // It's a super user. super users are granted everything
-                    if (GRANT_LOG.isDebugEnabled()) {
-                        GRANT_LOG.debug("Authorization GRANTED - user is a superuser: " + session.principal() + ", operation: " + operation + ", resource: " + resource);
+                    for (Action action: actions) {
+                        // It's a super user. super users are granted everything
+                        if (GRANT_LOG.isDebugEnabled() && action.logIfAllowed()) {
+                            GRANT_LOG.debug("Authorization GRANTED - user is a superuser: " + requestContext.principal() +
+                                    ", cluster: " + clusterName + ", operation: " + action.operation() + ", resource: " + fromResourcePattern(action.resourcePattern()));
+                        }
                     }
-                    return true;
+                    return Collections.nCopies(actions.size(), AuthorizationResult.ALLOWED);
                 }
             }
 
             if (!(principal instanceof OAuthKafkaPrincipal)) {
                 // If user wasn't authenticated over OAuth, and simple ACL delegation is enabled
                 // we delegate to simple ACL
-                return delegateIfRequested(session, operation, resource, null);
+                return delegateIfRequested(requestContext, actions, null);
             }
 
             //
@@ -363,7 +372,7 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
             BearerTokenWithPayload token = jwtPrincipal.getJwt();
 
             if (denyIfTokenInvalid(token)) {
-                return false;
+                return Collections.nCopies(actions.size(), AuthorizationResult.DENIED);
             }
 
             grants = (JsonNode) token.getPayload();
@@ -376,42 +385,60 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
                 log.debug("Authorization grants for user {}: {}", principal, grants);
             }
 
-            //
-            // Iterate authorization rules and try to find a match
-            //
-
             if (grants != null) {
-                for (JsonNode permission: grants) {
-                    String name = permission.get("rsname").asText();
-                    ResourceSpec resourceSpec = ResourceSpec.of(name);
-                    if (resourceSpec.match(clusterName, resource.resourceType().name(), resource.name())) {
-
-                        JsonNode scopes = permission.get("scopes");
-                        ScopesSpec grantedScopes = scopes == null ? null : ScopesSpec.of(
-                                validateScopes(
-                                        JSONUtil.asListOfString(scopes)));
-
-                        if (scopes == null || grantedScopes.isGranted(operation.name())) {
-                            if (GRANT_LOG.isDebugEnabled()) {
-                                GRANT_LOG.debug("Authorization GRANTED - cluster: " + clusterName + ", user: " + session.principal() + ", operation: " + operation +
-                                        ", resource: " + resource + "\nGranted scopes for resource (" + resourceSpec + "): " + (grantedScopes == null ? "ALL" : grantedScopes));
-                            }
-                            return true;
-                        }
-                    }
-                }
+                return allowOrDenyBasedOnGrants(requestContext, actions, grants);
             }
 
-            return delegateIfRequested(session, operation, resource, grants);
+            return delegateIfRequested(requestContext, actions, null);
 
         } catch (Throwable t) {
             log.error("An unexpected exception has occurred: ", t);
             if (DENY_LOG.isDebugEnabled()) {
-                DENY_LOG.debug("Authorization DENIED due to error - user: " + session.principal() +
-                        ", cluster: " + clusterName + ", operation: " + operation + ", resource: " + resource + ",\n permissions: " + grants);
+                DENY_LOG.debug("Authorization DENIED due to error - user: " + requestContext.principal() +
+                        ", cluster: " + clusterName + ", actions: " + actions + ",\n permissions: " + grants);
             }
-            return false;
+            return Collections.nCopies(actions.size(), AuthorizationResult.DENIED);
         }
+    }
+
+    private String fromResourcePattern(ResourcePattern pattern) {
+        return pattern.resourceType() + ":" + pattern.name();
+    }
+
+
+    private List<AuthorizationResult> allowOrDenyBasedOnGrants(AuthorizableRequestContext requestContext, List<Action> actions, JsonNode grants) {
+        List<AuthorizationResult> results = new ArrayList<>(actions.size());
+
+        //
+        // Iterate authorization rules and try to find a match
+        //
+        action_loop:
+        for (Action action: actions) {
+            for (JsonNode permission : grants) {
+                String name = permission.get("rsname").asText();
+                ResourceSpec resourceSpec = ResourceSpec.of(name);
+                if (resourceSpec.match(clusterName, action.resourcePattern().resourceType().name(), action.resourcePattern().name())) {
+
+                    JsonNode scopes = permission.get("scopes");
+                    ScopesSpec grantedScopes = scopes == null ? null : ScopesSpec.of(
+                            validateScopes(
+                                    JSONUtil.asListOfString(scopes)));
+
+                    if (scopes == null || grantedScopes.isGranted(action.operation().name())) {
+                        if (GRANT_LOG.isDebugEnabled() && action.logIfAllowed()) {
+                            GRANT_LOG.debug("Authorization GRANTED - cluster: " + clusterName + ", user: " + requestContext.principal() +
+                                    ", operation: " + action.operation() + ", resource: " + fromResourcePattern(action.resourcePattern()) +
+                                    "\nGranted scopes for resource (" + resourceSpec + "): " + (grantedScopes == null ? "ALL" : grantedScopes));
+                        }
+                        results.add(AuthorizationResult.ALLOWED);
+                        continue action_loop;
+                    }
+                }
+            }
+            results.addAll(delegateIfRequested(requestContext, Collections.singletonList(action), grants));
+        }
+
+        return results;
     }
 
     private boolean denyIfTokenInvalid(BearerTokenWithPayload token) {
@@ -451,7 +478,7 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
         List<ScopesSpec.AuthzScope> enumScopes = new ArrayList<>(scopes.size());
         for (String name: scopes) {
             try {
-                enumScopes.add(ScopesSpec.AuthzScope.valueOf(name));
+                enumScopes.add(ScopesSpec.AuthzScope.of(name));
             } catch (Exception e) {
                 log.warn("[IGNORED] Invalid scope detected in authorization scopes list: " + name);
             }
@@ -459,32 +486,43 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
         return enumScopes;
     }
 
-    private boolean delegateIfRequested(RequestChannel.Session session, kafka.security.auth.Operation operation, kafka.security.auth.Resource resource, JsonNode authz) {
-        String nonAuthMessageFragment = session.principal() instanceof OAuthKafkaPrincipal ? "" : " non-oauth";
+    private List<AuthorizationResult> delegateIfRequested(AuthorizableRequestContext context, List<Action> actions, JsonNode authz) {
+        String nonAuthMessageFragment = context.principal() instanceof OAuthKafkaPrincipal ? "" : " non-oauth";
         if (delegateToKafkaACL) {
-            boolean granted = super.authorize(session, operation, resource);
+            List<AuthorizationResult> results = super.authorize(context, actions);
 
-            boolean grantLogOn = granted && GRANT_LOG.isDebugEnabled();
-            boolean denyLogOn = !granted && DENY_LOG.isDebugEnabled();
+            int i = 0;
+            for (AuthorizationResult result: results) {
+                Action action = actions.get(i);
+                boolean grantLogOn = result == AuthorizationResult.ALLOWED && GRANT_LOG.isDebugEnabled() && action.logIfAllowed();
+                boolean denyLogOn = result == AuthorizationResult.DENIED && DENY_LOG.isDebugEnabled() && action.logIfDenied();
 
-            if (grantLogOn || denyLogOn) {
-                String status = granted ? "GRANTED" : "DENIED";
-                String message = "Authorization " + status + " by ACL -" + nonAuthMessageFragment + " user: " + session.principal() + ", operation: " + operation + ", resource: " + resource;
+                if (grantLogOn || denyLogOn) {
+                    String status = result == AuthorizationResult.ALLOWED ? "GRANTED" : "DENIED";
+                    String message = "Authorization " + status + " by ACL -" + nonAuthMessageFragment + " user: " + context.principal() +
+                            ", operation: " + action.operation() + ", resource: " + fromResourcePattern(action.resourcePattern());
 
-                if (grantLogOn) {
-                    GRANT_LOG.debug(message);
-                } else {
-                    DENY_LOG.debug(message);
+                    if (grantLogOn) {
+                        GRANT_LOG.debug(message);
+                    } else {
+                        DENY_LOG.debug(message);
+                    }
                 }
+                i++;
             }
-            return granted;
+            return results;
         }
 
         if (DENY_LOG.isDebugEnabled()) {
-            DENY_LOG.debug("Authorization DENIED -" + nonAuthMessageFragment + " user: " + session.principal() +
-                    ", cluster: " + clusterName + ", operation: " + operation + ", resource: " + resource + ",\n permissions: " + authz);
+            for (Action action: actions) {
+                if (action.logIfDenied()) {
+                    DENY_LOG.debug("Authorization DENIED -" + nonAuthMessageFragment + " user: " + context.principal() +
+                            ", cluster: " + clusterName + ", operation: " + action.operation() +
+                            ", resource: " + fromResourcePattern(action.resourcePattern()) + ",\n permissions: " + authz);
+                }
+            }
         }
-        return false;
+        return Collections.nCopies(actions.size(), AuthorizationResult.DENIED);
     }
 
     private JsonNode fetchAuthorizationGrants(String token) {
@@ -510,13 +548,11 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
         return response;
     }
 
-    private ScheduledExecutorService setupRefreshGrantsJob(int refreshSeconds) {
+    private void setupRefreshGrantsJob(int refreshSeconds) {
         // Set up periodic timer to fetch grants for active sessions every refresh seconds
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(new DaemonThreadFactory());
 
         scheduler.scheduleAtFixedRate(this::refreshGrants, refreshSeconds, refreshSeconds, TimeUnit.SECONDS);
-
-        return scheduler;
     }
 
     private void refreshGrants() {
@@ -544,9 +580,9 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
             };
 
             Sessions sessions = Services.getInstance().getSessions();
-            List<SessionFuture> scheduled = scheduleGrantsRefresh(filter, sessions);
+            List<SessionFuture<?>> scheduled = scheduleGrantsRefresh(filter, sessions);
 
-            for (SessionFuture f: scheduled) {
+            for (SessionFuture<?> f: scheduled) {
                 try {
                     f.get();
                 } catch (ExecutionException e) {
@@ -604,8 +640,8 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
         }
     }
 
-    private List<SessionFuture> scheduleGrantsRefresh(Predicate<BearerTokenWithPayload> filter, Sessions sessions) {
-        List<SessionFuture> scheduled = sessions.executeTask(workerPool, filter, token -> {
+    private List<SessionFuture<?>> scheduleGrantsRefresh(Predicate<BearerTokenWithPayload> filter, Sessions sessions) {
+        return sessions.executeTask(workerPool, filter, token -> {
             if (log.isTraceEnabled()) {
                 log.trace("Fetch grants for session: " + token.getSessionId() + ", token: " + mask(token.value()));
             }
@@ -629,55 +665,6 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
                 token.setPayload(newGrants);
             }
         });
-        return scheduled;
-    }
-
-    @Override
-    public void addAcls(Set<kafka.security.auth.Acl> acls, kafka.security.auth.Resource resource) {
-        if (!delegateToKafkaACL) {
-            throw new RuntimeException("Simple ACL delegation not enabled");
-        }
-        super.addAcls(acls, resource);
-    }
-
-    @Override
-    public boolean removeAcls(Set<kafka.security.auth.Acl> aclsTobeRemoved, kafka.security.auth.Resource resource) {
-        if (!delegateToKafkaACL) {
-            throw new RuntimeException("Simple ACL delegation not enabled");
-        }
-        return super.removeAcls(aclsTobeRemoved, resource);
-    }
-
-    @Override
-    public boolean removeAcls(kafka.security.auth.Resource resource) {
-        if (!delegateToKafkaACL) {
-            throw new RuntimeException("Simple ACL delegation not enabled");
-        }
-        return super.removeAcls(resource);
-    }
-
-    @Override
-    public Set<kafka.security.auth.Acl> getAcls(kafka.security.auth.Resource resource) {
-        if (!delegateToKafkaACL) {
-            throw new RuntimeException("Simple ACL delegation not enabled");
-        }
-        return super.getAcls(resource);
-    }
-
-    @Override
-    public scala.collection.immutable.Map<kafka.security.auth.Resource, Set<kafka.security.auth.Acl>> getAcls(KafkaPrincipal principal) {
-        if (!delegateToKafkaACL) {
-            throw new RuntimeException("Simple ACL delegation not enabled");
-        }
-        return super.getAcls(principal);
-    }
-
-    @Override
-    public scala.collection.immutable.Map<kafka.security.auth.Resource, Set<kafka.security.auth.Acl>> getAcls() {
-        if (!delegateToKafkaACL) {
-            throw new RuntimeException("Simple ACL delegation not enabled");
-        }
-        return super.getAcls();
     }
 
     @Override
@@ -691,5 +678,38 @@ public class KeycloakRBACAuthorizer extends kafka.security.auth.SimpleAclAuthori
             log.error("Failed to shutdown the worker pool", e);
         }
         super.close();
+    }
+
+    @Override
+    public java.util.Map<Endpoint, ? extends CompletionStage<Void>> start(AuthorizerServerInfo serverInfo) {
+        CompletableFuture<Void> future = CompletableFuture.completedFuture(null);
+        if (!delegateToKafkaACL) {
+            return serverInfo.endpoints().stream().collect(Collectors.toMap(Function.identity(), e -> future));
+        }
+        return super.start(serverInfo);
+    }
+
+    @Override
+    public List<? extends CompletionStage<AclCreateResult>> createAcls(AuthorizableRequestContext requestContext, List<AclBinding> aclBindings) {
+        if (!delegateToKafkaACL) {
+            throw new RuntimeException("Simple ACL delegation not enabled");
+        }
+        return super.createAcls(requestContext, aclBindings);
+    }
+
+    @Override
+    public List<? extends CompletionStage<AclDeleteResult>> deleteAcls(AuthorizableRequestContext requestContext, List<AclBindingFilter> aclBindingFilters) {
+        if (!delegateToKafkaACL) {
+            throw new RuntimeException("Simple ACL delegation not enabled");
+        }
+        return super.deleteAcls(requestContext, aclBindingFilters);
+    }
+
+    @Override
+    public Iterable<AclBinding> acls(AclBindingFilter filter) {
+        if (!delegateToKafkaACL) {
+            throw new RuntimeException("Simple ACL delegation not enabled");
+        }
+        return super.acls(filter);
     }
 }
