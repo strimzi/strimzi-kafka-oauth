@@ -246,10 +246,10 @@ public class OAuthOverPlainTests {
 
         String clientPrefix = "kafka-producer-client-";
 
-        // We do 10 iterations - each time hitting the broker with 5 parallel requests
-        for (int run = 0; run < 10; run++) {
+        // We do 20 iterations - each time hitting the broker with 10 parallel requests
+        for (int run = 0; run < 20; run++) {
 
-            for (int i = 1; i <= 5; i++) {
+            for (int i = 1; i <= 10; i++) {
                 String clientId = clientPrefix + i;
                 String secret = clientId + "-secret";
                 String topic = "messages-" + i;
