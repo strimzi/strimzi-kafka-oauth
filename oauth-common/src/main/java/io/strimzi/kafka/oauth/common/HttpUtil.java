@@ -21,6 +21,8 @@ import java.net.HttpURLConnection;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 
+import static io.strimzi.kafka.oauth.common.ConfigUtil.getConnectTimeout;
+import static io.strimzi.kafka.oauth.common.ConfigUtil.getReadTimeout;
 import static io.strimzi.kafka.oauth.common.IOUtil.copy;
 
 /**
@@ -32,10 +34,16 @@ import static io.strimzi.kafka.oauth.common.IOUtil.copy;
  * This value controls the size of internal connection pool per destination in JDK's java.net.HttpURLConnection implementation.
  *
  * See: https://docs.oracle.com/javase/8/docs/technotes/guides/net/http-keepalive.html
+ *
+ * By default the connect timeout and read timeout are set to 60 seconds. Use system properties <em>oauth.connect.timeout</em>
+ * and <em>oauth.read.timeout</em>, or corresponding env variables to set custom timeouts in seconds.
  */
 public class HttpUtil {
 
     private static final Logger log = LoggerFactory.getLogger(HttpUtil.class);
+
+    static final int DEFAULT_CONNECT_TIMEOUT = getConnectTimeout(new Config());
+    static final int DEFAULT_READ_TIMEOUT = getReadTimeout(new Config());
 
     public static <T> T get(URI uri, String authorization, Class<T> responseType) throws IOException {
         return request(uri, null, null, authorization, null, null, responseType);
@@ -47,6 +55,10 @@ public class HttpUtil {
 
     public static <T> T get(URI uri, SSLSocketFactory socketFactory, HostnameVerifier hostnameVerifier, String authorization, Class<T> responseType) throws IOException {
         return request(uri, socketFactory, hostnameVerifier, authorization, null, null, responseType);
+    }
+
+    public static <T> T get(URI uri, SSLSocketFactory socketFactory, HostnameVerifier hostnameVerifier, String authorization, Class<T> responseType, int connectTimeout, int readTimeout) throws IOException {
+        return request(uri, "GET", socketFactory, hostnameVerifier, authorization, null, null, responseType, connectTimeout, readTimeout);
     }
 
     public static <T> T post(URI uri, String authorization, String contentType, String body, Class<T> responseType) throws IOException {
@@ -61,6 +73,10 @@ public class HttpUtil {
         return request(uri, socketFactory, verifier, authorization, contentType, body, responseType);
     }
 
+    public static <T> T post(URI uri, SSLSocketFactory socketFactory, HostnameVerifier verifier, String authorization, String contentType, String body, Class<T> responseType, int connectTimeout, int readTimeout) throws IOException {
+        return request(uri, "POST", socketFactory, verifier, authorization, contentType, body, responseType, connectTimeout, readTimeout);
+    }
+
     public static void put(URI uri, String authorization, String contentType, String body) throws IOException {
         request(uri, null, null, authorization, contentType, body, null);
     }
@@ -73,21 +89,34 @@ public class HttpUtil {
         request(uri, socketFactory, verifier, authorization, contentType, body, null);
     }
 
+    public static void put(URI uri, SSLSocketFactory socketFactory, HostnameVerifier verifier, String authorization, String contentType, String body, int connectTimeout, int readTimeout) throws IOException {
+        request(uri, "PUT", socketFactory, verifier, authorization, contentType, body, null, connectTimeout, readTimeout);
+    }
+
     public static void delete(URI uri, String authorization) throws IOException {
-        request(uri, "DELETE", null, null, authorization, null, null, null);
+        request(uri, "DELETE", null, null, authorization, null, null, null, DEFAULT_CONNECT_TIMEOUT, DEFAULT_READ_TIMEOUT);
     }
 
     public static void delete(URI uri, SSLSocketFactory socketFactory, HostnameVerifier verifier, String authorization) throws IOException {
-        request(uri, "DELETE", socketFactory, verifier, authorization, null, null, null);
+        request(uri, "DELETE", socketFactory, verifier, authorization, null, null, null, DEFAULT_CONNECT_TIMEOUT, DEFAULT_READ_TIMEOUT);
+    }
+
+    public static void delete(URI uri, SSLSocketFactory socketFactory, HostnameVerifier verifier, String authorization, int connectTimeout, int readTimeout) throws IOException {
+        request(uri, "DELETE", socketFactory, verifier, authorization, null, null, null, connectTimeout, readTimeout);
     }
 
     public static <T> T request(URI uri, SSLSocketFactory socketFactory, HostnameVerifier hostnameVerifier, String authorization, String contentType, String body, Class<T> responseType) throws IOException {
-        return request(uri, null, socketFactory, hostnameVerifier, authorization, contentType, body, responseType);
+        return request(uri, null, socketFactory, hostnameVerifier, authorization, contentType, body, responseType, DEFAULT_CONNECT_TIMEOUT, DEFAULT_READ_TIMEOUT);
     }
 
-    // Surpressed because of Spotbugs Java 11 bug - https://github.com/spotbugs/spotbugs/issues/756
-    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
     public static <T> T request(URI uri, String method, SSLSocketFactory socketFactory, HostnameVerifier hostnameVerifier, String authorization, String contentType, String body, Class<T> responseType) throws IOException {
+        return request(uri, method, socketFactory, hostnameVerifier, authorization, contentType, body, responseType, DEFAULT_CONNECT_TIMEOUT, DEFAULT_READ_TIMEOUT);
+    }
+
+    // Suppressed because of Spotbugs Java 11 bug - https://github.com/spotbugs/spotbugs/issues/756
+    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
+    public static <T> T request(URI uri, String method, SSLSocketFactory socketFactory, HostnameVerifier hostnameVerifier, String authorization,
+                                String contentType, String body, Class<T> responseType, int connectTimeout, int readTimeout) throws IOException {
         HttpURLConnection con;
         try {
             con = (HttpURLConnection) uri.toURL().openConnection();
@@ -95,17 +124,9 @@ public class HttpUtil {
             throw new RuntimeException("Failed to initialise connection to: " + uri, e);
         }
 
-        if (con instanceof HttpsURLConnection) {
-            HttpsURLConnection scon = (HttpsURLConnection) con;
-            if (socketFactory != null) {
-                scon.setSSLSocketFactory(socketFactory);
-            }
-            if (hostnameVerifier != null) {
-                scon.setHostnameVerifier(hostnameVerifier);
-            }
-        } else if (socketFactory != null) {
-            log.warn("SSL socket factory set but url scheme not https ({})", uri);
-        }
+        configureTimeouts(con, connectTimeout, readTimeout);
+
+        configureTLS(con, uri, socketFactory, hostnameVerifier);
 
         con.setUseCaches(false);
         if (body != null) {
@@ -140,6 +161,32 @@ public class HttpUtil {
         }
 
         return handleResponse(con, method, uri, responseType);
+    }
+
+    private static void configureTLS(HttpURLConnection con, URI uri, SSLSocketFactory socketFactory, HostnameVerifier hostnameVerifier) {
+        if (con instanceof HttpsURLConnection) {
+            HttpsURLConnection scon = (HttpsURLConnection) con;
+            if (socketFactory != null) {
+                scon.setSSLSocketFactory(socketFactory);
+            }
+            if (hostnameVerifier != null) {
+                scon.setHostnameVerifier(hostnameVerifier);
+            }
+        } else if (socketFactory != null) {
+            log.warn("SSL socket factory set but url scheme not https ({})", uri);
+        }
+    }
+
+    private static void configureTimeouts(HttpURLConnection con, int connectTimeout, int readTimeout) {
+        if (connectTimeout <= 0) {
+            throw new IllegalArgumentException("connectTimeout <= 0");
+        }
+        con.setConnectTimeout(connectTimeout * 1000);
+
+        if (readTimeout <= 0) {
+            throw new IllegalArgumentException("readTimeout <= 0");
+        }
+        con.setReadTimeout(readTimeout * 1000);
     }
 
     // Surpressed because of Spotbugs Java 11 bug - https://github.com/spotbugs/spotbugs/issues/756

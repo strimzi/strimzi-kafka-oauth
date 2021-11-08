@@ -23,6 +23,8 @@ public class Config {
     public static final String OAUTH_SSL_SECURE_RANDOM_IMPLEMENTATION = "oauth.ssl.secure.random.implementation";
     public static final String OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM = "oauth.ssl.endpoint.identification.algorithm";
     public static final String OAUTH_ACCESS_TOKEN_IS_JWT = "oauth.access.token.is.jwt";
+    public static final String OAUTH_CONNECT_TIMEOUT = "oauth.connect.timeout";
+    public static final String OAUTH_READ_TIMEOUT = "oauth.read.timeout";
 
     @Deprecated
     public static final String OAUTH_TOKENS_NOT_JWT = "oauth.tokens.not.jwt";

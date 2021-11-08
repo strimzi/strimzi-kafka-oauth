@@ -11,10 +11,16 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.regex.Pattern;
 
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
 
@@ -143,5 +149,37 @@ public class Common {
             throw new IllegalStateException("Invalid response from authorization server: no access_token");
         }
         return token.asText();
+    }
+
+    public static List<String> getKafkaLogsForError(String errString) {
+        try {
+            boolean inmatch = false;
+            ArrayList result = new ArrayList();
+            Pattern pat = Pattern.compile("\\[\\d\\d\\d\\d-\\d\\d-\\d\\d .*");
+
+            Process p = Runtime.getRuntime().exec(new String[] {"docker", "logs", "kafka"});
+            try (BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream(), StandardCharsets.ISO_8859_1))) {
+                String line;
+                while ((line = r.readLine()) != null) {
+                    // is new logging entry?
+                    if (pat.matcher(line).matches()) {
+                        // contains the err string?
+                        inmatch = line.contains(errString);
+                        if (inmatch) {
+                            result.add(line);
+                        }
+                    } else if (inmatch) {
+                        result.add(line);
+                    } else {
+                        inmatch = false;
+                    }
+                }
+            }
+
+            return result;
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to get 'kafka' log", e);
+        }
     }
 }

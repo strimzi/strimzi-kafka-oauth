@@ -83,8 +83,8 @@ public class FloodTest extends Common {
             Assert.assertTrue("Exception type should be AuthorizationException", e.getCause() instanceof AuthorizationException);
         }
 
-        // Do 20 iterations - each time hitting the broker with 10 parallel requests
-        for (int run = 0; run < 20; run++) {
+        // Do 5 iterations - each time hitting the broker with 10 parallel requests
+        for (int run = 0; run < 5; run++) {
 
             for (int i = 1; i <= clientCount; i++) {
                 String topic = "messages-" + i;
@@ -111,7 +111,7 @@ public class FloodTest extends Common {
         System.out.println();
 
         // Now try the same with a single topic
-        for (int run = 0; run < 20; run++) {
+        for (int run = 0; run < 5; run++) {
 
             for (int i = 1; i <= clientCount; i++) {
                 String topic = "messages-1";

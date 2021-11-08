@@ -52,9 +52,11 @@ public class OAuthIntrospectionValidator implements TokenValidator {
     private final HostnameVerifier hostnameVerifier;
     private final PrincipalExtractor principalExtractor;
 
+    private final int connectTimeout;
+    private final int readTimeout;
+
     /**
      * Create a new instance.
-     *
      * @param introspectionEndpointUri The introspection endpoint url at the authorization server
      * @param socketFactory The optional SSL socket factory to use when establishing the connection to authorization server
      * @param verifier The optional hostname verifier used to validate the TLS certificate by the authorization server
@@ -64,8 +66,10 @@ public class OAuthIntrospectionValidator implements TokenValidator {
      * @param validTokenType The optional token type enforcement - only the specified token type is accepted as valid
      * @param clientId The clientId of the OAuth2 client representing this Kafka broker - needed to authenticate to the introspection endpoint
      * @param clientSecret The secret of the OAuth2 client representing this Kafka broker - needed to authenticate to the introspection endpoint
-     * @param audience The optional audience check. If specified, the 'aud' attributie of the introspection endpoint response needs to contain the configured clientId
+     * @param audience The optional audience check. If specified, the 'aud' attribute of the introspection endpoint response needs to contain the configured clientId
      * @param customClaimCheck The optional JSONPath filter query for additional custom attribute checking
+     * @param connectTimeout The maximum time to wait for connection to authorization server to be established (in seconds)
+     * @param readTimeout The maximum time to wait for response from authorization server after connection has been established and request sent (in seconds)
      */
     public OAuthIntrospectionValidator(String introspectionEndpointUri,
                                        SSLSocketFactory socketFactory,
@@ -77,7 +81,9 @@ public class OAuthIntrospectionValidator implements TokenValidator {
                                        String clientId,
                                        String clientSecret,
                                        String audience,
-                                       String customClaimCheck) {
+                                       String customClaimCheck,
+                                       int connectTimeout,
+                                       int readTimeout) {
 
         if (introspectionEndpointUri == null) {
             throw new IllegalArgumentException("introspectionEndpointUri == null");
@@ -126,6 +132,9 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         this.audience = audience;
         this.customClaimMatcher = parseCustomClaimCheck(customClaimCheck);
 
+        this.connectTimeout = connectTimeout;
+        this.readTimeout = readTimeout;
+
         if (log.isDebugEnabled()) {
             log.debug("Configured OAuthIntrospectionValidator:\n    introspectionEndpointUri: " + introspectionURI
                     + "\n    sslSocketFactory: " + socketFactory
@@ -138,6 +147,8 @@ public class OAuthIntrospectionValidator implements TokenValidator {
                     + "\n    clientSecret: " + mask(clientSecret)
                     + "\n    audience: " + audience
                     + "\n    customClaimCheck: " + customClaimCheck
+                    + "\n    connectTimeout: " + connectTimeout
+                    + "\n    readTimeout: " + readTimeout
             );
         }
     }
@@ -165,7 +176,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         JsonNode response;
         try {
             response = post(introspectionURI, socketFactory, hostnameVerifier, authorization,
-                    "application/x-www-form-urlencoded", body.toString(), JsonNode.class);
+                    "application/x-www-form-urlencoded", body.toString(), JsonNode.class, connectTimeout, readTimeout);
         } catch (IOException e) {
             throw new RuntimeException("Failed to introspect token - send, fetch or parse failed: ", e);
         }
@@ -220,7 +231,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         String authorization = "Bearer " + token;
         JsonNode response;
         try {
-            response = get(userInfoURI, socketFactory, hostnameVerifier, authorization, JsonNode.class);
+            response = get(userInfoURI, socketFactory, hostnameVerifier, authorization, JsonNode.class, connectTimeout, readTimeout);
         } catch (IOException e) {
             throw new RuntimeException("Request to User Info Endpoint failed: ", e);
         }

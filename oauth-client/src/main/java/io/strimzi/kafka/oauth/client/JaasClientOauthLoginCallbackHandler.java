@@ -28,6 +28,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
+import static io.strimzi.kafka.oauth.common.ConfigUtil.getConnectTimeout;
+import static io.strimzi.kafka.oauth.common.ConfigUtil.getReadTimeout;
 import static io.strimzi.kafka.oauth.common.DeprecationUtil.isAccessTokenJwt;
 import static io.strimzi.kafka.oauth.common.LogUtil.mask;
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithAccessToken;
@@ -54,6 +56,9 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
 
     private SSLSocketFactory socketFactory;
     private HostnameVerifier hostnameVerifier;
+
+    private int connectTimeout;
+    private int readTimeout;
 
     @Override
     public void configure(Map<String, ?> configs, String saslMechanism, List<AppConfigurationEntry> jaasConfigEntries) {
@@ -98,6 +103,8 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
             audience = config.getValue(Config.OAUTH_AUDIENCE);
             socketFactory = ConfigUtil.createSSLFactory(config);
             hostnameVerifier = ConfigUtil.createHostnameVerifier(config);
+            connectTimeout = getConnectTimeout(config);
+            readTimeout = getReadTimeout(config);
         }
 
         principalExtractor = new PrincipalExtractor(
@@ -125,7 +132,9 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
                     + "\n    audience: " + audience
                     + "\n    isJwt: " + isJwt
                     + "\n    maxTokenExpirySeconds: " + maxTokenExpirySeconds
-                    + "\n    principalExtractor: " + principalExtractor);
+                    + "\n    principalExtractor: " + principalExtractor
+                    + "\n    connectTimeout: " + connectTimeout
+                    + "\n    readTimeout: " + readTimeout);
         }
     }
 
@@ -156,9 +165,9 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
             // we could check if it's a JWT - in that case we could check if it's expired
             result = loginWithAccessToken(token, isJwt, principalExtractor);
         } else if (refreshToken != null) {
-            result = loginWithRefreshToken(tokenEndpoint, socketFactory, hostnameVerifier, refreshToken, clientId, clientSecret, isJwt, principalExtractor, scope, audience);
+            result = loginWithRefreshToken(tokenEndpoint, socketFactory, hostnameVerifier, refreshToken, clientId, clientSecret, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout);
         } else if (clientSecret != null) {
-            result = loginWithClientSecret(tokenEndpoint, socketFactory, hostnameVerifier, clientId, clientSecret, isJwt, principalExtractor, scope, audience);
+            result = loginWithClientSecret(tokenEndpoint, socketFactory, hostnameVerifier, clientId, clientSecret, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout);
         } else {
             throw new IllegalStateException("Invalid oauth client configuration - no credentials");
         }

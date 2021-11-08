@@ -70,6 +70,9 @@ public class JWTSignatureValidator implements TokenValidator {
     private final HostnameVerifier hostnameVerifier;
     private final PrincipalExtractor principalExtractor;
 
+    private final int connectTimeout;
+    private final int readTimeout;
+
     private long lastFetchTime;
 
     private Map<String, PublicKey> cache = Collections.emptyMap();
@@ -89,6 +92,8 @@ public class JWTSignatureValidator implements TokenValidator {
      * @param checkAccessTokenType Should the 'typ' claim in the token be validated (be equal to 'Bearer')
      * @param audience The optional audience
      * @param customClaimCheck The optional JSONPath filter query for additional custom claim checking
+     * @param connectTimeout The maximum time to wait for connection to authorization server to be established (in seconds)
+     * @param readTimeout The maximum time to wait for response from authorization server after connection has been established and request sent (in seconds)
      */
     public JWTSignatureValidator(String keysEndpointUri,
                                  SSLSocketFactory socketFactory,
@@ -100,7 +105,10 @@ public class JWTSignatureValidator implements TokenValidator {
                                  int expirySeconds,
                                  boolean checkAccessTokenType,
                                  String audience,
-                                 String customClaimCheck) {
+                                 String customClaimCheck,
+                                 int connectTimeout,
+                                 int readTimeout) {
+
 
         if (keysEndpointUri == null) {
             throw new IllegalArgumentException("keysEndpointUri == null");
@@ -140,6 +148,9 @@ public class JWTSignatureValidator implements TokenValidator {
         this.customClaimMatcher = parseCustomClaimCheck(customClaimCheck);
 
 
+        this.connectTimeout = connectTimeout;
+        this.readTimeout = readTimeout;
+
         // get the signing keys for signature validation before the first authorization requests start coming
         // fail fast if keys refresh doesn't work - it means network issues or authorization server not responding
         fetchKeys();
@@ -164,7 +175,10 @@ public class JWTSignatureValidator implements TokenValidator {
                     + "\n    certsExpirySeconds: " + expirySeconds
                     + "\n    checkAccessTokenType: " + checkAccessTokenType
                     + "\n    audience: " + audience
-                    + "\n    customClaimCheck: " + customClaimCheck);
+                    + "\n    customClaimCheck: " + customClaimCheck
+                    + "\n    connectTimeout: " + connectTimeout
+                    + "\n    readTimeout: " + readTimeout
+            );
         }
     }
 
@@ -202,7 +216,7 @@ public class JWTSignatureValidator implements TokenValidator {
         executor.scheduleAtFixedRate(() -> {
             try {
                 fastScheduler.scheduleTask();
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 // Log, but don't rethrow the exception to prevent scheduler cancelling the scheduled job.
                 log.error(e.getMessage(), e);
             }
@@ -229,7 +243,7 @@ public class JWTSignatureValidator implements TokenValidator {
     private void fetchKeys() {
         try {
             Map<String, PublicKey> newCache = new HashMap<>();
-            JWKSet jwks = JWKSet.parse(HttpUtil.get(keysUri, socketFactory, hostnameVerifier, null, String.class));
+            JWKSet jwks = JWKSet.parse(HttpUtil.get(keysUri, socketFactory, hostnameVerifier, null, String.class, connectTimeout, readTimeout));
 
             for (JWK jwk: jwks.getKeys()) {
                 if (jwk.getKeyUse().equals(KeyUse.SIGNATURE)) {

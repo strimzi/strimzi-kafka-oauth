@@ -4,11 +4,16 @@
  */
 package io.strimzi.kafka.oauth.common;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSocketFactory;
 import java.util.Properties;
 
 public class ConfigUtil {
+
+    private static final Logger log = LoggerFactory.getLogger(ConfigUtil.class);
 
     public static SSLSocketFactory createSSLFactory(Config config) {
         String truststore = config.getValue(Config.OAUTH_SSL_TRUSTSTORE_LOCATION);
@@ -31,6 +36,23 @@ public class ConfigUtil {
         if (value != null) {
             p.put(key, value);
         }
+    }
+
+    public static int getConnectTimeout(Config config) {
+        return getTimeout(config, Config.OAUTH_CONNECT_TIMEOUT);
+    }
+
+    public static int getReadTimeout(Config config) {
+        return getTimeout(config, Config.OAUTH_READ_TIMEOUT);
+    }
+
+    private static int getTimeout(Config config, String propertyKey) {
+        int timeout = config.getValueAsInt(propertyKey, 60);
+        if (timeout <= 0) {
+            log.warn("The configured value of `" + propertyKey + "` (" + timeout + ") is <= 0 and will be ignored. Default used: 60 seconds");
+            timeout = 60;
+        }
+        return timeout;
     }
 
     public static String getConfigWithFallbackLookup(Config c, String key, String fallbackKey) {
