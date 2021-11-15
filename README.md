@@ -1061,9 +1061,9 @@ Configuring the network timeouts for communication with authorization server
 When the Kafka Broker or the Kafka Client communicates with the authorization server, the default connect and read timeouts are applied to the request.
 By default, they are both set to 60 seconds. That prevents the indefinite stalling of the HTTP request which may occur sometimes with _glitchy_ network components.
 
-Use the following configuration options to customize the connect and read timeouts (values are in seconds):
-- `oauth.connect.timeout` (e.g.: 10)
-- `oauth.read.timeout` (e.g.: 10)
+Use the following configuration options to customize the connect and read timeouts:
+- `oauth.connect.timeout.seconds` (e.g.: 10)
+- `oauth.read.timeout.seconds` (e.g.: 10)
 
 These options can be set as system properties, as env variables or as jaas properties as described in [Configuring the OAuth2](#configuring-the-oauth2).
 

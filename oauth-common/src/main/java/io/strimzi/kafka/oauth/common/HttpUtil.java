@@ -35,8 +35,8 @@ import static io.strimzi.kafka.oauth.common.IOUtil.copy;
  *
  * See: https://docs.oracle.com/javase/8/docs/technotes/guides/net/http-keepalive.html
  *
- * By default the connect timeout and read timeout are set to 60 seconds. Use system properties <em>oauth.connect.timeout</em>
- * and <em>oauth.read.timeout</em>, or corresponding env variables to set custom timeouts in seconds.
+ * By default the connect timeout and read timeout are set to 60 seconds. Use system properties <em>oauth.connect.timeout.seconds</em>
+ * and <em>oauth.read.timeout.seconds</em>, or corresponding env variables to set custom timeouts in seconds.
  */
 public class HttpUtil {
 

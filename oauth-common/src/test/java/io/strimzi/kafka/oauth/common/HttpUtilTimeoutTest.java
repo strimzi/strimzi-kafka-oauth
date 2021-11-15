@@ -36,13 +36,15 @@ public class HttpUtilTimeoutTest {
         future.get();
 
         int timeout = 5;
-        System.setProperty("oauth.connect.timeout", String.valueOf(timeout));
-        System.setProperty("oauth.read.timeout", String.valueOf(timeout));
+        System.setProperty("oauth.connect.timeout.seconds", String.valueOf(timeout));
+        System.setProperty("oauth.read.timeout.seconds", String.valueOf(timeout));
 
         long start = System.currentTimeMillis();
         try {
             try {
                 HttpUtil.get(URI.create("http://172.0.0.13:8079"), null, String.class);
+
+                Assert.fail("Should fail with SocketTimeoutException");
             } catch (SocketTimeoutException e) {
                 long diff = System.currentTimeMillis() - start;
                 Assert.assertTrue("Unexpected error: " + e, e.toString().contains("connect timed out"));
@@ -52,6 +54,8 @@ public class HttpUtilTimeoutTest {
             try {
                 start = System.currentTimeMillis();
                 HttpUtil.get(URI.create("http://localhost:8079"), null, String.class);
+
+                Assert.fail("Should fail with SocketTimeoutException");
             } catch (SocketTimeoutException e) {
                 long diff = System.currentTimeMillis() - start;
                 Assert.assertTrue("Unexpected error: " + e, e.toString().contains("Read timed out"));
@@ -62,6 +66,8 @@ public class HttpUtilTimeoutTest {
             try {
                 start = System.currentTimeMillis();
                 HttpUtil.get(URI.create("http://172.0.0.13:8079"), null, null, null, String.class, timeout, timeout);
+
+                Assert.fail("Should fail with SocketTimeoutException");
             } catch (SocketTimeoutException e) {
                 long diff = System.currentTimeMillis() - start;
                 Assert.assertTrue("Unexpected error: " + e, e.toString().contains("connect timed out"));
@@ -71,6 +77,8 @@ public class HttpUtilTimeoutTest {
             try {
                 start = System.currentTimeMillis();
                 HttpUtil.get(URI.create("http://localhost:8079"), null, null, null, String.class, timeout, timeout);
+
+                Assert.fail("Should fail with SocketTimeoutException");
             } catch (SocketTimeoutException e) {
                 long diff = System.currentTimeMillis() - start;
                 Assert.assertTrue("Unexpected error: " + e, e.toString().contains("Read timed out"));
@@ -87,6 +95,7 @@ public class HttpUtilTimeoutTest {
                 start = System.currentTimeMillis();
                 validator.validate("token");
 
+                Assert.fail("Should fail with SocketTimeoutException");
             } catch (Exception e) {
                 Throwable cause = e.getCause();
                 long diff = System.currentTimeMillis() - start;

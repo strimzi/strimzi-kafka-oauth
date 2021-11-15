@@ -151,8 +151,8 @@ import static io.strimzi.kafka.oauth.common.TokenIntrospection.debugLogJWT;
  * <li><em>oauth.validation.skip.type.check</em> Deprecated. Same as <em>oauth.check.access.token.type</em> with opposite meaning.</li>
  * <li><em>oauth.custom.claim.check</em> The optional mechanism to validate the JWT token or the introspection endpoint response by using any claim or attribute with a JSONPath filter query that evaluates to true or false.
  * If it evaluates to true the check passes, otherwise the token is rejected. See {@link JsonPathFilterQuery}.</li>
- * <li><em>oauth.connect.timeout</em> The maximum time to wait when establishing the connection to the authorization server. Default value is 60 (seconds)</li>
- * <li><em>oauth.read.timeout</em> The maximum time to wait to read the response from the authorization server after the connection has been established and request sent. Default value is 60 (seconds)</li>
+ * <li><em>oauth.connect.timeout.seconds</em> The maximum time to wait when establishing the connection to the authorization server. Default value is <em>60</em>.</li>
+ * <li><em>oauth.read.timeout.seconds</em> The maximum time to wait to read the response from the authorization server after the connection has been established and request sent. Default value is <em>60</em>.</li>
  * </ul>
  * <p>
  * TLS <em>sasl.jaas.config</em> configuration for TLS connectivity with the authorization server:

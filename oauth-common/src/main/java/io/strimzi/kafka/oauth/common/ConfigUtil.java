@@ -39,11 +39,11 @@ public class ConfigUtil {
     }
 
     public static int getConnectTimeout(Config config) {
-        return getTimeout(config, Config.OAUTH_CONNECT_TIMEOUT);
+        return getTimeout(config, Config.OAUTH_CONNECT_TIMEOUT_SECONDS);
     }
 
     public static int getReadTimeout(Config config) {
-        return getTimeout(config, Config.OAUTH_READ_TIMEOUT);
+        return getTimeout(config, Config.OAUTH_READ_TIMEOUT_SECONDS);
     }
 
     private static int getTimeout(Config config, String propertyKey) {

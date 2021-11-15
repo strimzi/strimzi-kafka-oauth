@@ -451,7 +451,7 @@ public class ErrorReportingTests {
         oauthConfig.put(ClientConfig.OAUTH_CLIENT_ID, "team-a-client");
         oauthConfig.put(ClientConfig.OAUTH_CLIENT_SECRET, "team-a-client-secret");
         oauthConfig.put(ClientConfig.OAUTH_USERNAME_CLAIM, "preferred_username");
-        oauthConfig.put(ClientConfig.OAUTH_CONNECT_TIMEOUT, String.valueOf(timeout));
+        oauthConfig.put(ClientConfig.OAUTH_CONNECT_TIMEOUT_SECONDS, String.valueOf(timeout));
 
         Properties producerProps = buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
         long start = System.currentTimeMillis();
