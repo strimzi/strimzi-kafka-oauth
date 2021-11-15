@@ -8,17 +8,20 @@ import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.Arrays;
+import java.util.Collections;
+
 public class OAuthKafkaPrincipalTest {
 
     @Test
     public void testEquals() {
 
-        BearerTokenWithPayload token = new MockBearerTokenWithPayload("service-account-my-client",
+        BearerTokenWithPayload token = new MockBearerTokenWithPayload("service-account-my-client", Arrays.asList("group1", "group2"),
                 System.currentTimeMillis(), System.currentTimeMillis() + 60000, null, "BEARER-TOKEN-9823eh982u", "Whatever");
         OAuthKafkaPrincipal principal = new OAuthKafkaPrincipal("User", "service-account-my-client", token);
 
 
-        BearerTokenWithPayload token2 = new MockBearerTokenWithPayload("bob",
+        BearerTokenWithPayload token2 = new MockBearerTokenWithPayload("bob", Collections.emptyList(),
                 System.currentTimeMillis(), System.currentTimeMillis() + 60000, null, "BEARER-TOKEN-0000dd0000", null);
         OAuthKafkaPrincipal principal2 = new OAuthKafkaPrincipal("User", "service-account-my-client", token2);
 

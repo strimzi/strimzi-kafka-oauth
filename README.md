@@ -454,6 +454,37 @@ For example:
 
 See [JsonPathFilterQuery JavaDoc](oauth-common/src/main/java/io/strimzi/kafka/oauth/jsonpath/JsonPathFilterQuery.java) for more information about the syntax.
 
+###### Groups extraction
+
+When using custom authorization (by installing a custom authorizer via) you may want to take user's group membership into account when making the authorization decisions.
+One way is to obtain and inspect a parsed JWT token via `io.strimzi.kafka.oauth.server.OAuthKafkaPrincipal` object available via `AuthorizableRequestContext` passed to your `authorize()` method.
+Another way is to configure group extraction at authentication time, and get groups as a list of principals from `OAuthKafkaPrincipal` object.
+There are two configuration parameters for configuring groups extraction:
+
+- `oauth.groups.claim` (e.g.: `$.roles.client-roles.kafka`)
+- `oauth.groups.claim.delimiter` (a delimiter to parse the value of the groups claim when it's a single delimited string. E.g.: `,` - that's the default value)
+
+Use `oauth.groups.claim` to specify a JSONPath query pointing to the claim containing an array of strings, or a delimited single string.
+Use `oauth.groups.claim.delimiter` to specify a delimiter to use for parsing groups when they are specified as a delimited string.
+
+By default, no group extraction is performed. When you configure `oauth.groups.claim` the groups extraction is enabled and occurs during authentication.
+The extracted groups are stored into `OAuthKafkaPrincipal` object. Here is an example how you can extract them in your custom authorizer:
+```
+    public List<AuthorizationResult> authorize(AuthorizableRequestContext requestContext, List<Action> actions) {
+    
+        KafkaPrincipal principal = requestContext.principal();
+        if (principal instanceof OAuthKafkaPrincipal) {
+            OAuthKafkaPrincipal p = (OAuthKafkaPrincipal) principal;
+            
+            for (String group: p.getGroups()) {
+                System.out.println("Group: " + group);
+            }
+        }
+    }
+```
+
+See [JsonPathQuery JavaDoc](oauth-common/src/main/java/io/strimzi/kafka/oauth/jsonpath/JsonPathQuery.java) for more information about the syntax.
+
 ###### Configuring the `OAuth over PLAIN`
 
 When configuring the listener for `SASL/PLAIN` using `org.apache.kafka.common.security.plain.PlainLoginModule` in its `jaas.sasl.config` (as [explained previously](#configuring-the-listeners)), the `oauth.*` options are the same as when configuring the listener for SASL/OAUTHBEARER.

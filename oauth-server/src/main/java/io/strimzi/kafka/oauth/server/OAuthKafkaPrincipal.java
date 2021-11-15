@@ -9,6 +9,9 @@ import org.apache.kafka.common.security.auth.KafkaPrincipal;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+import java.util.Collections;
+import java.util.List;
+
 import static io.strimzi.kafka.oauth.common.LogUtil.mask;
 
 /**
@@ -21,23 +24,38 @@ import static io.strimzi.kafka.oauth.common.LogUtil.mask;
 public final class OAuthKafkaPrincipal extends KafkaPrincipal {
 
     private final BearerTokenWithPayload jwt;
+    private final List<String> groups;
 
     public OAuthKafkaPrincipal(String principalType, String name) {
-        this(principalType, name, null);
+        this(principalType, name, (List<String>) null);
+    }
+
+    public OAuthKafkaPrincipal(String principalType, String name, List<String> groups) {
+        super(principalType, name);
+        this.jwt = null;
+
+        this.groups = groups == null ? null : Collections.unmodifiableList(groups);
     }
 
     public OAuthKafkaPrincipal(String principalType, String name, BearerTokenWithPayload jwt) {
         super(principalType, name);
         this.jwt = jwt;
+        List<String> parsedGroups = jwt.getGroups();
+
+        this.groups = parsedGroups == null ? null : Collections.unmodifiableList(parsedGroups);
     }
 
     public BearerTokenWithPayload getJwt() {
         return jwt;
     }
 
+    public List<String> getGroups() {
+        return groups;
+    }
+
     @Override
     public String toString() {
-        return "OAuthKafkaPrincipal(" + super.toString() + ", session:" + (jwt != null ? jwt.getSessionId() : "") +
-                ", token:" + (jwt != null ? mask(jwt.value()) : "") + ")";
+        return "OAuthKafkaPrincipal(" + super.toString() + ", groups: " + groups + ", session: " + (jwt != null ? jwt.getSessionId() : "") +
+                ", token: " + (jwt != null ? mask(jwt.value()) : "") + ")";
     }
 }

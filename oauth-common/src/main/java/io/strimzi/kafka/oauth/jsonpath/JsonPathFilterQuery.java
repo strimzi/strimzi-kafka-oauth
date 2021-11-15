@@ -86,10 +86,13 @@ import static com.jayway.jsonpath.JsonPath.using;
  * </pre>
  *
  * Query is parsed in the first line and any error during parsing results
- * in {@link JsonPathFilterQueryException}.
+ * in {@link JsonPathQueryException}.
  *
  * Matching is thread safe. The normal usage pattern is to initialise the JsonPathFilterQuery object once,
  * and query it many times concurrently against json objects.
+ *
+ * In addition to filtering this helper can also be used to apply JsonPath query to extract a result containing the matching keys.
+ *
  */
 public class JsonPathFilterQuery {
 
@@ -106,7 +109,7 @@ public class JsonPathFilterQuery {
         try {
             this.matcher = new Matcher(ctx, query);
         } catch (JsonPathException e) {
-            throw new JsonPathFilterQueryException("Failed to parse filter query: \"" + query + "\"", e);
+            throw new JsonPathQueryException("Failed to parse filter query: \"" + query + "\"", e);
         }
     }
 

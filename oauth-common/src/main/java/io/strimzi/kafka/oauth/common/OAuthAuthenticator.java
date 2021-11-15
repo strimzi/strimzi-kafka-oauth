@@ -38,7 +38,7 @@ public class OAuthAuthenticator {
             }
         }
 
-        return new TokenInfo(token, "undefined", "undefined", System.currentTimeMillis(), System.currentTimeMillis() + 365 * 24 * 3600000);
+        return new TokenInfo(token, "undefined", "undefined", null, System.currentTimeMillis(), System.currentTimeMillis() + 365 * 24 * 3600000);
     }
 
     public static TokenInfo loginWithClientSecret(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
@@ -163,7 +163,7 @@ public class OAuthAuthenticator {
             }
         }
 
-        return new TokenInfo(token.asText(), scope != null ? scope.asText() : null, "undefined", now, now + expiresIn.asLong() * 1000L);
+        return new TokenInfo(token.asText(), scope != null ? scope.asText() : null, "undefined", null, now, now + expiresIn.asLong() * 1000L);
     }
 
     public static String base64encode(String value) {

@@ -6,6 +6,8 @@ package io.strimzi.kafka.oauth.common;
 
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerToken;
 
+import java.util.List;
+
 /**
  * This extension of OAuthBearerToken provides a way to associate any additional information with the token
  * at run time, that is cached for the duration of the client session.
@@ -25,6 +27,7 @@ public interface BearerTokenWithPayload extends OAuthBearerToken {
 
     void setPayload(Object payload);
 
+    List<String> getGroups();
     /**
      * This method returns an id of the current instance of this object.
      * It is used for debugging purposes - e.g. logging that allows tracking of an individual instance
