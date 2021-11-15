@@ -151,6 +151,13 @@ public class Common {
         return token.asText();
     }
 
+    /**
+     * Get Kafka log by executing 'docker logs kafka', then extract only the entries
+     * (possibly multi-line when there's a stacktrace) that contain the passed errString.
+     *
+     * @param errString The 'filter' - the string to look for in the log
+     * @return A list of lines from the log that match the filter (logging entries that contain the filter string)
+     */
     public static List<String> getKafkaLogsForError(String errString) {
         try {
             boolean inmatch = false;
