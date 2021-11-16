@@ -9,11 +9,13 @@ import io.strimzi.kafka.oauth.common.TokenInfo;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.errors.SaslAuthenticationException;
 import org.junit.Assert;
 
 import java.net.URI;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
@@ -21,6 +23,7 @@ import java.util.concurrent.ExecutionException;
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithClientSecret;
 import static io.strimzi.testsuite.oauth.auth.Common.buildProducerConfigOAuthBearer;
 import static io.strimzi.testsuite.oauth.auth.Common.buildProducerConfigPlain;
+import static io.strimzi.testsuite.oauth.auth.Common.getKafkaLogsForError;
 
 public class ErrorReportingTests {
 
@@ -35,6 +38,8 @@ public class ErrorReportingTests {
         badSecretOAuthOverPlain();
         cantConnectPlainWithClientCredentials();
         cantConnectIntrospect();
+        cantConnectIntrospectWithTimeout();
+        cantConnectKeycloakWithTimeout();
     }
 
     String getKafkaBootstrap(int port) {
@@ -391,4 +396,74 @@ public class ErrorReportingTests {
         checkErrId(message);
         Assert.assertTrue(message.contains("Runtime failure during token validation"));
     }
+
+    private void cantConnectIntrospectWithTimeout() throws Exception {
+        System.out.println("==== KeycloakErrorsTest :: cantConnectIntrospectWithTimeout ====");
+
+        final String kafkaBootstrap = getKafkaBootstrap(9208);
+        final String hostPort = "keycloak:8080";
+        final String realm = "kafka-authz";
+
+        final String tokenEndpointUri = "http://" + hostPort + "/auth/realms/" + realm + "/protocol/openid-connect/token";
+
+        Map<String, String> oauthConfig = new HashMap<>();
+        oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, tokenEndpointUri);
+        oauthConfig.put(ClientConfig.OAUTH_CLIENT_ID, "team-a-client");
+        oauthConfig.put(ClientConfig.OAUTH_CLIENT_SECRET, "team-a-client-secret");
+        oauthConfig.put(ClientConfig.OAUTH_USERNAME_CLAIM, "preferred_username");
+
+        Properties producerProps = buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
+        Producer<String, String> producer = new KafkaProducer<>(producerProps);
+
+        final String topic = "KeycloakErrorsTest-cantConnectIntrospectWithTimeout";
+
+        try {
+            producer.send(new ProducerRecord<>(topic, "The Message")).get();
+            Assert.fail("Should fail with ExecutionException");
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            commonChecks(cause);
+            checkCantConnectIntrospectErrorMessage(cause.getMessage());
+            // get kafka log, parse it, find the errId, find 'connect timed out' string.
+            checkKafkaLogConnectTimedOut(cause.getMessage());
+        }
+    }
+
+    private void checkKafkaLogConnectTimedOut(String message) {
+        String errId = message.substring(message.length() - 16, message.length() - 1);
+        List<String> log = getKafkaLogsForError(errId);
+        long matchedCount = log.stream().filter(s -> s.startsWith("Caused by:") && s.contains("connect timed out")).count();
+        Assert.assertTrue("Found connect timed out cause of the error", matchedCount > 0);
+    }
+
+    private void cantConnectKeycloakWithTimeout() {
+        System.out.println("==== KeycloakErrorsTest :: cantConnectKeycloakWithTimeout ====");
+
+        final String kafkaBootstrap = getKafkaBootstrap(9208);
+        final String hostPort = "172.0.0.13:8080";
+        final String realm = "kafka-authz";
+
+        final String tokenEndpointUri = "http://" + hostPort + "/auth/realms/" + realm + "/protocol/openid-connect/token";
+
+        int timeout = 5;
+        Map<String, String> oauthConfig = new HashMap<>();
+        oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, tokenEndpointUri);
+        oauthConfig.put(ClientConfig.OAUTH_CLIENT_ID, "team-a-client");
+        oauthConfig.put(ClientConfig.OAUTH_CLIENT_SECRET, "team-a-client-secret");
+        oauthConfig.put(ClientConfig.OAUTH_USERNAME_CLAIM, "preferred_username");
+        oauthConfig.put(ClientConfig.OAUTH_CONNECT_TIMEOUT_SECONDS, String.valueOf(timeout));
+
+        Properties producerProps = buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
+        long start = System.currentTimeMillis();
+        try {
+            Producer<String, String> producer = new KafkaProducer<>(producerProps);
+            Assert.fail("Should fail with KafkaException");
+        } catch (Exception e) {
+            long diff = System.currentTimeMillis() - start;
+            Assert.assertTrue("is instanceof KafkaException", e instanceof KafkaException);
+            Assert.assertTrue("Failed due to LoginException", e.getCause().toString().contains("LoginException"));
+            Assert.assertTrue("Unexpected diff: " + diff, diff > timeout * 1000 && diff < timeout * 1000 + 1000);
+        }
+    }
+
 }

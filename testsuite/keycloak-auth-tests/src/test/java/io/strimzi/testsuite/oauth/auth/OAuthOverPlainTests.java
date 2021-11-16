@@ -246,8 +246,8 @@ public class OAuthOverPlainTests {
 
         String clientPrefix = "kafka-producer-client-";
 
-        // We do 20 iterations - each time hitting the broker with 10 parallel requests
-        for (int run = 0; run < 20; run++) {
+        // We do 5 iterations - each time hitting the broker with 10 parallel requests
+        for (int run = 0; run < 5; run++) {
 
             for (int i = 1; i <= 10; i++) {
                 String clientId = clientPrefix + i;

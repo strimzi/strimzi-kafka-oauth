@@ -150,7 +150,9 @@ import static io.strimzi.kafka.oauth.common.TokenIntrospection.debugLogJWT;
  * This should be set to <em>false</em> if the authorization server does not include <em>typ</em> claim in JWT token. Default value is <em>true</em>.</li>
  * <li><em>oauth.validation.skip.type.check</em> Deprecated. Same as <em>oauth.check.access.token.type</em> with opposite meaning.</li>
  * <li><em>oauth.custom.claim.check</em> The optional mechanism to validate the JWT token or the introspection endpoint response by using any claim or attribute with a JSONPath filter query that evaluates to true or false.
- * If it evaluates to true the check passes, otherwise the token is rejected. See {@link JsonPathFilterQuery}.
+ * If it evaluates to true the check passes, otherwise the token is rejected. See {@link JsonPathFilterQuery}.</li>
+ * <li><em>oauth.connect.timeout.seconds</em> The maximum time to wait when establishing the connection to the authorization server. Default value is <em>60</em>.</li>
+ * <li><em>oauth.read.timeout.seconds</em> The maximum time to wait to read the response from the authorization server after the connection has been established and request sent. Default value is <em>60</em>.</li>
  * </ul>
  * <p>
  * TLS <em>sasl.jaas.config</em> configuration for TLS connectivity with the authorization server:
@@ -191,6 +193,10 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
     private HostnameVerifier verifier;
 
     private PrincipalExtractor principalExtractor;
+
+    private int connectTimeout;
+
+    private int readTimeout;
 
     @Override
     public void configure(Map<String, ?> configs, String saslMechanism, List<AppConfigurationEntry> jaasConfigEntries) {
@@ -252,6 +258,9 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         String sslType = config.getValue(Config.OAUTH_SSL_TRUSTSTORE_TYPE);
         String sslRnd = config.getValue(Config.OAUTH_SSL_SECURE_RANDOM_IMPLEMENTATION);
 
+        connectTimeout = ConfigUtil.getConnectTimeout(config);
+        readTimeout = ConfigUtil.getReadTimeout(config);
+
         ValidatorKey vkey;
         Supplier<TokenValidator> factory;
 
@@ -277,7 +286,9 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                     jwksRefreshSeconds,
                     jwksExpirySeconds,
                     jwksMinPauseSeconds,
-                    checkTokenType);
+                    checkTokenType,
+                    connectTimeout,
+                    readTimeout);
 
             factory = () -> new JWTSignatureValidator(
                     jwksUri,
@@ -290,7 +301,9 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                     jwksExpirySeconds,
                     checkTokenType,
                     audience,
-                    customClaimCheck);
+                    customClaimCheck,
+                    connectTimeout,
+                    readTimeout);
 
         } else {
 
@@ -314,7 +327,9 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                     userInfoEndpoint,
                     validTokenType,
                     clientId,
-                    clientSecret);
+                    clientSecret,
+                    connectTimeout,
+                    readTimeout);
 
             factory = () -> new OAuthIntrospectionValidator(
                     introspectionEndpoint,
@@ -327,7 +342,9 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                     clientId,
                     clientSecret,
                     audience,
-                    customClaimCheck);
+                    customClaimCheck,
+                    connectTimeout,
+                    readTimeout);
         }
 
         validator = Services.getInstance().getValidators().get(vkey, factory);
@@ -498,6 +515,14 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
     public PrincipalExtractor getPrincipalExtractor() {
         return principalExtractor;
+    }
+
+    public int getConnectTimeout() {
+        return connectTimeout;
+    }
+
+    public int getReadTimeout() {
+        return readTimeout;
     }
 
     static class BearerTokenWithPayloadImpl implements BearerTokenWithPayload {

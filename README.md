@@ -48,6 +48,7 @@ Strimzi Kafka OAuth modules provide support for OAuth2 as authentication mechani
   - [Handling expired or invalid tokens gracefully](#handling-expired-or-invalid-tokens-gracefully)
 - [Configuring the Kafka client with SASL/PLAIN](#configuring-the-kafka-client-with-saslplain)
 - [Configuring the TLS truststore](#configuring-the-tls-truststore)
+- [Configuring the network timeouts for communication with authorization server](#configuring-the-network-timeouts-for-communication-with-authorization-server)
 - [Demo](#demo)
   
 <!-- /TOC -->
@@ -1052,6 +1053,21 @@ If you need to turn off certificate hostname verification set the following prop
 - `oauth.ssl.endpoint.identification.algorithm` (e.g. "") 
 
 These configuration properties can be used to configure truststore for `KeycloakRBACAuthorizer` as well, but they have to be prefixed with `strimzi.authorization.` instead of `oauth.` (e.g.: `strimzi.authorization.ssl.truststore.location`).  
+
+
+Configuring the network timeouts for communication with authorization server
+----------------------------------------------------------------------------
+
+When the Kafka Broker or the Kafka Client communicates with the authorization server, the default connect and read timeouts are applied to the request.
+By default, they are both set to 60 seconds. That prevents the indefinite stalling of the HTTP request which may occur sometimes with _glitchy_ network components.
+
+Use the following configuration options to customize the connect and read timeouts:
+- `oauth.connect.timeout.seconds` (e.g.: 10)
+- `oauth.read.timeout.seconds` (e.g.: 10)
+
+These options can be set as system properties, as env variables or as jaas properties as described in [Configuring the OAuth2](#configuring-the-oauth2).
+
+NOTE: These options are available since version 0.10.0. Before, one could only apply JDK network options `sun.net.client.defaultConnectTimeout`, and `sun.net.client.defaultReadTimeout` as described [here](https://docs.oracle.com/javase/8/docs/technotes/guides/net/properties.html), and the default was `no timeout`.
 
 Demo
 ----

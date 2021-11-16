@@ -216,7 +216,7 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
             checkUsernameMatch = true;
         } else {
             accessToken = OAuthAuthenticator.loginWithClientSecret(tokenEndpointUri, getSocketFactory(), getVerifier(),
-                    username, password, isJwt(), getPrincipalExtractor(), scope, audience)
+                    username, password, isJwt(), getPrincipalExtractor(), scope, audience, getConnectTimeout(), getReadTimeout())
                     .token();
         }
 
