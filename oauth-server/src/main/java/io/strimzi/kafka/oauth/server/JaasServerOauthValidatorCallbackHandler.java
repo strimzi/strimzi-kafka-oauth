@@ -4,6 +4,7 @@
  */
 package io.strimzi.kafka.oauth.server;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.strimzi.kafka.oauth.common.Config;
 import io.strimzi.kafka.oauth.common.ConfigUtil;
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
@@ -580,6 +581,11 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         @Override
         public List<String> getGroups() {
             return ti.groups();
+        }
+
+        @Override
+        public ObjectNode getJSON() {
+            return ti.payload();
         }
 
         @Override

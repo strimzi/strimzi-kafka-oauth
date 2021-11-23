@@ -5,7 +5,7 @@
 package io.strimzi.kafka.oauth.common;
 
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerToken;
-
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.List;
 
 /**
@@ -28,6 +28,9 @@ public interface BearerTokenWithPayload extends OAuthBearerToken {
     void setPayload(Object payload);
 
     List<String> getGroups();
+
+    ObjectNode getJSON();
+
     /**
      * This method returns an id of the current instance of this object.
      * It is used for debugging purposes - e.g. logging that allows tracking of an individual instance

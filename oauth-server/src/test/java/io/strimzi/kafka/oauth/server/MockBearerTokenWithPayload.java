@@ -4,6 +4,7 @@
  */
 package io.strimzi.kafka.oauth.server;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
 
 import java.util.Collections;
@@ -52,6 +53,11 @@ public class MockBearerTokenWithPayload implements BearerTokenWithPayload {
     @Override
     public List<String> getGroups() {
         return groups;
+    }
+
+    @Override
+    public ObjectNode getJSON() {
+        return null;
     }
 
     @Override
