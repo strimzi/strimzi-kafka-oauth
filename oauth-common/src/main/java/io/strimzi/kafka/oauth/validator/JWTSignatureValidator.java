@@ -100,6 +100,7 @@ public class JWTSignatureValidator implements TokenValidator {
      * @param connectTimeoutSeconds The maximum time to wait for connection to authorization server to be established (in seconds)
      * @param readTimeoutSeconds The maximum time to wait for response from authorization server after connection has been established and request sent (in seconds)
      */
+    @SuppressWarnings("checkstyle:ParameterNumber")
     public JWTSignatureValidator(String keysEndpointUri,
                                  SSLSocketFactory socketFactory,
                                  HostnameVerifier verifier,

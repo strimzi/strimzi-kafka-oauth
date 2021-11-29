@@ -271,6 +271,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         }
     }
 
+    @SuppressWarnings("checkstyle:ParameterNumber")
     private void setupIntrospectionValidator(String validIssuerUri, String usernameClaim, String fallbackUsernameClaim, String fallbackUsernamePrefix,
                                              String groupQuery, String groupDelimiter, String clientId, String clientSecret, String audience, String customClaimCheck,
                                              String sslTruststore, String sslPassword, String sslType, String sslRnd) {
@@ -321,6 +322,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         validator = Services.getInstance().getValidators().get(vkey, factory);
     }
 
+    @SuppressWarnings("checkstyle:ParameterNumber")
     private void setupJWKSValidator(String jwksUri, String validIssuerUri, boolean checkTokenType,
                                     String usernameClaim, String fallbackUsernameClaim, String fallbackUsernamePrefix,
                                     String groupQuery, String groupDelimiter, String audience, String customClaimCheck,

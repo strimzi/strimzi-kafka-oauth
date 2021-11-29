@@ -77,6 +77,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
      * @param connectTimeoutSeconds The maximum time to wait for connection to authorization server to be established (in seconds)
      * @param readTimeoutSeconds The maximum time to wait for response from authorization server after connection has been established and request sent (in seconds)
      */
+    @SuppressWarnings("checkstyle:ParameterNumber")
     public OAuthIntrospectionValidator(String introspectionEndpointUri,
                                        SSLSocketFactory socketFactory,
                                        HostnameVerifier verifier,

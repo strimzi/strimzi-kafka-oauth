@@ -26,6 +26,7 @@ public class ValidatorKey {
     private final int connectTimeout;
     private final int readTimeout;
 
+    @SuppressWarnings("checkstyle:ParameterNumber")
     ValidatorKey(String validIssuerUri,
             String audience,
             String customClaimCheck,
