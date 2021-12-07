@@ -48,7 +48,7 @@ public class HttpUtilTimeoutTest {
             } catch (SocketTimeoutException e) {
                 long diff = System.currentTimeMillis() - start;
                 Assert.assertTrue("Unexpected error: " + e, e.toString().contains("connect timed out"));
-                Assert.assertTrue("Unexpected diff: " + diff, diff > timeout * 1000 && diff < timeout * 1000 + 1000);
+                Assert.assertTrue("Unexpected diff: " + diff, diff >= timeout * 1000 && diff < timeout * 1000 + 1000);
             }
 
             try {
@@ -59,7 +59,7 @@ public class HttpUtilTimeoutTest {
             } catch (SocketTimeoutException e) {
                 long diff = System.currentTimeMillis() - start;
                 Assert.assertTrue("Unexpected error: " + e, e.toString().contains("Read timed out"));
-                Assert.assertTrue("Unexpected diff: " + diff, diff > timeout * 1000 && diff < timeout * 1000 + 1000);
+                Assert.assertTrue("Unexpected diff: " + diff, diff >= timeout * 1000 && diff < timeout * 1000 + 1000);
             }
 
             timeout = 2;
@@ -71,7 +71,7 @@ public class HttpUtilTimeoutTest {
             } catch (SocketTimeoutException e) {
                 long diff = System.currentTimeMillis() - start;
                 Assert.assertTrue("Unexpected error: " + e, e.toString().contains("connect timed out"));
-                Assert.assertTrue("Unexpected diff: " + diff, diff > timeout * 1000 && diff < timeout * 1000 + 1000);
+                Assert.assertTrue("Unexpected diff: " + diff, diff >= timeout * 1000 && diff < timeout * 1000 + 1000);
             }
 
             try {
@@ -82,7 +82,7 @@ public class HttpUtilTimeoutTest {
             } catch (SocketTimeoutException e) {
                 long diff = System.currentTimeMillis() - start;
                 Assert.assertTrue("Unexpected error: " + e, e.toString().contains("Read timed out"));
-                Assert.assertTrue("Unexpected diff: " + diff, diff > timeout * 1000 && diff < timeout * 1000 + 1000);
+                Assert.assertTrue("Unexpected diff: " + diff, diff >= timeout * 1000 && diff < timeout * 1000 + 1000);
             }
 
 
@@ -101,7 +101,7 @@ public class HttpUtilTimeoutTest {
                 long diff = System.currentTimeMillis() - start;
                 Assert.assertTrue(cause != null && cause instanceof SocketTimeoutException);
                 Assert.assertTrue("Unexpected error: " + cause, cause.toString().contains("connect timed out"));
-                Assert.assertTrue("Unexpected diff: " + diff, diff > timeout * 1000 && diff < timeout * 1000 + 1000);
+                Assert.assertTrue("Unexpected diff: " + diff, diff >= timeout * 1000 && diff < timeout * 1000 + 1000);
             }
 
         } finally {
