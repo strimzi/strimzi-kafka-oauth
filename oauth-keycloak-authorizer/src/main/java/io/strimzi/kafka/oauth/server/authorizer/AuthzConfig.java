@@ -26,6 +26,9 @@ public class AuthzConfig extends Config {
     public static final String STRIMZI_AUTHORIZATION_SSL_SECURE_RANDOM_IMPLEMENTATION = "strimzi.authorization.ssl.secure.random.implementation";
     public static final String STRIMZI_AUTHORIZATION_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM = "strimzi.authorization.ssl.endpoint.identification.algorithm";
 
+    public static final String STRIMZI_AUTHORIZATION_CONNECT_TIMEOUT_SECONDS = "strimzi.authorization.connect.timeout.seconds";
+    public static final String STRIMZI_AUTHORIZATION_READ_TIMEOUT_SECONDS = "strimzi.authorization.read.timeout.seconds";
+
     AuthzConfig() {}
 
     AuthzConfig(Properties p) {

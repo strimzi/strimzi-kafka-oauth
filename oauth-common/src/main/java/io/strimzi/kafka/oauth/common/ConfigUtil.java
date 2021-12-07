@@ -46,13 +46,21 @@ public class ConfigUtil {
         return getTimeout(config, Config.OAUTH_READ_TIMEOUT_SECONDS);
     }
 
-    private static int getTimeout(Config config, String propertyKey) {
+    public static int getTimeout(Config config, String propertyKey) {
         int timeout = config.getValueAsInt(propertyKey, 60);
         if (timeout <= 0) {
             log.warn("The configured value of `" + propertyKey + "` (" + timeout + ") is <= 0 and will be ignored. Default used: 60 seconds");
             timeout = 60;
         }
         return timeout;
+    }
+
+    public static int getTimeoutConfigWithFallbackLookup(Config c, String key, String fallbackKey) {
+        String result = c.getValue(key);
+        if (result == null) {
+            return getTimeout(c, fallbackKey);
+        }
+        return getTimeout(c, key);
     }
 
     public static String getConfigWithFallbackLookup(Config c, String key, String fallbackKey) {

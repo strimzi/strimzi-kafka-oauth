@@ -112,7 +112,15 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
  * <li><em>strimzi.authorization.grants.refresh.pool.size</em> The number of threads to fetch grants from token endpoint (in parallel).<br>
  * The default value is <em>5</em>
  * </li>
- * </ul> *
+ * <li><em>strimzi.authorization.connect.timeout.seconds</em> The maximum time to wait when establishing the connection to the authorization server.<br>
+ * The default value is <em>60</em>.
+ * If not present, <em>oauth.connect.timeout.seconds</em> is used as a fallback configuration key to avoid unnecessary duplication when already present.
+ * </li>
+ * <li><em>strimzi.authorization.read.timeout.seconds</em> The maximum time to wait to read the response from the authorization server after the connection has been established and request sent.<br>
+ * The default value is <em>60</em>.
+ * If not present, <em>oauth.read.timeout.seconds</em> is used as a fallback configuration key to avoid unnecessary duplication when already present.
+ * </li>
+ * </ul>
  * <p>
  * TLS configuration:
  * </p>
@@ -157,6 +165,8 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
     private HostnameVerifier hostnameVerifier;
     private List<UserSpec> superUsers = Collections.emptyList();
     private boolean delegateToKafkaACL = false;
+    private int connectTimeoutSeconds;
+    private int readTimeoutSeconds;
 
     // Turning it to false will not enforce access token expiry time (only for debugging purposes during development)
     private final boolean denyWhenTokenInvalid = true;
@@ -199,6 +209,9 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
         if (clientId == null) {
             throw new RuntimeException("OAuth2 Client Id ('strimzi.authorization.client.id') not set.");
         }
+
+        connectTimeoutSeconds = ConfigUtil.getTimeoutConfigWithFallbackLookup(config, AuthzConfig.STRIMZI_AUTHORIZATION_CONNECT_TIMEOUT_SECONDS, ClientConfig.OAUTH_CONNECT_TIMEOUT_SECONDS);
+        readTimeoutSeconds = ConfigUtil.getTimeoutConfigWithFallbackLookup(config, AuthzConfig.STRIMZI_AUTHORIZATION_READ_TIMEOUT_SECONDS, ClientConfig.OAUTH_READ_TIMEOUT_SECONDS);
 
         socketFactory = createSSLFactory(config);
         hostnameVerifier = createHostnameVerifier(config);
@@ -245,6 +258,8 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
                     + "\n    superUsers: " + superUsers.stream().map(u -> "'" + u.getType() + ":" + u.getName() + "'").collect(Collectors.toList())
                     + "\n    grantsRefreshPeriodSeconds: " + grantsRefreshPeriodSeconds
                     + "\n    grantsRefreshPoolSize: " + grantsRefreshPoolSize
+                    + "\n    connectTimeoutSeconds: " + connectTimeoutSeconds
+                    + "\n    readTimeoutSeconds: " + readTimeoutSeconds
             );
         }
     }
@@ -270,7 +285,7 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
             AuthzConfig.STRIMZI_AUTHORIZATION_DELEGATE_TO_KAFKA_ACL,
             AuthzConfig.STRIMZI_AUTHORIZATION_KAFKA_CLUSTER_NAME,
             AuthzConfig.STRIMZI_AUTHORIZATION_CLIENT_ID,
-            AuthzConfig.OAUTH_CLIENT_ID,
+            Config.OAUTH_CLIENT_ID,
             AuthzConfig.STRIMZI_AUTHORIZATION_TOKEN_ENDPOINT_URI,
             ClientConfig.OAUTH_TOKEN_ENDPOINT_URI,
             AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_LOCATION,
@@ -284,7 +299,11 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
             AuthzConfig.STRIMZI_AUTHORIZATION_SSL_SECURE_RANDOM_IMPLEMENTATION,
             Config.OAUTH_SSL_SECURE_RANDOM_IMPLEMENTATION,
             AuthzConfig.STRIMZI_AUTHORIZATION_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM,
-            Config.OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM
+            Config.OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM,
+            AuthzConfig.STRIMZI_AUTHORIZATION_CONNECT_TIMEOUT_SECONDS,
+            Config.OAUTH_CONNECT_TIMEOUT_SECONDS,
+            AuthzConfig.STRIMZI_AUTHORIZATION_READ_TIMEOUT_SECONDS,
+            Config.OAUTH_READ_TIMEOUT_SECONDS
         };
 
         // Copy over the keys
@@ -537,7 +556,7 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
 
         try {
             response = post(tokenEndpointUrl, socketFactory, hostnameVerifier, authorization,
-                    "application/x-www-form-urlencoded", body.toString(), JsonNode.class);
+                    "application/x-www-form-urlencoded", body.toString(), JsonNode.class, connectTimeoutSeconds, readTimeoutSeconds);
 
         } catch (HttpException e) {
             throw e;

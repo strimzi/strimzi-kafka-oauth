@@ -19,14 +19,14 @@ import static io.strimzi.testsuite.oauth.authz.Common.buildProducerConfigOAuthBe
 import static io.strimzi.testsuite.oauth.authz.Common.buildProducerConfigPlain;
 import static io.strimzi.testsuite.oauth.authz.Common.buildProducerConfigScram;
 
-public class MultiSaslTests {
+public class MultiSaslTest {
 
     private static final String KAFKA_PLAIN_LISTENER = "kafka:9100";
     private static final String KAFKA_SCRAM_LISTENER = "kafka:9101";
     private static final String KAFKA_JWT_LISTENER = "kafka:9092";
     private static final String KAFKA_JWTPLAIN_LISTENER = "kafka:9094";
 
-    public static void doTests() throws Exception {
+    public static void doTest() throws Exception {
 
         // bobby:bobby-secret
         String username = "bobby";
