@@ -19,16 +19,18 @@ import org.slf4j.LoggerFactory;
  * There is KeycloakRBACAuthorizer configured on the Kafka broker.
  */
 @RunWith(Arquillian.class)
-public class KeycloakAuthorizationTest {
+public class KeycloakAuthorizationTests {
 
-    private static final Logger log = LoggerFactory.getLogger(KeycloakAuthorizationTest.class);
+    private static final Logger log = LoggerFactory.getLogger(KeycloakAuthorizationTests.class);
 
     @Test
     public void doTest() throws Exception {
         try {
+            logStart("KeycloakAuthorizationTest :: ConfigurationTest");
+            ConfigurationTest.doTest();
 
             logStart("KeycloakAuthorizationTest :: MultiSaslTests");
-            MultiSaslTests.doTests();
+            MultiSaslTest.doTest();
 
             logStart("KeycloakAuthorizationTest :: JwtValidationAuthzTest");
             new BasicTest("kafka:9092", false).doTest();

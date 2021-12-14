@@ -1052,7 +1052,9 @@ You may want to explicitly set the random number implementation provider to use 
 If you need to turn off certificate hostname verification set the following property to empty string:
 - `oauth.ssl.endpoint.identification.algorithm` (e.g. "") 
 
-These configuration properties can be used to configure truststore for `KeycloakRBACAuthorizer` as well, but they have to be prefixed with `strimzi.authorization.` instead of `oauth.` (e.g.: `strimzi.authorization.ssl.truststore.location`).  
+These configuration properties can be used to configure truststore for `KeycloakRBACAuthorizer` as well, but they should be prefixed with `strimzi.authorization.` instead of `oauth.` when specifically targeting this authorizer (e.g.: `strimzi.authorization.ssl.truststore.location`).  
+
+You may want to set these options globally as system properties or env vars to apply for all the listeners and the `KeycoakRBACAuthorizer` in which case you would use `oauth.` prefix. But when configured specifically for `KeycloakRBACAuthorizer` in `server.properties` you have to use `strimzi.authorization.` prefix.
 
 
 Configuring the network timeouts for communication with authorization server
@@ -1062,10 +1064,14 @@ When the Kafka Broker or the Kafka Client communicates with the authorization se
 By default, they are both set to 60 seconds. That prevents the indefinite stalling of the HTTP request which may occur sometimes with _glitchy_ network components.
 
 Use the following configuration options to customize the connect and read timeouts:
-- `oauth.connect.timeout.seconds` (e.g.: 10)
-- `oauth.read.timeout.seconds` (e.g.: 10)
+- `oauth.connect.timeout.seconds` (e.g.: 60)
+- `oauth.read.timeout.seconds` (e.g.: 60)
 
 These options can be set as system properties, as env variables or as jaas properties as described in [Configuring the OAuth2](#configuring-the-oauth2).
+
+These configuration properties can be used to configure timeouts for `KeycloakRBACAuthorizer` as well, but they should be prefixed with `strimzi.authorization.` instead of `oauth.` when specifically targeting this authorizer (e.g.: `strimzi.authorization.connect.timeout.seconds`).
+
+You may want to set these options globally as system properties or env vars to apply for all the listeners and the `KeycoakRBACAuthorizer` in which case you would use `oauth.` prefix. But when configured specifically for `KeycloakRBACAuthorizer` in `server.properties` you have to use `strimzi.authorization.` prefix.
 
 NOTE: These options are available since version 0.10.0. Before, one could only apply JDK network options `sun.net.client.defaultConnectTimeout`, and `sun.net.client.defaultReadTimeout` as described [here](https://docs.oracle.com/javase/8/docs/technotes/guides/net/properties.html), and the default was `no timeout`.
 

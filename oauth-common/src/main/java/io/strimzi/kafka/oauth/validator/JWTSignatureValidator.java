@@ -92,8 +92,8 @@ public class JWTSignatureValidator implements TokenValidator {
      * @param checkAccessTokenType Should the 'typ' claim in the token be validated (be equal to 'Bearer')
      * @param audience The optional audience
      * @param customClaimCheck The optional JSONPath filter query for additional custom claim checking
-     * @param connectTimeout The maximum time to wait for connection to authorization server to be established (in seconds)
-     * @param readTimeout The maximum time to wait for response from authorization server after connection has been established and request sent (in seconds)
+     * @param connectTimeoutSeconds The maximum time to wait for connection to authorization server to be established (in seconds)
+     * @param readTimeoutSeconds The maximum time to wait for response from authorization server after connection has been established and request sent (in seconds)
      */
     public JWTSignatureValidator(String keysEndpointUri,
                                  SSLSocketFactory socketFactory,
@@ -106,8 +106,8 @@ public class JWTSignatureValidator implements TokenValidator {
                                  boolean checkAccessTokenType,
                                  String audience,
                                  String customClaimCheck,
-                                 int connectTimeout,
-                                 int readTimeout) {
+                                 int connectTimeoutSeconds,
+                                 int readTimeoutSeconds) {
 
 
         if (keysEndpointUri == null) {
@@ -148,8 +148,8 @@ public class JWTSignatureValidator implements TokenValidator {
         this.customClaimMatcher = parseCustomClaimCheck(customClaimCheck);
 
 
-        this.connectTimeout = connectTimeout;
-        this.readTimeout = readTimeout;
+        this.connectTimeout = connectTimeoutSeconds;
+        this.readTimeout = readTimeoutSeconds;
 
         // get the signing keys for signature validation before the first authorization requests start coming
         // fail fast if keys refresh doesn't work - it means network issues or authorization server not responding
@@ -176,8 +176,8 @@ public class JWTSignatureValidator implements TokenValidator {
                     + "\n    checkAccessTokenType: " + checkAccessTokenType
                     + "\n    audience: " + audience
                     + "\n    customClaimCheck: " + customClaimCheck
-                    + "\n    connectTimeout: " + connectTimeout
-                    + "\n    readTimeout: " + readTimeout
+                    + "\n    connectTimeoutSeconds: " + connectTimeoutSeconds
+                    + "\n    readTimeoutSeconds: " + readTimeoutSeconds
             );
         }
     }
