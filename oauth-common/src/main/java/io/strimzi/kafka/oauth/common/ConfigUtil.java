@@ -47,9 +47,9 @@ public class ConfigUtil {
     }
 
     public static int getTimeout(Config c, String key) {
-        int timeout = config.getValueAsInt(propertyKey, 60);
+        int timeout = c.getValueAsInt(key, 60);
         if (timeout <= 0) {
-            log.warn("The configured value of `" + propertyKey + "` (" + timeout + ") is <= 0 and will be ignored. Default used: 60 seconds");
+            log.warn("The configured value of `" + key + "` (" + timeout + ") is <= 0 and will be ignored. Default used: 60 seconds");
             timeout = 60;
         }
         return timeout;
