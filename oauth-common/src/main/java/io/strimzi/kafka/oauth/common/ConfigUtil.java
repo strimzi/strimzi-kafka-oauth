@@ -46,7 +46,7 @@ public class ConfigUtil {
         return getTimeout(config, Config.OAUTH_READ_TIMEOUT_SECONDS);
     }
 
-    public static int getTimeout(Config config, String propertyKey) {
+    public static int getTimeout(Config c, String key) {
         int timeout = config.getValueAsInt(propertyKey, 60);
         if (timeout <= 0) {
             log.warn("The configured value of `" + propertyKey + "` (" + timeout + ") is <= 0 and will be ignored. Default used: 60 seconds");
