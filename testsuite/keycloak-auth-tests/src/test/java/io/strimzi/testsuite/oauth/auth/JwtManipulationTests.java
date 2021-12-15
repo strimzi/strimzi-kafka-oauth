@@ -133,11 +133,6 @@ public class JwtManipulationTests {
 
         signedToken = createSignedToken(kid, privateKey, claims4);
         testWithToken(signedToken);
-
-        // TODO: Forge the token adding:
-        //   groups: "group1,group2"
-        //   groups: ["group1", "group2"]
-
     }
 
     private String getPrivateKeyAsPEM(PrivateKey privateKey) throws IOException {

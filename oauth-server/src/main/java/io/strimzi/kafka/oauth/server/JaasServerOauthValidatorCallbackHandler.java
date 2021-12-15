@@ -153,7 +153,7 @@ import static io.strimzi.kafka.oauth.common.TokenIntrospection.debugLogJWT;
  * <li><em>oauth.custom.claim.check</em> The optional mechanism to validate the JWT token or the introspection endpoint response by using any claim or attribute with a JSONPath filter query that evaluates to true or false.
  * If it evaluates to true the check passes, otherwise the token is rejected. See {@link JsonPathFilterQuery}.</li>
  * <li><em>oauth.groups.claim</em> The optional mechanism to extract and associate group membership with the account. The query should be specified as a JSONPath that returns a string value or an array of strings.
- * Extracted groups are available on <em>OAuthKafkaPrincipal</em> object as a set of KafkaPrincipals of type <em>Group</em>, and can be used by a custom authorizer.</li>
+ * Extracted groups are available on {@link OAuthKafkaPrincipal} object, and can be used by a custom authorizer by invoking the {@link OAuthKafkaPrincipal#getGroups()} method.</li>
  * <li><em>oauth.groups.claim.delimiter</em> When group extraction query returns a string containing multiple groups using a delimiter (comma separated values, for example), you can specify the delimiter to be used. Default value is <em>,</em> (comma)</li>
  * <li><em>oauth.connect.timeout.seconds</em> The maximum time to wait when establishing the connection to the authorization server. Default value is <em>60</em>.</li>
  * <li><em>oauth.read.timeout.seconds</em> The maximum time to wait to read the response from the authorization server after the connection has been established and request sent. Default value is <em>60</em>.</li>
