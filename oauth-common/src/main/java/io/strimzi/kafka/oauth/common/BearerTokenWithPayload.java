@@ -6,7 +6,7 @@ package io.strimzi.kafka.oauth.common;
 
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerToken;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import java.util.List;
+import java.util.Set;
 
 /**
  * This extension of OAuthBearerToken provides a way to associate any additional information with the token
@@ -38,13 +38,11 @@ public interface BearerTokenWithPayload extends OAuthBearerToken {
     void setPayload(Object payload);
 
     /**
-     * Get groups associated with this token (principal). Logically, groups should be considered a Set.
-     * However, depending on the infrastructure (e.g. authorization server used), the order may be predictable and configurable,
-     * and could be used during authorization in a custom authorizer.
+     * Get groups associated with this token (principal).
      *
      * @return The groups for the user
      */
-    List<String> getGroups();
+    Set<String> getGroups();
 
     /**
      * The token claims as a JSON object. For JWT tokens it contains the content of the JWT Payload part of the token.

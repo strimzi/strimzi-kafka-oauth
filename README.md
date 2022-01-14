@@ -458,7 +458,7 @@ See [JsonPathFilterQuery JavaDoc](oauth-common/src/main/java/io/strimzi/kafka/oa
 
 When using custom authorization (by installing a custom authorizer) you may want to take user's group membership into account when making the authorization decisions.
 One way is to obtain and inspect a parsed JWT token from `io.strimzi.kafka.oauth.server.OAuthKafkaPrincipal` object available through `AuthorizableRequestContext` passed to your `authorize()` method.
-Another way is to configure group extraction at authentication time, and get groups as a list of principals from `OAuthKafkaPrincipal` object.
+Another way is to configure group extraction at authentication time, and get groups as a set of principals from `OAuthKafkaPrincipal` object.
 There are two configuration parameters for configuring group extraction:
 
 - `oauth.groups.claim` (e.g.: `$.roles.client-roles.kafka`)

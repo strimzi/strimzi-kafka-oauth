@@ -9,21 +9,20 @@ import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
 
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 public class MockBearerTokenWithPayload implements BearerTokenWithPayload {
 
 
     private final String principalName;
-    private final List<String> groups;
+    private final Set<String> groups;
     private final long createTime;
     private final long lifetime;
     private final Set<String> scopes;
     private final String token;
     private Object payload;
 
-    MockBearerTokenWithPayload(String principalName, List<String> groups, long createTime, long lifetime, String scope, String token, Object payload) {
+    MockBearerTokenWithPayload(String principalName, Set<String> groups, long createTime, long lifetime, String scope, String token, Object payload) {
         this.principalName = principalName;
         this.groups = groups;
         this.createTime = createTime;
@@ -51,7 +50,7 @@ public class MockBearerTokenWithPayload implements BearerTokenWithPayload {
     }
 
     @Override
-    public List<String> getGroups() {
+    public Set<String> getGroups() {
         return groups;
     }
 

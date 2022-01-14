@@ -22,6 +22,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static io.strimzi.kafka.oauth.common.HttpUtil.post;
@@ -256,7 +257,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
             }
         }
         performOptionalChecks(response);
-        List<String> groups = null;
+        Set<String> groups = null;
         if (groupsMatcher != null) {
             groups = extractGroupsFromResponse(response);
 
@@ -271,7 +272,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         return new TokenInfo(token, scopes, principal, groups, iat, expiresMillis);
     }
 
-    private List<String> extractGroupsFromResponse(JsonNode userInfoJson) {
+    private Set<String> extractGroupsFromResponse(JsonNode userInfoJson) {
         JsonNode result = groupsMatcher.apply(userInfoJson);
         if (result == null) {
             return null;
@@ -279,7 +280,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         List<String> groups = JSONUtil.asListOfString(result, groupsDelimiter != null ? groupsDelimiter : ",");
 
         // sanitize the result
-        return groups.stream().map(String::trim).filter(v -> !v.isEmpty()).collect(Collectors.toList());
+        return groups.stream().map(String::trim).filter(v -> !v.isEmpty()).collect(Collectors.toSet());
     }
 
     private JsonNode getUserInfoEndpointResponse(String token) {

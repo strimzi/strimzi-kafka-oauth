@@ -581,7 +581,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         }
 
         @Override
-        public List<String> getGroups() {
+        public Set<String> getGroups() {
             return ti.groups();
         }
 

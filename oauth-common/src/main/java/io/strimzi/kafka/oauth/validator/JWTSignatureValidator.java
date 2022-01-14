@@ -33,6 +33,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -364,7 +365,7 @@ public class JWTSignatureValidator implements TokenValidator {
         }
 
         String principal = extractPrincipal(t);
-        List<String> groups = extractGroups(t);
+        Set<String> groups = extractGroups(t);
         return new TokenInfo(t, token, principal, groups);
     }
 
@@ -383,7 +384,7 @@ public class JWTSignatureValidator implements TokenValidator {
         return principal;
     }
 
-    private List<String> extractGroups(JsonNode tokenJson) {
+    private Set<String> extractGroups(JsonNode tokenJson) {
         if (groupsQuery == null) {
             return null;
         }
@@ -393,9 +394,9 @@ public class JWTSignatureValidator implements TokenValidator {
         }
         List<String> groups = JSONUtil.asListOfString(result, groupsDelimiter != null ? groupsDelimiter : ",");
         // sanitize the result
-        groups = groups.stream().map(String::trim).filter(v -> !v.isEmpty()).collect(Collectors.toList());
+        Set<String> groupSet = groups.stream().map(String::trim).filter(v -> !v.isEmpty()).collect(Collectors.toSet());
 
-        return groups.isEmpty() ? null : groups;
+        return groupSet.isEmpty() ? null : groupSet;
     }
 
     @SuppressWarnings({"deprecation", "unchecked"})

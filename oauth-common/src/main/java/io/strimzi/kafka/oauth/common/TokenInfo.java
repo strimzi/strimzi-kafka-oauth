@@ -9,7 +9,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 public class TokenInfo {
@@ -26,7 +25,7 @@ public class TokenInfo {
     private Set<String> scopes = new HashSet<>();
     private long expiresAt;
     private String principal;
-    private List<String> groups;
+    private Set<String> groups;
     private long issuedAt;
     private ObjectNode payload;
 
@@ -34,7 +33,7 @@ public class TokenInfo {
         this(payload, token, principal, null);
     }
 
-    public TokenInfo(JsonNode payload, String token, String principal, List<String> groups) {
+    public TokenInfo(JsonNode payload, String token, String principal, Set<String> groups) {
         this(token,
                 payload.has(SCOPE) ? payload.get(SCOPE).asText() : null,
                 principal,
@@ -48,10 +47,10 @@ public class TokenInfo {
         this.payload = (ObjectNode) payload;
     }
 
-    public TokenInfo(String token, String scope, String principal, List<String> groups, long issuedAtMs, long expiresAtMs) {
+    public TokenInfo(String token, String scope, String principal, Set<String> groups, long issuedAtMs, long expiresAtMs) {
         this.token = token;
         this.principal = principal;
-        this.groups = groups != null ? Collections.unmodifiableList(groups) : null;
+        this.groups = groups != null ? Collections.unmodifiableSet(groups) : null;
         this.issuedAt = issuedAtMs;
         this.expiresAt = expiresAtMs;
 
@@ -78,7 +77,7 @@ public class TokenInfo {
         return principal;
     }
 
-    public List<String> groups() {
+    public Set<String> groups() {
         return groups;
     }
 
