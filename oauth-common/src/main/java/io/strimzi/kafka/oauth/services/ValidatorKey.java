@@ -84,7 +84,21 @@ public class ValidatorKey {
 
     @Override
     public int hashCode() {
-        return Objects.hash(validIssuerUri, audience, customClaimCheck, usernameClaim, fallbackUsernameClaim, fallbackUsernamePrefix, groupQuery, groupDelimiter, sslTruststore, sslStorePassword, sslStoreType, sslRandom, hasHostnameVerifier, connectTimeout, readTimeout);
+        return Objects.hash(validIssuerUri,
+                audience,
+                customClaimCheck,
+                usernameClaim,
+                fallbackUsernameClaim,
+                fallbackUsernamePrefix,
+                groupQuery,
+                groupDelimiter,
+                sslTruststore,
+                sslStorePassword,
+                sslStoreType,
+                sslRandom,
+                hasHostnameVerifier,
+                connectTimeout,
+                readTimeout);
     }
 
 
@@ -119,7 +133,21 @@ public class ValidatorKey {
                                int connectTimeout,
                                int readTimeout) {
 
-            super(validIssuerUri, audience, customClaimCheck, usernameClaim, fallbackUsernameClaim, fallbackUsernamePrefix, groupQuery, groupDelimiter, sslTruststore, sslStorePassword, sslStoreType, sslRandom, hasHostnameVerifier, connectTimeout, readTimeout);
+            super(validIssuerUri,
+                    audience,
+                    customClaimCheck,
+                    usernameClaim,
+                    fallbackUsernameClaim,
+                    fallbackUsernamePrefix,
+                    groupQuery,
+                    groupDelimiter,
+                    sslTruststore,
+                    sslStorePassword,
+                    sslStoreType,
+                    sslRandom,
+                    hasHostnameVerifier,
+                    connectTimeout,
+                    readTimeout);
             this.jwksEndpointUri = jwksEndpointUri;
             this.jwksRefreshSeconds = jwksRefreshSeconds;
             this.jwksExpirySeconds = jwksExpirySeconds;
@@ -177,7 +205,21 @@ public class ValidatorKey {
                                   int connectTimeout,
                                   int readTimeout) {
 
-            super(validIssuerUri, audience, customClaimCheck, usernameClaim, fallbackUsernameClaim, fallbackUsernamePrefix, groupQuery, groupDelimiter, sslTruststore, sslStorePassword, sslStoreType, sslRandom, hasHostnameVerifier, connectTimeout, readTimeout);
+            super(validIssuerUri,
+                    audience,
+                    customClaimCheck,
+                    usernameClaim,
+                    fallbackUsernameClaim,
+                    fallbackUsernamePrefix,
+                    groupQuery,
+                    groupDelimiter,
+                    sslTruststore,
+                    sslStorePassword,
+                    sslStoreType,
+                    sslRandom,
+                    hasHostnameVerifier,
+                    connectTimeout,
+                    readTimeout);
             this.introspectionEndpoint = introspectionEndpoint;
             this.userInfoEndpoint = userInfoEndpoint;
             this.validTokenType = validTokenType;

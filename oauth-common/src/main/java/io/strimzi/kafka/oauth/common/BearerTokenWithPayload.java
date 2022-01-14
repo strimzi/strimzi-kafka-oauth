@@ -23,12 +23,35 @@ import java.util.List;
  */
 public interface BearerTokenWithPayload extends OAuthBearerToken {
 
+    /**
+     * Get the usage dependent object previously associated with this instance by calling {@link BearerTokenWithPayload#setPayload(Object)}
+     *
+     * @return The associated object
+     */
     Object getPayload();
 
+    /**
+     * Associate a usage dependent object with this instance
+     *
+     * @param payload The object to associate with this instance
+     */
     void setPayload(Object payload);
 
+    /**
+     * Get groups associated with this token (principal). Logically, groups should be considered a Set.
+     * However, depending on the infrastructure (e.g. authorization server used), the order may be predictable and configurable,
+     * and could be used during authorization in a custom authorizer.
+     *
+     * @return The groups for the user
+     */
     List<String> getGroups();
 
+    /**
+     * The token claims as a JSON object. For JWT tokens it contains the content of the JWT Payload part of the token.
+     * If introspection is used, it contains the introspection endpoint response.
+     *
+     * @return Token content / details as a JSON object
+     */
     ObjectNode getJSON();
 
     /**
