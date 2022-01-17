@@ -29,6 +29,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -103,7 +104,7 @@ public class OAuthSessionAuthorizerTest {
     private void testOAuthUserWithDelegate(Authorizer authorizer, MockAuthorizer delegateAuthorizer) throws Exception {
 
         // Prepare condition after mock OAuth athentication with valid token
-        TokenInfo tokenInfo = new TokenInfo("accesstoken123", null, "User:bob",
+        TokenInfo tokenInfo = new TokenInfo("accesstoken123", null, "User:bob", new HashSet(Arrays.asList("group1", "group2")),
                 System.currentTimeMillis() - 100000,
                 System.currentTimeMillis() + 100000);
         BearerTokenWithPayload token = new JaasServerOauthValidatorCallbackHandler.BearerTokenWithPayloadImpl(tokenInfo);
@@ -133,7 +134,7 @@ public class OAuthSessionAuthorizerTest {
     public void testOAuthUserWithExpiredTokenWithDelegate(Authorizer authorizer, MockAuthorizer delegateAuthorizer) throws Exception {
 
         // Make it so that the token is expired
-        TokenInfo tokenInfo = new TokenInfo("accesstoken234", null, "User:bob",
+        TokenInfo tokenInfo = new TokenInfo("accesstoken234", null, "User:bob", null,
                 System.currentTimeMillis() - 200000,
                 System.currentTimeMillis() - 100000);
         BearerTokenWithPayload token = new JaasServerOauthValidatorCallbackHandler.BearerTokenWithPayloadImpl(tokenInfo);
@@ -226,7 +227,7 @@ public class OAuthSessionAuthorizerTest {
     private void testOAuthUserWithoutDelegate(Authorizer authorizer) throws Exception {
 
         // Prepare condition after mock OAuth athentication with valid token
-        TokenInfo tokenInfo = new TokenInfo("accesstoken123", null, "User:bob",
+        TokenInfo tokenInfo = new TokenInfo("accesstoken123", null, "User:bob", null,
                 System.currentTimeMillis() - 100000,
                 System.currentTimeMillis() + 100000);
         BearerTokenWithPayload token = new JaasServerOauthValidatorCallbackHandler.BearerTokenWithPayloadImpl(tokenInfo);
@@ -250,7 +251,7 @@ public class OAuthSessionAuthorizerTest {
     private void testOAuthUserWithExpiredTokenWithoutDelegate(Authorizer authorizer) throws Exception {
 
         // Make it so that the token is expired
-        TokenInfo tokenInfo = new TokenInfo("accesstoken234", null, "User:bob",
+        TokenInfo tokenInfo = new TokenInfo("accesstoken234", null, "User:bob", null,
                 System.currentTimeMillis() - 200000,
                 System.currentTimeMillis() - 100000);
         BearerTokenWithPayload token = new JaasServerOauthValidatorCallbackHandler.BearerTokenWithPayloadImpl(tokenInfo);

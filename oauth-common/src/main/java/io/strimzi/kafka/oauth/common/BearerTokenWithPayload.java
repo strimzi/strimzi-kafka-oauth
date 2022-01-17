@@ -5,6 +5,8 @@
 package io.strimzi.kafka.oauth.common;
 
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerToken;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.util.Set;
 
 /**
  * This extension of OAuthBearerToken provides a way to associate any additional information with the token
@@ -21,9 +23,34 @@ import org.apache.kafka.common.security.oauthbearer.OAuthBearerToken;
  */
 public interface BearerTokenWithPayload extends OAuthBearerToken {
 
+    /**
+     * Get the usage dependent object previously associated with this instance by calling {@link BearerTokenWithPayload#setPayload(Object)}
+     *
+     * @return The associated object
+     */
     Object getPayload();
 
+    /**
+     * Associate a usage dependent object with this instance
+     *
+     * @param payload The object to associate with this instance
+     */
     void setPayload(Object payload);
+
+    /**
+     * Get groups associated with this token (principal).
+     *
+     * @return The groups for the user
+     */
+    Set<String> getGroups();
+
+    /**
+     * The token claims as a JSON object. For JWT tokens it contains the content of the JWT Payload part of the token.
+     * If introspection is used, it contains the introspection endpoint response.
+     *
+     * @return Token content / details as a JSON object
+     */
+    ObjectNode getJSON();
 
     /**
      * This method returns an id of the current instance of this object.

@@ -14,6 +14,8 @@ public class ValidatorKey {
     private final String usernameClaim;
     private final String fallbackUsernameClaim;
     private final String fallbackUsernamePrefix;
+    private final String groupQuery;
+    private final String groupDelimiter;
 
     private final String sslTruststore;
     private final String sslStorePassword;
@@ -24,12 +26,15 @@ public class ValidatorKey {
     private final int connectTimeout;
     private final int readTimeout;
 
+    @SuppressWarnings("checkstyle:ParameterNumber")
     ValidatorKey(String validIssuerUri,
             String audience,
             String customClaimCheck,
             String usernameClaim,
             String fallbackUsernameClaim,
             String fallbackUsernamePrefix,
+            String groupQuery,
+            String groupDelimiter,
             String sslTruststore,
             String sslStorePassword,
             String sslStoreType,
@@ -44,6 +49,8 @@ public class ValidatorKey {
         this.usernameClaim = usernameClaim;
         this.fallbackUsernameClaim = fallbackUsernameClaim;
         this.fallbackUsernamePrefix = fallbackUsernamePrefix;
+        this.groupQuery = groupQuery;
+        this.groupDelimiter = groupDelimiter;
         this.sslTruststore = sslTruststore;
         this.sslStorePassword = sslStorePassword;
         this.sslStoreType = sslStoreType;
@@ -65,6 +72,8 @@ public class ValidatorKey {
                 Objects.equals(usernameClaim, that.usernameClaim) &&
                 Objects.equals(fallbackUsernameClaim, that.fallbackUsernameClaim) &&
                 Objects.equals(fallbackUsernamePrefix, that.fallbackUsernamePrefix) &&
+                Objects.equals(groupQuery, that.groupQuery) &&
+                Objects.equals(groupDelimiter, that.groupDelimiter) &&
                 Objects.equals(sslTruststore, that.sslTruststore) &&
                 Objects.equals(sslStorePassword, that.sslStorePassword) &&
                 Objects.equals(sslStoreType, that.sslStoreType) &&
@@ -75,7 +84,21 @@ public class ValidatorKey {
 
     @Override
     public int hashCode() {
-        return Objects.hash(validIssuerUri, audience, customClaimCheck, usernameClaim, fallbackUsernameClaim, fallbackUsernamePrefix, sslTruststore, sslStorePassword, sslStoreType, sslRandom, hasHostnameVerifier, connectTimeout, readTimeout);
+        return Objects.hash(validIssuerUri,
+                audience,
+                customClaimCheck,
+                usernameClaim,
+                fallbackUsernameClaim,
+                fallbackUsernamePrefix,
+                groupQuery,
+                groupDelimiter,
+                sslTruststore,
+                sslStorePassword,
+                sslStoreType,
+                sslRandom,
+                hasHostnameVerifier,
+                connectTimeout,
+                readTimeout);
     }
 
 
@@ -94,6 +117,8 @@ public class ValidatorKey {
                                String usernameClaim,
                                String fallbackUsernameClaim,
                                String fallbackUsernamePrefix,
+                               String groupQuery,
+                               String groupDelimiter,
                                String sslTruststore,
                                String sslStorePassword,
                                String sslStoreType,
@@ -108,7 +133,21 @@ public class ValidatorKey {
                                int connectTimeout,
                                int readTimeout) {
 
-            super(validIssuerUri, audience, customClaimCheck, usernameClaim, fallbackUsernameClaim, fallbackUsernamePrefix, sslTruststore, sslStorePassword, sslStoreType, sslRandom, hasHostnameVerifier, connectTimeout, readTimeout);
+            super(validIssuerUri,
+                    audience,
+                    customClaimCheck,
+                    usernameClaim,
+                    fallbackUsernameClaim,
+                    fallbackUsernamePrefix,
+                    groupQuery,
+                    groupDelimiter,
+                    sslTruststore,
+                    sslStorePassword,
+                    sslStoreType,
+                    sslRandom,
+                    hasHostnameVerifier,
+                    connectTimeout,
+                    readTimeout);
             this.jwksEndpointUri = jwksEndpointUri;
             this.jwksRefreshSeconds = jwksRefreshSeconds;
             this.jwksExpirySeconds = jwksExpirySeconds;
@@ -150,6 +189,8 @@ public class ValidatorKey {
                                   String usernameClaim,
                                   String fallbackUsernameClaim,
                                   String fallbackUsernamePrefix,
+                                  String groupQuery,
+                                  String groupDelimiter,
                                   String sslTruststore,
                                   String sslStorePassword,
                                   String sslStoreType,
@@ -164,7 +205,21 @@ public class ValidatorKey {
                                   int connectTimeout,
                                   int readTimeout) {
 
-            super(validIssuerUri, audience, customClaimCheck, usernameClaim, fallbackUsernameClaim, fallbackUsernamePrefix, sslTruststore, sslStorePassword, sslStoreType, sslRandom, hasHostnameVerifier, connectTimeout, readTimeout);
+            super(validIssuerUri,
+                    audience,
+                    customClaimCheck,
+                    usernameClaim,
+                    fallbackUsernameClaim,
+                    fallbackUsernamePrefix,
+                    groupQuery,
+                    groupDelimiter,
+                    sslTruststore,
+                    sslStorePassword,
+                    sslStoreType,
+                    sslRandom,
+                    hasHostnameVerifier,
+                    connectTimeout,
+                    readTimeout);
             this.introspectionEndpoint = introspectionEndpoint;
             this.userInfoEndpoint = userInfoEndpoint;
             this.validTokenType = validTokenType;

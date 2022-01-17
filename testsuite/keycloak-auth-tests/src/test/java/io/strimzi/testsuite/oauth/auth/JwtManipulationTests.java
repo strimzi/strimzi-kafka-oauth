@@ -133,7 +133,6 @@ public class JwtManipulationTests {
 
         signedToken = createSignedToken(kid, privateKey, claims4);
         testWithToken(signedToken);
-
     }
 
     private String getPrivateKeyAsPEM(PrivateKey privateKey) throws IOException {

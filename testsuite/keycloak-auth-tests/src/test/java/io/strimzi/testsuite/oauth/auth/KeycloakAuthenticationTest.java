@@ -38,6 +38,9 @@ public class KeycloakAuthenticationTest {
             logStart("KeycloakAuthenticationTest :: CustomCheckTests");
             CustomCheckTests.doTests();
 
+            logStart("KeycloakAuthenticationTest :: GroupsExtractionTests");
+            GroupsExtractionTests.doTests();
+
             logStart("KeycloakAuthenticationTest :: MultiSaslTests");
             MultiSaslTests.doTests();
 
