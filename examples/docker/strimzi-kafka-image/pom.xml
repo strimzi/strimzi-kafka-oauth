@@ -7,12 +7,12 @@
         <groupId>io.strimzi.oauth.docker</groupId>
         <artifactId>kafka-oauth-docker-parent</artifactId>
         <relativePath>../pom.xml</relativePath>
-        <version>1.0.0-SNAPSHOT</version>
+        <version>0.10.0</version>
     </parent>
 
     <groupId>org.example</groupId>
     <artifactId>kafka-oauth-docker-strimzi-kafka</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>0.10.0</version>
 
     <packaging>pom</packaging>
 

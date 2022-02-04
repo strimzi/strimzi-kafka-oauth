@@ -6,7 +6,7 @@
 
     <groupId>io.strimzi.oauth.testsuite</groupId>
     <artifactId>kafka-oauth-testsuite</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>0.10.0</version>
 
     <packaging>pom</packaging>
 
@@ -38,7 +38,7 @@
         <version.junit>4.12</version.junit>
         <arquillian.cube.version>1.18.2</arquillian.cube.version>
         <spotbugs.version>3.1.12</spotbugs.version>
-        <strimzi-oauth.version>1.0.0-SNAPSHOT</strimzi-oauth.version>
+        <strimzi-oauth.version>0.10.0</strimzi-oauth.version>
         <checkstyle.dir>..</checkstyle.dir>
 
         <kafka.docker.image>quay.io/strimzi/kafka:0.23.0-kafka-2.8.0</kafka.docker.image>
@@ -63,7 +63,7 @@
             <dependency>
                 <groupId>io.strimzi.oauth.testsuite</groupId>
                 <artifactId>jwt-over-plain-keycloak-authz-test</artifactId>
-                <version>1.0.0-SNAPSHOT</version>
+                <version>0.10.0</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
