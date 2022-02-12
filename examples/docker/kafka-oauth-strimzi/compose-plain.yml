@@ -85,6 +85,9 @@ services:
       # For start.sh script to know where the keycloak is listening
       KEYCLOAK_HOST: ${KEYCLOAK_HOST:-keycloak}
       REALM: ${REALM:-kafka-authz}
+    depends_on:
+      - zookeeper
+    restart: on-failure
 
   zookeeper:
     image: strimzi/example-zookeeper

@@ -70,6 +70,9 @@ services:
 
       # For start_with_hydra.sh script to know where hydra is listening
       HYDRA_HOST: ${HYDRA_HOST:-hydra}
+    depends_on:
+      - zookeeper
+    restart: on-failure
 
   zookeeper:
     image: strimzi/example-zookeeper
