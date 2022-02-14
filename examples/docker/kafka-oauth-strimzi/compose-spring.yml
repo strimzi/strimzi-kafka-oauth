@@ -70,6 +70,9 @@ services:
 
       # For start.sh script to know where the keycloak is listening
       SPRING_HOST: ${SPRING_HOST:-spring}
+    depends_on:
+      - zookeeper
+    restart: on-failure
 
   zookeeper:
     image: strimzi/example-zookeeper
