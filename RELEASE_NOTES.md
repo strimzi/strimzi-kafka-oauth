@@ -1,6 +1,23 @@
 Release Notes
 =============
 
+0.10.0
+------
+
+### Added connect and read timeouts for communication with authorization server
+
+Before, when Kafka client or broker connected to the authorization server during authentication or token validation, there was no connect timeout and no read timeout applied. As a result, if a reverse proxy was in front of the authorization server or a network component glitch prevented normal connectivity, it could happen that the authentication request would stall for a long time.
+
+In order to address this, the default connect timeout and read timeout are now both set to 60 seconds and they are configurable via `oauth.connect.timeout.seconds` and `oauth.read.timeout.seconds`.
+
+### Added groups extraction and exposed groups info via OAuthKafkaPrincipal
+
+Added an authentication time mechanism on the broker where a JsonPath query can be configured to extract a set of groups from a JWT token during authentication. A custom authorizer can then retrieve this information through `OAuthKafkaPrincipal` object available during the `authorize()` call.
+
+### Added access to parsed JWT token
+
+When writing a custom authorizer you may need access to the already parsed JWT token or a map of claims returned by the introspection endpoint. A `getJSON()` method has been added to `BearerTokenWithPayload`.
+
 0.9.0
 -----
 
