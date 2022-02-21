@@ -42,7 +42,7 @@ public class HttpUtilTimeoutTest {
         long start = System.currentTimeMillis();
         try {
             try {
-                HttpUtil.get(URI.create("http://172.0.0.13:8079"), null, String.class);
+                HttpUtil.get(URI.create("http://192.168.255.255:26309"), null, String.class);
 
                 Assert.fail("Should fail with SocketTimeoutException");
             } catch (SocketTimeoutException e) {
@@ -65,7 +65,7 @@ public class HttpUtilTimeoutTest {
             timeout = 2;
             try {
                 start = System.currentTimeMillis();
-                HttpUtil.get(URI.create("http://172.0.0.13:8079"), null, null, null, String.class, timeout, timeout);
+                HttpUtil.get(URI.create("http://192.168.255.255:26309"), null, null, null, String.class, timeout, timeout);
 
                 Assert.fail("Should fail with SocketTimeoutException");
             } catch (SocketTimeoutException e) {
@@ -88,7 +88,7 @@ public class HttpUtilTimeoutTest {
 
             // Test validator
             try {
-                OAuthIntrospectionValidator validator = new OAuthIntrospectionValidator("http://172.0.0.13:8079",
+                OAuthIntrospectionValidator validator = new OAuthIntrospectionValidator("http://192.168.255.255:26309",
                         null, null, new PrincipalExtractor(), null, null, "http://172.0.0.13/", null, "Bearer",
                         "kafka", "kafka-secret", null, null, timeout, timeout);
 
