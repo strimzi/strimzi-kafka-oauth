@@ -142,6 +142,7 @@ public class ValidatorKey {
         private final String validTokenType;
         private final String clientId;
         private final String clientSecret;
+        private final String introspectionEndpointParam;
 
         @SuppressWarnings("checkstyle:parameternumber")
         public IntrospectionValidatorKey(String validIssuerUri,
@@ -162,7 +163,8 @@ public class ValidatorKey {
                                   String clientId,
                                   String clientSecret,
                                   int connectTimeout,
-                                  int readTimeout) {
+                                  int readTimeout,
+                                  String introspectionEndpointParam) {
 
             super(validIssuerUri, audience, customClaimCheck, usernameClaim, fallbackUsernameClaim, fallbackUsernamePrefix, sslTruststore, sslStorePassword, sslStoreType, sslRandom, hasHostnameVerifier, connectTimeout, readTimeout);
             this.introspectionEndpoint = introspectionEndpoint;
@@ -170,6 +172,7 @@ public class ValidatorKey {
             this.validTokenType = validTokenType;
             this.clientId = clientId;
             this.clientSecret = clientSecret;
+            this.introspectionEndpointParam = introspectionEndpointParam;
         }
 
         @Override
@@ -182,12 +185,13 @@ public class ValidatorKey {
                     Objects.equals(userInfoEndpoint, that.userInfoEndpoint) &&
                     Objects.equals(validTokenType, that.validTokenType) &&
                     Objects.equals(clientId, that.clientId) &&
-                    Objects.equals(clientSecret, that.clientSecret);
+                    Objects.equals(clientSecret, that.clientSecret) &&
+                    Objects.equals(introspectionEndpointParam, that.introspectionEndpointParam);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(super.hashCode(), introspectionEndpoint, userInfoEndpoint, validTokenType, clientId, clientSecret);
+            return Objects.hash(super.hashCode(), introspectionEndpoint, userInfoEndpoint, validTokenType, clientId, clientSecret, introspectionEndpointParam);
         }
     }
 }

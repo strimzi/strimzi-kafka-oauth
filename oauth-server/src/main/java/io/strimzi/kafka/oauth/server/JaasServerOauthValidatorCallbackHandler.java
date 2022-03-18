@@ -308,6 +308,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         } else {
 
             String introspectionEndpoint = config.getValue(ServerConfig.OAUTH_INTROSPECTION_ENDPOINT_URI);
+            String introspectionEndpointParam = config.getValue(ServerConfig.OAUTH_INTROSPECTION_ENDPOINT_PARAM);
             String userInfoEndpoint = config.getValue(ServerConfig.OAUTH_USERINFO_ENDPOINT_URI);
             String validTokenType = config.getValue(ServerConfig.OAUTH_VALID_TOKEN_TYPE);
 
@@ -329,7 +330,8 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                     clientId,
                     clientSecret,
                     connectTimeout,
-                    readTimeout);
+                    readTimeout,
+                    introspectionEndpointParam);
 
             factory = () -> new OAuthIntrospectionValidator(
                     introspectionEndpoint,
@@ -344,7 +346,8 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                     audience,
                     customClaimCheck,
                     connectTimeout,
-                    readTimeout);
+                    readTimeout,
+                    introspectionEndpointParam);
         }
 
         validator = Services.getInstance().getValidators().get(vkey, factory);

@@ -51,6 +51,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
     private final SSLSocketFactory socketFactory;
     private final HostnameVerifier hostnameVerifier;
     private final PrincipalExtractor principalExtractor;
+    private final String introspectionEndpointParam;
 
     private final int connectTimeoutSeconds;
     private final int readTimeoutSeconds;
@@ -70,6 +71,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
      * @param customClaimCheck The optional JSONPath filter query for additional custom attribute checking
      * @param connectTimeoutSeconds The maximum time to wait for connection to authorization server to be established (in seconds)
      * @param readTimeoutSeconds The maximum time to wait for response from authorization server after connection has been established and request sent (in seconds)
+     * @param introspectionEndpointParam The introspection endpoint url parameter at the authorization server
      */
     public OAuthIntrospectionValidator(String introspectionEndpointUri,
                                        SSLSocketFactory socketFactory,
@@ -83,7 +85,8 @@ public class OAuthIntrospectionValidator implements TokenValidator {
                                        String audience,
                                        String customClaimCheck,
                                        int connectTimeoutSeconds,
-                                       int readTimeoutSeconds) {
+                                       int readTimeoutSeconds,
+                                       String introspectionEndpointParam) {
 
         if (introspectionEndpointUri == null) {
             throw new IllegalArgumentException("introspectionEndpointUri == null");
@@ -134,6 +137,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
 
         this.connectTimeoutSeconds = connectTimeoutSeconds;
         this.readTimeoutSeconds = readTimeoutSeconds;
+        this.introspectionEndpointParam = introspectionEndpointParam;
 
         if (log.isDebugEnabled()) {
             log.debug("Configured OAuthIntrospectionValidator:\n    introspectionEndpointUri: " + introspectionURI
@@ -149,6 +153,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
                     + "\n    customClaimCheck: " + customClaimCheck
                     + "\n    connectTimeoutSeconds: " + connectTimeoutSeconds
                     + "\n    readTimeoutSeconds: " + readTimeoutSeconds
+                    + "\n    introspectionEndpointParam: " + introspectionEndpointParam
             );
         }
     }
@@ -171,7 +176,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
                 "Basic " + base64encode(clientId + ':' + clientSecret) :
                 null;
 
-        StringBuilder body = new StringBuilder("token=").append(token);
+        StringBuilder body = introspectionEndpointParam != null ? new StringBuilder(introspectionEndpointParam + "=").append(token) : new StringBuilder("token=").append(token);
 
         JsonNode response;
         try {

@@ -90,7 +90,7 @@ public class HttpUtilTimeoutTest {
             try {
                 OAuthIntrospectionValidator validator = new OAuthIntrospectionValidator("http://172.0.0.13:8079",
                         null, null, new PrincipalExtractor(), "http://172.0.0.13/", null, "Bearer",
-                        "kafka", "kafka-secret", null, null, timeout, timeout);
+                        "kafka", "kafka-secret", null, null, timeout, timeout, "token");
 
                 start = System.currentTimeMillis();
                 validator.validate("token");

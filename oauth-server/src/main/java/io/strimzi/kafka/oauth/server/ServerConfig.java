@@ -16,6 +16,7 @@ public class ServerConfig extends Config {
     public static final String OAUTH_JWKS_REFRESH_MIN_PAUSE_SECONDS = "oauth.jwks.refresh.min.pause.seconds";
     public static final String OAUTH_VALID_ISSUER_URI = "oauth.valid.issuer.uri";
     public static final String OAUTH_INTROSPECTION_ENDPOINT_URI = "oauth.introspection.endpoint.uri";
+    public static final String OAUTH_INTROSPECTION_ENDPOINT_PARAM = "oauth.introspection.endpoint.param";
     public static final String OAUTH_USERINFO_ENDPOINT_URI = "oauth.userinfo.endpoint.uri";
     public static final String OAUTH_CHECK_ACCESS_TOKEN_TYPE = "oauth.check.access.token.type";
     public static final String OAUTH_CHECK_ISSUER = "oauth.check.issuer";
