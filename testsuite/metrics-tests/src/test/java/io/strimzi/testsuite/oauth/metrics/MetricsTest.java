@@ -45,22 +45,6 @@ public class MetricsTest {
 
             testInternalServerErrors();
 
-
-            //
-            // Perform introspect endpoint tests
-            //
-
-            /*
-            "strimzi_oauth_http_jwks_errornetworkcounter"
-            "strimzi_oauth_http_jwks_errornetworkrequesttime"
-            "strimzi_oauth_http_token_errornetworkcounter"
-            "strimzi_oauth_http_token_errornetworkrequesttime"
-            "strimzi_oauth_http_token_errornxxcounter"
-            "strimzi_oauth_http_token_errornxxrequesttime"
-            "strimzi_oauth_http_introspect_errornxxcounter"
-            "strimzi_oauth_http_introspect_errornxxrequesttime"
-            */
-
         } catch (Throwable e) {
             log.error("Keycloak Authentication Test failed: ", e);
             throw e;
