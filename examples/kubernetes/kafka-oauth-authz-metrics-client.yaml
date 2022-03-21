@@ -1,3 +1,4 @@
+# See README-metrics.md for usage
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -12,7 +13,7 @@ data:
       sasl.mechanism=OAUTHBEARER
       sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
         oauth.client.id="team-a-client" \
-        oauth.client.secret="team-a-client-secret" \
+        oauth.client.secret="$SECRET" \
         oauth.token.endpoint.uri="http://keycloak:8080/auth/realms/kafka-authz/protocol/openid-connect/token" ;
       sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
     EOF
@@ -36,6 +37,11 @@ spec:
       env:
         - name: OAUTH_ENABLE_METRICS
           value: "true"
+        - name: SECRET
+          valueFrom:
+            secretKeyRef:
+              name: kafka-client-secret
+              key: secret
       stdin: true
       stdinOnce: true
       tty: true
