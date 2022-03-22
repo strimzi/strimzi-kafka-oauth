@@ -142,7 +142,7 @@ public class Config {
     }
 
     /**
-     * Get value for ptoperty key as a URI
+     * Get value for property key as a URI
      *
      * @param key Config key
      * @return Config value
