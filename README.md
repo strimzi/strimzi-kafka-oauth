@@ -50,6 +50,8 @@ Strimzi Kafka OAuth modules provide support for OAuth2 as authentication mechani
 - [Configuring the TLS truststore](#configuring-the-tls-truststore)
 - [Configuring the network timeouts for communication with authorization server](#configuring-the-network-timeouts-for-communication-with-authorization-server)
 - [Configuring the metrics](#configuring-the-metrics)
+  - [Using the metrics with Prometheus](#using-the-metrics-with-prometheus)
+  - [Some examples of PromQL queries](#some-examples-of-promql-queries)
 - [Demo](#demo)
   
 <!-- /TOC -->
@@ -1192,6 +1194,19 @@ For client-side authentication there are:
   - `strimzi.oauth:name=http_requests,context=$CONFIG_ID,type=client-auth,host="$HOST:$PORT",path="$TOKEN_ENDPOINT_PATH",outcome=success,status=200`
   - `strimzi.oauth:name=http_requests,context=$CONFIG_ID,type=client-auth,host="$HOST:$PORT",path="$TOKEN_ENDPOINT_PATH",outcome=error,error_type=http,status=$STATUS`
 
+
+The meaning of the variables used in the above names is as follows.
+
+- `$CONFIG_ID`
+  The value specified as `oauth.config.id` configuration option. If not specified it is set to `client` for Kafka client, `kafka-authorizer` for KeycloakRBACAuthorizer, or calculated from other configuration parameters for the validation on Kafka broker.
+- `$HOST:$PORT`
+  The hostname and port used to connect to authorization server. Extracted from the configured value for `oauth.token.endpoint.uri`, `oauth.introspect.endpoint.uri`, `oauth.userinfo.endpoint.uri`, `oauth.jwks.endpoint.uri` or `strimzi.authorization.token.endpoint.uri` (depending on the context). If the port is not part of the uri it is defaulted to `80` for `http`, and to `443` for `https`.
+- `$PATH`
+  The `path` part of the associated URI (starts with `/`);
+- `$ERROR_TYPE`
+  Only set when `outcome=error`. The possible values are: `connect`, `tls`, `http`, `other`.
+- `$STATUS`
+  Set to `200` for successful http requests. When `error_type=http` the value is the returned HTTP status code.
 
   
 ### Using the metrics with Prometheus
