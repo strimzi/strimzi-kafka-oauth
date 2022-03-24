@@ -24,9 +24,9 @@ Deploy Prometheus operator:
 
     kubectl create -f https://raw.githubusercontent.com/coreos/prometheus-operator/master/bundle.yaml
 
-    export HTTP_OPERATOR_MAIN=https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/main
-
 Deploy additional configuration:
+
+    export HTTP_OPERATOR_MAIN=https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/main
 
     kubectl apply -f $HTTP_OPERATOR_MAIN/examples/metrics/prometheus-additional-properties/prometheus-additional.yaml
 
@@ -38,23 +38,25 @@ Otherwise use:
 
     kubectl apply -f $HTTP_OPERATOR_MAIN/examples/metrics/prometheus-install/strimzi-pod-monitor.yaml
 
-Continue with:
+Deploy alert rules if you want (not required):
 
     kubectl apply -f $HTTP_OPERATOR_MAIN/examples/metrics/prometheus-install/prometheus-rules.yaml
 
-    # Deploy scraping configuration for custom clients
+Deploy scraping configuration for example clients:
+
     kubectl apply -f prometheus-scrape-custom.yaml
 
-And again you want to deploy to the `default` namespace rather than `myproject` use the following for the next step:
+Finally, deploy the Prometheus instance.
 
-    # Deploy Prometheus instance
+Again, if you want to deploy to the `default` namespace rather than `myproject` use the following for the next step:
+
     curl -s $HTTP_OPERATOR_MAIN/examples/metrics/prometheus-install/prometheus.yaml | sed -e 's/myproject/default/' | kubectl apply -f -
 
 Otherwise use:
 
     kubectl apply -f $HTTP_OPERATOR_MAIN/examples/metrics/prometheus-install/prometheus.yaml
 
-Finally expose the port to localhost:
+Now you can expose the Prometheus UI to localhost:
 
     kubectl port-forward svc/prometheus-operated 9090:9090
 
