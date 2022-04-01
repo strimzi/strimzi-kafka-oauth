@@ -160,7 +160,7 @@ public class CustomCheckTest {
                 JsonPathFilterQuery.parse(errQuery);
                 Assert.fail("Parsing the query should have failed: " + errQuery);
 
-            } catch (JsonPathFilterQueryException expected) {
+            } catch (JsonPathQueryException expected) {
             }
         }
     }

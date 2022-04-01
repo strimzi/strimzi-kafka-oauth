@@ -10,6 +10,7 @@ import io.strimzi.kafka.oauth.common.PrincipalExtractor;
 import io.strimzi.kafka.oauth.common.TimeUtil;
 import io.strimzi.kafka.oauth.common.TokenInfo;
 import io.strimzi.kafka.oauth.jsonpath.JsonPathFilterQuery;
+import io.strimzi.kafka.oauth.jsonpath.JsonPathQuery;
 import org.apache.kafka.common.utils.Time;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +22,8 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static io.strimzi.kafka.oauth.common.HttpUtil.post;
 import static io.strimzi.kafka.oauth.common.HttpUtil.get;
@@ -52,6 +55,8 @@ public class OAuthIntrospectionValidator implements TokenValidator {
     private final HostnameVerifier hostnameVerifier;
     private final PrincipalExtractor principalExtractor;
     private final String introspectionEndpointParam;
+    private final JsonPathQuery groupsMatcher;
+    private final String groupsDelimiter;
 
     private final int connectTimeoutSeconds;
     private final int readTimeoutSeconds;
@@ -62,7 +67,9 @@ public class OAuthIntrospectionValidator implements TokenValidator {
      * @param socketFactory The optional SSL socket factory to use when establishing the connection to authorization server
      * @param verifier The optional hostname verifier used to validate the TLS certificate by the authorization server
      * @param principalExtractor The object used to extract the username from the attributes in the server's response
-     * @param issuerUri The required value of the 'iss' claim in JWT token
+     * @param groupsClaimQuery The JsonPath query for extracting groups from introspection endpoint response
+     * @param groupsClaimDelimiter The delimiter used to parse groups from the result of applying <em>groupQuery</em> to what introspection endpoint returns
+     * @param issuerUri The required value of the 'iss' claim in the introspection endpoint response
      * @param userInfoUri The optional user info endpoint url at the authorization server, used as a failover when user id can't be extracted from the introspection endpoint response
      * @param validTokenType The optional token type enforcement - only the specified token type is accepted as valid
      * @param clientId The clientId of the OAuth2 client representing this Kafka broker - needed to authenticate to the introspection endpoint
@@ -73,10 +80,13 @@ public class OAuthIntrospectionValidator implements TokenValidator {
      * @param readTimeoutSeconds The maximum time to wait for response from authorization server after connection has been established and request sent (in seconds)
      * @param introspectionEndpointParam The introspection endpoint url parameter at the authorization server
      */
+    @SuppressWarnings("checkstyle:ParameterNumber")
     public OAuthIntrospectionValidator(String introspectionEndpointUri,
                                        SSLSocketFactory socketFactory,
                                        HostnameVerifier verifier,
                                        PrincipalExtractor principalExtractor,
+                                       String groupsClaimQuery,
+                                       String groupsClaimDelimiter,
                                        String issuerUri,
                                        String userInfoUri,
                                        String validTokenType,
@@ -109,6 +119,9 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         this.hostnameVerifier = verifier;
 
         this.principalExtractor = principalExtractor != null ? principalExtractor : new PrincipalExtractor();
+
+        this.groupsMatcher = parseGroupsQuery(groupsClaimQuery);
+        this.groupsDelimiter = parseGroupsDelimiter(groupsClaimDelimiter);
 
         if (issuerUri != null) {
             try {
@@ -144,6 +157,8 @@ public class OAuthIntrospectionValidator implements TokenValidator {
                     + "\n    sslSocketFactory: " + socketFactory
                     + "\n    hostnameVerifier: " + hostnameVerifier
                     + "\n    principalExtractor: " + principalExtractor
+                    + "\n    groupsClaimQuery: " + groupsClaimQuery
+                    + "\n    groupsClaimDelimiter: " + groupsClaimDelimiter
                     + "\n    validIssuerUri: " + validIssuerURI
                     + "\n    userInfoUri: " + userInfoURI
                     + "\n    validTokenType: " + validTokenType
@@ -167,6 +182,26 @@ public class OAuthIntrospectionValidator implements TokenValidator {
             return JsonPathFilterQuery.parse(query);
         }
         return null;
+    }
+
+    private JsonPathQuery parseGroupsQuery(String groupsQuery) {
+        if (groupsQuery != null) {
+            String query = groupsQuery.trim();
+            if (query.length() == 0) {
+                throw new IllegalArgumentException("Value of groupsClaimQuery is empty");
+            }
+            return JsonPathQuery.parse(query);
+        }
+        return null;
+    }
+
+    private String parseGroupsDelimiter(String groupsDelimiter) {
+        if (groupsDelimiter != null) {
+            if (groupsDelimiter.length() == 0) {
+                throw new IllegalArgumentException("Value of groupsClaimDelimiter is empty");
+            }
+        }
+        return ",";
     }
 
     @SuppressWarnings("checkstyle:NPathComplexity")
@@ -213,9 +248,11 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         long iat = value == null ? 0 : 1000 * value.asLong();
 
         String principal = principalExtractor.getPrincipal(response);
+        JsonNode fallbackResponse = null;
         if (principal == null) {
             if (userInfoURI != null) {
-                principal = getPrincipalFromUserInfoEndpoint(token);
+                fallbackResponse = getUserInfoEndpointResponse(token);
+                principal = getPrincipalFromUserInfoEndpoint(fallbackResponse);
             }
             if (principal == null && !principalExtractor.isConfigured()) {
                 principal = principalExtractor.getSub(response);
@@ -225,26 +262,47 @@ public class OAuthIntrospectionValidator implements TokenValidator {
             }
         }
         performOptionalChecks(response);
+        Set<String> groups = null;
+        if (groupsMatcher != null) {
+            groups = extractGroupsFromResponse(response);
+
+            if (groups == null && fallbackResponse != null) {
+                groups = extractGroupsFromResponse(fallbackResponse);
+            }
+        }
 
         value = response.get("scope");
         String scopes = value != null ? String.join(" ", JSONUtil.asListOfString(value)) : null;
 
-        return new TokenInfo(token, scopes, principal, iat, expiresMillis);
+        return new TokenInfo(token, scopes, principal, groups, iat, expiresMillis);
     }
 
-    String getPrincipalFromUserInfoEndpoint(String token) {
+    private Set<String> extractGroupsFromResponse(JsonNode userInfoJson) {
+        JsonNode result = groupsMatcher.apply(userInfoJson);
+        if (result == null) {
+            return null;
+        }
+        List<String> groups = JSONUtil.asListOfString(result, groupsDelimiter != null ? groupsDelimiter : ",");
+
+        // sanitize the result
+        return groups.stream().map(String::trim).filter(v -> !v.isEmpty()).collect(Collectors.toSet());
+    }
+
+    private JsonNode getUserInfoEndpointResponse(String token) {
         String authorization = "Bearer " + token;
-        JsonNode response;
         try {
-            response = get(userInfoURI, socketFactory, hostnameVerifier, authorization, JsonNode.class, connectTimeoutSeconds, readTimeoutSeconds);
+            return get(userInfoURI, socketFactory, hostnameVerifier, authorization, JsonNode.class, connectTimeoutSeconds, readTimeoutSeconds);
         } catch (IOException e) {
             throw new RuntimeException("Request to User Info Endpoint failed: ", e);
         }
+    }
+
+    private String getPrincipalFromUserInfoEndpoint(JsonNode userInfoJson) {
         // apply principalExtractor
-        String principal = principalExtractor.getPrincipal(response);
+        String principal = principalExtractor.getPrincipal(userInfoJson);
 
         if (principal == null && !principalExtractor.isConfigured()) {
-            principal = principalExtractor.getSub(response);
+            principal = principalExtractor.getSub(userInfoJson);
         }
         return principal;
     }

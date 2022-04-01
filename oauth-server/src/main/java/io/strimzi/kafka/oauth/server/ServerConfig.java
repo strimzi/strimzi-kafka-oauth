@@ -22,6 +22,8 @@ public class ServerConfig extends Config {
     public static final String OAUTH_CHECK_ISSUER = "oauth.check.issuer";
     public static final String OAUTH_CHECK_AUDIENCE = "oauth.check.audience";
     public static final String OAUTH_CUSTOM_CLAIM_CHECK = "oauth.custom.claim.check";
+    public static final String OAUTH_GROUPS_CLAIM = "oauth.groups.claim";
+    public static final String OAUTH_GROUPS_CLAIM_DELIMITER = "oauth.groups.claim.delimiter";
     public static final String OAUTH_VALID_TOKEN_TYPE = "oauth.valid.token.type";
 
     public static final String STRIMZI_AUTHORIZER_DELEGATE_CLASS_NAME = "strimzi.authorizer.delegate.class.name";

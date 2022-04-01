@@ -5,6 +5,7 @@
 package io.strimzi.kafka.oauth.common;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -24,21 +25,32 @@ public class TokenInfo {
     private Set<String> scopes = new HashSet<>();
     private long expiresAt;
     private String principal;
+    private Set<String> groups;
     private long issuedAt;
-    private JsonNode payload;
+    private ObjectNode payload;
 
     public TokenInfo(JsonNode payload, String token, String principal) {
+        this(payload, token, principal, null);
+    }
+
+    public TokenInfo(JsonNode payload, String token, String principal, Set<String> groups) {
         this(token,
                 payload.has(SCOPE) ? payload.get(SCOPE).asText() : null,
                 principal,
+                groups,
                 payload.has(IAT) ? payload.get(IAT).asInt(0) * 1000L : 0L,
                 payload.get(EXP).asInt(0) * 1000L);
-        this.payload = payload;
+
+        if (!(payload instanceof ObjectNode)) {
+            throw new IllegalArgumentException("Unexpected JSON Node type (not ObjectNode): " + payload.getClass());
+        }
+        this.payload = (ObjectNode) payload;
     }
 
-    public TokenInfo(String token, String scope, String principal, long issuedAtMs, long expiresAtMs) {
+    public TokenInfo(String token, String scope, String principal, Set<String> groups, long issuedAtMs, long expiresAtMs) {
         this.token = token;
         this.principal = principal;
+        this.groups = groups != null ? Collections.unmodifiableSet(groups) : null;
         this.issuedAt = issuedAtMs;
         this.expiresAt = expiresAtMs;
 
@@ -65,11 +77,15 @@ public class TokenInfo {
         return principal;
     }
 
+    public Set<String> groups() {
+        return groups;
+    }
+
     public long issuedAtMs() {
         return issuedAt;
     }
 
-    public JsonNode payload() {
+    public ObjectNode payload() {
         return payload;
     }
 }

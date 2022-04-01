@@ -4,6 +4,7 @@
  */
 package io.strimzi.kafka.oauth.server;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.strimzi.kafka.oauth.common.Config;
 import io.strimzi.kafka.oauth.common.ConfigUtil;
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
@@ -151,6 +152,9 @@ import static io.strimzi.kafka.oauth.common.TokenIntrospection.debugLogJWT;
  * <li><em>oauth.validation.skip.type.check</em> Deprecated. Same as <em>oauth.check.access.token.type</em> with opposite meaning.</li>
  * <li><em>oauth.custom.claim.check</em> The optional mechanism to validate the JWT token or the introspection endpoint response by using any claim or attribute with a JSONPath filter query that evaluates to true or false.
  * If it evaluates to true the check passes, otherwise the token is rejected. See {@link JsonPathFilterQuery}.</li>
+ * <li><em>oauth.groups.claim</em> The optional mechanism to extract and associate group membership with the account. The query should be specified as a JSONPath that returns a string value or an array of strings.
+ * Extracted groups are available on {@link OAuthKafkaPrincipal} object, and can be used by a custom authorizer by invoking the {@link OAuthKafkaPrincipal#getGroups()} method.</li>
+ * <li><em>oauth.groups.claim.delimiter</em> When group extraction query returns a string containing multiple groups using a delimiter (comma separated values, for example), you can specify the delimiter to be used. Default value is <em>,</em> (comma)</li>
  * <li><em>oauth.connect.timeout.seconds</em> The maximum time to wait when establishing the connection to the authorization server. Default value is <em>60</em>.</li>
  * <li><em>oauth.read.timeout.seconds</em> The maximum time to wait to read the response from the authorization server after the connection has been established and request sent. Default value is <em>60</em>.</li>
  * </ul>
@@ -219,12 +223,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
         validateIssuerUri(validIssuerUri);
 
-        if (config.getValue("oauth.crypto.provider.bouncycastle") != null) {
-            log.warn("The OAUTH_CRYPTO_PROVIDER_BOUNCYCASTLE option has been deprecated. ECDSA is automatically available without the need for BouncyCastle JCE provider.");
-        }
-        if (config.getValue("oauth.crypto.provider.bouncycastle.position") != null) {
-            log.warn("The OAUTH_CRYPTO_PROVIDER_BOUNCYCASTLE_POSITION option has been deprecated. ECDSA is automatically available without the need for BouncyCastle JCE provider.");
-        }
+        checkDeprecatedConfig();
 
         boolean checkTokenType = isCheckAccessTokenType(config);
         boolean checkAudience = config.getValueAsBoolean(ServerConfig.OAUTH_CHECK_AUDIENCE, false);
@@ -235,10 +234,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
         validateFallbackUsernameParameters(usernameClaim, fallbackUsernameClaim, fallbackUsernamePrefix);
 
-        principalExtractor = new PrincipalExtractor(
-                usernameClaim,
-                fallbackUsernameClaim,
-                fallbackUsernamePrefix);
+        principalExtractor = new PrincipalExtractor(usernameClaim, fallbackUsernameClaim, fallbackUsernamePrefix);
 
         String clientId = config.getValue(Config.OAUTH_CLIENT_ID);
         String clientSecret = config.getValue(Config.OAUTH_CLIENT_SECRET);
@@ -248,6 +244,8 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         }
         String audience = checkAudience ? clientId : null;
         String customClaimCheck = config.getValue(ServerConfig.OAUTH_CUSTOM_CLAIM_CHECK);
+        String groupQuery = config.getValue(ServerConfig.OAUTH_GROUPS_CLAIM);
+        String groupDelimiter = config.getValue(ServerConfig.OAUTH_GROUPS_CLAIM_DELIMITER);
 
         if (!Services.isAvailable()) {
             Services.configure(configs);
@@ -261,96 +259,131 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         connectTimeout = ConfigUtil.getConnectTimeout(config);
         readTimeout = ConfigUtil.getReadTimeout(config);
 
-        ValidatorKey vkey;
-        Supplier<TokenValidator> factory;
-
         if (jwksUri != null) {
-
-            int jwksRefreshSeconds = config.getValueAsInt(ServerConfig.OAUTH_JWKS_REFRESH_SECONDS, 300);
-            int jwksExpirySeconds = config.getValueAsInt(ServerConfig.OAUTH_JWKS_EXPIRY_SECONDS, 360);
-            int jwksMinPauseSeconds = config.getValueAsInt(ServerConfig.OAUTH_JWKS_REFRESH_MIN_PAUSE_SECONDS, 1);
-
-            vkey = new ValidatorKey.JwtValidatorKey(
-                    validIssuerUri,
-                    audience,
-                    customClaimCheck,
-                    usernameClaim,
-                    fallbackUsernameClaim,
-                    fallbackUsernamePrefix,
-                    sslTruststore,
-                    sslPassword,
-                    sslType,
-                    sslRnd,
-                    verifier != null,
-                    jwksUri,
-                    jwksRefreshSeconds,
-                    jwksExpirySeconds,
-                    jwksMinPauseSeconds,
-                    checkTokenType,
-                    connectTimeout,
-                    readTimeout);
-
-            factory = () -> new JWTSignatureValidator(
-                    jwksUri,
-                    socketFactory,
-                    verifier,
-                    principalExtractor,
-                    validIssuerUri,
-                    jwksRefreshSeconds,
-                    jwksMinPauseSeconds,
-                    jwksExpirySeconds,
-                    checkTokenType,
-                    audience,
-                    customClaimCheck,
-                    connectTimeout,
-                    readTimeout);
-
+            setupJWKSValidator(jwksUri, validIssuerUri, checkTokenType,
+                    usernameClaim, fallbackUsernameClaim, fallbackUsernamePrefix,
+                    groupQuery, groupDelimiter, audience, customClaimCheck,
+                    sslTruststore, sslPassword, sslType, sslRnd);
         } else {
-
-            String introspectionEndpoint = config.getValue(ServerConfig.OAUTH_INTROSPECTION_ENDPOINT_URI);
-            String introspectionEndpointParam = config.getValue(ServerConfig.OAUTH_INTROSPECTION_ENDPOINT_PARAM);
-            String userInfoEndpoint = config.getValue(ServerConfig.OAUTH_USERINFO_ENDPOINT_URI);
-            String validTokenType = config.getValue(ServerConfig.OAUTH_VALID_TOKEN_TYPE);
-
-            vkey = new ValidatorKey.IntrospectionValidatorKey(
-                    validIssuerUri,
-                    audience,
-                    customClaimCheck,
-                    usernameClaim,
-                    fallbackUsernameClaim,
-                    fallbackUsernamePrefix,
-                    sslTruststore,
-                    sslPassword,
-                    sslType,
-                    sslRnd,
-                    verifier != null,
-                    introspectionEndpoint,
-                    userInfoEndpoint,
-                    validTokenType,
-                    clientId,
-                    clientSecret,
-                    connectTimeout,
-                    readTimeout,
-                    introspectionEndpointParam);
-
-            factory = () -> new OAuthIntrospectionValidator(
-                    introspectionEndpoint,
-                    socketFactory,
-                    verifier,
-                    principalExtractor,
-                    validIssuerUri,
-                    userInfoEndpoint,
-                    validTokenType,
-                    clientId,
-                    clientSecret,
-                    audience,
-                    customClaimCheck,
-                    connectTimeout,
-                    readTimeout,
-                    introspectionEndpointParam);
+            setupIntrospectionValidator(validIssuerUri, usernameClaim, fallbackUsernameClaim, fallbackUsernamePrefix,
+                    groupQuery, groupDelimiter, clientId, clientSecret, audience, customClaimCheck,
+                    sslTruststore, sslPassword, sslType, sslRnd);
         }
+    }
+
+    @SuppressWarnings("checkstyle:ParameterNumber")
+    private void setupIntrospectionValidator(String validIssuerUri, String usernameClaim, String fallbackUsernameClaim, String fallbackUsernamePrefix,
+                                             String groupQuery, String groupDelimiter, String clientId, String clientSecret, String audience, String customClaimCheck,
+                                             String sslTruststore, String sslPassword, String sslType, String sslRnd) {
+
+        String introspectionEndpoint = config.getValue(ServerConfig.OAUTH_INTROSPECTION_ENDPOINT_URI);
+        String introspectionEndpointParam = config.getValue(ServerConfig.OAUTH_INTROSPECTION_ENDPOINT_PARAM);
+        String userInfoEndpoint = config.getValue(ServerConfig.OAUTH_USERINFO_ENDPOINT_URI);
+        String validTokenType = config.getValue(ServerConfig.OAUTH_VALID_TOKEN_TYPE);
+
+        ValidatorKey vkey = new ValidatorKey.IntrospectionValidatorKey(
+                validIssuerUri,
+                audience,
+                customClaimCheck,
+                usernameClaim,
+                fallbackUsernameClaim,
+                fallbackUsernamePrefix,
+                groupQuery,
+                groupDelimiter,
+                sslTruststore,
+                sslPassword,
+                sslType,
+                sslRnd,
+                verifier != null,
+                introspectionEndpoint,
+                userInfoEndpoint,
+                validTokenType,
+                clientId,
+                clientSecret,
+                connectTimeout,
+                readTimeout,
+                introspectionEndpointParam);
+
+        Supplier<TokenValidator> factory = () -> new OAuthIntrospectionValidator(
+                introspectionEndpoint,
+                socketFactory,
+                verifier,
+                principalExtractor,
+                groupQuery,
+                groupDelimiter,
+                validIssuerUri,
+                userInfoEndpoint,
+                validTokenType,
+                clientId,
+                clientSecret,
+                audience,
+                customClaimCheck,
+                connectTimeout,
+                readTimeout,
+                introspectionEndpointParam);
 
         validator = Services.getInstance().getValidators().get(vkey, factory);
+    }
+
+    @SuppressWarnings("checkstyle:ParameterNumber")
+    private void setupJWKSValidator(String jwksUri, String validIssuerUri, boolean checkTokenType,
+                                    String usernameClaim, String fallbackUsernameClaim, String fallbackUsernamePrefix,
+                                    String groupQuery, String groupDelimiter, String audience, String customClaimCheck,
+                                    String sslTruststore, String sslPassword, String sslType, String sslRnd) {
+
+        int jwksRefreshSeconds = config.getValueAsInt(ServerConfig.OAUTH_JWKS_REFRESH_SECONDS, 300);
+        int jwksExpirySeconds = config.getValueAsInt(ServerConfig.OAUTH_JWKS_EXPIRY_SECONDS, 360);
+        int jwksMinPauseSeconds = config.getValueAsInt(ServerConfig.OAUTH_JWKS_REFRESH_MIN_PAUSE_SECONDS, 1);
+
+        ValidatorKey vkey = new ValidatorKey.JwtValidatorKey(
+                validIssuerUri,
+                audience,
+                customClaimCheck,
+                usernameClaim,
+                fallbackUsernameClaim,
+                fallbackUsernamePrefix,
+                groupQuery,
+                groupDelimiter,
+                sslTruststore,
+                sslPassword,
+                sslType,
+                sslRnd,
+                verifier != null,
+                jwksUri,
+                jwksRefreshSeconds,
+                jwksExpirySeconds,
+                jwksMinPauseSeconds,
+                checkTokenType,
+                connectTimeout,
+                readTimeout);
+
+        Supplier<TokenValidator> factory = () -> new JWTSignatureValidator(
+                jwksUri,
+                socketFactory,
+                verifier,
+                principalExtractor,
+                groupQuery,
+                groupDelimiter,
+                validIssuerUri,
+                jwksRefreshSeconds,
+                jwksMinPauseSeconds,
+                jwksExpirySeconds,
+                checkTokenType,
+                audience,
+                customClaimCheck,
+                connectTimeout,
+                readTimeout);
+
+        validator = Services.getInstance().getValidators().get(vkey, factory);
+    }
+
+    private void checkDeprecatedConfig() {
+        if (config.getValue("oauth.crypto.provider.bouncycastle") != null) {
+            log.warn("The OAUTH_CRYPTO_PROVIDER_BOUNCYCASTLE option has been deprecated. ECDSA is automatically available without the need for BouncyCastle JCE provider.");
+        }
+        if (config.getValue("oauth.crypto.provider.bouncycastle.position") != null) {
+            log.warn("The OAUTH_CRYPTO_PROVIDER_BOUNCYCASTLE_POSITION option has been deprecated. ECDSA is automatically available without the need for BouncyCastle JCE provider.");
+        }
     }
 
     protected ServerConfig parseJaasConfig(List<AppConfigurationEntry> jaasConfigEntries) {
@@ -551,6 +584,16 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         }
 
         @Override
+        public Set<String> getGroups() {
+            return ti.groups();
+        }
+
+        @Override
+        public ObjectNode getJSON() {
+            return ti.payload();
+        }
+
+        @Override
         public String value() {
             return ti.token();
         }
@@ -590,7 +633,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
         @Override
         public String toString() {
-            return "BearerTokenWithPayloadImpl (principalName: " + ti.principal() + ", lifetimeMs: " +
+            return "BearerTokenWithPayloadImpl (principalName: " + ti.principal() + ", groups: " + ti.groups() + ", lifetimeMs: " +
                     ti.expiresAtMs() + " [" + TimeUtil.formatIsoDateTimeUTC(ti.expiresAtMs()) + " UTC], startTimeMs: " +
                     ti.issuedAtMs() + " [" + TimeUtil.formatIsoDateTimeUTC(ti.issuedAtMs()) + " UTC], scope: " + ti.scope() + ")";
         }

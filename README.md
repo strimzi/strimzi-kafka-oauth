@@ -4,10 +4,10 @@
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 [![Twitter Follow](https://img.shields.io/twitter/follow/strimziio.svg?style=social&label=Follow&style=for-the-badge)](https://twitter.com/strimziio)
 
-Strimzi Kafka OAuth
-===================
+Strimzi OAuth for Apache Kafka
+==============================
 
-Kafka comes with basic OAuth2 support in the form of SASL based authentication module which provides client-server retrieval, exchange and validation of access token used as credentials.
+[Apache Kafka®](https://kafka.apache.org) comes with basic OAuth2 support in the form of SASL based authentication module which provides client-server retrieval, exchange and validation of access token used as credentials.
 For real world usage, extensions have to be provided in the form of JAAS callback handlers which is what Strimzi Kafka OAuth does.
 
 Strimzi Kafka OAuth modules provide support for OAuth2 as authentication mechanism when establishing a session with Kafka broker.
@@ -453,6 +453,40 @@ For example:
 - '!@.clientId' is `true` if clientId attribute is missing or is set to `null` or an empty string
 
 See [JsonPathFilterQuery JavaDoc](oauth-common/src/main/java/io/strimzi/kafka/oauth/jsonpath/JsonPathFilterQuery.java) for more information about the syntax.
+
+###### Group extraction
+
+When using custom authorization (by installing a custom authorizer) you may want to take user's group membership into account when making the authorization decisions.
+One way is to obtain and inspect a parsed JWT token from `io.strimzi.kafka.oauth.server.OAuthKafkaPrincipal` object available through `AuthorizableRequestContext` passed to your `authorize()` method. 
+This gives you full access to token claims.
+
+Another way is to configure group extraction at authentication time, and get groups as a set of group names from `OAuthKafkaPrincipal` object. If your custom authorizer only needs group information from the token, and that information is present in the token in the form where you can use a JSONPath query to extract it, then you may prefer to avoid extracting this information from the token yourself as part of each call to `authorize()` method, and rather use the one already extracted during authentication.
+
+There are two configuration parameters for configuring group extraction:
+
+- `oauth.groups.claim` (e.g.: `$.roles.client-roles.kafka`)
+- `oauth.groups.claim.delimiter` (a delimiter to parse the value of the groups claim when it's a single delimited string. E.g.: `,` - that's the default value)
+
+Use `oauth.groups.claim` to specify a JSONPath query pointing to the claim containing an array of strings, or a delimited single string.
+Use `oauth.groups.claim.delimiter` to specify a delimiter to use for parsing groups when they are specified as a delimited string.
+
+By default, no group extraction is performed. When you configure `oauth.groups.claim` the group extraction is enabled and occurs during authentication.
+The extracted groups are stored into `OAuthKafkaPrincipal` object. Here is an example how you can extract them in your custom authorizer:
+```
+    public List<AuthorizationResult> authorize(AuthorizableRequestContext requestContext, List<Action> actions) {
+    
+        KafkaPrincipal principal = requestContext.principal();
+        if (principal instanceof OAuthKafkaPrincipal) {
+            OAuthKafkaPrincipal p = (OAuthKafkaPrincipal) principal;
+            
+            for (String group: p.getGroups()) {
+                System.out.println("Group: " + group);
+            }
+        }
+    }
+```
+
+See [JsonPathQuery JavaDoc](oauth-common/src/main/java/io/strimzi/kafka/oauth/jsonpath/JsonPathQuery.java) for more information about the syntax.
 
 ###### Configuring the `OAuth over PLAIN`
 

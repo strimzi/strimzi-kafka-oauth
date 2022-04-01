@@ -29,14 +29,21 @@ class Matcher {
     private final String query;
 
     Matcher(ParseContext ctx, String query) {
+        this(ctx, query, true);
+    }
+
+    Matcher(ParseContext ctx, String query, boolean rewriteQuery) {
         this.ctx = ctx;
         this.query = query;
-        this.parsed = JsonPath.compile("$[*][?(" + query + ")]");
+        this.parsed = JsonPath.compile(rewriteQuery ? "$[*][?(" + query + ")]" : query);
     }
 
     /**
      * Match the JSON object against the JSONPath filter query as described in {@link JsonPathFilterQuery}.
-     *
+     * The passed JsonObject is first wrapped as:
+     *    {
+     *        "token": JSON
+     *    }
      * @param json Jackson JsonObject to match
      * @return true if the object matches the filter, false otherwise
      */
@@ -46,6 +53,18 @@ class Matcher {
         ArrayNode result = doc.read(parsed);
 
         return result.size() == 1;
+    }
+
+    /**
+     * Apply the JSONPath query to the passed JSON object.
+     * The passed JsonObject is not wrapped.
+     *
+     * @param json Jackson JsonObject to extract from
+     * @return Jackson JsonObject with the result
+     */
+    public JsonNode apply(JsonNode json) {
+        DocumentContext doc = ctx.parse(json);
+        return doc.read(parsed);
     }
 
     private JsonNode wrapToken(JsonNode json) {

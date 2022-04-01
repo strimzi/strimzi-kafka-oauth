@@ -19,6 +19,7 @@ import io.strimzi.kafka.oauth.common.PrincipalExtractor;
 import io.strimzi.kafka.oauth.common.TimeUtil;
 import io.strimzi.kafka.oauth.common.TokenInfo;
 import io.strimzi.kafka.oauth.jsonpath.JsonPathFilterQuery;
+import io.strimzi.kafka.oauth.jsonpath.JsonPathQuery;
 import org.apache.kafka.common.utils.Time;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,9 +33,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static io.strimzi.kafka.oauth.validator.TokenValidationException.Status;
 
@@ -56,7 +59,7 @@ public class JWTSignatureValidator implements TokenValidator {
 
     private static final Logger log = LoggerFactory.getLogger(JWTSignatureValidator.class);
 
-    private static DefaultJWSVerifierFactory verifierFactory = new DefaultJWSVerifierFactory();
+    private final DefaultJWSVerifierFactory verifierFactory = new DefaultJWSVerifierFactory();
 
     private final BackOffTaskScheduler fastScheduler;
 
@@ -66,6 +69,8 @@ public class JWTSignatureValidator implements TokenValidator {
     private final boolean checkAccessTokenType;
     private final String audience;
     private final JsonPathFilterQuery customClaimMatcher;
+    private final JsonPathQuery groupsQuery;
+    private final String groupsDelimiter;
     private final SSLSocketFactory socketFactory;
     private final HostnameVerifier hostnameVerifier;
     private final PrincipalExtractor principalExtractor;
@@ -80,11 +85,12 @@ public class JWTSignatureValidator implements TokenValidator {
 
     /**
      * Create a new instance.
-     *
-     * @param keysEndpointUri The JWKS endpoint url at the authorization server
+     *  @param keysEndpointUri The JWKS endpoint url at the authorization server
      * @param socketFactory The optional SSL socket factory to use when establishing the connection to authorization server
      * @param verifier The optional hostname verifier used to validate the TLS certificate by the authorization server
      * @param principalExtractor The object used to extract the username from the JWT token
+     * @param groupsClaimQuery The optional JSONPath query for group extraction
+     * @param groupsClaimDelimiter The optional delimiter for group extraction
      * @param validIssuerUri The required value of the 'iss' claim in JWT token
      * @param refreshSeconds The optional time interval between two consecutive regular JWKS keys refresh runs
      * @param refreshMinPauseSeconds The optional minimum pause between two consecutive JWKS keys refreshes.
@@ -95,10 +101,13 @@ public class JWTSignatureValidator implements TokenValidator {
      * @param connectTimeoutSeconds The maximum time to wait for connection to authorization server to be established (in seconds)
      * @param readTimeoutSeconds The maximum time to wait for response from authorization server after connection has been established and request sent (in seconds)
      */
+    @SuppressWarnings("checkstyle:ParameterNumber")
     public JWTSignatureValidator(String keysEndpointUri,
                                  SSLSocketFactory socketFactory,
                                  HostnameVerifier verifier,
                                  PrincipalExtractor principalExtractor,
+                                 String groupsClaimQuery,
+                                 String groupsClaimDelimiter,
                                  String validIssuerUri,
                                  int refreshSeconds,
                                  int refreshMinPauseSeconds,
@@ -147,6 +156,8 @@ public class JWTSignatureValidator implements TokenValidator {
         this.audience = audience;
         this.customClaimMatcher = parseCustomClaimCheck(customClaimCheck);
 
+        this.groupsQuery = parseGroupsQuery(groupsClaimQuery);
+        this.groupsDelimiter = parseGroupsDelimiter(groupsClaimDelimiter);
 
         this.connectTimeout = connectTimeoutSeconds;
         this.readTimeout = readTimeoutSeconds;
@@ -159,7 +170,7 @@ public class JWTSignatureValidator implements TokenValidator {
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(new DaemonThreadFactory());
 
         // set up fast scheduler that refreshes keys on-demand, and keeps trying with exponential back-off until it succeeds
-        fastScheduler = new BackOffTaskScheduler(executor, refreshMinPauseSeconds, refreshSeconds, () -> fetchKeys());
+        fastScheduler = new BackOffTaskScheduler(executor, refreshMinPauseSeconds, refreshSeconds, this::fetchKeys);
 
         // set up periodic timer to trigger fastScheduler job every refreshSeconds
         setupRefreshKeysJob(executor, refreshSeconds);
@@ -169,6 +180,8 @@ public class JWTSignatureValidator implements TokenValidator {
                     + "\n    sslSocketFactory: " + socketFactory
                     + "\n    hostnameVerifier: " + hostnameVerifier
                     + "\n    principalExtractor: " + principalExtractor
+                    + "\n    groupsClaimQuery: " + groupsClaimQuery
+                    + "\n    groupsClaimDelimiter: " + groupsClaimDelimiter
                     + "\n    validIssuerUri: " + validIssuerUri
                     + "\n    certsRefreshSeconds: " + refreshSeconds
                     + "\n    certsRefreshMinPauseSeconds: " + refreshMinPauseSeconds
@@ -191,6 +204,26 @@ public class JWTSignatureValidator implements TokenValidator {
             return JsonPathFilterQuery.parse(query);
         }
         return null;
+    }
+
+    private JsonPathQuery parseGroupsQuery(String groupsQuery) {
+        if (groupsQuery != null) {
+            String query = groupsQuery.trim();
+            if (query.length() == 0) {
+                throw new IllegalArgumentException("Value of groupsClaimQuery is empty");
+            }
+            return JsonPathQuery.parse(query);
+        }
+        return null;
+    }
+
+    private String parseGroupsDelimiter(String groupsDelimiter) {
+        if (groupsDelimiter != null) {
+            if (groupsDelimiter.length() == 0) {
+                throw new IllegalArgumentException("Value of groupsClaimDelimiter is empty");
+            }
+        }
+        return ",";
     }
 
     private void validateRefreshConfig(int refreshSeconds, int expirySeconds) {
@@ -332,7 +365,8 @@ public class JWTSignatureValidator implements TokenValidator {
         }
 
         String principal = extractPrincipal(t);
-        return new TokenInfo(t, token, principal);
+        Set<String> groups = extractGroups(t);
+        return new TokenInfo(t, token, principal, groups);
     }
 
     private String extractPrincipal(JsonNode tokenJson) {
@@ -348,6 +382,21 @@ public class JWTSignatureValidator implements TokenValidator {
             throw new RuntimeException("Failed to extract principal - check usernameClaim, fallbackUsernameClaim configuration");
         }
         return principal;
+    }
+
+    private Set<String> extractGroups(JsonNode tokenJson) {
+        if (groupsQuery == null) {
+            return null;
+        }
+        JsonNode result = groupsQuery.apply(tokenJson);
+        if (result == null) {
+            return null;
+        }
+        List<String> groups = JSONUtil.asListOfString(result, groupsDelimiter != null ? groupsDelimiter : ",");
+        // sanitize the result
+        Set<String> groupSet = groups.stream().map(String::trim).filter(v -> !v.isEmpty()).collect(Collectors.toSet());
+
+        return groupSet.isEmpty() ? null : groupSet;
     }
 
     @SuppressWarnings({"deprecation", "unchecked"})

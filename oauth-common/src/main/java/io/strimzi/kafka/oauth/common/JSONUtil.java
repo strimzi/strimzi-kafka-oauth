@@ -16,6 +16,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class JSONUtil {
 
@@ -87,18 +89,46 @@ public class JSONUtil {
         return node.asText();
     }
 
-    public static List<String> asListOfString(JsonNode arrayNode) {
+    /**
+     * This method takes a JsonNode representing an array, or a string, and converts it into a List of String items.
+     *
+     * If the passed node is a TextNode, the text is parsed into a list of items by using ' ' (space) as a delimiter.
+     * The resulting list can contain empty strings if two delimiters are present next to one another.
+     *
+     * If the JsonNode is neither an ArrayNode, nor a TextNode an IllegalArgumentException is thrown.
+     *
+     * @param arrayOrString A JsonNode to convert into a list of String
+     * @return A list of String
+     */
+    public static List<String> asListOfString(JsonNode arrayOrString) {
+        return asListOfString(arrayOrString, " ");
+    }
+
+    /**
+     * This method takes a JsonNode representing an array, or a string, and converts it into a List of String items.
+     *
+     * The <tt>delimiter</tt> parameter is only used if the passed node is a TextNode. It is used to parse the node content
+     * as a list of strings. The resulting list can contain empty strings if two delimiters are present next to one another.
+     *
+     * If the JsonNode is neither an ArrayNode, nor a TextNode an IllegalArgumentException is thrown.
+     *
+     * @param arrayOrString A JsonNode to convert into a list of String
+     * @param delimiter A delimiter to use for parsing the TextNode
+     * @return A list of String
+     */
+    public static List<String> asListOfString(JsonNode arrayOrString, String delimiter) {
 
         ArrayList<String> result = new ArrayList<>();
 
-        if (arrayNode.isTextual()) {
-            result.addAll(Arrays.asList(arrayNode.asText().split(" ")));
+        if (arrayOrString.isTextual()) {
+            result.addAll(Arrays.asList(arrayOrString.asText().split(Pattern.quote(delimiter)))
+                    .stream().map(String::trim).collect(Collectors.toList()));
         } else {
-            if (!arrayNode.isArray()) {
-                throw new IllegalArgumentException("JsonNode not a text node, nor an array node: " + arrayNode);
+            if (!arrayOrString.isArray()) {
+                throw new IllegalArgumentException("JsonNode not a text node, nor an array node: " + arrayOrString);
             }
 
-            Iterator<JsonNode> it = arrayNode.iterator();
+            Iterator<JsonNode> it = arrayOrString.iterator();
             while (it.hasNext()) {
                 JsonNode n = it.next();
                 if (n.isTextual()) {
