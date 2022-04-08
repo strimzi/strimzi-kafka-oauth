@@ -15,6 +15,7 @@
 
     <properties>
         <maven.dockerfile.version>1.4.12</maven.dockerfile.version>
+        <maven.docker.plugin.version>0.39.1</maven.docker.plugin.version>
         <checkstyle.dir>../..</checkstyle.dir>
     </properties>
 
