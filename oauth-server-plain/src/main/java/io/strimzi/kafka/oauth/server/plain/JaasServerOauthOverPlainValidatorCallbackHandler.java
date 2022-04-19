@@ -15,7 +15,7 @@ import io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler;
 import io.strimzi.kafka.oauth.server.OAuthKafkaPrincipal;
 import io.strimzi.kafka.oauth.server.OAuthSaslAuthenticationException;
 import io.strimzi.kafka.oauth.server.ServerConfig;
-import io.strimzi.kafka.oauth.services.Metrics;
+import io.strimzi.kafka.oauth.services.OAuthMetrics;
 import io.strimzi.kafka.oauth.services.Services;
 import org.apache.kafka.common.errors.SaslAuthenticationException;
 import org.apache.kafka.common.security.auth.KafkaPrincipal;
@@ -120,7 +120,7 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
     private String scope;
     private String audience;
 
-    private Metrics metrics;
+    private OAuthMetrics metrics;
     private boolean enableMetrics;
     private MetricKeyProducer authHttpMetricKeyProducer;
     private final MetricsHandler authMetrics = new PlainMetricsHandler();

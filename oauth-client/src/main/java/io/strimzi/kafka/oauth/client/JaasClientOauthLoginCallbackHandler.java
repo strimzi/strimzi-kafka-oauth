@@ -12,7 +12,7 @@ import io.strimzi.kafka.oauth.common.TokenInfo;
 import io.strimzi.kafka.oauth.client.metrics.ClientAuthenticationMetricKeyProducer;
 import io.strimzi.kafka.oauth.client.metrics.ClientHttpMetricKeyProducer;
 import io.strimzi.kafka.oauth.metrics.MetricKeyProducer;
-import io.strimzi.kafka.oauth.services.Metrics;
+import io.strimzi.kafka.oauth.services.OAuthMetrics;
 import io.strimzi.kafka.oauth.services.Services;
 import org.apache.kafka.common.security.auth.AuthenticateCallbackHandler;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule;
@@ -67,7 +67,7 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
     private int readTimeout;
 
     private boolean enableMetrics;
-    private Metrics metrics;
+    private OAuthMetrics metrics;
     private MetricKeyProducer authMetricKeyProducer;
     private MetricKeyProducer tokenMetricKeyProducer;
 

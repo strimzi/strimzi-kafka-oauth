@@ -5,9 +5,9 @@ services:
     image: strimzi-oauth-testsuite/mock-oauth-server
     container_name: mockoauth
     ports:
-      - 8090:8090
-      - 8091:8091
-      - 5005:5005
+      - "8090:8090"
+      - "8091:8091"
+      - "5005:5005"
     volumes:
       - ${PWD}/../docker/certificates:/application/config
 
@@ -27,13 +27,13 @@ services:
     image: ${KAFKA_DOCKER_IMAGE}
     container_name: kafka
     ports:
-      - 9091:9091
-      - 9092:9092
-      - 9093:9093
-      - 9094:9094
-      - 9095:9095
-      - 9404:9404
-      - 5006:5006
+      - "9091:9091"
+      - "9092:9092"
+      - "9093:9093"
+      - "9094:9094"
+      - "9095:9095"
+      - "9404:9404"
+      - "5006:5006"
     volumes:
       - ${PWD}/../docker/target/kafka/libs:/opt/kafka/libs/strimzi
       - ${PWD}/../docker/kafka/config:/opt/kafka/config/strimzi
@@ -89,7 +89,7 @@ services:
     image: ${KAFKA_DOCKER_IMAGE}
     container_name: zookeeper
     ports:
-      - 2181:2181
+      - "2181:2181"
     volumes:
       - ${PWD}/../docker/zookeeper/scripts:/opt/kafka/strimzi
     command:

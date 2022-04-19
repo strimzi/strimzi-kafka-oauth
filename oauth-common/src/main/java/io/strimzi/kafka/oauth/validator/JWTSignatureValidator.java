@@ -22,7 +22,7 @@ import io.strimzi.kafka.oauth.jsonpath.JsonPathFilterQuery;
 import io.strimzi.kafka.oauth.jsonpath.JsonPathQuery;
 import io.strimzi.kafka.oauth.metrics.JwksHttpMetricKeyProducer;
 import io.strimzi.kafka.oauth.metrics.MetricKeyProducer;
-import io.strimzi.kafka.oauth.services.Metrics;
+import io.strimzi.kafka.oauth.services.OAuthMetrics;
 import io.strimzi.kafka.oauth.services.Services;
 import org.apache.kafka.common.utils.Time;
 import org.slf4j.Logger;
@@ -89,7 +89,7 @@ public class JWTSignatureValidator implements TokenValidator {
     private Map<String, PublicKey> oldCache = Collections.emptyMap();
 
     private final boolean enableMetrics;
-    private final Metrics metrics = Services.getInstance().getMetrics();
+    private final OAuthMetrics metrics = Services.getInstance().getMetrics();
     private final MetricKeyProducer jwksHttpMetricKeyProducer;
 
     /**

@@ -16,7 +16,7 @@ import io.strimzi.kafka.oauth.metrics.IntrospectValidationMetricKeyProducer;
 import io.strimzi.kafka.oauth.metrics.JwksValidationMetricKeyProducer;
 import io.strimzi.kafka.oauth.metrics.MetricKeyProducer;
 import io.strimzi.kafka.oauth.services.ConfigurationKey;
-import io.strimzi.kafka.oauth.services.Metrics;
+import io.strimzi.kafka.oauth.services.OAuthMetrics;
 import io.strimzi.kafka.oauth.services.Services;
 import io.strimzi.kafka.oauth.services.ValidatorKey;
 import io.strimzi.kafka.oauth.validator.JWTSignatureValidator;
@@ -214,7 +214,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
     private boolean enableMetrics;
 
-    private Metrics metrics;
+    private OAuthMetrics metrics;
     protected MetricKeyProducer validationMetricKeyProducer;
 
     @Override

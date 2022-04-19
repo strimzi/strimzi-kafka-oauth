@@ -17,7 +17,7 @@ import io.strimzi.kafka.oauth.metrics.MetricKeyProducer;
 import io.strimzi.kafka.oauth.server.OAuthKafkaPrincipal;
 import io.strimzi.kafka.oauth.server.authorizer.metrics.GrantsHttpMetricKeyProducer;
 import io.strimzi.kafka.oauth.server.authorizer.metrics.KeycloakAuthorizationMetricKeyProducer;
-import io.strimzi.kafka.oauth.services.Metrics;
+import io.strimzi.kafka.oauth.services.OAuthMetrics;
 import io.strimzi.kafka.oauth.services.Services;
 import io.strimzi.kafka.oauth.services.SessionFuture;
 import io.strimzi.kafka.oauth.services.Sessions;
@@ -179,7 +179,7 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
 
     private ExecutorService workerPool;
 
-    private Metrics metrics;
+    private OAuthMetrics metrics;
     private boolean enableMetrics;
     private MetricKeyProducer authzMetricKeyProducer;
     private MetricKeyProducer grantsMetricKeyProducer;

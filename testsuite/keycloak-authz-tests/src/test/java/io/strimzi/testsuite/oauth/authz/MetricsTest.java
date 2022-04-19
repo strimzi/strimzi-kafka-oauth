@@ -21,24 +21,24 @@ public class MetricsTest {
         final String jwksPath = "/auth/realms/" + realm + "/protocol/openid-connect/certs";
 
         TestMetrics metrics = getPrometheusMetrics(URI.create("http://kafka:9404/metrics"));
-        BigDecimal value = metrics.getValueSum("strimzi_oauth_http_requests_count", "type", "jwks", "host", authHostPort, "path", jwksPath, "outcome", "success");
+        BigDecimal value = metrics.getValueSum("strimzi_oauth_http_requests_count", "kind", "jwks", "host", authHostPort, "path", jwksPath, "outcome", "success");
         Assert.assertTrue("strimzi_oauth_http_requests_count for jwks > 0", value.doubleValue() > 0.0);
 
-        value = metrics.getValueSum("strimzi_oauth_http_requests_timetotal", "type", "jwks", "host", authHostPort, "path", jwksPath, "outcome", "success");
+        value = metrics.getValueSum("strimzi_oauth_http_requests_timetotal", "kind", "jwks", "host", authHostPort, "path", jwksPath, "outcome", "success");
         Assert.assertTrue("strimzi_oauth_http_requests_timetotal for jwks > 0.0", value.doubleValue() > 0.0);
 
         // Accross all the listeners there should only be 2 client authentication requests - those for inter-broker connection on JWT listener
-        value = metrics.getValueSum("strimzi_oauth_authentication_requests_count", "type", "client-auth", "outcome", "success");
+        value = metrics.getValueSum("strimzi_oauth_authentication_requests_count", "kind", "client-auth", "outcome", "success");
         Assert.assertEquals("strimzi_oauth_authentication_requests_count for client-auth == 2", 2, value.intValue());
 
-        value = metrics.getValueSum("strimzi_oauth_authentication_requests_timetotal", "type", "client-auth", "outcome", "success");
+        value = metrics.getValueSum("strimzi_oauth_authentication_requests_timetotal", "kind", "client-auth", "outcome", "success");
         Assert.assertTrue("strimzi_oauth_authentication_requests_timetotal for client-auth > 0.0", value.doubleValue() > 0.0);
 
         // Inter-broker auth triggered the only successful validation request
-        value = metrics.getValueSum("strimzi_oauth_validation_requests_count", "type", "jwks", "mechanism", "OAUTHBEARER", "outcome", "success");
+        value = metrics.getValueSum("strimzi_oauth_validation_requests_count", "kind", "jwks", "mechanism", "OAUTHBEARER", "outcome", "success");
         Assert.assertEquals("strimzi_oauth_validation_requests_count for jwks == 1", 1, value.intValue());
 
-        value = metrics.getValueSum("strimzi_oauth_validation_requests_timetotal", "type", "jwks", "mechanism", "OAUTHBEARER", "outcome", "success");
+        value = metrics.getValueSum("strimzi_oauth_validation_requests_timetotal", "kind", "jwks", "mechanism", "OAUTHBEARER", "outcome", "success");
         Assert.assertTrue("strimzi_oauth_validation_requests_timetotal for jwks > 0.0", value.doubleValue() > 0.0);
     }
 }

@@ -6,47 +6,26 @@ package io.strimzi.kafka.oauth.metrics;
 
 import io.strimzi.kafka.oauth.common.HttpException;
 
-import javax.management.MBeanServer;
-import javax.management.MalformedObjectNameException;
-import javax.management.ObjectName;
 import javax.net.ssl.SSLException;
 import java.io.IOException;
-import java.lang.management.ManagementFactory;
 import java.net.ConnectException;
 import java.net.URI;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class JmxMetrics {
 
-    public static final JmxMetrics INSTANCE = new JmxMetrics();
-
-    private final MBeanServer mbeanServer;
-
-    private JmxMetrics() {
-        mbeanServer = ManagementFactory.getPlatformMBeanServer();
-    }
-
-    public static Map<String, CounterMetric> toMetricsMap(CounterMetric... metrics) {
-        LinkedHashMap<String, CounterMetric> map = new LinkedHashMap<>();
-        for (CounterMetric m: metrics) {
-            map.put(m.getName(), m);
-        }
-        return Collections.unmodifiableMap(map);
-    }
-
-    public static Map<String, String> getMetricKeyAttrs(String contextId, String mechanism, URI uri, String type) {
-        Map<String, String> attrs = getMetricKeyAttrs(contextId, uri, type);
+    public static Map<String, String> getMetricKeyAttrs(String contextId, String mechanism, URI uri, String kind) {
+        Map<String, String> attrs = getMetricKeyAttrs(contextId, uri, kind);
         attrs.put("mechanism", mechanism);
         return attrs;
     }
 
-    public static Map<String, String> getMetricKeyAttrs(String contextId, URI uri, String type) {
-        HashMap<String, String> attrs = new HashMap<>();
+    public static Map<String, String> getMetricKeyAttrs(String contextId, URI uri, String kind) {
+        HashMap<String, String> attrs = new LinkedHashMap<>();
         attrs.put("context", contextId);
-        attrs.put("type", type);
+        attrs.put("kind", kind);
         attrs.put("host", hostAttr(uri));
         attrs.put("path", pathAttr(uri));
         return attrs;
@@ -74,19 +53,6 @@ public class JmxMetrics {
             attrs.put("status", status);
         }
         return attrs;
-    }
-
-    public void ensureMBean(MetricsMBean mbean) {
-        try {
-            ObjectName objectName = new ObjectName(mbean.getName());
-            if (!mbeanServer.isRegistered(objectName)) {
-                mbeanServer.registerMBean(mbean, objectName);
-            }
-        } catch (MalformedObjectNameException e) {
-            throw new RuntimeException("Internal error: Bad MBean name '" + mbean.getName() + "'", e);
-        } catch (Exception e) {
-            throw new RuntimeException("Unexpected error:", e);
-        }
     }
 
     public static String pathAttr(URI uri) {

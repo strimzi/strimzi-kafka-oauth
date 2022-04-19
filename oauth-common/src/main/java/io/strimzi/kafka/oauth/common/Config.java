@@ -5,8 +5,11 @@
 package io.strimzi.kafka.oauth.common;
 
 import java.net.URI;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 public class Config {
 
@@ -32,7 +35,7 @@ public class Config {
     @Deprecated
     public static final String OAUTH_TOKENS_NOT_JWT = "oauth.tokens.not.jwt";
 
-    private Properties defaults;
+    private Map<String, ?> defaults;
 
     /**
      * Use this construtor if you only want to lookup configuration in system properties and env
@@ -46,6 +49,20 @@ public class Config {
      * @param p Default property values
      */
     public Config(Properties p) {
+        defaults = p.entrySet().stream().collect(
+            Collectors.toMap(
+                e -> String.valueOf(e.getKey()),
+                e -> String.valueOf(e.getValue()),
+                (v1, v2) -> v2, HashMap::new
+            ));
+    }
+
+    /**
+     * Use this constructor to provide default values in case some configuration is not set through system properties or ENV.
+     *
+     * @param p Default property values
+     */
+    public Config(Map<String, ?> p) {
         defaults = p;
     }
 
@@ -96,7 +113,10 @@ public class Config {
         }
 
         // try default properties and if all else fails return fallback value
-        result = defaults != null ? defaults.getProperty(key) : null;
+        if (defaults != null) {
+            Object val = defaults.get(key);
+            result = val != null ? String.valueOf(val) : null;
+        }
 
         return result != null ? result : fallback;
     }
@@ -121,6 +141,18 @@ public class Config {
     public int getValueAsInt(String key, int fallback) {
         String result = getValue(key);
         return result != null ? Integer.parseInt(result) : fallback;
+    }
+
+    /**
+     * Get value for property key as long or fallback value if not found
+     *
+     * @param key Config key
+     * @param fallback Fallback value
+     * @return Config value
+     */
+    public long getValueAsLong(String key, long fallback) {
+        String result = getValue(key);
+        return result != null ? Long.parseLong(result) : fallback;
     }
 
     /**

@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -16,16 +17,17 @@ import java.util.Set;
 public class MetricKey {
 
     private static final Set<String> QUOTED_ATTRS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList("host", "path")));
-    private static final List<String> SORTED_ATTRS = Arrays.asList("context", "mechanism", "type", "host", "path", "outcome", "error_type", "status");
+    private static final List<String> SORTED_ATTRS = Arrays.asList("context", "kind", "host", "path", "mechanism", "outcome", "error_type", "status");
 
     final String name;
     final Map<String, String> attrs;
+    final String mbeanName;
 
     public MetricKey(String name, Map<String, String> attrs) {
-        this.name = composeMBeanName(name, attrs);
+        this.name = name;
         this.attrs = Collections.unmodifiableMap(attrs);
+        this.mbeanName = composeMBeanName(name, attrs);
     }
-
 
     public static MetricKey of(String name, Map<String, String> attrs) {
         return new MetricKey(name, attrs);
@@ -39,7 +41,7 @@ public class MetricKey {
             throw new IllegalArgumentException("There should be an even number of attrs");
         }
 
-        Map<String, String> attrMap = new HashMap<>();
+        Map<String, String> attrMap = new LinkedHashMap<>();
         for (int i = 0; i < attrs.length; i += 2) {
             attrMap.put(attrs[i], attrs[i + 1]);
         }
@@ -47,11 +49,19 @@ public class MetricKey {
     }
 
     public String getMBeanName() {
+        return mbeanName;
+    }
+
+    public String getName() {
         return name;
     }
 
+    public Map<String, String> getAttrs() {
+        return attrs;
+    }
+
     private String composeMBeanName(String name, Map<String, String> attrs) {
-        StringBuilder objName = new StringBuilder("strimzi.oauth:").append("name=").append(name);
+        StringBuilder objName = new StringBuilder("strimzi.oauth:").append("type=").append(name);
         Map<String, String> allAttrs = new HashMap<>(attrs);
 
         for (String attr: SORTED_ATTRS) {

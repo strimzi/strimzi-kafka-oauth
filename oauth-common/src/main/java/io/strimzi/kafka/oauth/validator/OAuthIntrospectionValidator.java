@@ -14,7 +14,7 @@ import io.strimzi.kafka.oauth.jsonpath.JsonPathQuery;
 import io.strimzi.kafka.oauth.metrics.IntrospectHttpMetricKeyProducer;
 import io.strimzi.kafka.oauth.metrics.MetricKeyProducer;
 import io.strimzi.kafka.oauth.metrics.UserInfoHttpMetricKeyProducer;
-import io.strimzi.kafka.oauth.services.Metrics;
+import io.strimzi.kafka.oauth.services.OAuthMetrics;
 import io.strimzi.kafka.oauth.services.Services;
 import org.apache.kafka.common.utils.Time;
 import org.slf4j.Logger;
@@ -67,7 +67,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
     private final int readTimeoutSeconds;
 
     private final boolean enableMetrics;
-    private final Metrics metrics = Services.getInstance().getMetrics();
+    private final OAuthMetrics metrics = Services.getInstance().getMetrics();
     private final MetricKeyProducer introspectHttpMetricKeyProducer;
     private final MetricKeyProducer userInfoHttpMetricKeyProducer;
 

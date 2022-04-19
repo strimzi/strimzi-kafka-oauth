@@ -5,8 +5,8 @@ services:
     image: quay.io/keycloak/keycloak:15.0.0
     container_name: keycloak
     ports:
-      - 8080:8080
-      - 8443:8443
+      - "8080:8080"
+      - "8443:8443"
     volumes:
       - ${PWD}/../docker/keycloak/scripts:/opt/jboss/keycloak/ssl
       - ${PWD}/../target/keycloak/certs:/opt/jboss/keycloak/standalone/configuration/certs
@@ -30,27 +30,28 @@ services:
     image: ${KAFKA_DOCKER_IMAGE}
     container_name: kafka
     ports:
-      - 9092:9092
-      - 9093:9093
-      - 9094:9094
-      - 9095:9095
-      - 9096:9096
-      - 9097:9097
-      - 9098:9098
-      - 9099:9099
-      - 9100:9100
-      - 9101:9101
-      - 9102:9102
-      - 9103:9103
-      - 9104:9104
+      - "9092:9092"
+      - "9093:9093"
+      - "9094:9094"
+      - "9095:9095"
+      - "9096:9096"
+      - "9097:9097"
+      - "9098:9098"
+      - "9099:9099"
+      - "9100:9100"
+      - "9101:9101"
+      - "9102:9102"
+      - "9103:9103"
+      - "9104:9104"
 
       # Prometheus JMX Exporter
-      - 9404:9404
+      - "9404:9404"
 
       # javaagent debug port
-      - 5006:5006
+      - "5006:5006"
     volumes:
       - ${PWD}/../docker/target/kafka/libs:/opt/kafka/libs/strimzi
+      - ${PWD}/target/test-classes:/opt/kafka/libs/strimzi/reporters
       - ${PWD}/../docker/kafka/config:/opt/kafka/config/strimzi
       - ${PWD}/../docker/kafka/scripts:/opt/kafka/strimzi
     command:
@@ -62,6 +63,7 @@ services:
       #- DEBUG_SUSPEND_FLAG=y
       #- JAVA_DEBUG_PORT=0.0.0.0:5006
 
+      - CLASSPATH=/opt/kafka/libs/strimzi/reporters
       - KAFKA_BROKER_ID=1
       - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
       - KAFKA_LISTENERS=JWT://kafka:9092,INTROSPECT://kafka:9093,AUDIENCE://kafka:9094,AUDIENCEINTROSPECT://kafka:9095,JWTPLAIN://kafka:9096,INTROSPECTPLAIN://kafka:9097,CUSTOM://kafka:9098,CUSTOMINTROSPECT://kafka:9099,PLAIN://kafka:9100,SCRAM://kafka:9101,FLOOD://kafka:9102,JWTPLAINWITHOUTCC://kafka:9103,FORGE://kafka:9104
@@ -132,6 +134,13 @@ services:
       - KAFKA_LISTENER_NAME_FORGE_OAUTHBEARER_SASL_JAAS_CONFIG=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required    oauth.config.id=\"FORGE\"    oauth.jwks.endpoint.uri=\"http://keycloak:8080/auth/realms/forge/protocol/openid-connect/certs\"    oauth.valid.issuer.uri=\"http://keycloak:8080/auth/realms/forge\"    unsecuredLoginStringClaim_sub=\"admin\" ;
       - KAFKA_LISTENER_NAME_FORGE_OAUTHBEARER_SASL_SERVER_CALLBACK_HANDLER_CLASS=io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
 
+      # Test Metrics Reporters
+      - KAFKA_METRIC_REPORTERS=io.strimzi.testsuite.oauth.auth.metrics.TestMetricsReporter
+      - KAFKA_METRICS_CONTEXT_TEST_LABEL=testvalue
+      - KAFKA_METRICS_NUM_SAMPLES=3
+      - KAFKA_METRICS_RECORDING_LEVEL=DEBUG
+      - KAFKA_METRICS_SAMPLE_WINDOW_MS=15000
+
       # For start.sh script to know where the keycloak is listening
       - KEYCLOAK_HOST=${KEYCLOAK_HOST:-keycloak}
       - REALM=${REALM:-forge}
@@ -140,7 +149,7 @@ services:
     image: ${KAFKA_DOCKER_IMAGE}
     container_name: zookeeper
     ports:
-      - 2181:2181
+      - "2181:2181"
     volumes:
       - ${PWD}/../docker/zookeeper/scripts:/opt/kafka/strimzi
     command:

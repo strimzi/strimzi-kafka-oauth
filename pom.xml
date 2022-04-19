@@ -80,7 +80,7 @@
         <spotbugs.version>3.1.12</spotbugs.version>
         <sonatype.nexus.staging>1.6.3</sonatype.nexus.staging>
 
-        <kafka.version>3.0.0</kafka.version>
+        <kafka.version>3.1.0</kafka.version>
         <jackson.version>2.10.5</jackson.version>
         <jackson.databind.version>2.10.5.1</jackson.databind.version>
         <jsonpath.version>2.6.0</jsonpath.version>
@@ -302,7 +302,7 @@
                     <!-- Configures the directory in which the XML report is created -->
                     <spotbugsXmlOutputDirectory>${project.build.directory}/spotbugs</spotbugsXmlOutputDirectory>
                     <!-- Configures the file for excluding warnings -->
-                    <excludeFilterFile>${project.parent.basedir}/.spotbugs/spotbugs-exclude.xml</excludeFilterFile>
+                    <excludeFilterFile>${project.basedir}/.spotbugs/spotbugs-exclude.xml</excludeFilterFile>
                 </configuration>
             </plugin>
             <plugin>
