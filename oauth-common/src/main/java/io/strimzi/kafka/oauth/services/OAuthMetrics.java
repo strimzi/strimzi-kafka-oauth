@@ -135,9 +135,9 @@ public class OAuthMetrics {
 
     private void addConfiguredContextLabels(HashMap<String, String> contextLabels) {
         String prefix = "metrics.context.";
-        for (String key: configMap.keySet()) {
-            if (key.startsWith(prefix)) {
-                contextLabels.put(key.substring(prefix.length()), String.valueOf(configMap.get(key)));
+        for (Map.Entry<String, ?> entry: configMap.entrySet()) {
+            if (entry.getKey().startsWith(prefix)) {
+                contextLabels.put(entry.getKey().substring(prefix.length()), String.valueOf(entry.getValue()));
             }
         }
     }

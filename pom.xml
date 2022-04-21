@@ -302,7 +302,7 @@
                     <!-- Configures the directory in which the XML report is created -->
                     <spotbugsXmlOutputDirectory>${project.build.directory}/spotbugs</spotbugsXmlOutputDirectory>
                     <!-- Configures the file for excluding warnings -->
-                    <excludeFilterFile>${project.basedir}/.spotbugs/spotbugs-exclude.xml</excludeFilterFile>
+                    <excludeFilterFile>${project.parent.basedir}/.spotbugs/spotbugs-exclude.xml</excludeFilterFile>
                 </configuration>
             </plugin>
             <plugin>

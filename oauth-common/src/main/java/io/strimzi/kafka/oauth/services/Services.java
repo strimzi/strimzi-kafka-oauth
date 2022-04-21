@@ -23,7 +23,7 @@ public class Services {
 
     private final Credentials credentials = new Credentials();
 
-    private OAuthMetrics metrics;
+    private volatile OAuthMetrics metrics;
 
     public static synchronized void configure(Map<String, ?> configs) {
         if (services == null) {
@@ -63,14 +63,12 @@ public class Services {
     }
 
     public OAuthMetrics getMetrics() {
-        if (metrics != null) {
-            return metrics;
-        }
-        synchronized (Services.class) {
-            if (metrics != null) {
-                return metrics;
+        if (metrics == null) {
+            synchronized (Services.class) {
+                if (metrics == null) {
+                    metrics = new OAuthMetrics(configs);
+                }
             }
-            metrics = new OAuthMetrics(configs);
         }
         return metrics;
     }
