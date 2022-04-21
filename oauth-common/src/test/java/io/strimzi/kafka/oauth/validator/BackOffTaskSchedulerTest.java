@@ -244,7 +244,7 @@ public class BackOffTaskSchedulerTest {
 
         // The second call to executor happens when The Trigger Task is triggered, which which schedules The Task for immediate execution
         // It must exist, otherwise the counter couldn't have been incremented
-        Assert.assertTrue("Has at least 2 entries", elog.size() >= 2);
+        Assert.assertTrue("Has at least 2 entries :: " + elog, elog.size() >= 2);
         assertLogEntry(elog.get(1), MockExecutorLogActionType.SCHEDULE, 0, TimeUnit.MILLISECONDS);
 
         // Possibly wait some more for the next Trigger Task to be scheduled
@@ -252,7 +252,7 @@ public class BackOffTaskSchedulerTest {
         // It does that after the Trigger Task successfully completes
         elog = waitForEntryCount(executor, 3);
 
-        Assert.assertTrue("Has at least 3 entries", elog.size() >= 3);
+        Assert.assertTrue("Has at least 3 entries :: " + elog, elog.size() >= 3);
         MockScheduledExecutorLog entry = elog.get(2);
         Assert.assertEquals("Entry is of type " + MockExecutorLogActionType.SCHEDULE_AT_FIXED_RATE, MockExecutorLogActionType.SCHEDULE_AT_FIXED_RATE, entry.type);
         Assert.assertTrue("DelayOrPeriod is less or equal " + regularSeconds, entry.delayOrPeriod <= regularSeconds);
@@ -267,8 +267,7 @@ public class BackOffTaskSchedulerTest {
         // which is why it gets automatically re-scheduled
         List<MockScheduledExecutorLog> elog = waitForEntryCount(executor, 4);
 
-        Assert.assertEquals("Has 4 entries", 4, elog.size());
-        MockScheduledExecutorLog entry = elog.get(3);
+        Assert.assertTrue("Has at least 4 entries :: " + elog, elog.size() >= 4);
         assertLogEntry(elog.get(3), MockExecutorLogActionType.SCHEDULE, minPauseSeconds * 1000, TimeUnit.MILLISECONDS);
 
         // Wait for The Task to be executed the second time
@@ -293,7 +292,7 @@ public class BackOffTaskSchedulerTest {
 
         // Now the exponential back-off should reach time greater than 5 seconds, which means
         // it will now delay execution for 8 seconds
-        Assert.assertEquals("Has 6 entries", 6, elog.size());
+        Assert.assertTrue("Has at least 6 entries :: " + elog, elog.size() >= 6);
         assertLogEntry(elog.get(5), MockExecutorLogActionType.SCHEDULE, 8000, TimeUnit.MILLISECONDS);
 
         // With taskDuration = 4 we should after 3 executions be at around 22 seconds (plus 60 seconds initial offset)
@@ -313,7 +312,7 @@ public class BackOffTaskSchedulerTest {
         List<MockScheduledExecutorLog> elog = waitForEntryCount(executor, 7);
 
         // it will now delay execution for 16 seconds
-        Assert.assertEquals("Has 7 entries", 7, elog.size());
+        Assert.assertTrue("Has at least 7 entries :: " + elog, elog.size() >= 7);
         assertLogEntry(elog.get(6), MockExecutorLogActionType.SCHEDULE, 16000, TimeUnit.MILLISECONDS);
 
         // With taskDuration = 4 we should after 4 executions be at around 34 seconds (plus 60 seconds initial offset)
@@ -333,7 +332,7 @@ public class BackOffTaskSchedulerTest {
         List<MockScheduledExecutorLog> elog = waitForEntryCount(executor, 8);
 
         // it will now delay next execution for 32 seconds
-        Assert.assertEquals("Should have 8 entries :: " + elog, 8, elog.size());
+        Assert.assertTrue("Has at least 8 entries :: " + elog, elog.size() >= 8);
         assertLogEntry(elog.get(7), MockExecutorLogActionType.SCHEDULE, 32000, TimeUnit.MILLISECONDS);
 
         // With taskDuration = 4 we should after 5 executions be at around 54 seconds (plus 60 seconds initial offset)
