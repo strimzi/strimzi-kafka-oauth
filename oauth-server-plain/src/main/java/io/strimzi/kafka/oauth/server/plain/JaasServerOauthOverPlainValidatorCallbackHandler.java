@@ -150,11 +150,9 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
 
         super.delegatedConfigure(configs, "PLAIN", jaasConfigEntries);
 
-        // Services is initialised by super
-        metrics = Services.getInstance().getMetrics();
-
         String configId = getConfigId();
-        enableMetrics = config.getValueAsBoolean(Config.OAUTH_ENABLE_METRICS, false);
+        configureMetrics(config);
+
         authHttpMetricKeyProducer = tokenEndpointUri != null ? new PlainHttpMetricKeyProducer(configId, tokenEndpointUri) : null;
 
         log.debug("Configured OAuth over PLAIN:"
@@ -166,6 +164,14 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
 
         if (tokenEndpoint == null) {
             log.debug("tokenEndpointUri is not configured - client_credentials will not be available, password parameter of SASL/PLAIN will automatically be treated as an access token (no '$accessToken:' prefix needed)");
+        }
+    }
+
+    private void configureMetrics(ServerConfig config) {
+        enableMetrics = config.getValueAsBoolean(Config.OAUTH_ENABLE_METRICS, false);
+        if (enableMetrics) {
+            // Services is initialised by super
+            metrics = Services.getInstance().getMetrics();
         }
     }
 

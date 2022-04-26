@@ -276,12 +276,8 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         readTimeout = ConfigUtil.getReadTimeout(config);
 
         String configId = config.getValue(Config.OAUTH_CONFIG_ID);
-        enableMetrics = config.getValueAsBoolean(Config.OAUTH_ENABLE_METRICS, false);
 
-        if (!Services.isAvailable()) {
-            Services.configure(configs);
-        }
-        metrics = Services.getInstance().getMetrics();
+        configureMetrics(configs);
 
         if (jwksUri != null) {
             String effectiveConfigId = setupJWKSValidator(configId, jwksUri, validIssuerUri, checkTokenType,
@@ -298,6 +294,17 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
             URI introspectionUri = config.getValueAsURI(ServerConfig.OAUTH_INTROSPECTION_ENDPOINT_URI);
             validationMetricKeyProducer = new IntrospectValidationMetricKeyProducer(effectiveConfigId, saslMechanism, introspectionUri);
+        }
+    }
+
+    private void configureMetrics(Map<String, ?> configs) {
+        if (!Services.isAvailable()) {
+            Services.configure(configs);
+        }
+
+        enableMetrics = config.getValueAsBoolean(Config.OAUTH_ENABLE_METRICS, false);
+        if (enableMetrics) {
+            metrics = Services.getInstance().getMetrics();
         }
     }
 

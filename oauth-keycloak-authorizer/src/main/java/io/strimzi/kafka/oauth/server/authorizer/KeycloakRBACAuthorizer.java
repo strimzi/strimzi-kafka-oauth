@@ -254,12 +254,7 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
             setupRefreshGrantsJob(grantsRefreshPeriodSeconds);
         }
 
-        if (!Services.isAvailable()) {
-            Services.configure(configs);
-        }
-        metrics = Services.getInstance().getMetrics();
-
-        enableMetrics = config.getValueAsBoolean(Config.OAUTH_ENABLE_METRICS, false);
+        configureMetrics(configs, config);
 
         authzMetricKeyProducer = new KeycloakAuthorizationMetricKeyProducer("keycloak-authorizer", tokenEndpointUrl);
         grantsMetricKeyProducer = new GrantsHttpMetricKeyProducer("keycloak-authorizer", tokenEndpointUrl);
@@ -278,6 +273,17 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
                     + "\n    readTimeoutSeconds: " + readTimeoutSeconds
                     + "\n    enableMetrics: " + enableMetrics
             );
+        }
+    }
+
+    private void configureMetrics(Map<String, ?> configs, AuthzConfig config) {
+        if (!Services.isAvailable()) {
+            Services.configure(configs);
+        }
+
+        enableMetrics = config.getValueAsBoolean(Config.OAUTH_ENABLE_METRICS, false);
+        if (enableMetrics) {
+            metrics = Services.getInstance().getMetrics();
         }
     }
 

@@ -65,8 +65,6 @@ public class JWTSignatureValidator implements TokenValidator {
 
     private static final DefaultJWSVerifierFactory VERIFIER_FACTORY = new DefaultJWSVerifierFactory();
 
-    private final BackOffTaskScheduler fastScheduler;
-
     private final String validatorId;
     private final URI keysUri;
     private final String issuerUri;
@@ -88,8 +86,10 @@ public class JWTSignatureValidator implements TokenValidator {
     private Map<String, PublicKey> cache = Collections.emptyMap();
     private Map<String, PublicKey> oldCache = Collections.emptyMap();
 
+    private BackOffTaskScheduler fastScheduler;
+
     private final boolean enableMetrics;
-    private final OAuthMetrics metrics = Services.getInstance().getMetrics();
+    private final OAuthMetrics metrics;
     private final MetricKeyProducer jwksHttpMetricKeyProducer;
 
     /**
@@ -183,31 +183,11 @@ public class JWTSignatureValidator implements TokenValidator {
         this.readTimeout = readTimeoutSeconds;
 
         this.enableMetrics = enableMetrics;
+        metrics = enableMetrics ? Services.getInstance().getMetrics() : null;
+
         jwksHttpMetricKeyProducer = new JwksHttpMetricKeyProducer(validatorId, keysUri);
 
-        // get the signing keys for signature validation before the first authorization requests start coming
-        // fail fast if keys refresh doesn't work - it means network issues or authorization server not responding
-        boolean initFetchFailed = false;
-        try {
-            fetchKeys();
-        } catch (Exception e) {
-            if (failFast) {
-                throw e;
-            } else {
-                initFetchFailed = true;
-                log.warn("[IGNORED] Fetching JWKS keys has failed, but fail-fast is disabled: ", e);
-            }
-        }
-
-        // the single threaded executor for refreshing the keys
-        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(new DaemonThreadFactory());
-
-        // set up fast scheduler that refreshes keys on-demand, and keeps trying with exponential back-off until it succeeds
-        fastScheduler = new BackOffTaskScheduler(executor, refreshMinPauseSeconds, refreshSeconds, this::fetchKeys);
-
-        if (initFetchFailed) {
-            fastScheduler.scheduleTask();
-        }
+        ScheduledExecutorService executor = setupExecutorAndFetchInitialKeys(refreshSeconds, refreshMinPauseSeconds, failFast);
 
         // set up periodic timer to trigger fastScheduler job every refreshSeconds
         setupRefreshKeysJob(executor, refreshSeconds);
@@ -233,6 +213,35 @@ public class JWTSignatureValidator implements TokenValidator {
                     + "\n    enableMetrics: " + enableMetrics
                     + "\n    failFast: " + failFast);
         }
+    }
+
+    private ScheduledExecutorService setupExecutorAndFetchInitialKeys(int refreshSeconds, int refreshMinPauseSeconds, boolean failFast) {
+
+        // get the signing keys for signature validation before the first authorization requests start coming
+        // fail fast if keys refresh doesn't work - it means network issues or authorization server not responding
+
+        boolean initFetchFailed = false;
+        try {
+            fetchKeys();
+        } catch (Exception e) {
+            if (failFast) {
+                throw e;
+            } else {
+                initFetchFailed = true;
+                log.warn("[IGNORED] Fetching JWKS keys has failed, but fail-fast is disabled: ", e);
+            }
+        }
+
+        // the single threaded executor for refreshing the keys
+        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(new DaemonThreadFactory());
+
+        // set up fast scheduler that refreshes keys on-demand, and keeps trying with exponential back-off until it succeeds
+        fastScheduler = new BackOffTaskScheduler(executor, refreshMinPauseSeconds, refreshSeconds, this::fetchKeys);
+
+        if (initFetchFailed) {
+            fastScheduler.scheduleTask();
+        }
+        return executor;
     }
 
     private JsonPathFilterQuery parseCustomClaimCheck(String customClaimCheck) {

@@ -67,7 +67,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
     private final int readTimeoutSeconds;
 
     private final boolean enableMetrics;
-    private final OAuthMetrics metrics = Services.getInstance().getMetrics();
+    private final OAuthMetrics metrics;
     private final MetricKeyProducer introspectHttpMetricKeyProducer;
     private final MetricKeyProducer userInfoHttpMetricKeyProducer;
 
@@ -138,6 +138,8 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         this.readTimeoutSeconds = readTimeoutSeconds;
 
         this.enableMetrics = enableMetrics;
+        metrics = enableMetrics ? Services.getInstance().getMetrics() : null;
+
         introspectHttpMetricKeyProducer = new IntrospectHttpMetricKeyProducer(validatorId, introspectionURI);
         userInfoHttpMetricKeyProducer = userInfoURI != null ? new UserInfoHttpMetricKeyProducer(validatorId, userInfoURI) : null;
 

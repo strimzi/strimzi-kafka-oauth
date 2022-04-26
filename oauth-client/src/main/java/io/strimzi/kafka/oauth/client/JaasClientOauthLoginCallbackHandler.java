@@ -135,12 +135,7 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
             throw new RuntimeException("Invalid value configured for OAUTH_MAX_TOKEN_EXPIRY_SECONDS: " + maxTokenExpirySeconds + " (should be at least 60)");
         }
 
-        String configId = configureMetrics();
-
-        if (!Services.isAvailable()) {
-            Services.configure(configs);
-        }
-        metrics = Services.getInstance().getMetrics();
+        String configId = configureMetrics(configs);
 
         if (LOG.isDebugEnabled()) {
             LOG.debug("Configured JaasClientOauthLoginCallbackHandler:"
@@ -161,12 +156,19 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
         }
     }
 
-    private String configureMetrics() {
+    private String configureMetrics(Map<String, ?> configs) {
         String configId = config.getValue(Config.OAUTH_CONFIG_ID, "client");
         enableMetrics = config.getValueAsBoolean(Config.OAUTH_ENABLE_METRICS, false);
 
         authMetricKeyProducer = new ClientAuthenticationMetricKeyProducer(configId, tokenEndpoint);
         tokenMetricKeyProducer = tokenEndpoint != null ? new ClientHttpMetricKeyProducer(configId, tokenEndpoint) : null;
+
+        if (!Services.isAvailable()) {
+            Services.configure(configs);
+        }
+        if (enableMetrics) {
+            metrics = Services.getInstance().getMetrics();
+        }
         return configId;
     }
 
