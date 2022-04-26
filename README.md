@@ -1134,11 +1134,18 @@ If `oauth.config.id` is specified in JAAS configuration of the listener or the c
 
 Metrics are exposed through JMX managed beans. They can also be exposed as Prometheus metrics by using the Prometheus JMX Exporter agent, and mapping the JMX metrics names to prometheus metrics names.
 
-When metrics are enabled, managed beans are registered on demand, containing the attributes that are easily translated into Prometheus metrics.
+The OAuth metrics also honor the `metric.reporters`, `metrics.num.samples`, `metrics.recording.level` and `metrics.sample.window.ms` configurations of Kafka runtimes. When OAuth metrics are enabled the OAuth layer creates duplicate instances of `JmxReporter` and the configured `MetricReporter`s since at the moment there is no other way to integrate with the existing metrics system of Kafka runtimes. 
 
-Each registered MBean contains two variables - `count`, and `timeTotal`.
+When OAuth metrics are enabled, managed beans are registered on demand, containing the attributes that are easily translated into Prometheus metrics.
+
+Each registered MBean contains two counter variables - `count`, and `timeTotal`.
+It also contains three gauge variables - `timeMin`, `timeMax` and `timeAvg`.
+
 The `count` contains the number of requests of the specific context (as represented by attributes).
-The `totalTime` contains the cumulative time in milliseconds spent in the requests of the specific context.
+The `timeTotal` contains the cumulative time in milliseconds spent in the requests of the specific context.
+The `timeMin` contains the minimum request time within the configured time window.
+The `timeMax` contains the maximum request time within the configured time window.
+The `timeAvg` contains the average request time within the configured time window.
 
 Two reads of `count` and `timeTotal` allow to calculate the average request time within the time interval as `delta Time / delta Count`.
 
@@ -1147,58 +1154,58 @@ The following MBeans are registered, depending on which parts of `strimzi-kafka-
 For fast local JWT token based validation there are:
 
 - The metrics for validation requests which occur as part of the authentication:  
-  - `strimzi.oauth:name=validation_requests,context=$CONFIG_ID,mechanism=$MECHANISM,type=jwks,host="$HOST:$PORT",path="$JWKS_ENDPOINT_PATH",outcome=success`
-  - `strimzi.oauth:name=validation_requests,context=$CONFIG_ID,mechanism=$MECHANISM,type=jwks,host="$HOST:$PORT",path="$JWKS_ENDPOINT_PATH",outcome=error,error_type=$ERROR_TYPE`
+  - `strimzi.oauth:type=validation_requests,context=$CONFIG_ID,kind=jwks,host="$HOST:$PORT",path="$JWKS_ENDPOINT_PATH",mechanism=$MECHANISM,outcome=success`
+  - `strimzi.oauth:type=validation_requests,context=$CONFIG_ID,kind=jwks,host="$HOST:$PORT",path="$JWKS_ENDPOINT_PATH",mechanism=$MECHANISM,outcome=error,error_type=$ERROR_TYPE`
 
 - The metrics for http requests to JWKS endpoint of the authorization server that are periodically performed in the background:
-  - `strimzi.oauth:name=http_requests,context=$CONFIG_ID,type=jwks,host="$HOST:$PORT",path="$JWKS_ENDPOINT_PATH",outcome=success,status=200`
-  - `strimzi.oauth:name=http_requests,context=$CONFIG_ID,type=jwks,host="$HOST:$PORT",path="$JWKS_ENDPOINT_PATH",outcome=error,error_type=http,status=$STATUS`
+  - `strimzi.oauth:type=http_requests,context=$CONFIG_ID,kind=jwks,host="$HOST:$PORT",path="$JWKS_ENDPOINT_PATH",outcome=success,status=200`
+  - `strimzi.oauth:type=http_requests,context=$CONFIG_ID,kind=jwks,host="$HOST:$PORT",path="$JWKS_ENDPOINT_PATH",outcome=error,error_type=http,status=$STATUS`
 
 For introspection based validation there are:
 
 - The metrics for validation requests which occur as part of the authentication:
-  - `strimzi.oauth:name=validation_requests,context=$CONFIG_ID,mechanism=$MECHANISM,type=introspect,host="$HOST:$PORT",path="$INTROSPECTION_ENDPOINT_PATH",outcome=success`
-  - `strimzi.oauth:name=validation_requests,context=$CONFIG_ID,mechanism=$MECHANISM,type=introspect,host="$HOST:$PORT",path="$INTROSPECTION_ENDPOINT_PATH",outcome=error,error_type=$ERROR_TYPE`
+  - `strimzi.oauth:type=validation_requests,context=$CONFIG_ID,kind=introspect,host="$HOST:$PORT",path="$INTROSPECTION_ENDPOINT_PATH",mechanism=$MECHANISM,outcome=success`
+  - `strimzi.oauth:type=validation_requests,context=$CONFIG_ID,kind=introspect,host="$HOST:$PORT",path="$INTROSPECTION_ENDPOINT_PATH",mechanism=$MECHANISM,outcome=error,error_type=$ERROR_TYPE`
 
 - The metrics for http requests to introspect endpoint during validation requests:
-  - `strimzi.oauth:name=http_requests,context=$CONFIG_ID,type=introspect,host="$HOST:$PORT",path="$INTROSPECTION_ENDPOINT_PATH",outcome=success,status=200`
-  - `strimzi.oauth:name=http_requests,context=$CONFIG_ID,type=introspect,host="$HOST:$PORT",path="$INTROSPECTION_ENDPOINT_PATH",outcome=error,error_type=http,status=$STATUS`
+  - `strimzi.oauth:type=http_requests,context=$CONFIG_ID,kind=introspect,host="$HOST:$PORT",path="$INTROSPECTION_ENDPOINT_PATH",outcome=success,status=200`
+  - `strimzi.oauth:type=http_requests,context=$CONFIG_ID,kind=introspect,host="$HOST:$PORT",path="$INTROSPECTION_ENDPOINT_PATH",outcome=error,error_type=http,status=$STATUS`
 
 - The metrics for http requests to userinfo endpoint during validation requests (if configured):
-  - `strimzi.oauth:name=http_requests,context=$CONFIG_ID,type=userinfo,host="$HOST:$PORT",path="$USERINFO_ENDPOINT_PATH",outcome=success,status=200`
-  - `strimzi.oauth:name=http_requests,context=$CONFIG_ID,type=userinfo,host="$HOST:$PORT",path="$USERINFO_ENDPOINT_PATH",outcome=error,error_type=http,status=$STATUS`
+  - `strimzi.oauth:type=http_requests,context=$CONFIG_ID,kind=userinfo,host="$HOST:$PORT",path="$USERINFO_ENDPOINT_PATH",outcome=success,status=200`
+  - `strimzi.oauth:type=http_requests,context=$CONFIG_ID,kind=userinfo,host="$HOST:$PORT",path="$USERINFO_ENDPOINT_PATH",outcome=error,error_type=http,status=$STATUS`
 
 For validation performed using OAuth over PLAIN there are additionally:
 
 - The metrics for http requests to obtain the access token in client's name:
-  - `strimzi.oauth:name=http_requests,context=$CONFIG_ID,type=plain,host="$HOST:$PORT",path="$TOKEN_ENDPOINT_PATH",outcome=success,status=200`
-  - `strimzi.oauth:name=http_requests,context=$CONFIG_ID,type=plain,host="$HOST:$PORT",path="$TOKEN_ENDPOINT_PATH",outcome=error,error_type=http,status=$STATUS`
+  - `strimzi.oauth:type=http_requests,context=$CONFIG_ID,kind=plain,host="$HOST:$PORT",path="$TOKEN_ENDPOINT_PATH",outcome=success,status=200`
+  - `strimzi.oauth:type=http_requests,context=$CONFIG_ID,kind=plain,host="$HOST:$PORT",path="$TOKEN_ENDPOINT_PATH",outcome=error,error_type=http,status=$STATUS`
   
 For Keycloak authorization there are:
 
 - The metrics for authorization requests:
-  - `strimzi.oauth:name=authorization_requests,context=$CONFIG_ID,type=keycloak-authorization,host="$HOST:$PORT",path="$TOKEN_ENDPOINT_PATH",outcome=success`
-  - `strimzi.oauth:name=authorization_requests,context=$CONFIG_ID,type=keycloak-authorization,host="$HOST:$PORT",path="$TOKEN_ENDPOINT_PATH",outcome=error,error_type=$ERROR_TYPE`
+  - `strimzi.oauth:type=authorization_requests,context=$CONFIG_ID,kind=keycloak-authorization,host="$HOST:$PORT",path="$TOKEN_ENDPOINT_PATH",outcome=success`
+  - `strimzi.oauth:type=authorization_requests,context=$CONFIG_ID,kind=keycloak-authorization,host="$HOST:$PORT",path="$TOKEN_ENDPOINT_PATH",outcome=error,error_type=$ERROR_TYPE`
 
 - The metrics for http requests to retrieve or refresh grants for the authenticated user:
-  - `strimzi.oauth:name=http_requests,context=$CONFIG_ID,type=grants,host="$HOST:$PORT",path="$TOKEN_ENDPOINT_PATH",outcome=success,status=200`
-  - `strimzi.oauth:name=http_requests,context=$CONFIG_ID,type=grants,host="$HOST:$PORT",path="$TOKEN_ENDPOINT_PATH",outcome=error,error_type=http,status=$STATUS`
+  - `strimzi.oauth:type=http_requests,context=$CONFIG_ID,kind=grants,host="$HOST:$PORT",path="$TOKEN_ENDPOINT_PATH",outcome=success,status=200`
+  - `strimzi.oauth:type=http_requests,context=$CONFIG_ID,kind=grants,host="$HOST:$PORT",path="$TOKEN_ENDPOINT_PATH",outcome=error,error_type=http,status=$STATUS`
 
 For client-side authentication there are:
 
 - The metrics for client authentication requests:
-  - `strimzi.oauth:name=authentication_requests,context=$CONFIG_ID,type=client-auth,host="$HOST:$PORT",path="$TOKEN_ENDPOINT_PATH",outcome=success`
-  - `strimzi.oauth:name=authentication_requests,context=$CONFIG_ID,type=client-auth,host="$HOST:$PORT",path="$TOKEN_ENDPOINT_PATH",outcome=error,error_type=$ERROR_TYPE`
+  - `strimzi.oauth:type=authentication_requests,context=$CONFIG_ID,kind=client-auth,host="$HOST:$PORT",path="$TOKEN_ENDPOINT_PATH",outcome=success`
+  - `strimzi.oauth:type=authentication_requests,context=$CONFIG_ID,kind=client-auth,host="$HOST:$PORT",path="$TOKEN_ENDPOINT_PATH",outcome=error,error_type=$ERROR_TYPE`
 
 - The metrics for http requests to obtain the access token:
-  - `strimzi.oauth:name=http_requests,context=$CONFIG_ID,type=client-auth,host="$HOST:$PORT",path="$TOKEN_ENDPOINT_PATH",outcome=success,status=200`
-  - `strimzi.oauth:name=http_requests,context=$CONFIG_ID,type=client-auth,host="$HOST:$PORT",path="$TOKEN_ENDPOINT_PATH",outcome=error,error_type=http,status=$STATUS`
+  - `strimzi.oauth:type=http_requests,context=$CONFIG_ID,kind=client-auth,host="$HOST:$PORT",path="$TOKEN_ENDPOINT_PATH",outcome=success,status=200`
+  - `strimzi.oauth:type=http_requests,context=$CONFIG_ID,kind=client-auth,host="$HOST:$PORT",path="$TOKEN_ENDPOINT_PATH",outcome=error,error_type=http,status=$STATUS`
 
 
 The meaning of the variables used in the above names is as follows.
 
 - `$CONFIG_ID`
-  The value specified as `oauth.config.id` configuration option. If not specified it is set to `client` for Kafka client, `kafka-authorizer` for KeycloakRBACAuthorizer, or calculated from other configuration parameters for the validation on Kafka broker.
+  The value specified as `oauth.config.id` configuration option. If not specified it is set to `client` for Kafka client, `kafka-authorizer` for `KeycloakRBACAuthorizer`, or calculated from other configuration parameters for the validation on Kafka broker.
 - `$HOST:$PORT`
   The hostname and port used to connect to authorization server. Extracted from the configured value for `oauth.token.endpoint.uri`, `oauth.introspect.endpoint.uri`, `oauth.userinfo.endpoint.uri`, `oauth.jwks.endpoint.uri` or `strimzi.authorization.token.endpoint.uri` (depending on the context). If the port is not part of the uri it is defaulted to `80` for `http`, and to `443` for `https`.
 - `$PATH`
@@ -1211,59 +1218,51 @@ The meaning of the variables used in the above names is as follows.
   
 ### Using the metrics with Prometheus
 
-The [metrics-config.json](testsuite/docker/kafka/config/metrics-config.json) file contains the definitions for mapping the metrics from MBeans to Prometheus metrics names.
+The [metrics-config.yml](testsuite/docker/kafka/config/metrics-config.yml) file contains the definitions for mapping the metrics from MBeans to Prometheus metrics names.
 
 The following metrics are exposed as the result of the mapping.
+
+For each pattern there are five metrics exposed with `$METRIC` being `count`, `timetotal`, `timemin`, `timemax` and `timeavg`.
 
 For fast local JWT token based validation there are:
 
 - The metrics for validation requests which occur as part of the authentication:
-  - `strimzi_oauth_validation_requests_count{type="jwks"}`
-  - `strimzi_oauth_validation_requests_timetotal{type="jwks"}`
-
+  - `strimzi_oauth_validation_requests_$METRIC{type="jwks"}`
+  
 - The metrics for http requests to JWKS endpoint of the authorization server that are periodically performed in the background:
-  - `strimzi_oauth_http_requests_count{type="jwks"}`
-  - `strimzi_oauth_http_requests_timetotal{type="jwks}`
+  - `strimzi_oauth_http_requests_$METRIC{type="jwks"}`
 
 For introspection based validation there are:
 
 - The metrics for validation requests which occur as part of the authentication:
-  - `strimzi_oauth_validation_requests_count{type="introspect"}`
-  - `strimzi_oauth_validation_requests_timetotal{type="introspect"}`
+  - `strimzi_oauth_validation_requests_$METRIC{type="introspect"}`
 
 - The metrics for http requests to introspect endpoint during validation requests:
-  - `strimzi_oauth_http_requests_count{type="introspect"}`
-  - `strimzi_oauth_http_requests_timetotal{type="introspect"}`
+  - `strimzi_oauth_http_requests_$METRIC{type="introspect"}`
 
 - The metrics for http requests to userinfo endpoint during validation requests (if configured):
-  - `strimzi_oauth_http_requests_count{type="userinfo"}`
-  - `strimzi_oauth_http_requests_timetotal{type="userinfo"}`
+  - `strimzi_oauth_http_requests_$METRIC{type="userinfo"}`
 
 For validation performed using OAuth over PLAIN there are additionally:
 
 - The metrics for http requests to obtain the access token in client's name:
-  - `strimzi_oauth_http_requests_count{type="plain"}`
-  - `strimzi_oauth_http_requests_timetotal{type="plain"}`
+  - `strimzi_oauth_http_requests_$METRIC{type="plain"}`
 
 For Keycloak authorization there are:
 
 - The metrics for authorization requests:
-  - `strimzi_oauth_authorization_requests_count{type="keycloak-authorization"}`
-  - `strimzi_oauth_authorization_requests_timetotal{type="keycloak-authorization"}`
+  - `strimzi_oauth_authorization_requests_$METRIC{type="keycloak-authorization"}`
 
 - The metrics for http requests to retrieve or refresh grants for the authenticated user:
-  - `strimzi_oauth_http_requests_count{type="keycloak-authorization"}`
-  - `strimzi_oauth_http_requests_timetotal{type="keycloak-authorization"}`
+  - `strimzi_oauth_http_requests_$METRIC{type="keycloak-authorization"}`
 
 For client-side authentication there are:
 
 - The metrics for client authentication requests:
-  - `strimzi_oauth_authentication_requests_count{type="client-auth"}`
-  - `strimzi_oauth_authentication_requests_timetotal{type="client-auth"}`
+  - `strimzi_oauth_authentication_requests_$METRIC{type="client-auth"}`
 
 - The metrics for http requests to obtain the access token:
-  - `strimzi_oauth_http_requests_count{type="client-auth"}`
-  - `strimzi_oauth_http_requests_timetotal{type="client-auth"}`
+  - `strimzi_oauth_http_requests_$METRIC{type="client-auth"}`
 
 
 ### Some examples of PromQL queries
