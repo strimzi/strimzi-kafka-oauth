@@ -2,7 +2,8 @@ Metrics example
 ===============
 
 The following instructions deploy the metrics example into the default Kubernetes namespace.
-It is assumed that Strimzi Kafka Operator has already been deployed, and that your current working directory is this directory.
+It is assumed that Strimzi Kafka Operator has already been deployed, and that your current working directory is the directory 
+of this document.
 
 We also assume that you have deployed `keycloak` according to the instructions in [README.md](README.md#deploying-the-postgres-and-keycloak-that-stores-state-to-postgres).
 
