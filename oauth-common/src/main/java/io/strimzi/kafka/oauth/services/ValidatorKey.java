@@ -190,7 +190,7 @@ public class ValidatorKey {
             this.checkAccessTokenType = checkAccessTokenType;
             this.failFast = failFast;
 
-            this.configIdHash = IOUtil.hashForObjects(getClass(), super.getConfigIdHash(),
+            this.configIdHash = IOUtil.hashForObjects(super.getConfigIdHash(),
                     jwksEndpointUri,
                     jwksRefreshSeconds,
                     jwksExpirySeconds,
@@ -286,7 +286,7 @@ public class ValidatorKey {
             this.clientId = clientId;
             this.clientSecret = clientSecret;
 
-            this.configIdHash = IOUtil.hashForObjects(getClass(), super.getConfigIdHash(),
+            this.configIdHash = IOUtil.hashForObjects(super.getConfigIdHash(),
                     introspectionEndpoint,
                     userInfoEndpoint,
                     validTokenType,

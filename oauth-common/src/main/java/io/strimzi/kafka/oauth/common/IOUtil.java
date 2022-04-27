@@ -8,7 +8,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.util.Random;
+import java.util.zip.CRC32;
 
 public class IOUtil {
 
@@ -25,7 +27,7 @@ public class IOUtil {
         } finally {
             try {
                 input.close();
-            } catch (Exception e) { }
+            } catch (Exception ignored) { }
         }
     }
 
@@ -43,8 +45,8 @@ public class IOUtil {
 
     public static String asHexString(byte[] bytes) {
         StringBuilder sb = new StringBuilder(2 * bytes.length);
-        for (int i = 0; i < bytes.length; i++) {
-            int val = 0xFF & bytes[i];
+        for (byte b : bytes) {
+            int val = 0xFF & b;
             if (val < 16) {
                 sb.append('0');
             }
@@ -58,6 +60,19 @@ public class IOUtil {
         for (Object o: args) {
             sb.append("|").append(o != null ? o : "\0\0\0");
         }
-        return asHexString(BigInteger.valueOf(sb.toString().hashCode()).toByteArray());
+        String hex = asHexString(BigInteger.valueOf(crc32(sb.toString())).toByteArray());
+        if (hex.length() == 8) {
+            return hex;
+        } else if (hex.length() > 8) {
+            return hex.substring(hex.length() - 8);
+        } else {
+            return String.format("%8s", hex).replace(' ', '0');
+        }
+    }
+
+    public static long crc32(String content) {
+        CRC32 crc = new CRC32();
+        crc.update(content.getBytes(StandardCharsets.UTF_8));
+        return crc.getValue();
     }
 }
