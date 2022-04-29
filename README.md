@@ -343,7 +343,7 @@ You can control how often the keys used for signature checks are refreshed and w
 
 If an access token signed with an unknown signing key is encountered, another refresh is scheduled immediately.
 You can control the minimum pause between two consecutive scheduled keys refreshes - the default is 1 second:
-- `oauth.jwks.refresh.min.pause.seconds` (e.g.: "0" - no minimium pause)
+- `oauth.jwks.refresh.min.pause.seconds` (e.g.: "0" - no minimum pause)
 
 All access tokens can be invalidated by rotating the keys on authorization server and expiring old keys.
 
@@ -1142,7 +1142,7 @@ You can debug the issue by enabling DEBUG level on `io.strimzi` logger on the Ka
 Make sure that the authorization server instance used by the Kafka client to obtain the access token is the same as the authorization server endpoints configured on the 
 Kafka broker listener your client is connecting to. That means that the Kafka client and the Kafka broker have to use the same 'user domain' - for example with Keycloak they have to use the same `realm`. Different listeners can be configured to use different authorization servers, so pay attention about the port your client connects to.
 
-There are some other possibilites why this error can occur.
+There are some other possibilities why this error can occur.
 
 The JWT tokens are signed by the authorization server when they are issued. The signing keys may be rotated or an existing instance of authorization server may be removed and a fresh new instance started in its place. In that situation a mismatch may occur between keys used to sign the tokens the client sends to Kafka broker during authentication, and the list of valid signing keys on the Kafka broker.
 

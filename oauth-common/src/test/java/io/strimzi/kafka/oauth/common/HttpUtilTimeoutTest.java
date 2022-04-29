@@ -20,7 +20,7 @@ import java.util.concurrent.CompletableFuture;
 
 public class HttpUtilTimeoutTest {
 
-    private static Logger log = LoggerFactory.getLogger(HttpUtilTimeoutTest.class);
+    private static final Logger LOG = LoggerFactory.getLogger(HttpUtilTimeoutTest.class);
 
     @Test
     public void testHttpTimeouts() throws Exception {
@@ -57,9 +57,9 @@ public class HttpUtilTimeoutTest {
                 Assert.assertTrue("Unexpected diff: " + diff, diff >= timeout * 1000 && diff < timeout * 1000 + 1000);
             } catch (IOException e) {
                 if (e.getCause() instanceof ConnectException) {
-                    log.warn("Connect timeout test skipped due to immediate ConnectException");
+                    LOG.warn("Connect timeout test skipped due to immediate ConnectException");
                 } else {
-                    log.error("Unexpected exception: ", e);
+                    LOG.error("Unexpected exception: ", e);
                     Assert.fail();
                 }
             }
@@ -87,9 +87,9 @@ public class HttpUtilTimeoutTest {
                 Assert.assertTrue("Unexpected diff: " + diff, diff >= timeout * 1000 && diff < timeout * 1000 + 1000);
             } catch (IOException e) {
                 if (e.getCause() instanceof ConnectException) {
-                    log.warn("Connect timeout test skipped due to immediate ConnectException");
+                    LOG.warn("Connect timeout test skipped due to immediate ConnectException");
                 } else {
-                    log.error("Unexpected exception: ", e);
+                    LOG.error("Unexpected exception: ", e);
                     Assert.fail();
                 }
             }
@@ -124,13 +124,13 @@ public class HttpUtilTimeoutTest {
                     Assert.assertTrue("Unexpected diff: " + diff, diff >= timeout * 1000 && diff < timeout * 1000 + 1000);
                 } else if (cause instanceof IOException) {
                     if (cause.getCause() instanceof ConnectException) {
-                        log.warn("Connect timeout test skipped due to immediate ConnectException");
+                        LOG.warn("Connect timeout test skipped due to immediate ConnectException");
                     } else {
-                        log.error("Unexpected exception: ", cause);
+                        LOG.error("Unexpected exception: ", cause);
                         Assert.fail();
                     }
                 } else {
-                    log.error("Unexpected exception: ", e);
+                    LOG.error("Unexpected exception: ", e);
                     Assert.fail();
                 }
             }

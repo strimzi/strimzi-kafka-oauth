@@ -30,9 +30,7 @@ public class MockBearerTokenWithPayload implements BearerTokenWithPayload {
 
         Set<String> scopesSet = new HashSet<>();
         String[] parsedScopes = scope != null ? scope.split(" ") : new String[0];
-        for (String s: parsedScopes) {
-            scopesSet.add(s);
-        }
+        Collections.addAll(scopesSet, parsedScopes);
         scopes = Collections.unmodifiableSet(scopesSet);
 
         this.token = token;

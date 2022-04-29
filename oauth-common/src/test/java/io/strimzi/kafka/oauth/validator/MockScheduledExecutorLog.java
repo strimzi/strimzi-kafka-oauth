@@ -20,7 +20,7 @@ class MockScheduledExecutorLog {
     MockExecutorLogActionType type;
     List<Callable<?>> tasks;
     Runnable runnable;
-    Callable callable;
+    Callable<?> callable;
     long initialDelay;
     long delayOrPeriod;
     TimeUnit delayUnit;
@@ -35,7 +35,7 @@ class MockScheduledExecutorLog {
         this.runnable = runnable;
     }
 
-    MockScheduledExecutorLog(MockExecutorLogActionType type, Callable callable) {
+    MockScheduledExecutorLog(MockExecutorLogActionType type, Callable<?> callable) {
         this.type = type;
         this.callable = callable;
     }
@@ -65,7 +65,7 @@ class MockScheduledExecutorLog {
         this.delayUnit = unit;
     }
 
-    public MockScheduledExecutorLog(MockExecutorLogActionType type, Callable callable, long delay, TimeUnit unit) {
+    public MockScheduledExecutorLog(MockExecutorLogActionType type, Callable<?> callable, long delay, TimeUnit unit) {
         this.type = type;
         this.callable = callable;
         this.delayOrPeriod = delay;

@@ -35,9 +35,7 @@ public class BackOffTaskSchedulerTest {
 
         AtomicInteger counter = new AtomicInteger();
 
-        Runnable task = () -> {
-            counter.incrementAndGet();
-        };
+        Runnable task = counter::incrementAndGet;
 
         BackOffTaskScheduler scheduler = new BackOffTaskScheduler(executor, 5, 300, task);
         scheduler.scheduleTask();
@@ -86,10 +84,9 @@ public class BackOffTaskSchedulerTest {
         Assert.assertTrue("Has more entries", it.hasNext());
         assertLogEntry(it.next(), MockExecutorLogActionType.SCHEDULE, 0, TimeUnit.MILLISECONDS);
 
-        Iterator<Integer> delayIt = Arrays.asList(5, 5, 8, 16, 32).iterator();
-        while (delayIt.hasNext()) {
+        for (int i : Arrays.asList(5, 5, 8, 16, 32)) {
             Assert.assertTrue("Has more entries", it.hasNext());
-            assertLogEntry(it.next(), MockExecutorLogActionType.SCHEDULE, 1000 * delayIt.next(), TimeUnit.MILLISECONDS);
+            assertLogEntry(it.next(), MockExecutorLogActionType.SCHEDULE, 1000 * i, TimeUnit.MILLISECONDS);
         }
 
         Assert.assertFalse("Has no more entries", it.hasNext());
@@ -126,10 +123,9 @@ public class BackOffTaskSchedulerTest {
         Assert.assertTrue("Has more entries", it.hasNext());
         assertLogEntry(it.next(), MockExecutorLogActionType.SCHEDULE, 0, TimeUnit.MILLISECONDS);
 
-        Iterator<Integer> delayIt = Arrays.asList(5, 5, 8, 16, 32, 64, 128).iterator();
-        while (delayIt.hasNext()) {
+        for (int i : Arrays.asList(5, 5, 8, 16, 32, 64, 128)) {
             Assert.assertTrue("Has more entries", it.hasNext());
-            assertLogEntry(it.next(), MockExecutorLogActionType.SCHEDULE, 1000 * delayIt.next(), TimeUnit.MILLISECONDS);
+            assertLogEntry(it.next(), MockExecutorLogActionType.SCHEDULE, 1000 * i, TimeUnit.MILLISECONDS);
         }
 
         Assert.assertFalse("Has no more entries", it.hasNext());
@@ -297,7 +293,7 @@ public class BackOffTaskSchedulerTest {
 
         // Now the exponential back-off should reach time greater than 5 seconds, which means
         // it will now delay execution for 8 seconds
-        Assert.assertTrue("Has 6 entries", elog.size() == 6);
+        Assert.assertEquals("Has 6 entries", 6, elog.size());
         assertLogEntry(elog.get(5), MockExecutorLogActionType.SCHEDULE, 8000, TimeUnit.MILLISECONDS);
 
         // With taskDuration = 4 we should after 3 executions be at around 22 seconds (plus 60 seconds initial offset)
@@ -317,7 +313,7 @@ public class BackOffTaskSchedulerTest {
         List<MockScheduledExecutorLog> elog = waitForEntryCount(executor, 7);
 
         // it will now delay execution for 16 seconds
-        Assert.assertTrue("Has 7 entries", elog.size() == 7);
+        Assert.assertEquals("Has 7 entries", 7, elog.size());
         assertLogEntry(elog.get(6), MockExecutorLogActionType.SCHEDULE, 16000, TimeUnit.MILLISECONDS);
 
         // With taskDuration = 4 we should after 4 executions be at around 34 seconds (plus 60 seconds initial offset)
@@ -337,7 +333,7 @@ public class BackOffTaskSchedulerTest {
         List<MockScheduledExecutorLog> elog = waitForEntryCount(executor, 8);
 
         // it will now delay next execution for 32 seconds
-        Assert.assertTrue("Should have 8 entries :: " + elog, elog.size() == 8);
+        Assert.assertEquals("Should have 8 entries :: " + elog, 8, elog.size());
         assertLogEntry(elog.get(7), MockExecutorLogActionType.SCHEDULE, 32000, TimeUnit.MILLISECONDS);
 
         // With taskDuration = 4 we should after 5 executions be at around 54 seconds (plus 60 seconds initial offset)
@@ -385,7 +381,7 @@ public class BackOffTaskSchedulerTest {
         // But this time there should be no additional scheduling of The Task
         // because this time it overshoots the cutoff limit of 60 seconds (it would be 64 seconds pause)
         List<MockScheduledExecutorLog> elog = executor.log();
-        Assert.assertTrue("Still has 9 entries", elog.size() == 9);
+        Assert.assertEquals("Still has 9 entries", 9, elog.size());
 
         // With taskDuration = 4 we should after 6 executions be at around 125 seconds (plus 60 seconds initial offset)
         // immediate 4s execution + 2 x (5s pause + 4s execution) + 8s pause + 4s execution + 16s pause + 4s + 32s pause + 4s

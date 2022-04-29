@@ -21,12 +21,12 @@ public class TokenInfo {
     public static final String TOKEN_TYPE = "token_type";
     public static final String AUD = "aud";
 
-    private String token;
+    private final String token;
+    private final long expiresAt;
+    private final String principal;
+    private final Set<String> groups;
+    private final long issuedAt;
     private Set<String> scopes = new HashSet<>();
-    private long expiresAt;
-    private String principal;
-    private Set<String> groups;
-    private long issuedAt;
     private ObjectNode payload;
 
     public TokenInfo(JsonNode payload, String token, String principal) {
@@ -55,9 +55,7 @@ public class TokenInfo {
         this.expiresAt = expiresAtMs;
 
         String[] parsedScopes = scope != null ? scope.split(" ") : new String[0];
-        for (String s: parsedScopes) {
-            scopes.add(s);
-        }
+        Collections.addAll(scopes, parsedScopes);
         scopes = Collections.unmodifiableSet(scopes);
     }
 

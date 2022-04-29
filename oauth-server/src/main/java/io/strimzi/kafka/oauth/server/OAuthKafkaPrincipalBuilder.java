@@ -49,7 +49,7 @@ public class OAuthKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder imp
 
     private static class SetAccessibleAction implements PrivilegedAction<Void> {
 
-        private Field field;
+        private final Field field;
 
         SetAccessibleAction(Field field) {
             this.field = field;
@@ -109,10 +109,8 @@ public class OAuthKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder imp
 
             SET_PRINCIPAL_MAPPER.invoke(this, sslPrincipalMapper);
 
-        } catch (RuntimeException e) {
-            throw new RuntimeException("Failed to initialize OAuthKafkaPrincipalBuilder", e);
-
-        } catch (ClassNotFoundException
+        } catch (RuntimeException
+                | ClassNotFoundException
                 | NoSuchMethodException
                 | IllegalAccessException
                 | InvocationTargetException e) {
@@ -130,10 +128,8 @@ public class OAuthKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder imp
                     BearerTokenWithPayload token = (BearerTokenWithPayload) server.getNegotiatedProperty("OAUTHBEARER.token");
                     Services.getInstance().getSessions().put(token);
 
-                    OAuthKafkaPrincipal kafkaPrincipal = new OAuthKafkaPrincipal(KafkaPrincipal.USER_TYPE,
+                    return new OAuthKafkaPrincipal(KafkaPrincipal.USER_TYPE,
                             server.getAuthorizationID(), token);
-
-                    return kafkaPrincipal;
                 }
             } else if (saslServer instanceof PlainSaslServer) {
                 PlainSaslServer server = (PlainSaslServer) saslServer;

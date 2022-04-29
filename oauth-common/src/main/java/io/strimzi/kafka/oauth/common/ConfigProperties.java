@@ -8,8 +8,8 @@ import java.util.Properties;
 
 public class ConfigProperties {
 
-    private Properties defaults;
-    private Config config;
+    private final Properties defaults;
+    private final Config config;
 
     public ConfigProperties(Properties defaults) {
         this.defaults = defaults;

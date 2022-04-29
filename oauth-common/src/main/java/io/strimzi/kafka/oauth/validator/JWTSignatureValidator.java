@@ -399,7 +399,6 @@ public class JWTSignatureValidator implements TokenValidator {
         return groupSet.isEmpty() ? null : groupSet;
     }
 
-    @SuppressWarnings({"deprecation", "unchecked"})
     private void validateTokenPayload(JsonNode token) {
         if (issuerUri != null) {
             JsonNode iss = token.get(TokenInfo.ISS);
