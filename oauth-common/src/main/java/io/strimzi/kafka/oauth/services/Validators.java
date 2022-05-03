@@ -11,7 +11,7 @@ import java.util.function.Supplier;
 
 public class Validators {
 
-    private ConcurrentHashMap<ValidatorKey, TokenValidator> registry = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<ValidatorKey, TokenValidator> registry = new ConcurrentHashMap<>();
 
     public TokenValidator get(ValidatorKey key, Supplier<TokenValidator> factory) {
         return registry.computeIfAbsent(key, k -> factory.get());

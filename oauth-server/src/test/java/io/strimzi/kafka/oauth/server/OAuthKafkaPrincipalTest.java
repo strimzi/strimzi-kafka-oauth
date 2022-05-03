@@ -21,7 +21,7 @@ public class OAuthKafkaPrincipalTest {
     @Test
     public void testEquals() {
 
-        BearerTokenWithPayload token = new MockBearerTokenWithPayload("service-account-my-client", new HashSet(Arrays.asList("group1", "group2")),
+        BearerTokenWithPayload token = new MockBearerTokenWithPayload("service-account-my-client", new HashSet<>(Arrays.asList("group1", "group2")),
                 System.currentTimeMillis(), System.currentTimeMillis() + 60000, null, "BEARER-TOKEN-9823eh982u", "Whatever");
         OAuthKafkaPrincipal principal = new OAuthKafkaPrincipal("User", "service-account-my-client", token);
 
@@ -36,33 +36,33 @@ public class OAuthKafkaPrincipalTest {
         OAuthKafkaPrincipal principal4 = new OAuthKafkaPrincipal("User", "bob");
 
 
-        Assert.assertTrue("principal should be equal to principal2", principal.equals(principal2));
-        Assert.assertTrue("principal2 should be equal to principal", principal2.equals(principal));
+        Assert.assertEquals("principal should be equal to principal2", principal, principal2);
+        Assert.assertEquals("principal2 should be equal to principal", principal2, principal);
 
-        Assert.assertTrue("principal should be equal to principal3", principal.equals(principal3));
-        Assert.assertTrue("principal3 should be equal to principal", principal3.equals(principal));
+        Assert.assertEquals("principal should be equal to principal3", principal, principal3);
+        Assert.assertEquals("principal3 should be equal to principal", principal3, principal);
 
-        Assert.assertTrue("principal2 should be equal to principal3", principal2.equals(principal3));
-        Assert.assertTrue("principal3 should be equal to principal2", principal3.equals(principal2));
+        Assert.assertEquals("principal2 should be equal to principal3", principal2, principal3);
+        Assert.assertEquals("principal3 should be equal to principal2", principal3, principal2);
 
-        Assert.assertTrue("principal should be equal to itself", principal.equals(principal));
-        Assert.assertTrue("principal2 should be equal to itself", principal2.equals(principal2));
-        Assert.assertTrue("principal3 should be equal to itself", principal3.equals(principal3));
-        Assert.assertTrue("principal4 should be equal to itself", principal4.equals(principal4));
+        Assert.assertEquals("principal should be equal to itself", principal, principal);
+        Assert.assertEquals("principal2 should be equal to itself", principal2, principal2);
+        Assert.assertEquals("principal3 should be equal to itself", principal3, principal3);
+        Assert.assertEquals("principal4 should be equal to itself", principal4, principal4);
 
-        Assert.assertFalse("principal should not be equal to principal4", principal.equals(principal4));
-        Assert.assertFalse("principal4 should not be equal to principal", principal4.equals(principal));
-        Assert.assertFalse("principal3 should not be equal to principal4", principal3.equals(principal4));
-        Assert.assertFalse("principal4 should not be equal to principal3", principal4.equals(principal3));
+        Assert.assertNotEquals("principal should not be equal to principal4", principal, principal4);
+        Assert.assertNotEquals("principal4 should not be equal to principal", principal4, principal);
+        Assert.assertNotEquals("principal3 should not be equal to principal4", principal3, principal4);
+        Assert.assertNotEquals("principal4 should not be equal to principal3", principal4, principal3);
 
         long hash1 = principal.hashCode();
         long hash2 = principal2.hashCode();
         long hash3 = principal3.hashCode();
         long hash4 = principal4.hashCode();
 
-        Assert.assertTrue("Hashcode1 should be equal to hashcode2", hash1 == hash2);
-        Assert.assertTrue("Hashcode1 should be equal to hashcode3", hash1 == hash3);
-        Assert.assertFalse("Hashcode1 should not be equal to hashcode4", hash1 == hash4);
+        Assert.assertEquals("Hashcode1 should be equal to hashcode2", hash1, hash2);
+        Assert.assertEquals("Hashcode1 should be equal to hashcode3", hash1, hash3);
+        Assert.assertNotEquals("Hashcode1 should not be equal to hashcode4", hash1, hash4);
     }
 
     @Test

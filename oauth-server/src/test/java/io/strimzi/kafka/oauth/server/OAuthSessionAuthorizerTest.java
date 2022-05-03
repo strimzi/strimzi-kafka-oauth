@@ -28,12 +28,12 @@ import org.junit.Test;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.concurrent.CompletionStage;
 
 import static org.mockito.Mockito.mock;
@@ -41,23 +41,22 @@ import static org.mockito.Mockito.when;
 
 public class OAuthSessionAuthorizerTest {
 
-    static ThreadLocal<MockAuthorizer> mockAuthorizerTL = new ThreadLocal<MockAuthorizer>();
+    static ThreadLocal<MockAuthorizer> mockAuthorizerTL = new ThreadLocal<>();
 
     @Test
     public void testSessionAuthorizer() throws Exception {
 
         // Prepare configuration
-        Properties props = new Properties();
-        props.setProperty("authorizer.class.name", OAuthSessionAuthorizer.class.getTypeName());
-        props.setProperty("principal.builder.class", OAuthKafkaPrincipalBuilder.class.getTypeName());
-        props.setProperty("strimzi.authorizer.delegate.class.name", MockAuthorizer.class.getTypeName());
-        java.util.Map<String, String> config = new HashMap(props);
+        Map<String, String> config = new HashMap<>();
+        config.put("authorizer.class.name", OAuthSessionAuthorizer.class.getTypeName());
+        config.put("principal.builder.class", OAuthKafkaPrincipalBuilder.class.getTypeName());
+        config.put("strimzi.authorizer.delegate.class.name", MockAuthorizer.class.getTypeName());
 
         Authorizer authorizer = new OAuthSessionAuthorizer();
         authorizer.configure(config);
 
         MockAuthorizer delegateAuthorizer = mockAuthorizerTL.get();
-        Assert.assertTrue("MockAuthorizer zero args constructor should be invoked", delegateAuthorizer != null);
+        Assert.assertNotNull("MockAuthorizer zero args constructor should be invoked", delegateAuthorizer);
         Assert.assertEquals("Invocation log contains one entry", 1, delegateAuthorizer.invocationLog.size());
         Assert.assertEquals("Configuration should be passed to delegate", config, delegateAuthorizer.invocationLog.getLast().config);
 
@@ -68,7 +67,7 @@ public class OAuthSessionAuthorizerTest {
         testOAuthUserWithExpiredTokenWithDelegate(authorizer, delegateAuthorizer);
 
         // prepare the authorizer without the delegate, testing various misconfigurations in the process
-        authorizer = testConfiguringAuthorizerWithoutDelegate(authorizer, config);
+        authorizer = testConfiguringAuthorizerWithoutDelegate(config);
 
         testNonOAuthUserWithoutDelegate(authorizer);
 
@@ -80,7 +79,7 @@ public class OAuthSessionAuthorizerTest {
     private void testNonOAuthUserWithDelegate(Authorizer authorizer, MockAuthorizer delegateAuthorizer) throws Exception {
 
         // Prepare arguments for authorize() call
-        List<Action> actions = Arrays.asList(
+        List<Action> actions = Collections.singletonList(
                 new Action(AclOperation.READ,
                         new ResourcePattern(ResourceType.TOPIC, "my-topic", PatternType.LITERAL),
                         0,
@@ -104,14 +103,14 @@ public class OAuthSessionAuthorizerTest {
     private void testOAuthUserWithDelegate(Authorizer authorizer, MockAuthorizer delegateAuthorizer) throws Exception {
 
         // Prepare condition after mock OAuth athentication with valid token
-        TokenInfo tokenInfo = new TokenInfo("accesstoken123", null, "User:bob", new HashSet(Arrays.asList("group1", "group2")),
+        TokenInfo tokenInfo = new TokenInfo("accesstoken123", null, "User:bob", new HashSet<>(Arrays.asList("group1", "group2")),
                 System.currentTimeMillis() - 100000,
                 System.currentTimeMillis() + 100000);
         BearerTokenWithPayload token = new JaasServerOauthValidatorCallbackHandler.BearerTokenWithPayloadImpl(tokenInfo);
 
         AuthorizableRequestContext ctx = requestContext(new OAuthKafkaPrincipal("User", "bob", token));
 
-        List<Action> actions = Arrays.asList(
+        List<Action> actions = Collections.singletonList(
                 new Action(AclOperation.READ,
                         new ResourcePattern(ResourceType.TOPIC, "my-topic", PatternType.LITERAL),
                         0,
@@ -141,7 +140,7 @@ public class OAuthSessionAuthorizerTest {
 
         AuthorizableRequestContext ctx = requestContext(new OAuthKafkaPrincipal("User", "bob", token));
 
-        List<Action> actions = Arrays.asList(
+        List<Action> actions = Collections.singletonList(
                 new Action(AclOperation.READ,
                         new ResourcePattern(ResourceType.TOPIC, "my-topic", PatternType.LITERAL),
                         0,
@@ -159,13 +158,13 @@ public class OAuthSessionAuthorizerTest {
         Assert.assertEquals("Should be denied", AuthorizationResult.DENIED, results.get(0));
     }
 
-    private Authorizer testConfiguringAuthorizerWithoutDelegate(Authorizer authorizer, java.util.Map<String, String> config) {
+    private Authorizer testConfiguringAuthorizerWithoutDelegate(Map<String, String> config) {
 
         // Test authorizer without the delegate
         config.remove("strimzi.authorizer.delegate.class.name");
         Assert.assertEquals("Properties contain exactly 2 keys", 2, config.size());
 
-        authorizer = new OAuthSessionAuthorizer();
+        Authorizer authorizer = new OAuthSessionAuthorizer();
         try {
             authorizer.configure(config);
 
@@ -210,7 +209,7 @@ public class OAuthSessionAuthorizerTest {
 
         AuthorizableRequestContext ctx = requestContext(new KafkaPrincipal("User", "CN=admin"));
 
-        List<Action> actions = Arrays.asList(
+        List<Action> actions = Collections.singletonList(
                 new Action(AclOperation.READ,
                         new ResourcePattern(ResourceType.TOPIC, "my-topic", PatternType.LITERAL),
                         0,
@@ -234,7 +233,7 @@ public class OAuthSessionAuthorizerTest {
 
         AuthorizableRequestContext ctx = requestContext(new OAuthKafkaPrincipal("User", "bob", token));
 
-        List<Action> actions = Arrays.asList(
+        List<Action> actions = Collections.singletonList(
                 new Action(AclOperation.READ,
                         new ResourcePattern(ResourceType.TOPIC, "my-topic", PatternType.LITERAL),
                         0,
@@ -257,7 +256,7 @@ public class OAuthSessionAuthorizerTest {
         BearerTokenWithPayload token = new JaasServerOauthValidatorCallbackHandler.BearerTokenWithPayloadImpl(tokenInfo);
         OAuthKafkaPrincipal principal = new OAuthKafkaPrincipal("User", "bob", token);
 
-        List<Action> actions = Arrays.asList(
+        List<Action> actions = Collections.singletonList(
                 new Action(AclOperation.READ,
                         new ResourcePattern(ResourceType.TOPIC, "my-topic", PatternType.LITERAL),
                         0,
@@ -288,7 +287,7 @@ public class OAuthSessionAuthorizerTest {
         @Override
         public List<AuthorizationResult> authorize(AuthorizableRequestContext authorizableRequestContext, List<Action> list) {
             invocationLog.add(new MockAuthorizerLog(authorizableRequestContext, list));
-            return Arrays.asList(AuthorizationResult.ALLOWED);
+            return Collections.singletonList(AuthorizationResult.ALLOWED);
         }
 
 
@@ -332,7 +331,7 @@ public class OAuthSessionAuthorizerTest {
 
         long entryTime = System.currentTimeMillis();
 
-        MockAuthorizerLog(AuthorizableRequestContext requestContext, java.util.List<Action> actions) {
+        MockAuthorizerLog(AuthorizableRequestContext requestContext, List<Action> actions) {
             this.type = MockAuthorizerType.AUTHORIZE;
             this.context = requestContext;
             this.actions = actions;

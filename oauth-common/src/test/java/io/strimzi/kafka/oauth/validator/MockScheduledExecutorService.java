@@ -11,16 +11,14 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 class MockScheduledExecutorService implements ScheduledExecutorService {
 
-    private List<MockScheduledExecutorLog> invocationLog = Collections.synchronizedList(new LinkedList<>());
+    private final List<MockScheduledExecutorLog> invocationLog = Collections.synchronizedList(new LinkedList<>());
 
     static void executeTask(CompletableFuture<?> f, Runnable command) {
         Thread thread = new Thread(() -> {
@@ -81,7 +79,7 @@ class MockScheduledExecutorService implements ScheduledExecutorService {
     }
 
     @Override
-    public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
+    public boolean awaitTermination(long timeout, TimeUnit unit) {
         return false;
     }
 
@@ -117,7 +115,7 @@ class MockScheduledExecutorService implements ScheduledExecutorService {
     }
 
     @Override
-    public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks) throws InterruptedException {
+    public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks) {
         invocationLog.add(new MockScheduledExecutorLog(MockExecutorLogActionType.INVOKE_ALL, tasks));
         ArrayList<Future<T>> result = new ArrayList<>(tasks.size());
         for (Callable<T> task: tasks) {
@@ -132,7 +130,7 @@ class MockScheduledExecutorService implements ScheduledExecutorService {
     }
 
     @Override
-    public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks, long timeout, TimeUnit unit) throws InterruptedException {
+    public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks, long timeout, TimeUnit unit) {
         invocationLog.add(new MockScheduledExecutorLog(MockExecutorLogActionType.INVOKE_ALL, tasks, timeout, unit));
         ArrayList<Future<T>> result = new ArrayList<>(tasks.size());
         for (Callable<T> task: tasks) {
@@ -159,7 +157,7 @@ class MockScheduledExecutorService implements ScheduledExecutorService {
     }
 
     @Override
-    public <T> T invokeAny(Collection<? extends Callable<T>> tasks) throws InterruptedException, ExecutionException {
+    public <T> T invokeAny(Collection<? extends Callable<T>> tasks) {
         invocationLog.add(new MockScheduledExecutorLog(MockExecutorLogActionType.INVOKE_ANY, tasks));
         ArrayList<Future<T>> futures = new ArrayList<>(tasks.size());
         for (Callable<T> task: tasks) {
@@ -184,7 +182,7 @@ class MockScheduledExecutorService implements ScheduledExecutorService {
     }
 
     @Override
-    public <T> T invokeAny(Collection<? extends Callable<T>> tasks, long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+    public <T> T invokeAny(Collection<? extends Callable<T>> tasks, long timeout, TimeUnit unit) {
         invocationLog.add(new MockScheduledExecutorLog(MockExecutorLogActionType.INVOKE_ANY, tasks, timeout, unit));
         ArrayList<Future<T>> futures = new ArrayList<>(tasks.size());
         for (Callable<T> task: tasks) {

@@ -13,13 +13,13 @@ public class Services {
 
     private static Services services;
 
-    private Sessions sessions = new Sessions();
+    private final Sessions sessions = new Sessions();
 
-    private Validators validators = new Validators();
+    private final Validators validators = new Validators();
 
-    private Principals principals = new Principals();
+    private final Principals principals = new Principals();
 
-    private Credentials credentials = new Credentials();
+    private final Credentials credentials = new Credentials();
 
     public static void configure(Map<String, ?> configs) {
         services = new Services();

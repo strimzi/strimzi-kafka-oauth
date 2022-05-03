@@ -22,7 +22,7 @@ public class Credentials {
      * Connections with the same clientId will each receive one validated access token.
      * The flow should guarantee that each store is followed by a corresponding take.
      */
-    private Map<String, LinkedList<KafkaPrincipal>> validatedCredentials = new HashMap<>();
+    private final Map<String, LinkedList<KafkaPrincipal>> validatedCredentials = new HashMap<>();
 
     /**
      * Store credentials to communicate them from PLAIN callback handler to OAuthKafkaPrincipalBuilder when OAuth over PLAIN is used.

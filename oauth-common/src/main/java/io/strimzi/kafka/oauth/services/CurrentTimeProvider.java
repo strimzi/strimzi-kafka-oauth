@@ -6,7 +6,7 @@ package io.strimzi.kafka.oauth.services;
 
 public interface CurrentTimeProvider {
 
-    CurrentTimeProvider DEFAULT = () -> System.currentTimeMillis();
+    CurrentTimeProvider DEFAULT = System::currentTimeMillis;
 
     long currentTime();
 }

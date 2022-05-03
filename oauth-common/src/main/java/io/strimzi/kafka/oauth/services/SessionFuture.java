@@ -13,8 +13,8 @@ import java.util.concurrent.TimeoutException;
 
 public class SessionFuture<T> implements Future<T> {
 
-    private Future<T> delegate;
-    private BearerTokenWithPayload token;
+    private final Future<T> delegate;
+    private final BearerTokenWithPayload token;
 
     public SessionFuture(BearerTokenWithPayload token, Future<T> future) {
         this.token = token;

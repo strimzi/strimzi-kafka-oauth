@@ -161,7 +161,7 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
      * propagated to the client.
      */
     @Override
-    public void handle(Callback[] callbacks) throws UnsupportedCallbackException {
+    public void handle(Callback[] callbacks) {
         String username = null;
         String password = null;
         org.apache.kafka.common.security.plain.PlainAuthenticateCallback cb = null;

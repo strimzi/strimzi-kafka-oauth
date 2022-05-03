@@ -20,7 +20,7 @@ public class MockCurrentTimeProvider implements CurrentTimeProvider {
     }
 
     public synchronized long addSeconds(int seconds) {
-        diff += 1000 * seconds;
+        diff += 1000L * seconds;
         log.debug("New current time is: plus " + seconds + "s: " + (System.currentTimeMillis() + diff));
         return currentTime();
     }

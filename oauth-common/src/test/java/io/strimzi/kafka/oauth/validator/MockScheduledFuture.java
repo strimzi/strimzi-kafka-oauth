@@ -13,9 +13,8 @@ import java.util.concurrent.TimeoutException;
 
 class MockScheduledFuture<T> implements ScheduledFuture<T> {
 
-    private long scheduledAt;
-
-    private CompletableFuture<T> future;
+    private final long scheduledAt;
+    private final CompletableFuture<T> future;
 
     MockScheduledFuture(CompletableFuture<T> future, long scheduledAt) {
         this.future = future;

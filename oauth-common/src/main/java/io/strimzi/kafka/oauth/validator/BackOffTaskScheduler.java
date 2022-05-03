@@ -32,7 +32,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * another request to schedule the task will be ignored.
  * </p>
  * <p>
- * If the scheduled task fails during its run, it will be rescheduled using the so called 'exponentional backoff' delay.
+ * If the scheduled task fails during its run, it will be rescheduled using the so called 'exponential backoff' delay.
  * Rather than being attempted again immediately, it will pause for an ever increasing time delay until some cutoff delay
  * is reached ({@link #cutoffIntervalSeconds}) when no further attempts are schedule, and another {@link #scheduleTask()}
  * call can again trigger a new refresh.

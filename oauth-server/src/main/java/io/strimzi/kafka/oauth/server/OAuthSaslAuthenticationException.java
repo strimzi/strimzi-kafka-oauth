@@ -18,7 +18,7 @@ import org.apache.kafka.common.errors.SaslAuthenticationException;
  */
 public class OAuthSaslAuthenticationException extends SaslAuthenticationException {
 
-    private String errId;
+    private final String errId;
 
     public OAuthSaslAuthenticationException(String message, String errId) {
         super(message);

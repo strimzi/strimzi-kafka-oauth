@@ -13,7 +13,7 @@ import java.util.WeakHashMap;
 
 public class Principals {
 
-    private Map<SaslServer, KafkaPrincipal> activeServers = Collections.synchronizedMap(new WeakHashMap<>());
+    private final Map<SaslServer, KafkaPrincipal> activeServers = Collections.synchronizedMap(new WeakHashMap<>());
 
     public void putPrincipal(SaslServer srv, KafkaPrincipal principal) {
         activeServers.put(srv, principal);

@@ -38,7 +38,7 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithRefreshT
 
 public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallbackHandler {
 
-    private static Logger log = LoggerFactory.getLogger(JaasClientOauthLoginCallbackHandler.class);
+    private static final Logger LOG = LoggerFactory.getLogger(JaasClientOauthLoginCallbackHandler.class);
 
     private ClientConfig config = new ClientConfig();
 
@@ -112,9 +112,9 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
                 config.getValue(Config.OAUTH_FALLBACK_USERNAME_CLAIM),
                 config.getValue(Config.OAUTH_FALLBACK_USERNAME_PREFIX));
 
-        isJwt = isAccessTokenJwt(config, log, null);
+        isJwt = isAccessTokenJwt(config, LOG, null);
         if (!isJwt && principalExtractor.isConfigured()) {
-            log.warn("Token is not JWT (OAUTH_ACCESS_TOKEN_IS_JWT=false) - custom username claim configuration will be ignored (OAUTH_USERNAME_CLAIM, OAUTH_FALLBACK_USERNAME_CLAIM, OAUTH_FALLBACK_USERNAME_PREFIX)");
+            LOG.warn("Token is not JWT (OAUTH_ACCESS_TOKEN_IS_JWT=false) - custom username claim configuration will be ignored (OAUTH_USERNAME_CLAIM, OAUTH_FALLBACK_USERNAME_CLAIM, OAUTH_FALLBACK_USERNAME_PREFIX)");
         }
 
         maxTokenExpirySeconds = config.getValueAsInt(ClientConfig.OAUTH_MAX_TOKEN_EXPIRY_SECONDS, -1);
@@ -122,8 +122,8 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
             throw new RuntimeException("Invalid value configured for OAUTH_MAX_TOKEN_EXPIRY_SECONDS: " + maxTokenExpirySeconds + " (should be at least 60)");
         }
 
-        if (log.isDebugEnabled()) {
-            log.debug("Configured JaasClientOauthLoginCallbackHandler:\n    token: " + mask(token)
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Configured JaasClientOauthLoginCallbackHandler:\n    token: " + mask(token)
                     + "\n    refreshToken: " + mask(refreshToken)
                     + "\n    tokenEndpointUri: " + tokenEndpoint
                     + "\n    clientId: " + clientId
@@ -159,7 +159,7 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
             throw new IllegalArgumentException("Callback had a token already");
         }
 
-        TokenInfo result = null;
+        TokenInfo result;
 
         if (token != null) {
             // we could check if it's a JWT - in that case we could check if it's expired

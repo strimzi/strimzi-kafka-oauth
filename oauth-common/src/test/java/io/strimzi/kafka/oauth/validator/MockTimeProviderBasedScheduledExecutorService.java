@@ -73,7 +73,7 @@ class MockTimeProviderBasedScheduledExecutorService implements ScheduledExecutor
     }
 
     public Map<Long, Runnable> schedules() {
-        return new LinkedHashMap(schedules);
+        return new LinkedHashMap<>(schedules);
     }
 
     @Override
@@ -103,7 +103,7 @@ class MockTimeProviderBasedScheduledExecutorService implements ScheduledExecutor
     }
 
     @Override
-    public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
+    public boolean awaitTermination(long timeout, TimeUnit unit) {
         return false;
     }
 
