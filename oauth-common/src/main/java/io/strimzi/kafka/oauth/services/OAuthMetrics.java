@@ -31,6 +31,11 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
+import static org.apache.kafka.clients.CommonClientConfigs.CLIENT_ID_CONFIG;
+import static org.apache.kafka.clients.CommonClientConfigs.METRICS_NUM_SAMPLES_CONFIG;
+import static org.apache.kafka.clients.CommonClientConfigs.METRICS_RECORDING_LEVEL_CONFIG;
+import static org.apache.kafka.clients.CommonClientConfigs.METRICS_SAMPLE_WINDOW_MS_CONFIG;
+
 /**
  * The singleton for handling a cache of all the Sensors to prevent unnecessary redundant re-registrations.
  * There is a one-to-one mapping between a metric key and a Sensor, and one-to-one mapping between a sensor and an MBean name.
@@ -99,10 +104,12 @@ public class OAuthMetrics {
     private KafkaMetricsContext createKafkaMetricsContext() {
         HashMap<String, String> contextLabels = new HashMap<>();
 
+        // Broker side init code (for reference)
+        // See: kafka.server.Server.scala#createKafkaMetricsContext
+
         // We don't know how to get clusterId here
         //contextLabels.put("kafka.cluster.id", getClusterId());
 
-        // Broker side init code (for reference)
         //if (config.usesSelfManagedQuorum) {
         //    contextLabels.put("kafka.node.id", nodeId)
         //} else {
@@ -122,10 +129,10 @@ public class OAuthMetrics {
             }
         }
 
-        if (config.getValue("client.id") != null) {
-            String clientId = config.getValue("client.id");
+        if (config.getValue(CLIENT_ID_CONFIG) != null) {
+            String clientId = config.getValue(CLIENT_ID_CONFIG);
             if (clientId != null) {
-                contextLabels.put("client.id", clientId);
+                contextLabels.put(CLIENT_ID_CONFIG, clientId);
             }
         }
 
@@ -144,9 +151,9 @@ public class OAuthMetrics {
 
     private MetricConfig getMetricConfig() {
 
-        int numSamples = config.getValueAsInt("metrics.num.samples", 2);
-        Sensor.RecordingLevel recordingLevel = Sensor.RecordingLevel.forName(config.getValue("metrics.recording.level", "INFO"));
-        long sampleWindowMs = config.getValueAsLong("metrics.sample.window.ms", 30_000L);
+        int numSamples = config.getValueAsInt(METRICS_NUM_SAMPLES_CONFIG, 2);
+        Sensor.RecordingLevel recordingLevel = Sensor.RecordingLevel.forName(config.getValue(METRICS_RECORDING_LEVEL_CONFIG, "INFO"));
+        long sampleWindowMs = config.getValueAsLong(METRICS_SAMPLE_WINDOW_MS_CONFIG, 30_000L);
         return new MetricConfig()
             .samples(numSamples)
             .recordLevel(recordingLevel)
@@ -161,7 +168,7 @@ public class OAuthMetrics {
     }
 
     private void addMetricsToSensor(Metrics metrics, Sensor sensor, MetricKey key) {
-        MetricName metricName = new MetricName("count", key.getName(), "Total equest count", key.getAttrs());
+        MetricName metricName = new MetricName("count", key.getName(), "Total request count", key.getAttrs());
         sensor.add(metricName, new CumulativeCount());
 
         metricName = new MetricName("timeTotal", key.getName(), "Total request time in ms", key.getAttrs());

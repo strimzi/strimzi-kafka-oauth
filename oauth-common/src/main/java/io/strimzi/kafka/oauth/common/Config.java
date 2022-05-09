@@ -184,7 +184,7 @@ public class Config {
         try {
             return URI.create(result);
         } catch (Exception e) {
-            throw new RuntimeException("Bad URI value for key: " + key + ", value: " + result);
+            throw new RuntimeException("Bad URI value for key: " + key + ", value: " + result, e);
         }
     }
 

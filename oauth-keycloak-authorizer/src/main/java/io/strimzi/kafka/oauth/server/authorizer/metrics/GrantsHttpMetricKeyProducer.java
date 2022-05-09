@@ -20,8 +20,7 @@ public class GrantsHttpMetricKeyProducer extends AbstractMetricKeyProducer {
     @Override
     public MetricKey successKey() {
         Map<String, String> attrs = JmxMetrics.getMetricKeyAttrs(contextId, uri, "keycloak-authorization");
-        attrs.put("outcome", "success");
-        attrs.put("status", "200");
+        JmxMetrics.addHttpSuccessAttrs(attrs);
         return MetricKey.of("http_requests", attrs);
     }
 

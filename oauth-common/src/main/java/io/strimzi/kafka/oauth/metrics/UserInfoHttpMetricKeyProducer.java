@@ -16,8 +16,7 @@ public class UserInfoHttpMetricKeyProducer extends AbstractMetricKeyProducer {
     @Override
     public MetricKey successKey() {
         Map<String, String> attrs = JmxMetrics.getMetricKeyAttrs(contextId, uri, "userinfo");
-        attrs.put("outcome", "success");
-        attrs.put("status", "200");
+        JmxMetrics.addHttpSuccessAttrs(attrs);
         return MetricKey.of("http_requests", attrs);
     }
 

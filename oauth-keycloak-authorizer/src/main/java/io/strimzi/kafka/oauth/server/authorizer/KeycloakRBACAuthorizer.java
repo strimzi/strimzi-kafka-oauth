@@ -513,15 +513,11 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
             if (grants == null) {
                 grants = JSONUtil.newObjectNode();
             }
-        } catch (Throwable e) {
-            if (e instanceof HttpException) {
-                if (((HttpException) e).getStatus() == 403) {
-                    grants = JSONUtil.newObjectNode();
-                } else {
-                    log.warn("Unexpected status while fetching authorization data - will retry next time: " + e.getMessage());
-                }
+        } catch (HttpException e) {
+            if (e.getStatus() == 403) {
+                grants = JSONUtil.newObjectNode();
             } else {
-                throw e;
+                log.warn("Unexpected status while fetching authorization data - will retry next time: " + e.getMessage());
             }
         }
         if (grants != null) {

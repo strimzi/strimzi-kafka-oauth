@@ -34,7 +34,7 @@ public class TestMetrics {
         String response = HttpUtil.get(metricsEndpointUri, null, null, null, String.class);
 
         TestMetrics metrics = new TestMetrics();
-        //Map<String, String> map = new LinkedHashMap<>();
+
         try (BufferedReader r = new BufferedReader(new StringReader(response))) {
             String line;
             while ((line = r.readLine()) != null) {

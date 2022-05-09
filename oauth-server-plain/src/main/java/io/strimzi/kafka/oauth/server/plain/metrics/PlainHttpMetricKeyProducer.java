@@ -20,8 +20,7 @@ public class PlainHttpMetricKeyProducer extends AbstractMetricKeyProducer {
     @Override
     public MetricKey successKey() {
         Map<String, String> attrs = JmxMetrics.getMetricKeyAttrs(contextId, uri, "plain");
-        attrs.put("outcome", "success");
-        attrs.put("status", "200");
+        JmxMetrics.addHttpSuccessAttrs(attrs);
         return MetricKey.of("http_requests", attrs);
     }
 

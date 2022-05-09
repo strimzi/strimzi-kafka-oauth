@@ -31,6 +31,12 @@ public class JmxMetrics {
         return attrs;
     }
 
+    public static Map<String, String> addHttpSuccessAttrs(Map<String, String> attrs) {
+        attrs.put("outcome", "success");
+        attrs.put("status", "200");
+        return attrs;
+    }
+
     public static Map<String, String> addHttpErrorAttrs(Map<String, String> attrs, Throwable ex) {
         String errorType = "other";
         String status = null;
