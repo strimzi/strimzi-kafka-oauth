@@ -76,7 +76,7 @@ public class MetricsTest {
         value = metrics.getValue("strimzi_oauth_http_requests_count", "context", "JWT", "outcome", "error", "error_type", "http", "status", "503");
         Assert.assertTrue("There should be some 503 errors", new BigDecimal(value).doubleValue() > 0.0);
 
-        value = metrics.getValue("strimzi_oauth_http_requests_timetotal", "context", "JWT", "outcome", "error", "error_type", "http", "status", "503");
+        value = metrics.getValue("strimzi_oauth_http_requests_totaltimems", "context", "JWT", "outcome", "error", "error_type", "http", "status", "503");
         Assert.assertTrue("There should be some 503 errors", new BigDecimal(value).doubleValue() > 0.0);
     }
 
@@ -93,7 +93,7 @@ public class MetricsTest {
         String value = metrics.getValue("strimzi_oauth_http_requests_count", "context", "JWT", "outcome", "error", "error_type", "tls");
         Assert.assertTrue("There should be some TLS errors", new BigDecimal(value).doubleValue() > 0.0);
 
-        value = metrics.getValue("strimzi_oauth_http_requests_timetotal", "context", "JWT", "outcome", "error", "error_type", "tls");
+        value = metrics.getValue("strimzi_oauth_http_requests_totaltimems", "context", "JWT", "outcome", "error", "error_type", "tls");
         Assert.assertTrue("There should be some TLS errors", new BigDecimal(value).doubleValue() > 0.0);
     }
 
@@ -110,7 +110,7 @@ public class MetricsTest {
         String value = metrics.getValue("strimzi_oauth_http_requests_count", "context", "JWT", "outcome", "error", "error_type", "connect");
         Assert.assertTrue("There should be some network errors", new BigDecimal(value).doubleValue() > 0.0);
 
-        value = metrics.getValue("strimzi_oauth_http_requests_timetotal", "context", "JWT", "outcome", "error", "error_type", "connect");
+        value = metrics.getValue("strimzi_oauth_http_requests_totaltimems", "context", "JWT", "outcome", "error", "error_type", "connect");
         Assert.assertTrue("There should be some network errors", new BigDecimal(value).doubleValue() > 0.0);
     }
 
@@ -123,7 +123,7 @@ public class MetricsTest {
         String value = metrics.getValue("strimzi_oauth_http_requests_count", "context", "JWT", "outcome", "error", "error_type", "http", "status", "404");
         Assert.assertTrue("There should be some 404 errors", new BigDecimal(value).doubleValue() > 0.0);
 
-        value = metrics.getValue("strimzi_oauth_http_requests_timetotal", "context", "JWT", "outcome", "error", "error_type", "http", "status", "404");
+        value = metrics.getValue("strimzi_oauth_http_requests_totaltimems", "context", "JWT", "outcome", "error", "error_type", "http", "status", "404");
         Assert.assertTrue("There should be some 404 errors", new BigDecimal(value).doubleValue() > 0.0);
     }
 
@@ -140,25 +140,25 @@ public class MetricsTest {
         value = metrics.getValue("strimzi_oauth_http_requests_count", "context", "JWT", "outcome", "success");
         Assert.assertNull(value);
 
-        value = metrics.getValue("strimzi_oauth_http_requests_timetotal", "context", "JWT", "outcome", "success");
+        value = metrics.getValue("strimzi_oauth_http_requests_totaltimems", "context", "JWT", "outcome", "success");
         Assert.assertNull(value);
 
         value = metrics.getValue("strimzi_oauth_http_requests_count", "context", "INTROSPECT", "outcome", "success");
         Assert.assertNull(value);
 
-        value = metrics.getValue("strimzi_oauth_http_requests_timetotal", "context", "INTROSPECT", "outcome", "success");
+        value = metrics.getValue("strimzi_oauth_http_requests_totaltimems", "context", "INTROSPECT", "outcome", "success");
         Assert.assertNull(value);
 
         value = metrics.getValue("strimzi_oauth_http_requests_count", "context", "JWTPLAIN", "outcome", "success");
         Assert.assertNull(value);
 
-        value = metrics.getValue("strimzi_oauth_http_requests_timetotal", "context", "JWTPLAIN", "outcome", "success");
+        value = metrics.getValue("strimzi_oauth_http_requests_totaltimems", "context", "JWTPLAIN", "outcome", "success");
         Assert.assertNull(value);
 
         value = metrics.getValue("strimzi_oauth_http_requests_count", "context", "JWTPLAIN", "outcome", "success");
         Assert.assertNull(value);
 
-        value = metrics.getValue("strimzi_oauth_http_requests_timetotal", "context", "JWTPLAIN", "outcome", "success");
+        value = metrics.getValue("strimzi_oauth_http_requests_totaltimems", "context", "JWTPLAIN", "outcome", "success");
         Assert.assertNull(value);
     }
 

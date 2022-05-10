@@ -3,7 +3,7 @@ lowercaseOutputName: true
 rules:
   # OAuth Metrics
   # WARNING: Make sure that the ordering of the attributes is the same as in MBean names
-  - pattern: "strimzi.oauth<type=(.+), context=(.+), kind=(.+), host=\"(.+)\", path=\"(.+)\", (.+)=(.+), (.+)=(.+), (.+)=(.+)><>(count|timeTotal):"
+  - pattern: "strimzi.oauth<type=(.+), context=(.+), kind=(.+), host=\"(.+)\", path=\"(.+)\", (.+)=(.+), (.+)=(.+), (.+)=(.+)><>(count|totalTimeMs):"
     name: "strimzi_oauth_$1_$12"
     type: COUNTER
     labels:
@@ -14,7 +14,7 @@ rules:
       "$6": "$7"
       "$8": "$9"
       "$10": "$11"
-  - pattern: "strimzi.oauth<type=(.+), context=(.+), kind=(.+), host=\"(.+)\", path=\"(.+)\", (.+)=(.+), (.+)=(.+)><>(count|timeTotal):"
+  - pattern: "strimzi.oauth<type=(.+), context=(.+), kind=(.+), host=\"(.+)\", path=\"(.+)\", (.+)=(.+), (.+)=(.+)><>(count|totalTimeMs):"
     name: "strimzi_oauth_$1_$10"
     type: COUNTER
     labels:
@@ -24,7 +24,7 @@ rules:
       path: "$5"
       "$6": "$7"
       "$8": "$9"
-  - pattern: "strimzi.oauth<type=(.+), context=(.+), kind=(.+), host=\"(.+)\", path=\"(.+)\", (.+)=(.+)><>(count|timeTotal):"
+  - pattern: "strimzi.oauth<type=(.+), context=(.+), kind=(.+), host=\"(.+)\", path=\"(.+)\", (.+)=(.+)><>(count|totalTimeMs):"
     name: "strimzi_oauth_$1_$8"
     type: COUNTER
     labels:

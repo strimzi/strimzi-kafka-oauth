@@ -171,16 +171,16 @@ public class OAuthMetrics {
         MetricName metricName = new MetricName("count", key.getName(), "Total request count", key.getAttrs());
         sensor.add(metricName, new CumulativeCount());
 
-        metricName = new MetricName("timeTotal", key.getName(), "Total request time in ms", key.getAttrs());
+        metricName = new MetricName("totalTimeMs", key.getName(), "Total time spent in requests in ms", key.getAttrs());
         sensor.add(metricName, new CumulativeSum());
 
-        metricName = new MetricName("timeAvg", key.getName(), "Average request time in ms", key.getAttrs());
+        metricName = new MetricName("avgTimeMs", key.getName(), "Average request time in ms", key.getAttrs());
         sensor.add(metricName, new Avg());
 
-        metricName = new MetricName("timeMax", key.getName(), "Max request time in ms", key.getAttrs());
+        metricName = new MetricName("maxTimeMs", key.getName(), "Max request time in ms", key.getAttrs());
         sensor.add(metricName, new Max());
 
-        metricName = metrics.metricName("timeMin", key.getName(), "Min request time in ms", key.getAttrs());
+        metricName = metrics.metricName("minTimeMs", key.getName(), "Min request time in ms", key.getAttrs());
         sensor.add(metricName, new Min());
     }
 }

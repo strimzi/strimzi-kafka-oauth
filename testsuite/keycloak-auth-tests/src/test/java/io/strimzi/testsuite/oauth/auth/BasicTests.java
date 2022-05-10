@@ -86,33 +86,33 @@ public class BasicTests {
         BigDecimal value = metrics.getValueSum("strimzi_oauth_authentication_requests_count", "context", "INTROSPECT", "kind", "client-auth", "outcome", "success");
         Assert.assertEquals("strimzi_oauth_authentication_requests_count for client-auth == 2", 2, value.intValue());
 
-        value = metrics.getValueSum("strimzi_oauth_authentication_requests_timetotal", "context", "INTROSPECT", "kind", "client-auth", "outcome", "success");
-        Assert.assertTrue("strimzi_oauth_authentication_requests_timetotal for client-auth > 0.0", value.doubleValue() > 0.0);
+        value = metrics.getValueSum("strimzi_oauth_authentication_requests_totaltimems", "context", "INTROSPECT", "kind", "client-auth", "outcome", "success");
+        Assert.assertTrue("strimzi_oauth_authentication_requests_totaltimems for client-auth > 0.0", value.doubleValue() > 0.0);
 
-        value = metrics.getValueSum("strimzi_oauth_authentication_requests_timeavg", "context", "INTROSPECT", "kind", "client-auth", "outcome", "success");
-        Assert.assertTrue("strimzi_oauth_authentication_requests_timeavg for client-auth > 0.0", value.doubleValue() > 0.0);
+        value = metrics.getValueSum("strimzi_oauth_authentication_requests_avgtimems", "context", "INTROSPECT", "kind", "client-auth", "outcome", "success");
+        Assert.assertTrue("strimzi_oauth_authentication_requests_avgtimems for client-auth > 0.0", value.doubleValue() > 0.0);
 
-        value = metrics.getValueSum("strimzi_oauth_authentication_requests_timemin", "context", "INTROSPECT", "kind", "client-auth", "outcome", "success");
-        Assert.assertTrue("strimzi_oauth_authentication_requests_timemin for client-auth > 0.0", value.doubleValue() > 0.0);
+        value = metrics.getValueSum("strimzi_oauth_authentication_requests_mintimems", "context", "INTROSPECT", "kind", "client-auth", "outcome", "success");
+        Assert.assertTrue("strimzi_oauth_authentication_requests_mintimems for client-auth > 0.0", value.doubleValue() > 0.0);
 
-        value = metrics.getValueSum("strimzi_oauth_authentication_requests_timemax", "context", "INTROSPECT", "kind", "client-auth", "outcome", "success");
-        Assert.assertTrue("strimzi_oauth_authentication_requests_timemax for client-auth > 0.0", value.doubleValue() > 0.0);
+        value = metrics.getValueSum("strimzi_oauth_authentication_requests_maxtimems", "context", "INTROSPECT", "kind", "client-auth", "outcome", "success");
+        Assert.assertTrue("strimzi_oauth_authentication_requests_maxtimems for client-auth > 0.0", value.doubleValue() > 0.0);
 
         // Authentication to keycloak to exchange clientId + cesret for an access token during login callback handler call
         value = metrics.getValueSum("strimzi_oauth_http_requests_count", "context", "INTROSPECT", "kind", "client-auth", "host", authHostPort, "path", tokenPath, "outcome", "success");
         Assert.assertEquals("strimzi_oauth_http_requests_count for client-auth == 2", 2, value.intValue());
 
-        value = metrics.getValueSum("strimzi_oauth_http_requests_timetotal", "context", "INTROSPECT", "kind", "client-auth", "host", authHostPort, "path", tokenPath, "outcome", "success");
-        Assert.assertTrue("strimzi_oauth_http_requests_timetotal for client-auth > 0.0", value.doubleValue() > 0.0);
+        value = metrics.getValueSum("strimzi_oauth_http_requests_totaltimems", "context", "INTROSPECT", "kind", "client-auth", "host", authHostPort, "path", tokenPath, "outcome", "success");
+        Assert.assertTrue("strimzi_oauth_http_requests_totaltimems for client-auth > 0.0", value.doubleValue() > 0.0);
 
-        value = metrics.getValueSum("strimzi_oauth_http_requests_timeavg", "context", "INTROSPECT", "kind", "client-auth", "host", authHostPort, "path", tokenPath, "outcome", "success");
-        Assert.assertTrue("strimzi_oauth_http_requests_timeavg for client-auth > 0.0", value.doubleValue() > 0.0);
+        value = metrics.getValueSum("strimzi_oauth_http_requests_avgtimems", "context", "INTROSPECT", "kind", "client-auth", "host", authHostPort, "path", tokenPath, "outcome", "success");
+        Assert.assertTrue("strimzi_oauth_http_requests_avgtimems for client-auth > 0.0", value.doubleValue() > 0.0);
 
-        value = metrics.getValueSum("strimzi_oauth_http_requests_timemin", "context", "INTROSPECT", "kind", "client-auth", "host", authHostPort, "path", tokenPath, "outcome", "success");
-        Assert.assertTrue("strimzi_oauth_http_requests_timemin for client-auth > 0.0", value.doubleValue() > 0.0);
+        value = metrics.getValueSum("strimzi_oauth_http_requests_mintimems", "context", "INTROSPECT", "kind", "client-auth", "host", authHostPort, "path", tokenPath, "outcome", "success");
+        Assert.assertTrue("strimzi_oauth_http_requests_mintimems for client-auth > 0.0", value.doubleValue() > 0.0);
 
-        value = metrics.getValueSum("strimzi_oauth_http_requests_timemax", "context", "INTROSPECT", "kind", "client-auth", "host", authHostPort, "path", tokenPath, "outcome", "success");
-        Assert.assertTrue("strimzi_oauth_http_requests_timemax for client-auth > 0.0", value.doubleValue() > 0.0);
+        value = metrics.getValueSum("strimzi_oauth_http_requests_maxtimems", "context", "INTROSPECT", "kind", "client-auth", "host", authHostPort, "path", tokenPath, "outcome", "success");
+        Assert.assertTrue("strimzi_oauth_http_requests_maxtimems for client-auth > 0.0", value.doubleValue() > 0.0);
     }
 
     static void clientCredentialsWithJwtECDSAValidation() throws Exception {
@@ -166,15 +166,15 @@ public class BasicTests {
         BigDecimal value = metrics.getValueSum("strimzi_oauth_http_requests_count", "kind", "jwks", "host", authHostPort, "path", jwksPath, "outcome", "success");
         Assert.assertTrue("strimzi_oauth_http_requests_count for jwks > 0", value.doubleValue() > 0.0);
 
-        value = metrics.getValueSum("strimzi_oauth_http_requests_timetotal", "kind", "jwks", "host", authHostPort, "path", jwksPath, "outcome", "success");
-        Assert.assertTrue("strimzi_oauth_http_requests_timetotal for jwks > 0.0", value.doubleValue() > 0.0);
+        value = metrics.getValueSum("strimzi_oauth_http_requests_totaltimems", "kind", "jwks", "host", authHostPort, "path", jwksPath, "outcome", "success");
+        Assert.assertTrue("strimzi_oauth_http_requests_totaltimems for jwks > 0.0", value.doubleValue() > 0.0);
 
         value = metrics.getValueSum("strimzi_oauth_validation_requests_count", "context", "JWT", "kind", "jwks", "mechanism", "OAUTHBEARER", "outcome", "success");
         // There is no inter-broker connection on this listener, producer did 2 validations, and consumer also did 2 validations
         Assert.assertEquals("strimzi_oauth_validation_requests_count for jwks == 4", 4, value.intValue());
 
-        value = metrics.getValueSum("strimzi_oauth_validation_requests_timetotal", "context", "JWT", "kind", "jwks", "mechanism", "OAUTHBEARER", "outcome", "success");
-        Assert.assertTrue("strimzi_oauth_http_requests_timetotal for jwks > 0.0", value.doubleValue() > 0.0);
+        value = metrics.getValueSum("strimzi_oauth_validation_requests_totaltimems", "context", "JWT", "kind", "jwks", "mechanism", "OAUTHBEARER", "outcome", "success");
+        Assert.assertTrue("strimzi_oauth_http_requests_totaltimems for jwks > 0.0", value.doubleValue() > 0.0);
     }
 
     /**
@@ -238,8 +238,8 @@ public class BasicTests {
         // There is no inter-broker connection on this listener, producer did 2 validations, and consumer also did 2
         Assert.assertEquals("strimzi_oauth_validation_requests_count for jwks == 4", 4, value.intValue());
 
-        value = metrics.getValueSum("strimzi_oauth_validation_requests_timetotal", "context", "JWTPLAIN", "kind", "jwks", "host", authHostPort, "path", jwksPath, "mechanism", "OAUTHBEARER", "outcome", "success");
-        Assert.assertTrue("strimzi_oauth_validation_requests_timetotal for jwks > 0.0", value.doubleValue() > 0.0);
+        value = metrics.getValueSum("strimzi_oauth_validation_requests_totaltimems", "context", "JWTPLAIN", "kind", "jwks", "host", authHostPort, "path", jwksPath, "mechanism", "OAUTHBEARER", "outcome", "success");
+        Assert.assertTrue("strimzi_oauth_validation_requests_totaltimems for jwks > 0.0", value.doubleValue() > 0.0);
     }
 
     static void accessTokenWithIntrospection() throws Exception {
@@ -296,8 +296,8 @@ public class BasicTests {
         // Inter-broker connection did some validation, producer and consumer did some
         Assert.assertEquals("strimzi_oauth_http_requests_count for introspect == 5", 5, value.intValue());
 
-        value = metrics.getValueSum("strimzi_oauth_http_requests_timetotal", "kind", "introspect", "host", authHostPort, "path", introspectPath, "outcome", "success");
-        Assert.assertTrue("strimzi_oauth_http_requests_timetotal for introspect > 0.0", value.doubleValue() > 0.0);
+        value = metrics.getValueSum("strimzi_oauth_http_requests_totaltimems", "kind", "introspect", "host", authHostPort, "path", introspectPath, "outcome", "success");
+        Assert.assertTrue("strimzi_oauth_http_requests_totaltimems for introspect > 0.0", value.doubleValue() > 0.0);
     }
 
     static void refreshTokenWithIntrospection() throws Exception {
@@ -358,7 +358,7 @@ public class BasicTests {
         // On top of the access token test, producer and consumer together did 4 requests
         Assert.assertEquals("strimzi_oauth_http_requests_count for introspect == 9", 9, value.intValue());
 
-        value = metrics.getValueSum("strimzi_oauth_http_requests_timetotal", "kind", "introspect", "host", authHostPort, "path", introspectPath, "outcome", "success");
-        Assert.assertTrue("strimzi_oauth_http_requests_timetotal for introspect > 0.0", value.doubleValue() > 0.0);
+        value = metrics.getValueSum("strimzi_oauth_http_requests_totaltimems", "kind", "introspect", "host", authHostPort, "path", introspectPath, "outcome", "success");
+        Assert.assertTrue("strimzi_oauth_http_requests_totaltimems for introspect > 0.0", value.doubleValue() > 0.0);
     }
 }

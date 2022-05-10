@@ -139,14 +139,14 @@ public class MultiSaslTest {
         BigDecimal value = metrics.getValueSum("strimzi_oauth_http_requests_count", "kind", "keycloak-authorization", "host", authHostPort, "path", tokenPath, "outcome", "success");
         Assert.assertTrue("strimzi_oauth_http_requests_count for keycloak-authorization > 0", value.intValue() > 0);
 
-        value = metrics.getValueSum("strimzi_oauth_http_requests_timetotal", "kind", "keycloak-authorization", "host", authHostPort, "path", tokenPath, "outcome", "success");
-        Assert.assertTrue("strimzi_oauth_http_requests_timetotal for keycloak-authorization > 0", value.doubleValue() > 0.0);
+        value = metrics.getValueSum("strimzi_oauth_http_requests_totaltimems", "kind", "keycloak-authorization", "host", authHostPort, "path", tokenPath, "outcome", "success");
+        Assert.assertTrue("strimzi_oauth_http_requests_totaltimems for keycloak-authorization > 0", value.doubleValue() > 0.0);
 
         value = metrics.getValueSum("strimzi_oauth_http_requests_count", "kind", "keycloak-authorization", "host", authHostPort, "path", tokenPath, "outcome", "error", "status", "403");
         Assert.assertTrue("strimzi_oauth_http_requests_count with no-grants for keycloak-authorization > 0", value.intValue() > 0);
 
-        value = metrics.getValueSum("strimzi_oauth_http_requests_timetotal", "kind", "keycloak-authorization", "host", authHostPort, "path", tokenPath, "outcome", "error", "status", "403");
-        Assert.assertTrue("strimzi_oauth_http_requests_timetotal with no-grants for keycloak-authorization > 0", value.doubleValue() > 0.0);
+        value = metrics.getValueSum("strimzi_oauth_http_requests_totaltimems", "kind", "keycloak-authorization", "host", authHostPort, "path", tokenPath, "outcome", "error", "status", "403");
+        Assert.assertTrue("strimzi_oauth_http_requests_totaltimems with no-grants for keycloak-authorization > 0", value.doubleValue() > 0.0);
     }
 
     private static void checkAuthorizationRequestsMetrics(String authHostPort, String tokenPath) throws IOException {
@@ -155,14 +155,14 @@ public class MultiSaslTest {
         BigDecimal value = metrics.getValueSum("strimzi_oauth_authorization_requests_count", "kind", "keycloak-authorization", "host", authHostPort, "path", tokenPath, "outcome", "success");
         Assert.assertTrue("strimzi_oauth_authorization_requests_count for successful keycloak-authorization > 0", value.intValue() > 0);
 
-        value = metrics.getValueSum("strimzi_oauth_authorization_requests_timetotal", "kind", "keycloak-authorization", "host", authHostPort, "path", tokenPath, "outcome", "success");
-        Assert.assertTrue("strimzi_oauth_authorization_requests_timetotal for successful keycloak-authorization > 0", value.doubleValue() > 0.0);
+        value = metrics.getValueSum("strimzi_oauth_authorization_requests_totaltimems", "kind", "keycloak-authorization", "host", authHostPort, "path", tokenPath, "outcome", "success");
+        Assert.assertTrue("strimzi_oauth_authorization_requests_totaltimems for successful keycloak-authorization > 0", value.doubleValue() > 0.0);
 
         value = metrics.getValueSum("strimzi_oauth_authorization_requests_count", "kind", "keycloak-authorization", "host", authHostPort, "path", tokenPath, "outcome", "error");
         Assert.assertEquals("strimzi_oauth_authorization_requests_count for failed keycloak-authorization == 0", 0, value.intValue());
 
-        value = metrics.getValueSum("strimzi_oauth_authorization_requests_timetotal", "kind", "keycloak-authorization", "host", authHostPort, "path", tokenPath, "outcome", "error");
-        Assert.assertEquals("strimzi_oauth_authorization_requests_timetotal for failed keycloak-authorization == 0", 0.0, value.doubleValue(), 0.0);
+        value = metrics.getValueSum("strimzi_oauth_authorization_requests_totaltimems", "kind", "keycloak-authorization", "host", authHostPort, "path", tokenPath, "outcome", "error");
+        Assert.assertEquals("strimzi_oauth_authorization_requests_totaltimems for failed keycloak-authorization == 0", 0.0, value.doubleValue(), 0.0);
     }
 
     private static Properties producerConfigScram(String kafkaBootstrap, String username, String password) {

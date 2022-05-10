@@ -1138,16 +1138,16 @@ The OAuth metrics also honor the `metric.reporters`, `metrics.num.samples`, `met
 
 When OAuth metrics are enabled, managed beans are registered on demand, containing the attributes that are easily translated into Prometheus metrics.
 
-Each registered MBean contains two counter variables - `count`, and `timeTotal`.
-It also contains three gauge variables - `timeMin`, `timeMax` and `timeAvg`.
+Each registered MBean contains two counter variables - `count`, and `totalTimeMs`.
+It also contains three gauge variables - `minTimeMs`, `maxTimeMs` and `avgTimeMs`. These are measured within the configured sample time window.
 
 The `count` contains the number of requests of the specific context (as represented by attributes).
-The `timeTotal` contains the cumulative time in milliseconds spent in the requests of the specific context.
-The `timeMin` contains the minimum request time within the configured time window.
-The `timeMax` contains the maximum request time within the configured time window.
-The `timeAvg` contains the average request time within the configured time window.
+The `totalTimeMs` contains the cumulative time in milliseconds spent in the requests of the specific context.
+The `minTimeMs` contains the minimum request time within the configured time window.
+The `maxTimeMs` contains the maximum request time within the configured time window.
+The `avgTimeMs` contains the average request time within the configured time window.
 
-Two reads of `count` and `timeTotal` allow to calculate the average request time within the time interval as `delta Time / delta Count`.
+Two reads of `count` and `totalTimeMs` allow to calculate the average request time within the time interval as `delta Time / delta Count`.
 
 The following MBeans are registered, depending on which parts of `strimzi-kafka-oauth` are in use.
 
@@ -1222,7 +1222,7 @@ The [metrics-config.yml](testsuite/docker/kafka/config/metrics-config.yml) file 
 
 The following metrics are exposed as the result of the mapping.
 
-For each pattern there are five metrics exposed with `$METRIC` being `count`, `timetotal`, `timemin`, `timemax` and `timeavg`.
+For each pattern there are five metrics exposed with `$METRIC` being `count`, `totaltimems`, `mintimems`, `maxtimems` and `avgtimems`.
 
 For fast local JWT token based validation there are:
 
@@ -1269,7 +1269,7 @@ For client-side authentication there are:
 
 - Get the average request time in ms during the last minute across all http requests to a specific authorization server:
 ```
-    rate(strimzi_oauth_http_requests_timetotal{host="sso:443"}[1m] / rate(strimzi_oaouth_http_requests_count{host="sso:443"}[1m]
+    rate(strimzi_oauth_http_requests_totaltimems{host="sso:443"}[1m] / rate(strimzi_oaouth_http_requests_count{host="sso:443"}[1m]
 ```
 Note, that this gives reliable results if scrape period is 15 seconds. If scrape period is longer, you should use a multiple of 4 as a minimum time span to average across. For example, if scrape period is 30 seconds, use 2m span instead of 1m.
 
