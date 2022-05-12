@@ -591,6 +591,11 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
             logger.error(msg, e);
         }
 
+        // In case of an Error we don't rethrow it as-is.
+        // Doing that would not trigger JVM shutdown, rather the client would
+        // automatically keep attempting to authenticate which is counterproductive.
+
+        // We wrap any throwable with an exception type that signals authentication failure
         throw new OAuthSaslAuthenticationException(message, errId, e);
     }
 

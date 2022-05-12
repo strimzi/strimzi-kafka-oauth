@@ -450,6 +450,10 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
                         ", cluster: " + clusterName + ", actions: " + actions + ",\n permissions: " + grants);
             }
             addAuthzMetricErrorTime(t, startTime);
+
+            // We don't rethrow the exception, not even if it is an error.
+            // Rethrowing would not trigger JVM shutdown, but it would log the error again, bloating the log file
+
             return Collections.nCopies(actions.size(), AuthorizationResult.DENIED);
         }
     }

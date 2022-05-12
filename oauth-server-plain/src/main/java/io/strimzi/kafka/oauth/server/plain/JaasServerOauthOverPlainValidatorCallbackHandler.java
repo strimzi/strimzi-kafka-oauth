@@ -203,7 +203,6 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
                     throw new UnsupportedCallbackException(callback);
                 }
             }
-
             handleCallback(cb, username, password);
 
         } catch (OAuthSaslAuthenticationException e) {

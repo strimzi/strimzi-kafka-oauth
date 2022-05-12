@@ -388,7 +388,11 @@ public class JWTSignatureValidator implements TokenValidator {
                     throw new TokenValidationException("Token validation failed: The signing key is no longer valid (kid:" + kid + ")");
                 } else {
                     // Request quick keys refresh
-                    fastScheduler.scheduleTask();
+                    try {
+                        fastScheduler.scheduleTask();
+                    } catch (RuntimeException e) {
+                        log.error("Failed to reschedule JWKS keys refresh: ", e);
+                    }
                     throw new TokenValidationException("Token validation failed: Unknown signing key (kid:" + kid + ")");
                 }
             }

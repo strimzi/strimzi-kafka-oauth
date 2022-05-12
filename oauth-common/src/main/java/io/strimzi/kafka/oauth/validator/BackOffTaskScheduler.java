@@ -168,7 +168,11 @@ public class BackOffTaskScheduler {
                 if (cutoffIntervalSeconds <= 0 || delay < cutoffIntervalSeconds) {
 
                     // We still hold the taskScheduled lock
-                    scheduleServiceTask(this, 1000 * delay);
+                    try {
+                        scheduleServiceTask(this, 1000 * delay);
+                    } catch (RuntimeException e) {
+                        log.error("Failed to reschedule JWKS keys refresh: ", e);
+                    }
 
                     if (log.isDebugEnabled()) {
                         log.debug("Task rescheduled in {} seconds", delay);
