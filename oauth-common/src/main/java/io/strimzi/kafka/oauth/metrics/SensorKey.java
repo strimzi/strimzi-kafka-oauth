@@ -133,6 +133,6 @@ public class SensorKey {
 
     @Override
     public String toString() {
-        return getClass() + "@" + hashCode() + " " + id;
+        return getClass().getName() + "@" + hashCode() + " " + id;
     }
 }

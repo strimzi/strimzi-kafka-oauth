@@ -10,7 +10,7 @@ import java.util.Objects;
 
 /**
  * The class that holds the validator configuration and is used two compare different configurations for equality.
- * It also calculates a unique identifier based on the configuration, that is stable across application restarts,
+ * It also calculates a unique identifier based on the configuration that is stable across application restarts.
  */
 public class ValidatorKey {
 

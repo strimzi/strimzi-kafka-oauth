@@ -53,8 +53,9 @@ public class OAuthMetrics {
     private final Map<SensorKey, Sensor> sensorMap = new ConcurrentHashMap<>();
 
     /**
-     * Create a new instance of OAuthMetrics object and
-     * @param configMap
+     * Create a new instance of OAuthMetrics object and initialise the Kafka Metrics, and MetricReporters based on the configuration.
+     *
+     * @param configMap Configuration properties
      */
     OAuthMetrics(Map<String, ?> configMap) {
         this.configMap = configMap;
