@@ -11,9 +11,9 @@ import io.strimzi.kafka.oauth.common.TimeUtil;
 import io.strimzi.kafka.oauth.common.TokenInfo;
 import io.strimzi.kafka.oauth.jsonpath.JsonPathFilterQuery;
 import io.strimzi.kafka.oauth.jsonpath.JsonPathQuery;
-import io.strimzi.kafka.oauth.metrics.IntrospectHttpMetricKeyProducer;
-import io.strimzi.kafka.oauth.metrics.MetricKeyProducer;
-import io.strimzi.kafka.oauth.metrics.UserInfoHttpMetricKeyProducer;
+import io.strimzi.kafka.oauth.metrics.IntrospectHttpSensorKeyProducer;
+import io.strimzi.kafka.oauth.metrics.SensorKeyProducer;
+import io.strimzi.kafka.oauth.metrics.UserInfoHttpSensorKeyProducer;
 import io.strimzi.kafka.oauth.services.OAuthMetrics;
 import io.strimzi.kafka.oauth.services.Services;
 import org.apache.kafka.common.utils.Time;
@@ -68,8 +68,8 @@ public class OAuthIntrospectionValidator implements TokenValidator {
 
     private final boolean enableMetrics;
     private final OAuthMetrics metrics;
-    private final MetricKeyProducer introspectHttpMetricKeyProducer;
-    private final MetricKeyProducer userInfoHttpMetricKeyProducer;
+    private final SensorKeyProducer introspectHttpSensorKeyProducer;
+    private final SensorKeyProducer userInfoHttpSensorKeyProducer;
 
     /**
      * Create a new instance.
@@ -140,8 +140,8 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         this.enableMetrics = enableMetrics;
         metrics = enableMetrics ? Services.getInstance().getMetrics() : null;
 
-        introspectHttpMetricKeyProducer = new IntrospectHttpMetricKeyProducer(validatorId, introspectionURI);
-        userInfoHttpMetricKeyProducer = userInfoURI != null ? new UserInfoHttpMetricKeyProducer(validatorId, userInfoURI) : null;
+        introspectHttpSensorKeyProducer = new IntrospectHttpSensorKeyProducer(validatorId, introspectionURI);
+        userInfoHttpSensorKeyProducer = userInfoURI != null ? new UserInfoHttpSensorKeyProducer(validatorId, userInfoURI) : null;
 
         if (log.isDebugEnabled()) {
             log.debug("Configured OAuthIntrospectionValidator:"
@@ -412,25 +412,25 @@ public class OAuthIntrospectionValidator implements TokenValidator {
 
     private void addIntrospectHttpMetricSuccessTime(long startTime) {
         if (enableMetrics) {
-            metrics.addTime(introspectHttpMetricKeyProducer.successKey(), System.currentTimeMillis() - startTime);
+            metrics.addTime(introspectHttpSensorKeyProducer.successKey(), System.currentTimeMillis() - startTime);
         }
     }
 
     private void addIntrospectHttpMetricErrorTime(Throwable e, long startTime) {
         if (enableMetrics) {
-            metrics.addTime(introspectHttpMetricKeyProducer.errorKey(e), System.currentTimeMillis() - startTime);
+            metrics.addTime(introspectHttpSensorKeyProducer.errorKey(e), System.currentTimeMillis() - startTime);
         }
     }
 
     private void addUserInfoHttpMetricSuccessTime(long startTime) {
         if (enableMetrics) {
-            metrics.addTime(userInfoHttpMetricKeyProducer.successKey(), System.currentTimeMillis() - startTime);
+            metrics.addTime(userInfoHttpSensorKeyProducer.successKey(), System.currentTimeMillis() - startTime);
         }
     }
 
     private void addUserInfoHttpMetricErrorTime(Throwable e, long startTime) {
         if (enableMetrics) {
-            metrics.addTime(userInfoHttpMetricKeyProducer.errorKey(e), System.currentTimeMillis() - startTime);
+            metrics.addTime(userInfoHttpSensorKeyProducer.errorKey(e), System.currentTimeMillis() - startTime);
         }
     }
 }

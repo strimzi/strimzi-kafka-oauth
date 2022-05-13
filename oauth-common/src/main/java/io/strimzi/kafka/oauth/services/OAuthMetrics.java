@@ -5,7 +5,7 @@
 package io.strimzi.kafka.oauth.services;
 
 import io.strimzi.kafka.oauth.common.Config;
-import io.strimzi.kafka.oauth.metrics.MetricKey;
+import io.strimzi.kafka.oauth.metrics.SensorKey;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.config.AbstractConfig;
@@ -38,9 +38,9 @@ import static org.apache.kafka.clients.CommonClientConfigs.METRICS_SAMPLE_WINDOW
 
 /**
  * The singleton for handling a cache of all the Sensors to prevent unnecessary redundant re-registrations.
- * There is a one-to-one mapping between a metric key and a Sensor, and one-to-one mapping between a sensor and an MBean name.
+ * There is a one-to-one mapping between a SensorKey and a Sensor, and one-to-one mapping between a Sensor and an MBean name.
  *
- * MBeans are registered by Metrics object as requested.
+ * MBeans are registered as requested by JmxReporter attached to the Metrics object.
  */
 public class OAuthMetrics {
 
@@ -50,22 +50,32 @@ public class OAuthMetrics {
     private final Config config;
     private final Metrics metrics;
 
-    private final Map<MetricKey, Sensor> sensorMap = new ConcurrentHashMap<>();
+    private final Map<SensorKey, Sensor> sensorMap = new ConcurrentHashMap<>();
 
+    /**
+     * Create a new instance of OAuthMetrics object and
+     * @param configMap
+     */
     OAuthMetrics(Map<String, ?> configMap) {
         this.configMap = configMap;
         this.config = new Config(configMap);
         this.metrics = initKafkaMetrics();
     }
 
-    public void addTime(MetricKey key, long time) {
+    /**
+     * Record a request time in millis.
+     *
+     * @param key SensorKey identifying the sensor
+     * @param timeMs Time spent processing the request in millis
+     */
+    public void addTime(SensorKey key, long timeMs) {
         Sensor registeredSensor = sensorMap.computeIfAbsent(key, k -> {
-            Sensor sensor = metrics.sensor(key.getMBeanName());
+            Sensor sensor = metrics.sensor(key.getId());
             addMetricsToSensor(metrics, sensor, key);
             return sensor;
         });
 
-        registeredSensor.record(time);
+        registeredSensor.record(timeMs);
     }
 
     private Metrics initKafkaMetrics() {
@@ -167,20 +177,20 @@ public class OAuthMetrics {
         return new Metrics(metricConfig, reporters, Time.SYSTEM, ctx);
     }
 
-    private void addMetricsToSensor(Metrics metrics, Sensor sensor, MetricKey key) {
-        MetricName metricName = new MetricName("count", key.getName(), "Total request count", key.getAttrs());
+    private void addMetricsToSensor(Metrics metrics, Sensor sensor, SensorKey key) {
+        MetricName metricName = new MetricName("count", key.getName(), "Total request count", key.getAttributes());
         sensor.add(metricName, new CumulativeCount());
 
-        metricName = new MetricName("totalTimeMs", key.getName(), "Total time spent in requests in ms", key.getAttrs());
+        metricName = new MetricName("totalTimeMs", key.getName(), "Total time spent in requests in ms", key.getAttributes());
         sensor.add(metricName, new CumulativeSum());
 
-        metricName = new MetricName("avgTimeMs", key.getName(), "Average request time in ms", key.getAttrs());
+        metricName = new MetricName("avgTimeMs", key.getName(), "Average request time in ms", key.getAttributes());
         sensor.add(metricName, new Avg());
 
-        metricName = new MetricName("maxTimeMs", key.getName(), "Max request time in ms", key.getAttrs());
+        metricName = new MetricName("maxTimeMs", key.getName(), "Max request time in ms", key.getAttributes());
         sensor.add(metricName, new Max());
 
-        metricName = metrics.metricName("minTimeMs", key.getName(), "Min request time in ms", key.getAttrs());
+        metricName = metrics.metricName("minTimeMs", key.getName(), "Min request time in ms", key.getAttributes());
         sensor.add(metricName, new Min());
     }
 }

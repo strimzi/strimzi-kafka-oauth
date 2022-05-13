@@ -6,12 +6,12 @@ package io.strimzi.kafka.oauth.metrics;
 
 import java.net.URI;
 
-public abstract class AbstractMetricKeyProducer implements MetricKeyProducer {
+public abstract class AbstractSensorKeyProducer implements SensorKeyProducer {
 
     protected final String contextId;
     protected final URI uri;
 
-    public AbstractMetricKeyProducer(String contextId, URI uri) {
+    public AbstractSensorKeyProducer(String contextId, URI uri) {
 
         if (contextId == null) {
             throw new IllegalArgumentException("contextId == null");

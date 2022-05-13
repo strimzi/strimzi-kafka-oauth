@@ -9,8 +9,8 @@ import io.strimzi.kafka.oauth.common.MetricsHandler;
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
 import io.strimzi.kafka.oauth.common.HttpException;
 import io.strimzi.kafka.oauth.common.OAuthAuthenticator;
-import io.strimzi.kafka.oauth.metrics.MetricKeyProducer;
-import io.strimzi.kafka.oauth.server.plain.metrics.PlainHttpMetricKeyProducer;
+import io.strimzi.kafka.oauth.metrics.SensorKeyProducer;
+import io.strimzi.kafka.oauth.server.plain.metrics.PlainHttpSensorKeyProducer;
 import io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler;
 import io.strimzi.kafka.oauth.server.OAuthKafkaPrincipal;
 import io.strimzi.kafka.oauth.server.OAuthSaslAuthenticationException;
@@ -122,7 +122,7 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
 
     private OAuthMetrics metrics;
     private boolean enableMetrics;
-    private MetricKeyProducer authHttpMetricKeyProducer;
+    private SensorKeyProducer authHttpSensorKeyProducer;
     private final MetricsHandler authMetrics = new PlainMetricsHandler();
 
     @Override
@@ -153,7 +153,7 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
         String configId = getConfigId();
         configureMetrics(config);
 
-        authHttpMetricKeyProducer = tokenEndpointUri != null ? new PlainHttpMetricKeyProducer(configId, tokenEndpointUri) : null;
+        authHttpSensorKeyProducer = tokenEndpointUri != null ? new PlainHttpSensorKeyProducer(configId, tokenEndpointUri) : null;
 
         log.debug("Configured OAuth over PLAIN:"
                 + "\n    configId: " + configId
@@ -279,15 +279,15 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
         }
     }
 
-    private void addSuccessTime(long startTime) {
+    private void addSuccessTime(long startTimeMs) {
         if (enableMetrics) {
-            metrics.addTime(validationMetricKeyProducer.successKey(), System.currentTimeMillis() - startTime);
+            metrics.addTime(validationSensorKeyProducer.successKey(), System.currentTimeMillis() - startTimeMs);
         }
     }
 
-    private void addErrorTime(Throwable e, long startTime) {
+    private void addErrorTime(Throwable e, long startTimeMs) {
         if (enableMetrics) {
-            metrics.addTime(validationMetricKeyProducer.errorKey(e), System.currentTimeMillis() - startTime);
+            metrics.addTime(validationSensorKeyProducer.errorKey(e), System.currentTimeMillis() - startTimeMs);
         }
     }
 
@@ -296,14 +296,14 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
         @Override
         public void addSuccessRequestTime(long millis) {
             if (enableMetrics) {
-                metrics.addTime(authHttpMetricKeyProducer.successKey(), millis);
+                metrics.addTime(authHttpSensorKeyProducer.successKey(), millis);
             }
         }
 
         @Override
         public void addErrorRequestTime(Throwable e, long millis) {
             if (enableMetrics) {
-                metrics.addTime(authHttpMetricKeyProducer.errorKey(e), millis);
+                metrics.addTime(authHttpSensorKeyProducer.errorKey(e), millis);
             }
         }
     }

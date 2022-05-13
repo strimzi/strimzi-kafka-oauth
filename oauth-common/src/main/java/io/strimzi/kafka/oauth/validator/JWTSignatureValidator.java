@@ -20,8 +20,8 @@ import io.strimzi.kafka.oauth.common.TimeUtil;
 import io.strimzi.kafka.oauth.common.TokenInfo;
 import io.strimzi.kafka.oauth.jsonpath.JsonPathFilterQuery;
 import io.strimzi.kafka.oauth.jsonpath.JsonPathQuery;
-import io.strimzi.kafka.oauth.metrics.JwksHttpMetricKeyProducer;
-import io.strimzi.kafka.oauth.metrics.MetricKeyProducer;
+import io.strimzi.kafka.oauth.metrics.JwksHttpSensorKeyProducer;
+import io.strimzi.kafka.oauth.metrics.SensorKeyProducer;
 import io.strimzi.kafka.oauth.services.OAuthMetrics;
 import io.strimzi.kafka.oauth.services.Services;
 import org.apache.kafka.common.utils.Time;
@@ -90,7 +90,7 @@ public class JWTSignatureValidator implements TokenValidator {
 
     private final boolean enableMetrics;
     private final OAuthMetrics metrics;
-    private final MetricKeyProducer jwksHttpMetricKeyProducer;
+    private final SensorKeyProducer jwksHttpSensorKeyProducer;
 
     /**
      * Create a new instance.
@@ -185,7 +185,7 @@ public class JWTSignatureValidator implements TokenValidator {
         this.enableMetrics = enableMetrics;
         metrics = enableMetrics ? Services.getInstance().getMetrics() : null;
 
-        jwksHttpMetricKeyProducer = new JwksHttpMetricKeyProducer(validatorId, keysUri);
+        jwksHttpSensorKeyProducer = new JwksHttpSensorKeyProducer(validatorId, keysUri);
 
         ScheduledExecutorService executor = setupExecutorAndFetchInitialKeys(refreshSeconds, refreshMinPauseSeconds, failFast);
 
@@ -494,15 +494,15 @@ public class JWTSignatureValidator implements TokenValidator {
     }
 
 
-    private void addJwksHttpMetricSuccessTime(long startTime) {
+    private void addJwksHttpMetricSuccessTime(long startTimeMs) {
         if (enableMetrics) {
-            metrics.addTime(jwksHttpMetricKeyProducer.successKey(), System.currentTimeMillis() - startTime);
+            metrics.addTime(jwksHttpSensorKeyProducer.successKey(), System.currentTimeMillis() - startTimeMs);
         }
     }
 
-    private void addJwksHttpMetricErrorTime(Throwable e, long startTime) {
+    private void addJwksHttpMetricErrorTime(Throwable e, long startTimeMs) {
         if (enableMetrics) {
-            metrics.addTime(jwksHttpMetricKeyProducer.errorKey(e), System.currentTimeMillis() - startTime);
+            metrics.addTime(jwksHttpSensorKeyProducer.errorKey(e), System.currentTimeMillis() - startTimeMs);
         }
     }
 }

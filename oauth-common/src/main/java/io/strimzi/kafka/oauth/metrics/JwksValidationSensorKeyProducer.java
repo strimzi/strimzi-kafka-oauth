@@ -7,11 +7,11 @@ package io.strimzi.kafka.oauth.metrics;
 import java.net.URI;
 import java.util.Map;
 
-public class IntrospectValidationMetricKeyProducer extends AbstractMetricKeyProducer {
+public class JwksValidationSensorKeyProducer extends AbstractSensorKeyProducer {
 
     private final String saslMechanism;
 
-    public IntrospectValidationMetricKeyProducer(String contextId, String saslMechanism, URI uri) {
+    public JwksValidationSensorKeyProducer(String contextId, String saslMechanism, URI uri) {
         super(contextId, uri);
 
         if (saslMechanism == null) {
@@ -21,17 +21,17 @@ public class IntrospectValidationMetricKeyProducer extends AbstractMetricKeyProd
     }
 
     @Override
-    public MetricKey successKey() {
-        Map<String, String> attrs = JmxMetrics.getMetricKeyAttrs(contextId, saslMechanism, uri, "introspect");
+    public SensorKey successKey() {
+        Map<String, String> attrs = MetricsUtil.getSensorKeyAttrs(contextId, saslMechanism, uri, "jwks");
         attrs.put("outcome", "success");
-        return MetricKey.of("validation_requests", attrs);
+        return SensorKey.of("validation_requests", attrs);
     }
 
     @Override
-    public MetricKey errorKey(Throwable e) {
-        Map<String, String> attrs = JmxMetrics.getMetricKeyAttrs(contextId, saslMechanism, uri, "introspect");
+    public SensorKey errorKey(Throwable e) {
+        Map<String, String> attrs = MetricsUtil.getSensorKeyAttrs(contextId, saslMechanism, uri, "jwks");
         attrs.put("outcome", "error");
         attrs.put("error_type", "other");
-        return MetricKey.of("validation_requests", attrs);
+        return SensorKey.of("validation_requests", attrs);
     }
 }

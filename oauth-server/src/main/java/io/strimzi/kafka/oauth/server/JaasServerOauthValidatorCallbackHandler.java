@@ -12,9 +12,9 @@ import io.strimzi.kafka.oauth.common.IOUtil;
 import io.strimzi.kafka.oauth.common.PrincipalExtractor;
 import io.strimzi.kafka.oauth.common.TimeUtil;
 import io.strimzi.kafka.oauth.jsonpath.JsonPathFilterQuery;
-import io.strimzi.kafka.oauth.metrics.IntrospectValidationMetricKeyProducer;
-import io.strimzi.kafka.oauth.metrics.JwksValidationMetricKeyProducer;
-import io.strimzi.kafka.oauth.metrics.MetricKeyProducer;
+import io.strimzi.kafka.oauth.metrics.IntrospectValidationSensorKeyProducer;
+import io.strimzi.kafka.oauth.metrics.JwksValidationSensorKeyProducer;
+import io.strimzi.kafka.oauth.metrics.SensorKeyProducer;
 import io.strimzi.kafka.oauth.services.ConfigurationKey;
 import io.strimzi.kafka.oauth.services.OAuthMetrics;
 import io.strimzi.kafka.oauth.services.Services;
@@ -215,7 +215,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
     private boolean enableMetrics;
 
     private OAuthMetrics metrics;
-    protected MetricKeyProducer validationMetricKeyProducer;
+    protected SensorKeyProducer validationSensorKeyProducer;
 
     @Override
     public void configure(Map<String, ?> configs, String saslMechanism, List<AppConfigurationEntry> jaasConfigEntries) {
@@ -286,14 +286,14 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                     sslTruststore, sslPassword, sslType, sslRnd);
 
             URI jwksEndpointUri = config.getValueAsURI(ServerConfig.OAUTH_JWKS_ENDPOINT_URI);
-            validationMetricKeyProducer = new JwksValidationMetricKeyProducer(effectiveConfigId, saslMechanism, jwksEndpointUri);
+            validationSensorKeyProducer = new JwksValidationSensorKeyProducer(effectiveConfigId, saslMechanism, jwksEndpointUri);
         } else {
             String effectiveConfigId = setupIntrospectionValidator(configId, validIssuerUri, usernameClaim, fallbackUsernameClaim, fallbackUsernamePrefix,
                     groupQuery, groupDelimiter, clientId, clientSecret, audience, customClaimCheck,
                     sslTruststore, sslPassword, sslType, sslRnd);
 
             URI introspectionUri = config.getValueAsURI(ServerConfig.OAUTH_INTROSPECTION_ENDPOINT_URI);
-            validationMetricKeyProducer = new IntrospectValidationMetricKeyProducer(effectiveConfigId, saslMechanism, introspectionUri);
+            validationSensorKeyProducer = new IntrospectValidationSensorKeyProducer(effectiveConfigId, saslMechanism, introspectionUri);
         }
     }
 
@@ -714,15 +714,15 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
     }
 
 
-    private void addValidationMetricSuccessTime(long startTime) {
+    private void addValidationMetricSuccessTime(long startTimeMs) {
         if (enableMetrics) {
-            metrics.addTime(validationMetricKeyProducer.successKey(), System.currentTimeMillis() - startTime);
+            metrics.addTime(validationSensorKeyProducer.successKey(), System.currentTimeMillis() - startTimeMs);
         }
     }
 
-    private void addValidationMetricErrorTime(Throwable e, long startTime) {
+    private void addValidationMetricErrorTime(Throwable e, long startTimeMs) {
         if (enableMetrics) {
-            metrics.addTime(validationMetricKeyProducer.errorKey(e), System.currentTimeMillis() - startTime);
+            metrics.addTime(validationSensorKeyProducer.errorKey(e), System.currentTimeMillis() - startTimeMs);
         }
     }
 }

@@ -14,15 +14,18 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public class JmxMetrics {
+/**
+ * Static utility methods used for metrics
+ */
+public class MetricsUtil {
 
-    public static Map<String, String> getMetricKeyAttrs(String contextId, String mechanism, URI uri, String kind) {
-        Map<String, String> attrs = getMetricKeyAttrs(contextId, uri, kind);
+    public static Map<String, String> getSensorKeyAttrs(String contextId, String mechanism, URI uri, String kind) {
+        Map<String, String> attrs = getSensorKeyAttrs(contextId, uri, kind);
         attrs.put("mechanism", mechanism);
         return attrs;
     }
 
-    public static Map<String, String> getMetricKeyAttrs(String contextId, URI uri, String kind) {
+    public static Map<String, String> getSensorKeyAttrs(String contextId, URI uri, String kind) {
         HashMap<String, String> attrs = new LinkedHashMap<>();
         attrs.put("context", contextId);
         attrs.put("kind", kind);

@@ -13,10 +13,10 @@ import io.strimzi.kafka.oauth.common.HttpException;
 import io.strimzi.kafka.oauth.common.JSONUtil;
 import io.strimzi.kafka.oauth.common.SSLUtil;
 import io.strimzi.kafka.oauth.common.TimeUtil;
-import io.strimzi.kafka.oauth.metrics.MetricKeyProducer;
+import io.strimzi.kafka.oauth.metrics.SensorKeyProducer;
 import io.strimzi.kafka.oauth.server.OAuthKafkaPrincipal;
-import io.strimzi.kafka.oauth.server.authorizer.metrics.GrantsHttpMetricKeyProducer;
-import io.strimzi.kafka.oauth.server.authorizer.metrics.KeycloakAuthorizationMetricKeyProducer;
+import io.strimzi.kafka.oauth.server.authorizer.metrics.GrantsHttpSensorKeyProducer;
+import io.strimzi.kafka.oauth.server.authorizer.metrics.KeycloakAuthorizationSensorKeyProducer;
 import io.strimzi.kafka.oauth.services.OAuthMetrics;
 import io.strimzi.kafka.oauth.services.Services;
 import io.strimzi.kafka.oauth.services.SessionFuture;
@@ -181,8 +181,8 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
 
     private OAuthMetrics metrics;
     private boolean enableMetrics;
-    private MetricKeyProducer authzMetricKeyProducer;
-    private MetricKeyProducer grantsMetricKeyProducer;
+    private SensorKeyProducer authzSensorKeyProducer;
+    private SensorKeyProducer grantsSensorKeyProducer;
 
     public KeycloakRBACAuthorizer() {
         super();
@@ -256,8 +256,8 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
 
         configureMetrics(configs, config);
 
-        authzMetricKeyProducer = new KeycloakAuthorizationMetricKeyProducer("keycloak-authorizer", tokenEndpointUrl);
-        grantsMetricKeyProducer = new GrantsHttpMetricKeyProducer("keycloak-authorizer", tokenEndpointUrl);
+        authzSensorKeyProducer = new KeycloakAuthorizationSensorKeyProducer("keycloak-authorizer", tokenEndpointUrl);
+        grantsSensorKeyProducer = new GrantsHttpSensorKeyProducer("keycloak-authorizer", tokenEndpointUrl);
 
         if (log.isDebugEnabled()) {
             log.debug("Configured KeycloakRBACAuthorizer:\n    tokenEndpointUri: " + tokenEndpointUrl
@@ -769,27 +769,27 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
         return super.acls(filter);
     }
 
-    private void addAuthzMetricSuccessTime(long startTime) {
+    private void addAuthzMetricSuccessTime(long startTimeMs) {
         if (enableMetrics) {
-            metrics.addTime(authzMetricKeyProducer.successKey(), System.currentTimeMillis() - startTime);
+            metrics.addTime(authzSensorKeyProducer.successKey(), System.currentTimeMillis() - startTimeMs);
         }
     }
 
-    private void addAuthzMetricErrorTime(Throwable e, long startTime) {
+    private void addAuthzMetricErrorTime(Throwable e, long startTimeMs) {
         if (enableMetrics) {
-            metrics.addTime(authzMetricKeyProducer.errorKey(e), System.currentTimeMillis() - startTime);
+            metrics.addTime(authzSensorKeyProducer.errorKey(e), System.currentTimeMillis() - startTimeMs);
         }
     }
 
-    private void addGrantsHttpMetricSuccessTime(long startTime) {
+    private void addGrantsHttpMetricSuccessTime(long startTimeMs) {
         if (enableMetrics) {
-            metrics.addTime(grantsMetricKeyProducer.successKey(), System.currentTimeMillis() - startTime);
+            metrics.addTime(grantsSensorKeyProducer.successKey(), System.currentTimeMillis() - startTimeMs);
         }
     }
 
-    private void addGrantsHttpMetricErrorTime(Throwable e, long startTime) {
+    private void addGrantsHttpMetricErrorTime(Throwable e, long startTimeMs) {
         if (enableMetrics) {
-            metrics.addTime(grantsMetricKeyProducer.errorKey(e), System.currentTimeMillis() - startTime);
+            metrics.addTime(grantsSensorKeyProducer.errorKey(e), System.currentTimeMillis() - startTimeMs);
         }
     }
 

@@ -9,9 +9,9 @@ import io.strimzi.kafka.oauth.common.Config;
 import io.strimzi.kafka.oauth.common.ConfigUtil;
 import io.strimzi.kafka.oauth.common.PrincipalExtractor;
 import io.strimzi.kafka.oauth.common.TokenInfo;
-import io.strimzi.kafka.oauth.client.metrics.ClientAuthenticationMetricKeyProducer;
-import io.strimzi.kafka.oauth.client.metrics.ClientHttpMetricKeyProducer;
-import io.strimzi.kafka.oauth.metrics.MetricKeyProducer;
+import io.strimzi.kafka.oauth.client.metrics.ClientAuthenticationSensorKeyProducer;
+import io.strimzi.kafka.oauth.client.metrics.ClientHttpSensorKeyProducer;
+import io.strimzi.kafka.oauth.metrics.SensorKeyProducer;
 import io.strimzi.kafka.oauth.services.OAuthMetrics;
 import io.strimzi.kafka.oauth.services.Services;
 import org.apache.kafka.common.security.auth.AuthenticateCallbackHandler;
@@ -68,8 +68,8 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
 
     private boolean enableMetrics;
     private OAuthMetrics metrics;
-    private MetricKeyProducer authMetricKeyProducer;
-    private MetricKeyProducer tokenMetricKeyProducer;
+    private SensorKeyProducer authSensorKeyProducer;
+    private SensorKeyProducer tokenSensorKeyProducer;
 
     private final ClientMetricsHandler authenticatorMetrics = new ClientMetricsHandler();
 
@@ -160,8 +160,8 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
         String configId = config.getValue(Config.OAUTH_CONFIG_ID, "client");
         enableMetrics = config.getValueAsBoolean(Config.OAUTH_ENABLE_METRICS, false);
 
-        authMetricKeyProducer = new ClientAuthenticationMetricKeyProducer(configId, tokenEndpoint);
-        tokenMetricKeyProducer = tokenEndpoint != null ? new ClientHttpMetricKeyProducer(configId, tokenEndpoint) : null;
+        authSensorKeyProducer = new ClientAuthenticationSensorKeyProducer(configId, tokenEndpoint);
+        tokenSensorKeyProducer = tokenEndpoint != null ? new ClientHttpSensorKeyProducer(configId, tokenEndpoint) : null;
 
         if (!Services.isAvailable()) {
             Services.configure(configs);
@@ -248,15 +248,15 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
         });
     }
 
-    private void addSuccessTime(long startTime) {
+    private void addSuccessTime(long startTimeMs) {
         if (enableMetrics) {
-            metrics.addTime(authMetricKeyProducer.successKey(), System.currentTimeMillis() - startTime);
+            metrics.addTime(authSensorKeyProducer.successKey(), System.currentTimeMillis() - startTimeMs);
         }
     }
 
-    private void addErrorTime(Throwable e, long startTime) {
+    private void addErrorTime(Throwable e, long startTimeMs) {
         if (enableMetrics) {
-            metrics.addTime(authMetricKeyProducer.errorKey(e), System.currentTimeMillis() - startTime);
+            metrics.addTime(authSensorKeyProducer.errorKey(e), System.currentTimeMillis() - startTimeMs);
         }
     }
 
@@ -265,14 +265,14 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
         @Override
         public void addSuccessRequestTime(long millis) {
             if (enableMetrics) {
-                metrics.addTime(tokenMetricKeyProducer.successKey(), millis);
+                metrics.addTime(tokenSensorKeyProducer.successKey(), millis);
             }
         }
 
         @Override
         public void addErrorRequestTime(Throwable e, long millis) {
             if (enableMetrics) {
-                metrics.addTime(tokenMetricKeyProducer.errorKey(e), millis);
+                metrics.addTime(tokenSensorKeyProducer.errorKey(e), millis);
             }
         }
     }
