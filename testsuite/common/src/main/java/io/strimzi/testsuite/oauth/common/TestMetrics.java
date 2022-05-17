@@ -4,6 +4,7 @@
  */
 package io.strimzi.testsuite.oauth.common;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.strimzi.kafka.oauth.common.HttpUtil;
 
 import java.io.BufferedReader;
@@ -90,6 +91,7 @@ public class TestMetrics {
      * @param attrs The attributes filter passed as attrName1, attrValue1, attrName2, attrValue2 ...
      * @return Metric value as String
      */
+    @SuppressFBWarnings("THROWS_METHOD_THROWS_RUNTIMEEXCEPTION")
     public String getValue(String key, String... attrs) {
         boolean match = false;
         String result = null;

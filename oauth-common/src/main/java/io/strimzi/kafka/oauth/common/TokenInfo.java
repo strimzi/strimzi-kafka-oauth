@@ -8,7 +8,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 
 public class TokenInfo {
@@ -56,8 +58,7 @@ public class TokenInfo {
         this.expiresAt = expiresAtMs;
 
         String[] parsedScopes = scope != null ? scope.split(" ") : new String[0];
-        Collections.addAll(scopes, parsedScopes);
-        scopes = Collections.unmodifiableSet(scopes);
+        scopes = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(parsedScopes)));
     }
 
     public String token() {
