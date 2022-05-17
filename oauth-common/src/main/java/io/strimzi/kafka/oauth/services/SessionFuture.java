@@ -4,6 +4,7 @@
  */
 package io.strimzi.kafka.oauth.services;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
 
 import java.util.concurrent.ExecutionException;
@@ -16,11 +17,13 @@ public class SessionFuture<T> implements Future<T> {
     private final Future<T> delegate;
     private final BearerTokenWithPayload token;
 
+    @SuppressFBWarnings("EI_EXPOSE_REP2")
     public SessionFuture(BearerTokenWithPayload token, Future<T> future) {
         this.token = token;
         this.delegate = future;
     }
 
+    @SuppressFBWarnings("EI_EXPOSE_REP")
     public BearerTokenWithPayload getToken() {
         return token;
     }

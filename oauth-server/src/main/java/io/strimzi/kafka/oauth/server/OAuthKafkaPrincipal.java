@@ -37,6 +37,7 @@ public final class OAuthKafkaPrincipal extends KafkaPrincipal {
         this.groups = groups == null ? null : Collections.unmodifiableSet(groups);
     }
 
+    @SuppressFBWarnings("EI_EXPOSE_REP2")
     public OAuthKafkaPrincipal(String principalType, String name, BearerTokenWithPayload jwt) {
         super(principalType, name);
         this.jwt = jwt;
@@ -45,10 +46,12 @@ public final class OAuthKafkaPrincipal extends KafkaPrincipal {
         this.groups = parsedGroups == null ? null : Collections.unmodifiableSet(parsedGroups);
     }
 
+    @SuppressFBWarnings("EI_EXPOSE_REP")
     public BearerTokenWithPayload getJwt() {
         return jwt;
     }
 
+    @SuppressFBWarnings("EI_EXPOSE_REP")
     public Set<String> getGroups() {
         return groups;
     }

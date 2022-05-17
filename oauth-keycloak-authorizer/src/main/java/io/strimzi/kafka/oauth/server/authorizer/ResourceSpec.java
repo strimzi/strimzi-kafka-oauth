@@ -96,14 +96,14 @@ public class ResourceSpec {
         for (String part: parts) {
             String[] subSpec = part.split(":");
             if (subSpec.length != 2) {
-                throw new RuntimeException("Failed to parse Resource: " + name + " - part doesn't follow TYPE:NAME pattern: " + part);
+                throw new IllegalArgumentException("Failed to parse Resource: " + name + " - part doesn't follow TYPE:NAME pattern: " + part);
             }
 
             String type = subSpec[0].toLowerCase(Locale.US);
             String pat = subSpec[1];
             if (type.equals("kafka-cluster")) {
                 if (spec.clusterName != null) {
-                    throw new RuntimeException("Failed to parse Resource: " + name + " - cluster part specified multiple times");
+                    throw new IllegalArgumentException("Failed to parse Resource: " + name + " - cluster part specified multiple times");
                 }
                 if (pat.endsWith("*")) {
                     spec.clusterName = pat.substring(0, pat.length() - 1);
@@ -115,7 +115,7 @@ public class ResourceSpec {
             }
 
             if (spec.resourceName != null) {
-                throw new RuntimeException("Failed to parse Resource: " + name + " - resource part specified multiple times");
+                throw new IllegalArgumentException("Failed to parse Resource: " + name + " - resource part specified multiple times");
             }
 
             switch (type) {
@@ -135,7 +135,7 @@ public class ResourceSpec {
                     spec.resourceType = ResourceType.DELEGATION_TOKEN;
                     break;
                 default:
-                    throw new RuntimeException("Failed to parse Resource: " + name + " - unsupported segment type: " + subSpec[0]);
+                    throw new IllegalArgumentException("Failed to parse Resource: " + name + " - unsupported segment type: " + subSpec[0]);
             }
 
             if (pat.endsWith("*")) {

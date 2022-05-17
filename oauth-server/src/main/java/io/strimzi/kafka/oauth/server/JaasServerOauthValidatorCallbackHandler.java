@@ -6,6 +6,7 @@ package io.strimzi.kafka.oauth.server;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.strimzi.kafka.oauth.common.Config;
+import io.strimzi.kafka.oauth.common.ConfigException;
 import io.strimzi.kafka.oauth.common.ConfigUtil;
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
 import io.strimzi.kafka.oauth.common.IOUtil;
@@ -261,7 +262,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         String clientSecret = config.getValue(Config.OAUTH_CLIENT_SECRET);
 
         if (checkAudience && clientId == null) {
-            throw new RuntimeException("Oauth validator configuration error: OAUTH_CLIENT_ID must be set when OAUTH_CHECK_AUDIENCE is 'true'");
+            throw new ConfigException("Oauth validator configuration error: OAUTH_CLIENT_ID must be set when OAUTH_CHECK_AUDIENCE is 'true'");
         }
         String audience = checkAudience ? clientId : null;
         String customClaimCheck = config.getValue(ServerConfig.OAUTH_CUSTOM_CLAIM_CHECK);
@@ -465,7 +466,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         if (legacy != null) {
             log.warn("OAUTH_VALIDATION_SKIP_TYPE_CHECK is deprecated. Use OAUTH_CHECK_ACCESS_TOKEN_TYPE (with reverse meaning) instead.");
             if (config.getValue(ServerConfig.OAUTH_CHECK_ACCESS_TOKEN_TYPE) != null) {
-                throw new RuntimeException("OAuth validator configuration error: can't use both OAUTH_CHECK_ACCESS_TOKEN_TYPE and OAUTH_VALIDATION_SKIP_TYPE_CHECK");
+                throw new ConfigException("OAuth validator configuration error: can't use both OAUTH_CHECK_ACCESS_TOKEN_TYPE and OAUTH_VALIDATION_SKIP_TYPE_CHECK");
             }
         }
         return legacy != null ? !Config.isTrue(legacy) :
@@ -477,29 +478,29 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         String introspectUri = config.getValue(ServerConfig.OAUTH_INTROSPECTION_ENDPOINT_URI);
 
         if ((jwksUri == null) && (introspectUri == null)) {
-            throw new RuntimeException("OAuth validator configuration error: either OAUTH_JWKS_ENDPOINT_URI (for fast local signature validation) or OAUTH_INTROSPECTION_ENDPOINT_URI (for using authorization server during validation) should be specified!");
+            throw new ConfigException("OAuth validator configuration error: either OAUTH_JWKS_ENDPOINT_URI (for fast local signature validation) or OAUTH_INTROSPECTION_ENDPOINT_URI (for using authorization server during validation) should be specified!");
         } else if ((jwksUri != null) && (introspectUri != null)) {
-            throw new RuntimeException("OAuth validator configuration error: only one of OAUTH_JWKS_ENDPOINT_URI (for fast local signature validation) and OAUTH_INTROSPECTION_ENDPOINT_URI (for using authorization server during validation) can be specified!");
+            throw new ConfigException("OAuth validator configuration error: only one of OAUTH_JWKS_ENDPOINT_URI (for fast local signature validation) and OAUTH_INTROSPECTION_ENDPOINT_URI (for using authorization server during validation) can be specified!");
         }
 
         if (jwksUri != null && !isJwt) {
-            throw new RuntimeException("OAuth validator configuration error: OAUTH_JWKS_ENDPOINT_URI (for fast local signature validation) is not compatible with OAUTH_ACCESS_TOKEN_IS_JWT=false");
+            throw new ConfigException("OAuth validator configuration error: OAUTH_JWKS_ENDPOINT_URI (for fast local signature validation) is not compatible with OAUTH_ACCESS_TOKEN_IS_JWT=false");
         }
     }
 
     private void validateIssuerUri(String validIssuerUri) {
         if (validIssuerUri == null && config.getValueAsBoolean(ServerConfig.OAUTH_CHECK_ISSUER, true)) {
-            throw new RuntimeException("OAuth validator configuration error: OAUTH_VALID_ISSUER_URI must be set or OAUTH_CHECK_ISSUER has to be set to 'false'");
+            throw new ConfigException("OAuth validator configuration error: OAUTH_VALID_ISSUER_URI must be set or OAUTH_CHECK_ISSUER has to be set to 'false'");
         }
     }
 
     private void validateFallbackUsernameParameters(String usernameClaim, String fallbackUsernameClaim, String fallbackUsernamePrefix) {
         if (fallbackUsernameClaim != null && usernameClaim == null) {
-            throw new RuntimeException("OAuth validator configuration error: OAUTH_USERNAME_CLAIM must be set when OAUTH_FALLBACK_USERNAME_CLAIM is set");
+            throw new ConfigException("OAuth validator configuration error: OAUTH_USERNAME_CLAIM must be set when OAUTH_FALLBACK_USERNAME_CLAIM is set");
         }
 
         if (fallbackUsernamePrefix != null && fallbackUsernameClaim == null) {
-            throw new RuntimeException("OAuth validator configuration error: OAUTH_FALLBACK_USERNAME_CLAIM must be set when OAUTH_FALLBACK_USERNAME_PREFIX is set");
+            throw new ConfigException("OAuth validator configuration error: OAUTH_FALLBACK_USERNAME_CLAIM must be set when OAUTH_FALLBACK_USERNAME_PREFIX is set");
         }
     }
 

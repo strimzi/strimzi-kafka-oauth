@@ -5,6 +5,7 @@
 package io.strimzi.kafka.oauth.validator;
 
 import io.strimzi.kafka.oauth.services.CurrentTime;
+import io.strimzi.kafka.oauth.services.ServiceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -119,7 +120,7 @@ public class BackOffTaskScheduler {
             // Release taskSchedule lock
             releaseTaskScheduleLock();
 
-            throw new RuntimeException("Failed to re-schedule the task", e);
+            throw new ServiceException("Failed to re-schedule the task", e);
         }
     }
 

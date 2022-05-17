@@ -6,16 +6,12 @@ package io.strimzi.kafka.oauth.validator;
 
 import java.util.Locale;
 
-public class TokenValidationException extends RuntimeException {
+public class TokenValidationException extends ValidationException {
 
     private String status;
 
     {
         status(Status.INVALID_TOKEN);
-    }
-
-    public TokenValidationException() {
-        super();
     }
 
     public TokenValidationException(String message) {
@@ -25,15 +21,6 @@ public class TokenValidationException extends RuntimeException {
     public TokenValidationException(String message, Throwable cause) {
         super(message, cause);
     }
-
-    public TokenValidationException(Throwable cause) {
-        super(cause);
-    }
-
-    protected TokenValidationException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
-        super(message, cause, enableSuppression, writableStackTrace);
-    }
-
 
     TokenValidationException status(Status status) {
         this.status = status.value();

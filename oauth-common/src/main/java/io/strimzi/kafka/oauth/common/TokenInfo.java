@@ -6,9 +6,9 @@ package io.strimzi.kafka.oauth.common;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 
 public class TokenInfo {
@@ -26,13 +26,14 @@ public class TokenInfo {
     private final String principal;
     private final Set<String> groups;
     private final long issuedAt;
-    private Set<String> scopes = new HashSet<>();
+    private Set<String> scopes = Collections.emptySet();
     private ObjectNode payload;
 
     public TokenInfo(JsonNode payload, String token, String principal) {
         this(payload, token, principal, null);
     }
 
+    @SuppressFBWarnings("EI_EXPOSE_REP2")
     public TokenInfo(JsonNode payload, String token, String principal, Set<String> groups) {
         this(token,
                 payload.has(SCOPE) ? payload.get(SCOPE).asText() : null,
@@ -63,6 +64,7 @@ public class TokenInfo {
         return token;
     }
 
+    @SuppressFBWarnings("EI_EXPOSE_REP")
     public Set<String> scope() {
         return scopes;
     }
@@ -75,6 +77,7 @@ public class TokenInfo {
         return principal;
     }
 
+    @SuppressFBWarnings("EI_EXPOSE_REP")
     public Set<String> groups() {
         return groups;
     }
@@ -83,6 +86,7 @@ public class TokenInfo {
         return issuedAt;
     }
 
+    @SuppressFBWarnings("EI_EXPOSE_REP")
     public ObjectNode payload() {
         return payload;
     }

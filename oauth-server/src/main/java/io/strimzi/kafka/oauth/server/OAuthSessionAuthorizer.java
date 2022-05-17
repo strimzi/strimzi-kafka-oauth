@@ -6,6 +6,7 @@ package io.strimzi.kafka.oauth.server;
 
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
 import io.strimzi.kafka.oauth.common.Config;
+import io.strimzi.kafka.oauth.common.ConfigException;
 import io.strimzi.kafka.oauth.common.TimeUtil;
 import org.apache.kafka.common.Endpoint;
 import org.apache.kafka.common.acl.AclBinding;
@@ -86,14 +87,14 @@ public class OAuthSessionAuthorizer implements Authorizer {
                 delegate.configure(configs);
 
             } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
-                throw new RuntimeException("Failed to instantiate and configure the delegate authorizer: " + className, e);
+                throw new ConfigException("Failed to instantiate and configure the delegate authorizer: " + className, e);
             }
         } else {
             String grantByDefault = (String) configs.get(ServerConfig.STRIMZI_AUTHORIZER_GRANT_WHEN_NO_DELEGATE);
             boolean isGrantByDefault = grantByDefault != null && Config.isTrue(grantByDefault);
 
             if (!isGrantByDefault) {
-                throw new RuntimeException("When no 'strimzi.authorizer.delegate.class.name' is specified, 'strimzi.authorizer.grant.when.no.delegate=true' has to be specified");
+                throw new ConfigException("When no 'strimzi.authorizer.delegate.class.name' is specified, 'strimzi.authorizer.grant.when.no.delegate=true' has to be specified");
             }
         }
 

@@ -4,6 +4,7 @@
  */
 package io.strimzi.examples.consumer;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.strimzi.kafka.oauth.client.ClientConfig;
 import io.strimzi.kafka.oauth.common.Config;
 import io.strimzi.kafka.oauth.common.ConfigProperties;
@@ -21,6 +22,7 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Properties;
 
+@SuppressFBWarnings("THROWS_METHOD_THROWS_RUNTIMEEXCEPTION")
 public class ExampleConsumer {
 
     public static void main(String[] args) {

@@ -272,14 +272,14 @@ public class OAuthIntrospectionValidator implements TokenValidator {
 
         } catch (IOException e) {
             addIntrospectHttpMetricErrorTime(e, requestStartTime);
-            throw new RuntimeException("Failed to introspect token - send, fetch or parse failed: ", e);
+            throw new ValidationException("Failed to introspect token - send, fetch or parse failed: ", e);
         }
 
         boolean active;
         try {
             active = response.get("active").asBoolean();
         } catch (Exception e) {
-            throw new RuntimeException("Failed to introspect token - invalid response: \"active\" attribute is missing or not a boolean (" + response.get("active") + ")");
+            throw new ValidationException("Failed to introspect token - invalid response: \"active\" attribute is missing or not a boolean (" + response.get("active") + ")");
         }
 
         if (!active) {
@@ -312,7 +312,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
                 principal = principalExtractor.getSub(response);
             }
             if (principal == null) {
-                throw new RuntimeException("Failed to extract principal - check usernameClaim, fallbackUsernameClaim configuration");
+                throw new ValidationException("Failed to extract principal - check usernameClaim, fallbackUsernameClaim configuration");
             }
         }
         performOptionalChecks(response);
@@ -354,7 +354,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
 
         } catch (IOException e) {
             addUserInfoHttpMetricErrorTime(e, requestStartTime);
-            throw new RuntimeException("Request to User Info Endpoint failed: ", e);
+            throw new ValidationException("Request to User Info Endpoint failed: ", e);
         }
 
         return response;

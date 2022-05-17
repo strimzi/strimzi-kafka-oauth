@@ -39,13 +39,13 @@ public class SSLUtil {
                 try (ByteArrayInputStream is = new ByteArrayInputStream(truststoreData.getBytes(StandardCharsets.UTF_8))) {
                     store = loadPEMCertificates(is);
                 } catch (Exception e) {
-                    throw new RuntimeException("Failed to load PEM truststore: " + truststore, e);
+                    throw new ConfigException("Failed to load PEM truststore: " + truststore, e);
                 }
             } else if (truststore != null) {
                 try (BufferedInputStream is = new BufferedInputStream(new FileInputStream(truststore))) {
                     store = loadPEMCertificates(is);
                 } catch (Exception e) {
-                    throw new RuntimeException("Failed to load PEM truststore: " + truststore, e);
+                    throw new ConfigException("Failed to load PEM truststore: " + truststore, e);
                 }
             } else {
                 return null;
@@ -55,7 +55,7 @@ public class SSLUtil {
                 store = KeyStore.getInstance(type != null ? type : KeyStore.getDefaultType());
                 store.load(is, password.toCharArray());
             } catch (Exception e) {
-                throw new RuntimeException("Failed to load truststore: " + truststore, e);
+                throw new ConfigException("Failed to load truststore: " + truststore, e);
             }
         } else {
             return null;
@@ -68,7 +68,7 @@ public class SSLUtil {
 
             tm = getTrustManager(tmf);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to initialise truststore: " + truststore, e);
+            throw new ConfigException("Failed to initialise truststore: " + truststore, e);
         }
 
         SecureRandom random = null;
@@ -76,7 +76,7 @@ public class SSLUtil {
             try {
                 random = SecureRandom.getInstance(rnd);
             } catch (Exception e) {
-                throw new RuntimeException("Failed to initialise secure random: " + rnd, e);
+                throw new ConfigException("Failed to initialise secure random: " + rnd, e);
             }
         }
 
@@ -85,7 +85,7 @@ public class SSLUtil {
             sslContext = SSLContext.getInstance("TLS");
             sslContext.init(null, new TrustManager[] {tm}, random);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to initialise ssl context", e);
+            throw new ConfigException("Failed to initialise ssl context", e);
         }
 
         return sslContext.getSocketFactory();
