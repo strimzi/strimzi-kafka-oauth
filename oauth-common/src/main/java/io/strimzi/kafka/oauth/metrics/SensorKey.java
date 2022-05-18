@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 
 /**
  * The SensorKey represents and uniquely identifies the Kafka Metrics API Sensor,
@@ -25,6 +26,8 @@ import java.util.Objects;
  *
  * The SensorKey is composed of the {@code name} and the {@code attributes}.
  * <br><br>
+ * The following attributes are required: "context", "kind", "host", "path".
+ * <br><br>
  * As a convention, only use alphanumeric characters and an underscore (_) in the name and the attribute keys.
  * Note, that names and attributes become part of the JMX ObjectName when metrics are plugged into the JMX MBeanServer.
  * Attribute values containing some other characters (like ':', or '/') will become quoted when converted to JMX ObjectNames.
@@ -40,11 +43,13 @@ import java.util.Objects;
  *     </ul>
  *
  *     <ul><li> Name: <em>validation_requests </em></li>
- *         <li> Attributes: <em>context=e8af84dd, kind=introspect, host=localhost:443, path=/introspect, outcome=error, error_type=other</em></li>
- *         <li> JMX ObjectName: <em>strimzi.oauth:type=validation_requests,context=e8af84dd,kind=introspect,host="localhost:443",path="/introspect",outcome=error,error_type=other</em></li>
+ *         <li> Attributes: <em>context=e8af84dd, kind=introspect, host=localhost:443, path=/introspect, mechanism=PLAIN, outcome=error, error_type=other</em></li>
+ *         <li> JMX ObjectName: <em>strimzi.oauth:type=validation_requests,context=e8af84dd,kind=introspect,host="localhost:443",path="/introspect",mechanism=PLAIN,outcome=error,error_type=other</em></li>
  *     </ul>
  */
 public class SensorKey {
+
+    private static final String[] SORTED_ATTRIBUTES = {"context", "kind", "host", "path"};
 
     final String name;
     final Map<String, String> attributes;
@@ -85,8 +90,26 @@ public class SensorKey {
 
     private SensorKey(String name, Map<String, String> attributes) {
         this.name = name;
-        this.attributes = Collections.unmodifiableMap(attributes);
+        this.attributes = Collections.unmodifiableMap(sortAttributes(attributes));
         this.id = name + attributes;
+    }
+
+    private LinkedHashMap<String, String> sortAttributes(Map<String, String> attributes) {
+        TreeMap<String, String> ordered = new TreeMap<>(attributes);
+        LinkedHashMap<String, String> result = new LinkedHashMap<>();
+        for (String key: SORTED_ATTRIBUTES) {
+            result.put(key, requireKey(ordered, key));
+        }
+        result.putAll(ordered);
+        return result;
+    }
+
+    private String requireKey(TreeMap<String, String> ordered, String key) {
+        String value = ordered.remove(key);
+        if (value == null) {
+            throw new IllegalArgumentException("The required attribute is missing: " + key);
+        }
+        return value;
     }
 
     /**
