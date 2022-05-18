@@ -82,7 +82,7 @@
 
         <kafka.version>3.1.0</kafka.version>
         <jackson.version>2.10.5</jackson.version>
-        <jackson.databind.version>2.10.5.1</jackson.databind.version>
+        <jackson.databind.version>2.12.6.1</jackson.databind.version>
         <jsonpath.version>2.6.0</jsonpath.version>
         <junit.version>4.13.1</junit.version>
         <slf4j.version>1.7.26</slf4j.version>
