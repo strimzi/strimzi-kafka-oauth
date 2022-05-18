@@ -11,7 +11,10 @@
     <packaging>pom</packaging>
 
     <modules>
+        <module>common</module>
+        <module>mock-oauth-server</module>
         <module>docker</module>
+        <module>metrics-tests</module>
         <module>keycloak-auth-tests</module>
         <module>keycloak-authz-tests</module>
         <module>keycloak-errors-tests</module>
@@ -54,16 +57,16 @@
                 <scope>import</scope>
             </dependency>
             <dependency>
+                <groupId>io.strimzi.oauth.testsuite</groupId>
+                <artifactId>common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.arquillian</groupId>
                 <artifactId>arquillian-universe</artifactId>
                 <version>${version.arquillian_universe}</version>
                 <scope>import</scope>
                 <type>pom</type>
-            </dependency>
-            <dependency>
-                <groupId>io.strimzi.oauth.testsuite</groupId>
-                <artifactId>jwt-over-plain-keycloak-authz-test</artifactId>
-                <version>1.0.0-SNAPSHOT</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -152,6 +155,25 @@
                         </goals>
                         <configuration>
                             <outputDirectory>target/keycloak/certs</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${basedir}/../examples/docker/keycloak/certificates</directory>
+                                    <includes>
+                                        <include>keycloak.server.keystore.p12</include>
+                                    </includes>
+                                    <filtering>false</filtering>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copy-mockoauth-keystore</id>
+                        <phase>install</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>target/mockoauth/certs</outputDirectory>
                             <resources>
                                 <resource>
                                     <directory>${basedir}/../examples/docker/keycloak/certificates</directory>

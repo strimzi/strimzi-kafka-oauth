@@ -4,13 +4,18 @@
  */
 package io.strimzi.kafka.oauth.server.plain;
 
+import io.strimzi.kafka.oauth.common.Config;
+import io.strimzi.kafka.oauth.common.MetricsHandler;
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
 import io.strimzi.kafka.oauth.common.HttpException;
 import io.strimzi.kafka.oauth.common.OAuthAuthenticator;
+import io.strimzi.kafka.oauth.metrics.SensorKeyProducer;
+import io.strimzi.kafka.oauth.server.plain.metrics.PlainHttpSensorKeyProducer;
 import io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler;
 import io.strimzi.kafka.oauth.server.OAuthKafkaPrincipal;
 import io.strimzi.kafka.oauth.server.OAuthSaslAuthenticationException;
 import io.strimzi.kafka.oauth.server.ServerConfig;
+import io.strimzi.kafka.oauth.services.OAuthMetrics;
 import io.strimzi.kafka.oauth.services.Services;
 import org.apache.kafka.common.errors.SaslAuthenticationException;
 import org.apache.kafka.common.security.auth.KafkaPrincipal;
@@ -115,6 +120,11 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
     private String scope;
     private String audience;
 
+    private OAuthMetrics metrics;
+    private boolean enableMetrics;
+    private SensorKeyProducer authHttpSensorKeyProducer;
+    private final MetricsHandler authMetrics = new PlainMetricsHandler();
+
     @Override
     public void configure(Map<String, ?> configs, String saslMechanism, List<AppConfigurationEntry> jaasConfigEntries) {
 
@@ -138,14 +148,30 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
         scope = config.getValue(ServerConfig.OAUTH_SCOPE);
         audience = config.getValue(ServerConfig.OAUTH_AUDIENCE);
 
-        super.configure(configs, "OAUTHBEARER", jaasConfigEntries);
+        super.delegatedConfigure(configs, "PLAIN", jaasConfigEntries);
 
-        log.debug("Configured OAuth over PLAIN:\n    tokenEndpointUri: " + tokenEndpointUri
+        String configId = getConfigId();
+        configureMetrics(config);
+
+        authHttpSensorKeyProducer = tokenEndpointUri != null ? new PlainHttpSensorKeyProducer(configId, tokenEndpointUri) : null;
+
+        log.debug("Configured OAuth over PLAIN:"
+                + "\n    configId: " + configId
+                + "\n    tokenEndpointUri: " + tokenEndpointUri
                 + "\n    scope: " + scope
-                + "\n    audience: " + audience);
+                + "\n    audience: " + audience
+                + "\n    enableMetrics: " + enableMetrics);
 
         if (tokenEndpoint == null) {
             log.debug("tokenEndpointUri is not configured - client_credentials will not be available, password parameter of SASL/PLAIN will automatically be treated as an access token (no '$accessToken:' prefix needed)");
+        }
+    }
+
+    private void configureMetrics(ServerConfig config) {
+        enableMetrics = config.getValueAsBoolean(Config.OAUTH_ENABLE_METRICS, false);
+        if (enableMetrics) {
+            // Services is initialised by super
+            metrics = Services.getInstance().getMetrics();
         }
     }
 
@@ -203,40 +229,82 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
     }
 
     private void authenticate(String username, String password) throws UnsupportedCallbackException, IOException {
-        final String accessTokenPrefix = "$accessToken:";
 
-        boolean checkUsernameMatch = false;
-        String accessToken;
+        long requestStartTime = System.currentTimeMillis();
 
-        if (password != null && password.startsWith(accessTokenPrefix)) {
-            accessToken = password.substring(accessTokenPrefix.length());
-            checkUsernameMatch = true;
-        } else if (password != null && tokenEndpointUri == null) {
-            accessToken = password;
-            checkUsernameMatch = true;
-        } else {
-            accessToken = OAuthAuthenticator.loginWithClientSecret(tokenEndpointUri, getSocketFactory(), getVerifier(),
-                    username, password, isJwt(), getPrincipalExtractor(), scope, audience, getConnectTimeout(), getReadTimeout())
-                    .token();
+        try {
+            final String accessTokenPrefix = "$accessToken:";
+
+            boolean checkUsernameMatch = false;
+            String accessToken;
+
+            if (password != null && password.startsWith(accessTokenPrefix)) {
+                accessToken = password.substring(accessTokenPrefix.length());
+                checkUsernameMatch = true;
+            } else if (password != null && tokenEndpointUri == null) {
+                accessToken = password;
+                checkUsernameMatch = true;
+            } else if (tokenEndpointUri != null) {
+                accessToken = OAuthAuthenticator.loginWithClientSecret(tokenEndpointUri, getSocketFactory(), getVerifier(),
+                        username, password, isJwt(), getPrincipalExtractor(), scope, audience, getConnectTimeout(), getReadTimeout(), authMetrics)
+                        .token();
+            } else {
+                throw new RuntimeException("Empty password where access token was expected");
+            }
+
+            OAuthBearerValidatorCallback[] callbacks = new OAuthBearerValidatorCallback[]{new OAuthBearerValidatorCallback(accessToken)};
+            super.delegatedHandle(callbacks);
+
+            OAuthBearerToken token = callbacks[0].token();
+            if (token == null) {
+                throw new RuntimeException("Authentication with OAuth token has failed (no token returned)");
+            }
+
+            if (checkUsernameMatch) {
+                if (!username.equals(token.principalName())) {
+                    throw new SaslAuthenticationException("Username doesn't match the token");
+                }
+            }
+
+            OAuthKafkaPrincipal kafkaPrincipal = new OAuthKafkaPrincipal(KafkaPrincipal.USER_TYPE,
+                    token.principalName(), (BearerTokenWithPayload) token);
+
+            Services.getInstance().getCredentials().storeCredentials(username, kafkaPrincipal);
+
+            addSuccessTime(requestStartTime);
+
+        } catch (Throwable e) {
+            addErrorTime(e, requestStartTime);
+            throw e;
         }
+    }
 
-        OAuthBearerValidatorCallback[] callbacks = new OAuthBearerValidatorCallback[] {new OAuthBearerValidatorCallback(accessToken)};
-        super.handle(callbacks);
-
-        OAuthBearerToken token = callbacks[0].token();
-        if (token == null) {
-            throw new RuntimeException("Authentication with OAuth token has failed (no token returned)");
+    private void addSuccessTime(long startTimeMs) {
+        if (enableMetrics) {
+            metrics.addTime(validationSensorKeyProducer.successKey(), System.currentTimeMillis() - startTimeMs);
         }
+    }
 
-        if (checkUsernameMatch) {
-            if (!username.equals(token.principalName())) {
-                throw new SaslAuthenticationException("Username doesn't match the token");
+    private void addErrorTime(Throwable e, long startTimeMs) {
+        if (enableMetrics) {
+            metrics.addTime(validationSensorKeyProducer.errorKey(e), System.currentTimeMillis() - startTimeMs);
+        }
+    }
+
+    class PlainMetricsHandler implements MetricsHandler {
+
+        @Override
+        public void addSuccessRequestTime(long millis) {
+            if (enableMetrics) {
+                metrics.addTime(authHttpSensorKeyProducer.successKey(), millis);
             }
         }
 
-        OAuthKafkaPrincipal kafkaPrincipal = new OAuthKafkaPrincipal(KafkaPrincipal.USER_TYPE,
-                token.principalName(), (BearerTokenWithPayload) token);
-
-        Services.getInstance().getCredentials().storeCredentials(username, kafkaPrincipal);
+        @Override
+        public void addErrorRequestTime(Throwable e, long millis) {
+            if (enableMetrics) {
+                metrics.addTime(authHttpSensorKeyProducer.errorKey(e), millis);
+            }
+        }
     }
 }

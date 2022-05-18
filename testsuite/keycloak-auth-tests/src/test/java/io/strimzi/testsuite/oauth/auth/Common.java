@@ -11,16 +11,10 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.regex.Pattern;
 
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
 
@@ -47,6 +41,9 @@ public class Common {
         p.setProperty(ProducerConfig.ACKS_CONFIG, "all");
         p.setProperty(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, "5000");
         p.setProperty(ProducerConfig.RETRIES_CONFIG, "0");
+
+        // To ease debugging
+        p.setProperty(ProducerConfig.MAX_BLOCK_MS_CONFIG, "600000");
     }
 
     static Properties buildConsumerConfigOAuthBearer(String kafkaBootstrap, Map<String, String> oauthConfig) {
@@ -92,6 +89,9 @@ public class Common {
         p.setProperty(ConsumerConfig.GROUP_ID_CONFIG, "consumer-group");
         p.setProperty(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "10");
         p.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
+
+        // To ease debugging
+        //p.setProperty(ConsumerConfig.DEFAULT_API_TIMEOUT_MS_CONFIG, "600000");
     }
 
     static Properties buildCommonConfigPlain(Map<String, String> plainConfig) {
@@ -152,42 +152,4 @@ public class Common {
     }
 
 
-    /**
-     * Get Kafka log by executing 'docker logs kafka', then extract only the entries
-     * (possibly multi-line when there's a stacktrace) that contain the passed filter.
-     *
-     * @param filter The string to look for (not a regex) in the log
-     * @return A list of lines from the log that match the filter (logging entries that contain the filter string)
-     */
-    public static List<String> getKafkaLogsForString(String filter) {
-        try {
-            boolean inmatch = false;
-            ArrayList result = new ArrayList();
-            Pattern pat = Pattern.compile("\\[\\d\\d\\d\\d-\\d\\d-\\d\\d .*");
-
-            Process p = Runtime.getRuntime().exec(new String[] {"docker", "logs", "kafka"});
-            try (BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream(), StandardCharsets.ISO_8859_1))) {
-                String line;
-                while ((line = r.readLine()) != null) {
-                    // is new logging entry?
-                    if (pat.matcher(line).matches()) {
-                        // contains the err string?
-                        inmatch = line.contains(filter);
-                        if (inmatch) {
-                            result.add(line);
-                        }
-                    } else if (inmatch) {
-                        result.add(line);
-                    } else {
-                        inmatch = false;
-                    }
-                }
-            }
-
-            return result;
-
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to get 'kafka' log", e);
-        }
-    }
 }

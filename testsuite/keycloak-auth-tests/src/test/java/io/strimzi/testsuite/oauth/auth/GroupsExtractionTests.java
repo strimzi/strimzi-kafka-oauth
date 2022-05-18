@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import static io.strimzi.testsuite.oauth.auth.Common.buildProducerConfigOAuthBearer;
-import static io.strimzi.testsuite.oauth.auth.Common.getKafkaLogsForString;
+import static io.strimzi.testsuite.oauth.common.TestUtil.getKafkaLogsForString;
 
 
 public class GroupsExtractionTests {

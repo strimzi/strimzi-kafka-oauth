@@ -4,10 +4,16 @@
  */
 package io.strimzi.kafka.oauth.client;
 
+import io.strimzi.kafka.oauth.common.MetricsHandler;
 import io.strimzi.kafka.oauth.common.Config;
 import io.strimzi.kafka.oauth.common.ConfigUtil;
 import io.strimzi.kafka.oauth.common.PrincipalExtractor;
 import io.strimzi.kafka.oauth.common.TokenInfo;
+import io.strimzi.kafka.oauth.client.metrics.ClientAuthenticationSensorKeyProducer;
+import io.strimzi.kafka.oauth.client.metrics.ClientHttpSensorKeyProducer;
+import io.strimzi.kafka.oauth.metrics.SensorKeyProducer;
+import io.strimzi.kafka.oauth.services.OAuthMetrics;
+import io.strimzi.kafka.oauth.services.Services;
 import org.apache.kafka.common.security.auth.AuthenticateCallbackHandler;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerToken;
@@ -59,6 +65,13 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
 
     private int connectTimeout;
     private int readTimeout;
+
+    private boolean enableMetrics;
+    private OAuthMetrics metrics;
+    private SensorKeyProducer authSensorKeyProducer;
+    private SensorKeyProducer tokenSensorKeyProducer;
+
+    private final ClientMetricsHandler authenticatorMetrics = new ClientMetricsHandler();
 
     @Override
     public void configure(Map<String, ?> configs, String saslMechanism, List<AppConfigurationEntry> jaasConfigEntries) {
@@ -122,8 +135,12 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
             throw new RuntimeException("Invalid value configured for OAUTH_MAX_TOKEN_EXPIRY_SECONDS: " + maxTokenExpirySeconds + " (should be at least 60)");
         }
 
+        String configId = configureMetrics(configs);
+
         if (LOG.isDebugEnabled()) {
-            LOG.debug("Configured JaasClientOauthLoginCallbackHandler:\n    token: " + mask(token)
+            LOG.debug("Configured JaasClientOauthLoginCallbackHandler:"
+                    + "\n    configId: " + configId
+                    + "\n    token: " + mask(token)
                     + "\n    refreshToken: " + mask(refreshToken)
                     + "\n    tokenEndpointUri: " + tokenEndpoint
                     + "\n    clientId: " + clientId
@@ -134,8 +151,25 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
                     + "\n    maxTokenExpirySeconds: " + maxTokenExpirySeconds
                     + "\n    principalExtractor: " + principalExtractor
                     + "\n    connectTimeout: " + connectTimeout
-                    + "\n    readTimeout: " + readTimeout);
+                    + "\n    readTimeout: " + readTimeout
+                    + "\n    enableMetrics: " + enableMetrics);
         }
+    }
+
+    private String configureMetrics(Map<String, ?> configs) {
+        String configId = config.getValue(Config.OAUTH_CONFIG_ID, "client");
+        enableMetrics = config.getValueAsBoolean(Config.OAUTH_ENABLE_METRICS, false);
+
+        authSensorKeyProducer = new ClientAuthenticationSensorKeyProducer(configId, tokenEndpoint);
+        tokenSensorKeyProducer = tokenEndpoint != null ? new ClientHttpSensorKeyProducer(configId, tokenEndpoint) : null;
+
+        if (!Services.isAvailable()) {
+            Services.configure(configs);
+        }
+        if (enableMetrics) {
+            metrics = Services.getInstance().getMetrics();
+        }
+        return configId;
     }
 
     @Override
@@ -161,15 +195,23 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
 
         TokenInfo result;
 
-        if (token != null) {
-            // we could check if it's a JWT - in that case we could check if it's expired
-            result = loginWithAccessToken(token, isJwt, principalExtractor);
-        } else if (refreshToken != null) {
-            result = loginWithRefreshToken(tokenEndpoint, socketFactory, hostnameVerifier, refreshToken, clientId, clientSecret, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout);
-        } else if (clientSecret != null) {
-            result = loginWithClientSecret(tokenEndpoint, socketFactory, hostnameVerifier, clientId, clientSecret, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout);
-        } else {
-            throw new IllegalStateException("Invalid oauth client configuration - no credentials");
+        long requestStartTime = System.currentTimeMillis();
+        try {
+            if (token != null) {
+                // we could check if it's a JWT - in that case we could check if it's expired
+                result = loginWithAccessToken(token, isJwt, principalExtractor);
+            } else if (refreshToken != null) {
+                result = loginWithRefreshToken(tokenEndpoint, socketFactory, hostnameVerifier, refreshToken, clientId, clientSecret, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout, authenticatorMetrics);
+            } else if (clientSecret != null) {
+                result = loginWithClientSecret(tokenEndpoint, socketFactory, hostnameVerifier, clientId, clientSecret, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout, authenticatorMetrics);
+            } else {
+                throw new IllegalStateException("Invalid oauth client configuration - no credentials");
+            }
+
+            addSuccessTime(requestStartTime);
+        } catch (Throwable t) {
+            addErrorTime(t, requestStartTime);
+            throw t;
         }
 
         TokenInfo finalResult = result;
@@ -204,5 +246,34 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
                 return finalResult.issuedAtMs();
             }
         });
+    }
+
+    private void addSuccessTime(long startTimeMs) {
+        if (enableMetrics) {
+            metrics.addTime(authSensorKeyProducer.successKey(), System.currentTimeMillis() - startTimeMs);
+        }
+    }
+
+    private void addErrorTime(Throwable e, long startTimeMs) {
+        if (enableMetrics) {
+            metrics.addTime(authSensorKeyProducer.errorKey(e), System.currentTimeMillis() - startTimeMs);
+        }
+    }
+
+    class ClientMetricsHandler implements MetricsHandler {
+
+        @Override
+        public void addSuccessRequestTime(long millis) {
+            if (enableMetrics) {
+                metrics.addTime(tokenSensorKeyProducer.successKey(), millis);
+            }
+        }
+
+        @Override
+        public void addErrorRequestTime(Throwable e, long millis) {
+            if (enableMetrics) {
+                metrics.addTime(tokenSensorKeyProducer.errorKey(e), millis);
+            }
+        }
     }
 }

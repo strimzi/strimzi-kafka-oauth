@@ -4,6 +4,7 @@
  */
 package io.strimzi.kafka.oauth.services;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.strimzi.kafka.oauth.validator.TokenValidator;
 
 import java.util.concurrent.ConcurrentHashMap;
@@ -11,9 +12,37 @@ import java.util.function.Supplier;
 
 public class Validators {
 
-    private final ConcurrentHashMap<ValidatorKey, TokenValidator> registry = new ConcurrentHashMap<>();
+    /**
+     * The registry of initialized TokenValidators
+     */
+    private final ConcurrentHashMap<ConfigurationKey, ValidatorEntry> registry = new ConcurrentHashMap<>();
 
-    public TokenValidator get(ValidatorKey key, Supplier<TokenValidator> factory) {
-        return registry.computeIfAbsent(key, k -> factory.get());
+    @SuppressFBWarnings("JLM_JSR166_UTILCONCURRENT_MONITOR")
+    public TokenValidator get(ConfigurationKey key, Supplier<TokenValidator> factory) {
+        synchronized (registry) {
+            ValidatorEntry previous = registry.get(key);
+            if (previous != null) {
+                // If key with the same configId exists already it has to have an equal validatorKey (the same configuration)
+                // In that case, the existing ValidatorEntry will be reused
+                if (!key.getValidatorKey().equals(previous.key.getValidatorKey())) {
+                    throw new RuntimeException("Configuration id " + key.getConfigId() + " with different configuration has already been assigned");
+                }
+                return previous.validator;
+            }
+
+            ValidatorEntry newEntry = new ValidatorEntry(key, factory.get());
+            registry.put(key, newEntry);
+            return newEntry.validator;
+        }
+    }
+
+    private static class ValidatorEntry {
+        final ConfigurationKey key;
+        final TokenValidator validator;
+
+        private ValidatorEntry(ConfigurationKey key, TokenValidator validator) {
+            this.key = key;
+            this.validator = validator;
+        }
     }
 }

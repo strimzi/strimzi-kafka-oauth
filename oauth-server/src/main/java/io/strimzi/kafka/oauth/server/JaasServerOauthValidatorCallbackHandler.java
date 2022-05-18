@@ -12,6 +12,11 @@ import io.strimzi.kafka.oauth.common.IOUtil;
 import io.strimzi.kafka.oauth.common.PrincipalExtractor;
 import io.strimzi.kafka.oauth.common.TimeUtil;
 import io.strimzi.kafka.oauth.jsonpath.JsonPathFilterQuery;
+import io.strimzi.kafka.oauth.metrics.IntrospectValidationSensorKeyProducer;
+import io.strimzi.kafka.oauth.metrics.JwksValidationSensorKeyProducer;
+import io.strimzi.kafka.oauth.metrics.SensorKeyProducer;
+import io.strimzi.kafka.oauth.services.ConfigurationKey;
+import io.strimzi.kafka.oauth.services.OAuthMetrics;
 import io.strimzi.kafka.oauth.services.Services;
 import io.strimzi.kafka.oauth.services.ValidatorKey;
 import io.strimzi.kafka.oauth.validator.JWTSignatureValidator;
@@ -31,6 +36,7 @@ import javax.net.ssl.SSLSocketFactory;
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.login.AppConfigurationEntry;
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -157,6 +163,10 @@ import static io.strimzi.kafka.oauth.common.TokenIntrospection.debugLogJWT;
  * <li><em>oauth.groups.claim.delimiter</em> When group extraction query returns a string containing multiple groups using a delimiter (comma separated values, for example), you can specify the delimiter to be used. Default value is <em>,</em> (comma)</li>
  * <li><em>oauth.connect.timeout.seconds</em> The maximum time to wait when establishing the connection to the authorization server. Default value is <em>60</em>.</li>
  * <li><em>oauth.read.timeout.seconds</em> The maximum time to wait to read the response from the authorization server after the connection has been established and request sent. Default value is <em>60</em>.</li>
+ * <li><em>oauth.fail.fast</em> Configure whether runtime errors at startup should result in Kafka broker shutdown. <br>
+ * For example, when configuring fast local token validation the JWKS endpoint is contacted during startup to retrieve the signing keys.
+ * If that fails, the Kafka broker shuts down with an error. By setting this to <em>false</em> the Kafka broker will not shutdown, and the validator will keep trying to fetch the JWKS keys. Default value is <em>true</em>.</li>
+ * <li><em>oauth.enable.metrics</em> Enable the OAuth metrics. Default value is <em>false</em>.</li>
  * </ul>
  * <p>
  * TLS <em>sasl.jaas.config</em> configuration for TLS connectivity with the authorization server:
@@ -202,12 +212,22 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
     private int readTimeout;
 
+    private boolean enableMetrics;
+
+    private OAuthMetrics metrics;
+    protected SensorKeyProducer validationSensorKeyProducer;
+
     @Override
     public void configure(Map<String, ?> configs, String saslMechanism, List<AppConfigurationEntry> jaasConfigEntries) {
 
-        if (!OAuthBearerLoginModule.OAUTHBEARER_MECHANISM.equals(saslMechanism))    {
+        if (!OAuthBearerLoginModule.OAUTHBEARER_MECHANISM.equals(saslMechanism)) {
             throw new IllegalArgumentException(String.format("Unexpected SASL mechanism: %s", saslMechanism));
         }
+
+        delegatedConfigure(configs, saslMechanism, jaasConfigEntries);
+    }
+
+    public void delegatedConfigure(Map<String, ?> configs, String saslMechanism, List<AppConfigurationEntry> jaasConfigEntries) {
 
         parseJaasConfig(jaasConfigEntries);
 
@@ -247,10 +267,6 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         String groupQuery = config.getValue(ServerConfig.OAUTH_GROUPS_CLAIM);
         String groupDelimiter = config.getValue(ServerConfig.OAUTH_GROUPS_CLAIM_DELIMITER);
 
-        if (!Services.isAvailable()) {
-            Services.configure(configs);
-        }
-
         String sslTruststore = config.getValue(Config.OAUTH_SSL_TRUSTSTORE_LOCATION);
         String sslPassword = config.getValue(Config.OAUTH_SSL_TRUSTSTORE_PASSWORD);
         String sslType = config.getValue(Config.OAUTH_SSL_TRUSTSTORE_TYPE);
@@ -259,20 +275,41 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         connectTimeout = ConfigUtil.getConnectTimeout(config);
         readTimeout = ConfigUtil.getReadTimeout(config);
 
+        String configId = config.getValue(Config.OAUTH_CONFIG_ID);
+
+        configureMetrics(configs);
+
         if (jwksUri != null) {
-            setupJWKSValidator(jwksUri, validIssuerUri, checkTokenType,
+            String effectiveConfigId = setupJWKSValidator(configId, jwksUri, validIssuerUri, checkTokenType,
                     usernameClaim, fallbackUsernameClaim, fallbackUsernamePrefix,
                     groupQuery, groupDelimiter, audience, customClaimCheck,
                     sslTruststore, sslPassword, sslType, sslRnd);
+
+            URI jwksEndpointUri = config.getValueAsURI(ServerConfig.OAUTH_JWKS_ENDPOINT_URI);
+            validationSensorKeyProducer = new JwksValidationSensorKeyProducer(effectiveConfigId, saslMechanism, jwksEndpointUri);
         } else {
-            setupIntrospectionValidator(validIssuerUri, usernameClaim, fallbackUsernameClaim, fallbackUsernamePrefix,
+            String effectiveConfigId = setupIntrospectionValidator(configId, validIssuerUri, usernameClaim, fallbackUsernameClaim, fallbackUsernamePrefix,
                     groupQuery, groupDelimiter, clientId, clientSecret, audience, customClaimCheck,
                     sslTruststore, sslPassword, sslType, sslRnd);
+
+            URI introspectionUri = config.getValueAsURI(ServerConfig.OAUTH_INTROSPECTION_ENDPOINT_URI);
+            validationSensorKeyProducer = new IntrospectValidationSensorKeyProducer(effectiveConfigId, saslMechanism, introspectionUri);
+        }
+    }
+
+    private void configureMetrics(Map<String, ?> configs) {
+        if (!Services.isAvailable()) {
+            Services.configure(configs);
+        }
+
+        enableMetrics = config.getValueAsBoolean(Config.OAUTH_ENABLE_METRICS, false);
+        if (enableMetrics) {
+            metrics = Services.getInstance().getMetrics();
         }
     }
 
     @SuppressWarnings("checkstyle:ParameterNumber")
-    private void setupIntrospectionValidator(String validIssuerUri, String usernameClaim, String fallbackUsernameClaim, String fallbackUsernamePrefix,
+    private String setupIntrospectionValidator(String configId, String validIssuerUri, String usernameClaim, String fallbackUsernameClaim, String fallbackUsernamePrefix,
                                              String groupQuery, String groupDelimiter, String clientId, String clientSecret, String audience, String customClaimCheck,
                                              String sslTruststore, String sslPassword, String sslType, String sslRnd) {
 
@@ -300,9 +337,13 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                 clientId,
                 clientSecret,
                 connectTimeout,
-                readTimeout);
+                readTimeout,
+                enableMetrics);
+
+        String effectiveConfigId = configId != null ? configId : vkey.getConfigIdHash();
 
         Supplier<TokenValidator> factory = () -> new OAuthIntrospectionValidator(
+                effectiveConfigId,
                 introspectionEndpoint,
                 socketFactory,
                 verifier,
@@ -317,13 +358,17 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                 audience,
                 customClaimCheck,
                 connectTimeout,
-                readTimeout);
+                readTimeout,
+                enableMetrics);
 
-        validator = Services.getInstance().getValidators().get(vkey, factory);
+        ConfigurationKey confKey = configId != null ? new ConfigurationKey(configId, vkey) : new ConfigurationKey(vkey.getConfigIdHash(), vkey);
+        validator = Services.getInstance().getValidators().get(confKey, factory);
+
+        return effectiveConfigId;
     }
 
     @SuppressWarnings("checkstyle:ParameterNumber")
-    private void setupJWKSValidator(String jwksUri, String validIssuerUri, boolean checkTokenType,
+    private String setupJWKSValidator(String configId, String jwksUri, String validIssuerUri, boolean checkTokenType,
                                     String usernameClaim, String fallbackUsernameClaim, String fallbackUsernamePrefix,
                                     String groupQuery, String groupDelimiter, String audience, String customClaimCheck,
                                     String sslTruststore, String sslPassword, String sslType, String sslRnd) {
@@ -331,6 +376,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         int jwksRefreshSeconds = config.getValueAsInt(ServerConfig.OAUTH_JWKS_REFRESH_SECONDS, 300);
         int jwksExpirySeconds = config.getValueAsInt(ServerConfig.OAUTH_JWKS_EXPIRY_SECONDS, 360);
         int jwksMinPauseSeconds = config.getValueAsInt(ServerConfig.OAUTH_JWKS_REFRESH_MIN_PAUSE_SECONDS, 1);
+        boolean failFast = config.getValueAsBoolean(ServerConfig.OAUTH_FAIL_FAST, true);
 
         ValidatorKey vkey = new ValidatorKey.JwtValidatorKey(
                 validIssuerUri,
@@ -352,9 +398,14 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                 jwksMinPauseSeconds,
                 checkTokenType,
                 connectTimeout,
-                readTimeout);
+                readTimeout,
+                enableMetrics,
+                failFast);
+
+        String effectiveConfigId = configId != null ? configId : vkey.getConfigIdHash();
 
         Supplier<TokenValidator> factory = () -> new JWTSignatureValidator(
+                effectiveConfigId,
                 jwksUri,
                 socketFactory,
                 verifier,
@@ -369,9 +420,14 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                 audience,
                 customClaimCheck,
                 connectTimeout,
-                readTimeout);
+                readTimeout,
+                enableMetrics,
+                failFast);
 
-        validator = Services.getInstance().getValidators().get(vkey, factory);
+        ConfigurationKey confKey = configId != null ? new ConfigurationKey(configId, vkey) : new ConfigurationKey(vkey.getConfigIdHash(), vkey);
+        validator = Services.getInstance().getValidators().get(confKey, factory);
+
+        return effectiveConfigId;
     }
 
     private void checkDeprecatedConfig() {
@@ -449,6 +505,19 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
     @Override
     public void handle(Callback[] callbacks) throws UnsupportedCallbackException {
+
+        long requestStartTime = System.currentTimeMillis();
+        try {
+            delegatedHandle(callbacks);
+
+            addValidationMetricSuccessTime(requestStartTime);
+        } catch (Throwable t) {
+            addValidationMetricErrorTime(t, requestStartTime);
+            throw t;
+        }
+    }
+
+    public void delegatedHandle(Callback[] callbacks) throws UnsupportedCallbackException {
         for (Callback callback : callbacks) {
             if (callback instanceof OAuthBearerValidatorCallback) {
                 handleCallback((OAuthBearerValidatorCallback) callback);
@@ -465,14 +534,15 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
         String token = callback.tokenValue();
 
-        debugLogToken(token);
-
         try {
+            debugLogToken(token);
+
             TokenInfo ti = validateToken(token);
             callback.token(new BearerTokenWithPayloadImpl(ti));
             if (log.isDebugEnabled()) {
                 log.debug("Set validated token on callback: " + callback.token());
             }
+
         } catch (TokenValidationException e) {
             handleError("Token validation failed for token: " + mask(token), e);
         } catch (RuntimeException e) {
@@ -633,6 +703,26 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
             return "BearerTokenWithPayloadImpl (principalName: " + ti.principal() + ", groups: " + ti.groups() + ", lifetimeMs: " +
                     ti.expiresAtMs() + " [" + TimeUtil.formatIsoDateTimeUTC(ti.expiresAtMs()) + " UTC], startTimeMs: " +
                     ti.issuedAtMs() + " [" + TimeUtil.formatIsoDateTimeUTC(ti.issuedAtMs()) + " UTC], scope: " + ti.scope() + ")";
+        }
+    }
+
+    protected String getConfigId() {
+        if (validator == null) {
+            throw new IllegalStateException("This method can only be invoked after the validator was configured");
+        }
+        return validator.getValidatorId();
+    }
+
+
+    private void addValidationMetricSuccessTime(long startTimeMs) {
+        if (enableMetrics) {
+            metrics.addTime(validationSensorKeyProducer.successKey(), System.currentTimeMillis() - startTimeMs);
+        }
+    }
+
+    private void addValidationMetricErrorTime(Throwable e, long startTimeMs) {
+        if (enableMetrics) {
+            metrics.addTime(validationSensorKeyProducer.errorKey(e), System.currentTimeMillis() - startTimeMs);
         }
     }
 }

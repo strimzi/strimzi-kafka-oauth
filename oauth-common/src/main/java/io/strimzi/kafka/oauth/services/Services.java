@@ -13,6 +13,8 @@ public class Services {
 
     private static Services services;
 
+    private final Map<String, ?> configs;
+
     private final Sessions sessions = new Sessions();
 
     private final Validators validators = new Validators();
@@ -21,8 +23,12 @@ public class Services {
 
     private final Credentials credentials = new Credentials();
 
-    public static void configure(Map<String, ?> configs) {
-        services = new Services();
+    private volatile OAuthMetrics metrics;
+
+    public static synchronized void configure(Map<String, ?> configs) {
+        if (services == null) {
+            services = new Services(configs);
+        }
     }
 
     public static Services getInstance() {
@@ -32,15 +38,16 @@ public class Services {
         return services;
     }
 
+    private Services(Map<String, ?> configs) {
+        this.configs = configs;
+    }
+
     public Validators getValidators() {
         return validators;
     }
 
     public static boolean isAvailable() {
         return services != null;
-    }
-
-    private Services() {
     }
 
     public Sessions getSessions() {
@@ -53,5 +60,16 @@ public class Services {
 
     public Credentials getCredentials() {
         return credentials;
+    }
+
+    public OAuthMetrics getMetrics() {
+        if (metrics == null) {
+            synchronized (Services.class) {
+                if (metrics == null) {
+                    metrics = new OAuthMetrics(configs);
+                }
+            }
+        }
+        return metrics;
     }
 }

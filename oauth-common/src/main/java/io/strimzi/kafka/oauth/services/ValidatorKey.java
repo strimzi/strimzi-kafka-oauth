@@ -4,8 +4,14 @@
  */
 package io.strimzi.kafka.oauth.services;
 
+import io.strimzi.kafka.oauth.common.IOUtil;
+
 import java.util.Objects;
 
+/**
+ * The class that holds the validator configuration and is used two compare different configurations for equality.
+ * It also calculates a unique identifier based on the configuration that is stable across application restarts.
+ */
 public class ValidatorKey {
 
     private final String validIssuerUri;
@@ -25,6 +31,9 @@ public class ValidatorKey {
 
     private final int connectTimeout;
     private final int readTimeout;
+    private final boolean enableMetrics;
+
+    private final String configIdHash;
 
     @SuppressWarnings("checkstyle:ParameterNumber")
     ValidatorKey(String validIssuerUri,
@@ -41,7 +50,8 @@ public class ValidatorKey {
             String sslRandom,
             boolean hasHostnameVerifier,
             int connectTimeout,
-            int readTimeout) {
+            int readTimeout,
+            boolean enableMetrics) {
 
         this.validIssuerUri = validIssuerUri;
         this.audience = audience;
@@ -58,6 +68,24 @@ public class ValidatorKey {
         this.hasHostnameVerifier = hasHostnameVerifier;
         this.connectTimeout = connectTimeout;
         this.readTimeout = readTimeout;
+        this.enableMetrics = enableMetrics;
+
+        this.configIdHash = IOUtil.hashForObjects(validIssuerUri,
+                audience,
+                customClaimCheck,
+                usernameClaim,
+                fallbackUsernameClaim,
+                fallbackUsernamePrefix,
+                groupQuery,
+                groupDelimiter,
+                sslTruststore,
+                sslStorePassword,
+                sslStoreType,
+                sslRandom,
+                hasHostnameVerifier,
+                connectTimeout,
+                readTimeout,
+                enableMetrics);
     }
 
     @Override
@@ -79,7 +107,8 @@ public class ValidatorKey {
                 Objects.equals(sslStoreType, that.sslStoreType) &&
                 Objects.equals(sslRandom, that.sslRandom) &&
                 Objects.equals(connectTimeout, that.connectTimeout) &&
-                Objects.equals(readTimeout, that.readTimeout);
+                Objects.equals(readTimeout, that.readTimeout) &&
+                Objects.equals(enableMetrics, that.enableMetrics);
     }
 
     @Override
@@ -98,9 +127,13 @@ public class ValidatorKey {
                 sslRandom,
                 hasHostnameVerifier,
                 connectTimeout,
-                readTimeout);
+                readTimeout,
+                enableMetrics);
     }
 
+    public String getConfigIdHash() {
+        return configIdHash;
+    }
 
     public static class JwtValidatorKey extends ValidatorKey {
 
@@ -109,6 +142,9 @@ public class ValidatorKey {
         private final int jwksExpirySeconds;
         private final int jwksRefreshMinPauseSeconds;
         private final boolean checkAccessTokenType;
+        private final boolean failFast;
+
+        private final String configIdHash;
 
         @SuppressWarnings("checkstyle:parameternumber")
         public JwtValidatorKey(String validIssuerUri,
@@ -131,7 +167,9 @@ public class ValidatorKey {
                                int jwksRefreshMinPauseSeconds,
                                boolean checkAccessTokenType,
                                int connectTimeout,
-                               int readTimeout) {
+                               int readTimeout,
+                               boolean enableMetrics,
+                               boolean failFast) {
 
             super(validIssuerUri,
                     audience,
@@ -147,12 +185,22 @@ public class ValidatorKey {
                     sslRandom,
                     hasHostnameVerifier,
                     connectTimeout,
-                    readTimeout);
+                    readTimeout,
+                    enableMetrics);
             this.jwksEndpointUri = jwksEndpointUri;
             this.jwksRefreshSeconds = jwksRefreshSeconds;
             this.jwksExpirySeconds = jwksExpirySeconds;
             this.jwksRefreshMinPauseSeconds = jwksRefreshMinPauseSeconds;
             this.checkAccessTokenType = checkAccessTokenType;
+            this.failFast = failFast;
+
+            this.configIdHash = IOUtil.hashForObjects(super.getConfigIdHash(),
+                    jwksEndpointUri,
+                    jwksRefreshSeconds,
+                    jwksExpirySeconds,
+                    jwksRefreshMinPauseSeconds,
+                    checkAccessTokenType,
+                    failFast);
         }
 
         @Override
@@ -165,12 +213,24 @@ public class ValidatorKey {
                     jwksExpirySeconds == that.jwksExpirySeconds &&
                     jwksRefreshMinPauseSeconds == that.jwksRefreshMinPauseSeconds &&
                     checkAccessTokenType == that.checkAccessTokenType &&
+                    failFast == that.failFast &&
                     Objects.equals(jwksEndpointUri, that.jwksEndpointUri);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(super.hashCode(), jwksEndpointUri, jwksRefreshSeconds, jwksExpirySeconds, jwksRefreshMinPauseSeconds, checkAccessTokenType);
+            return Objects.hash(super.hashCode(),
+                    jwksEndpointUri,
+                    jwksRefreshSeconds,
+                    jwksExpirySeconds,
+                    jwksRefreshMinPauseSeconds,
+                    checkAccessTokenType,
+                    failFast);
+        }
+
+        @Override
+        public String getConfigIdHash() {
+            return configIdHash;
         }
     }
 
@@ -181,6 +241,8 @@ public class ValidatorKey {
         private final String validTokenType;
         private final String clientId;
         private final String clientSecret;
+
+        private final String configIdHash;
 
         @SuppressWarnings("checkstyle:parameternumber")
         public IntrospectionValidatorKey(String validIssuerUri,
@@ -203,7 +265,8 @@ public class ValidatorKey {
                                   String clientId,
                                   String clientSecret,
                                   int connectTimeout,
-                                  int readTimeout) {
+                                  int readTimeout,
+                                  boolean enableMetrics) {
 
             super(validIssuerUri,
                     audience,
@@ -219,12 +282,20 @@ public class ValidatorKey {
                     sslRandom,
                     hasHostnameVerifier,
                     connectTimeout,
-                    readTimeout);
+                    readTimeout,
+                    enableMetrics);
             this.introspectionEndpoint = introspectionEndpoint;
             this.userInfoEndpoint = userInfoEndpoint;
             this.validTokenType = validTokenType;
             this.clientId = clientId;
             this.clientSecret = clientSecret;
+
+            this.configIdHash = IOUtil.hashForObjects(super.getConfigIdHash(),
+                    introspectionEndpoint,
+                    userInfoEndpoint,
+                    validTokenType,
+                    clientId,
+                    clientSecret);
         }
 
         @Override
@@ -242,7 +313,17 @@ public class ValidatorKey {
 
         @Override
         public int hashCode() {
-            return Objects.hash(super.hashCode(), introspectionEndpoint, userInfoEndpoint, validTokenType, clientId, clientSecret);
+            return Objects.hash(super.hashCode(),
+                    introspectionEndpoint,
+                    userInfoEndpoint,
+                    validTokenType,
+                    clientId,
+                    clientSecret);
+        }
+
+        @Override
+        public String getConfigIdHash() {
+            return configIdHash;
         }
     }
 }

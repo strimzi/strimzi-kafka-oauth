@@ -20,6 +20,10 @@ import io.strimzi.kafka.oauth.common.TimeUtil;
 import io.strimzi.kafka.oauth.common.TokenInfo;
 import io.strimzi.kafka.oauth.jsonpath.JsonPathFilterQuery;
 import io.strimzi.kafka.oauth.jsonpath.JsonPathQuery;
+import io.strimzi.kafka.oauth.metrics.JwksHttpSensorKeyProducer;
+import io.strimzi.kafka.oauth.metrics.SensorKeyProducer;
+import io.strimzi.kafka.oauth.services.OAuthMetrics;
+import io.strimzi.kafka.oauth.services.Services;
 import org.apache.kafka.common.utils.Time;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,10 +63,9 @@ public class JWTSignatureValidator implements TokenValidator {
 
     private static final Logger log = LoggerFactory.getLogger(JWTSignatureValidator.class);
 
-    private final DefaultJWSVerifierFactory verifierFactory = new DefaultJWSVerifierFactory();
+    private static final DefaultJWSVerifierFactory VERIFIER_FACTORY = new DefaultJWSVerifierFactory();
 
-    private final BackOffTaskScheduler fastScheduler;
-
+    private final String validatorId;
     private final URI keysUri;
     private final String issuerUri;
     private final int maxStaleSeconds;
@@ -83,9 +86,17 @@ public class JWTSignatureValidator implements TokenValidator {
     private Map<String, PublicKey> cache = Collections.emptyMap();
     private Map<String, PublicKey> oldCache = Collections.emptyMap();
 
+    private BackOffTaskScheduler fastScheduler;
+
+    private final boolean enableMetrics;
+    private final OAuthMetrics metrics;
+    private final SensorKeyProducer jwksHttpSensorKeyProducer;
+
     /**
      * Create a new instance.
-     *  @param keysEndpointUri The JWKS endpoint url at the authorization server
+     *
+     * @param validatorId A unique id to associate with this validator for the purpose of validator lifecycle and metrics tracking
+     * @param keysEndpointUri The JWKS endpoint url at the authorization server
      * @param socketFactory The optional SSL socket factory to use when establishing the connection to authorization server
      * @param verifier The optional hostname verifier used to validate the TLS certificate by the authorization server
      * @param principalExtractor The object used to extract the username from the JWT token
@@ -100,9 +111,12 @@ public class JWTSignatureValidator implements TokenValidator {
      * @param customClaimCheck The optional JSONPath filter query for additional custom claim checking
      * @param connectTimeoutSeconds The maximum time to wait for connection to authorization server to be established (in seconds)
      * @param readTimeoutSeconds The maximum time to wait for response from authorization server after connection has been established and request sent (in seconds)
+     * @param enableMetrics The switch that enables metrics collection
+     * @param failFast Should exception be thrown during initialisation if unable to retrieve JWKS keys
      */
     @SuppressWarnings("checkstyle:ParameterNumber")
-    public JWTSignatureValidator(String keysEndpointUri,
+    public JWTSignatureValidator(String validatorId,
+                                 String keysEndpointUri,
                                  SSLSocketFactory socketFactory,
                                  HostnameVerifier verifier,
                                  PrincipalExtractor principalExtractor,
@@ -116,8 +130,14 @@ public class JWTSignatureValidator implements TokenValidator {
                                  String audience,
                                  String customClaimCheck,
                                  int connectTimeoutSeconds,
-                                 int readTimeoutSeconds) {
+                                 int readTimeoutSeconds,
+                                 boolean enableMetrics,
+                                 boolean failFast) {
 
+        if (validatorId == null) {
+            throw new IllegalArgumentException("validatorId == null");
+        }
+        this.validatorId = validatorId;
 
         if (keysEndpointUri == null) {
             throw new IllegalArgumentException("keysEndpointUri == null");
@@ -162,21 +182,20 @@ public class JWTSignatureValidator implements TokenValidator {
         this.connectTimeout = connectTimeoutSeconds;
         this.readTimeout = readTimeoutSeconds;
 
-        // get the signing keys for signature validation before the first authorization requests start coming
-        // fail fast if keys refresh doesn't work - it means network issues or authorization server not responding
-        fetchKeys();
+        this.enableMetrics = enableMetrics;
+        metrics = enableMetrics ? Services.getInstance().getMetrics() : null;
 
-        // the single threaded executor for refreshing the keys
-        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(new DaemonThreadFactory());
+        jwksHttpSensorKeyProducer = new JwksHttpSensorKeyProducer(validatorId, keysUri);
 
-        // set up fast scheduler that refreshes keys on-demand, and keeps trying with exponential back-off until it succeeds
-        fastScheduler = new BackOffTaskScheduler(executor, refreshMinPauseSeconds, refreshSeconds, this::fetchKeys);
+        ScheduledExecutorService executor = setupExecutorAndFetchInitialKeys(refreshSeconds, refreshMinPauseSeconds, failFast);
 
         // set up periodic timer to trigger fastScheduler job every refreshSeconds
         setupRefreshKeysJob(executor, refreshSeconds);
 
         if (log.isDebugEnabled()) {
-            log.debug("Configured JWTSignatureValidator:\n    keysEndpointUri: " + keysEndpointUri
+            log.debug("Configured JWTSignatureValidator:"
+                    + "\n    validatorId: " + validatorId
+                    + "\n    keysEndpointUri: " + keysEndpointUri
                     + "\n    sslSocketFactory: " + socketFactory
                     + "\n    hostnameVerifier: " + hostnameVerifier
                     + "\n    principalExtractor: " + principalExtractor
@@ -191,8 +210,38 @@ public class JWTSignatureValidator implements TokenValidator {
                     + "\n    customClaimCheck: " + customClaimCheck
                     + "\n    connectTimeoutSeconds: " + connectTimeoutSeconds
                     + "\n    readTimeoutSeconds: " + readTimeoutSeconds
-            );
+                    + "\n    enableMetrics: " + enableMetrics
+                    + "\n    failFast: " + failFast);
         }
+    }
+
+    private ScheduledExecutorService setupExecutorAndFetchInitialKeys(int refreshSeconds, int refreshMinPauseSeconds, boolean failFast) {
+
+        // get the signing keys for signature validation before the first authorization requests start coming
+        // fail fast if keys refresh doesn't work - it means network issues or authorization server not responding
+
+        boolean initFetchFailed = false;
+        try {
+            fetchKeys();
+        } catch (Exception e) {
+            if (failFast) {
+                throw e;
+            } else {
+                initFetchFailed = true;
+                log.warn("[IGNORED] Fetching JWKS keys has failed, but fail-fast is disabled: ", e);
+            }
+        }
+
+        // the single threaded executor for refreshing the keys
+        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(new DaemonThreadFactory());
+
+        // set up fast scheduler that refreshes keys on-demand, and keeps trying with exponential back-off until it succeeds
+        fastScheduler = new BackOffTaskScheduler(executor, refreshMinPauseSeconds, refreshSeconds, this::fetchKeys);
+
+        if (initFetchFailed) {
+            fastScheduler.scheduleTask();
+        }
+        return executor;
     }
 
     private JsonPathFilterQuery parseCustomClaimCheck(String customClaimCheck) {
@@ -274,11 +323,15 @@ public class JWTSignatureValidator implements TokenValidator {
     }
 
     private void fetchKeys() {
+        long requestStartTime = System.currentTimeMillis();
         try {
-            Map<String, PublicKey> newCache = new HashMap<>();
-            JWKSet jwks = JWKSet.parse(HttpUtil.get(keysUri, socketFactory, hostnameVerifier, null, String.class, connectTimeout, readTimeout));
+            String response = HttpUtil.get(keysUri, socketFactory, hostnameVerifier, null, String.class, connectTimeout, readTimeout);
+            addJwksHttpMetricSuccessTime(requestStartTime);
 
-            for (JWK jwk: jwks.getKeys()) {
+            Map<String, PublicKey> newCache = new HashMap<>();
+            JWKSet jwks = JWKSet.parse(response);
+
+            for (JWK jwk : jwks.getKeys()) {
                 if (jwk.getKeyUse().equals(KeyUse.SIGNATURE)) {
 
                     PublicKey publicKey;
@@ -302,7 +355,9 @@ public class JWTSignatureValidator implements TokenValidator {
                 cache = newCache;
             }
             lastFetchTime = System.currentTimeMillis();
+
         } catch (Throwable ex) {
+            addJwksHttpMetricErrorTime(ex, requestStartTime);
             throw new RuntimeException("Failed to fetch public keys needed to validate JWT signatures: " + keysUri, ex);
         }
     }
@@ -334,7 +389,7 @@ public class JWTSignatureValidator implements TokenValidator {
                 }
             }
 
-            if (!jwt.verify(verifierFactory.createJWSVerifier(jwt.getHeader(), pub))) {
+            if (!jwt.verify(VERIFIER_FACTORY.createJWSVerifier(jwt.getHeader(), pub))) {
                 throw new TokenSignatureException("Signature check failed: Invalid token signature");
             }
             t = JSONUtil.asJson(jwt.getPayload().toJSONObject());
@@ -366,6 +421,7 @@ public class JWTSignatureValidator implements TokenValidator {
 
         String principal = extractPrincipal(t);
         Set<String> groups = extractGroups(t);
+
         return new TokenInfo(t, token, principal, groups);
     }
 
@@ -429,6 +485,24 @@ public class JWTSignatureValidator implements TokenValidator {
             if (!aud.contains(audience)) {
                 throw new TokenValidationException("Token validation failed: Expected audience not available in the token");
             }
+        }
+    }
+
+    @Override
+    public String getValidatorId() {
+        return validatorId;
+    }
+
+
+    private void addJwksHttpMetricSuccessTime(long startTimeMs) {
+        if (enableMetrics) {
+            metrics.addTime(jwksHttpSensorKeyProducer.successKey(), System.currentTimeMillis() - startTimeMs);
+        }
+    }
+
+    private void addJwksHttpMetricErrorTime(Throwable e, long startTimeMs) {
+        if (enableMetrics) {
+            metrics.addTime(jwksHttpSensorKeyProducer.errorKey(e), System.currentTimeMillis() - startTimeMs);
         }
     }
 }

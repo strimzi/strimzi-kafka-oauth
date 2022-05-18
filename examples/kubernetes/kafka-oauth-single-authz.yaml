@@ -16,6 +16,8 @@ spec:
           validIssuerUri: http://keycloak:8080/auth/realms/kafka-authz
           jwksEndpointUri: http://keycloak:8080/auth/realms/kafka-authz/protocol/openid-connect/certs
           userNameClaim: preferred_username
+          checkAccessTokenType: false
+          customClaimCheck: "@.typ && @.typ == 'Bearer'"
 
           # the next option is only available since Strimzi 0.20.0
           # remove it if using an older version of Strimzi

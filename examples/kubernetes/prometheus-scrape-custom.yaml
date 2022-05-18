@@ -1,0 +1,14 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: kafka-client
+  labels:
+    name: kafka-client
+spec:
+  selector:
+    matchLabels:
+      prometheus.io/scrape: "true"
+  namespaceSelector:
+    any: true
+  endpoints:
+    - port: http

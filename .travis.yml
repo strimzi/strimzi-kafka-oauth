@@ -29,6 +29,7 @@ addons:
   - keycloak
   - hydra
   - hydra-jwt
+  - mockoauth
 env:
   global:
   - PULL_REQUEST=${TRAVIS_PULL_REQUEST}

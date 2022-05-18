@@ -30,7 +30,7 @@ public class FloodTest extends Common {
 
     private static final Logger log = LoggerFactory.getLogger(FloodTest.class);
 
-    private static ArrayList<Thread> threads = new ArrayList<>();
+    private final ArrayList<Thread> threads = new ArrayList<>();
 
     private static AtomicInteger startedCount;
 
@@ -52,8 +52,6 @@ public class FloodTest extends Common {
      * It connects concurrently with multiple producers with different client IDs using the PLAIN mechanism, testing the OAuth over PLAIN functionality.
      * With KeycloakRBACAuthorizer configured, any mixup of the credentials between different clients will be caught as
      * AuthorizationException would be thrown trying to write to the topic if the user context was mismatched.
-     *
-     * @throws Exception
      */
     void clientCredentialsWithFloodTest() throws IOException {
 
@@ -155,18 +153,18 @@ public class FloodTest extends Common {
     }
 
 
-    public static void clearThreads() {
+    public void clearThreads() {
         threads.clear();
     }
 
-    public static void startThreads() {
+    public void startThreads() {
         startedCount = new AtomicInteger(0);
         for (Thread t : threads) {
             t.start();
         }
     }
 
-    public static void joinThreads() {
+    public void joinThreads() {
         for (Thread t : threads) {
             try {
                 t.join();
@@ -176,7 +174,7 @@ public class FloodTest extends Common {
         }
     }
 
-    public static void checkExceptions() {
+    public void checkExceptions() {
         try {
             for (Thread t : threads) {
                 ((ClientJob) t).checkException();
@@ -199,7 +197,7 @@ public class FloodTest extends Common {
     }
 
 
-    class ClientJob extends Thread {
+    static class ClientJob extends Thread {
 
         final String clientId;
         final String secret;

@@ -1,0 +1,86 @@
+# See README-metrics.md for usage
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kafka-client-shell-files
+data:
+  prepare-env.sh: |-
+    export KAFKA_HOME=/opt/kafka
+
+    # Kafka Client JAAS configuration
+    cat > ~/team-a-client.properties << EOF
+      security.protocol=SASL_PLAINTEXT
+      sasl.mechanism=OAUTHBEARER
+      sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
+        oauth.client.id="team-a-client" \
+        oauth.client.secret="$SECRET" \
+        oauth.token.endpoint.uri="http://keycloak:8080/auth/realms/kafka-authz/protocol/openid-connect/token" ;
+      sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
+    EOF
+
+    # Turn on DEBUG logging for 'io.strimzi' logger
+    cp config/tools-log4j.properties /tmp/tools-log4j.properties
+    echo "log4j.logger.io.strimzi=DEBUG" >> /tmp/tools-log4j.properties
+    export KAFKA_LOG4J_OPTS="-Dlog4j.configuration=file:/tmp/tools-log4j.properties"
+    export LOG_DIR=/tmp
+    
+    export CLASSPATH=
+    
+    # Enable Prometheus JMX Exporter
+    export PROMETHEUS_AGENT_JAR=$(ls "$KAFKA_HOME"/libs/jmx_prometheus_javaagent*.jar)
+    export KAFKA_OPTS=-javaagent:$PROMETHEUS_AGENT_JAR=9404:/tmp/config/kafka-metrics-config.yml
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kafka-client-shell
+  labels:
+    app: kafka-client-shell
+spec:
+  containers:
+    - name: kafka-client-shell
+      image: quay.io/strimzi/kafka:latest-kafka-3.1.0
+      command:
+        - /bin/sh
+      env:
+        - name: OAUTH_ENABLE_METRICS
+          value: "true"
+        - name: SECRET
+          valueFrom:
+            secretKeyRef:
+              name: kafka-client-secret
+              key: secret
+      stdin: true
+      stdinOnce: true
+      tty: true
+      ports:
+        - name: http
+          containerPort: 9404
+      volumeMounts:
+        - name: bin
+          mountPath: /tmp/bin
+        - name: config
+          mountPath: /tmp/config
+  volumes:
+    - name: bin
+      configMap:
+        name: kafka-client-shell-files
+    - name: config
+      configMap:
+        name: kafka-metrics
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-client-shell
+  labels:
+    prometheus.io/scrape: "true"
+spec:
+  ports:
+    - name: http
+      port: 9404
+      targetPort: 9404
+  selector:
+    app: kafka-client-shell
+  type: NodePort
