@@ -47,13 +47,19 @@ By using `clean` you make sure that the latest project jars are included into th
 
 There are several profiles available to test with a specific version of Kafka images:
 
-- kafka-2_3_0
+- kafka-2_3_1
 - kafka-2_4_0
 - kafka-2_4_1
 - kafka-2_5_0
 - kafka-2_5_1
 - kafka-2_6_0
+- kafka-2_6_2
 - kafka-2_7_0
+- kafka-2_7_1
+- kafka-2_8_0
+- kafka-2_8_1
+- kafka-3_0_0
+- kafka-3_1_0
 
 Only one at a time can be applied. For example:
  
@@ -181,6 +187,6 @@ Thus, you don't need to use the latest local build of strimzi/kafka libraries to
 
 But if you want you can specify the kafka image to use for the test as follows:
 
-    mvn clean test -Dkafka.docker.image=strimzi/kafka:build-kafka-2.6.0  -f testsuite/keycloak-auth-tests
+    mvn clean test -Dkafka.docker.image=quay.io/strimzi/kafka:0.28.0-kafka-3.1.0 -f testsuite/keycloak-auth-tests
 
 This will use the latest locally built kafka image of strimzi-kafka-operator project.

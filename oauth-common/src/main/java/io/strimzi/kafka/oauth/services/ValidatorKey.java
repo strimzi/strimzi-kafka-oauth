@@ -143,6 +143,7 @@ public class ValidatorKey {
         private final int jwksRefreshMinPauseSeconds;
         private final boolean checkAccessTokenType;
         private final boolean failFast;
+        private final boolean jwksIgnoreKeyUse;
 
         private final String configIdHash;
 
@@ -165,6 +166,7 @@ public class ValidatorKey {
                                int jwksRefreshSeconds,
                                int jwksExpirySeconds,
                                int jwksRefreshMinPauseSeconds,
+                               boolean jwksIgnoreKeyUse,
                                boolean checkAccessTokenType,
                                int connectTimeout,
                                int readTimeout,
@@ -191,6 +193,7 @@ public class ValidatorKey {
             this.jwksRefreshSeconds = jwksRefreshSeconds;
             this.jwksExpirySeconds = jwksExpirySeconds;
             this.jwksRefreshMinPauseSeconds = jwksRefreshMinPauseSeconds;
+            this.jwksIgnoreKeyUse = jwksIgnoreKeyUse;
             this.checkAccessTokenType = checkAccessTokenType;
             this.failFast = failFast;
 
@@ -199,6 +202,7 @@ public class ValidatorKey {
                     jwksRefreshSeconds,
                     jwksExpirySeconds,
                     jwksRefreshMinPauseSeconds,
+                    jwksIgnoreKeyUse,
                     checkAccessTokenType,
                     failFast);
         }
@@ -212,6 +216,7 @@ public class ValidatorKey {
             return jwksRefreshSeconds == that.jwksRefreshSeconds &&
                     jwksExpirySeconds == that.jwksExpirySeconds &&
                     jwksRefreshMinPauseSeconds == that.jwksRefreshMinPauseSeconds &&
+                    jwksIgnoreKeyUse == that.jwksIgnoreKeyUse &&
                     checkAccessTokenType == that.checkAccessTokenType &&
                     failFast == that.failFast &&
                     Objects.equals(jwksEndpointUri, that.jwksEndpointUri);
@@ -224,6 +229,7 @@ public class ValidatorKey {
                     jwksRefreshSeconds,
                     jwksExpirySeconds,
                     jwksRefreshMinPauseSeconds,
+                    jwksIgnoreKeyUse,
                     checkAccessTokenType,
                     failFast);
         }

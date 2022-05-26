@@ -4,15 +4,31 @@
  */
 package io.strimzi.testsuite.oauth.server;
 
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Map;
+
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static io.netty.handler.codec.http.HttpResponseStatus.METHOD_NOT_ALLOWED;
+import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static io.netty.handler.codec.http.HttpResponseStatus.OK;
+import static io.strimzi.testsuite.oauth.server.Commons.handleFailure;
+import static io.strimzi.testsuite.oauth.server.Commons.isOneOf;
+import static io.strimzi.testsuite.oauth.server.Commons.sendResponse;
+import static io.strimzi.testsuite.oauth.server.Commons.setContextLog;
+import static io.vertx.core.http.HttpMethod.GET;
+import static io.vertx.core.http.HttpMethod.POST;
+import static io.vertx.core.http.HttpMethod.PUT;
+
 public class AdminServerRequestHandler implements Handler<HttpServerRequest> {
 
-    private static final Logger log = LoggerFactory.getLogger(AdminServerRequestHandler.class);
+    private static final Logger log = LoggerFactory.getLogger("admin");
 
     private final MockOAuthServerMainVerticle verticle;
 
@@ -22,56 +38,54 @@ public class AdminServerRequestHandler implements Handler<HttpServerRequest> {
 
     @Override
     public void handle(HttpServerRequest req) {
+        log.info("> " + req.method().name() + " " + req.path());
+        setContextLog(log);
 
-        if (req.method() != HttpMethod.POST &&
-                req.method() != HttpMethod.PUT &&
-                req.method() != HttpMethod.GET) {
-            req.response().setStatusCode(405)
-                    .setStatusMessage("Method not allowed")
-                    .end();
+        if (!isOneOf(req.method(), POST, PUT, GET)) {
+            sendResponse(req, METHOD_NOT_ALLOWED);
             return;
         }
         String[] path = req.path().split("/");
         if (path.length < 3 || !"admin".equals(path[1])) {
-            req.response().setStatusCode(404)
-                    .setStatusMessage("Not Found")
-                    .end();
+            sendResponse(req, NOT_FOUND);
             return;
         }
 
         try {
             Endpoint endpoint = Endpoint.fromString(path[2]);
 
-            if (req.method() == HttpMethod.GET) {
-                req.response()
-                        .putHeader("Content-Type", "text/plain")
-                        .end(String.valueOf(verticle.getMode(endpoint)));
+            if (endpoint == Endpoint.CLIENTS) {
+                processClientsRequest(req, path);
+                return;
+            }
+
+            if (req.method() == GET) {
+                sendResponse(req, OK, "" + verticle.getMode(endpoint));
                 return;
             }
 
             String mode = req.params().get("mode");
             if (mode == null) {
-                req.response().setStatusCode(400)
-                        .setStatusMessage("Bad request")
-                        .end("Parameter 'mode' not set");
+                sendResponse(req, BAD_REQUEST, "Parameter 'mode' not set");
                 return;
             }
 
             Mode m = Mode.fromString(mode);
 
+            Future<Void> result = null;
             if (endpoint == Endpoint.SERVER) {
                 switch (m) {
                     case MODE_CERT_ONE_ON:
-                        verticle.ensureAuthServerWithFirstCert();
+                        result = verticle.ensureAuthServerWithFirstCert();
                         break;
                     case MODE_CERT_TWO_ON:
-                        verticle.ensureAuthServerWithSecondCert();
+                        result = verticle.ensureAuthServerWithSecondCert();
                         break;
                     case MODE_EXPIRED_CERT_ON:
-                        verticle.ensureAuthServerWithExpiredCert();
+                        result = verticle.ensureAuthServerWithExpiredCert();
                         break;
                     case MODE_OFF:
-                        verticle.shutdownAuthServer();
+                        result = verticle.shutdownAuthServer();
                         break;
                     default:
                 }
@@ -79,17 +93,70 @@ public class AdminServerRequestHandler implements Handler<HttpServerRequest> {
                 verticle.setMode(endpoint, m);
             }
 
-            req.response()
-                .putHeader("Content-Type", "text/plain")
-                .end(String.valueOf(m));
-
+            if (result != null) {
+                result
+                    .onSuccess(v -> sendResponse(req, OK, m.name()))
+                    .onFailure(e -> handleFailure(req, e, log));
+            } else {
+                sendResponse(req, OK, m.name());
+            }
         } catch (Exception e) {
-            log.error("Failed to set new mode: ", e);
-
-            req.response().setStatusCode(400)
-                    .setStatusMessage("Bad request")
-                    .end();
+            handleFailure(req, e, log);
         }
+    }
+
+    private void processClientsRequest(HttpServerRequest req, String[] path) {
+
+        if (path.length > 3) {
+            sendResponse(req, NOT_FOUND);
+            return;
+        }
+
+        if (req.method() == GET) {
+            sendResponse(req, OK, getClientsAsJsonString());
+            return;
+
+        } else if (isOneOf(req.method(), POST, PUT)) {
+
+            req.bodyHandler(buffer -> {
+                try {
+                    log.info(buffer.toString());
+
+                    JsonObject json = buffer.toJsonObject();
+
+                    String clientId = json.getString("clientId");
+                    if (clientId == null) {
+                        sendResponse(req, BAD_REQUEST, "Required attribute 'clientId' is null or missing.");
+                        return;
+                    }
+
+                    String secret = json.getString("secret");
+                    if (secret == null) {
+                        sendResponse(req, BAD_REQUEST, "Required attribute 'secret' is null or missing.");
+                        return;
+                    }
+
+                    verticle.createOrUpdateClient(clientId, secret);
+                    sendResponse(req, OK);
+
+                } catch (Exception e) {
+                    handleFailure(req, e, log);
+                }
+            });
+            return;
+        }
+
+        sendResponse(req, METHOD_NOT_ALLOWED);
+    }
+
+    private String getClientsAsJsonString() {
+        JsonArray result = new JsonArray();
+        for (Map.Entry<String, String> ent: verticle.getClients().entrySet()) {
+            JsonObject json = new JsonObject();
+            json.put(ent.getKey(), ent.getValue());
+            result.add(json);
+        }
+        return result.toString();
     }
 
 }

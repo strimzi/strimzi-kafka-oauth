@@ -11,7 +11,8 @@ public enum Endpoint {
     INTROSPECT,
     USERINFO,
     TOKEN,
-    SERVER;
+    SERVER,
+    CLIENTS;
 
     public static Endpoint fromString(String value) {
         return valueOf(value.toUpperCase(Locale.ROOT));

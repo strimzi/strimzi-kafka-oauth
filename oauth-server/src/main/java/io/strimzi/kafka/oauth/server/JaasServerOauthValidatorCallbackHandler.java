@@ -117,6 +117,7 @@ import static io.strimzi.kafka.oauth.common.TokenIntrospection.debugLogJWT;
  * The expiry interval has to be at least 60 seconds longer then the refresh interval specified in <em>oauth.jwks.refresh.seconds</em>. Default value is <em>360</em>.</li>
  * <li><em>oauth.jwks.refresh.min.pause.seconds</em> The minimum pause between two consecutive refreshes. <br>
  * When an unknown signing key is encountered the refresh is scheduled immediately, but will always wait for this minimum pause. Default value is <em>1</em>.</li>
+ * <li><em>oauth.jwks.ignore.key.use</em> Configure whether any public key in JWKS response should be considered for signature checking or only those explicitly marked as such (some authorization servers require setting this to `true`). Default value is <em>false</em>.</li>
  * </ul>
  * <p>
  * Configuring the introspection endpoint based token validation
@@ -377,6 +378,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         int jwksExpirySeconds = config.getValueAsInt(ServerConfig.OAUTH_JWKS_EXPIRY_SECONDS, 360);
         int jwksMinPauseSeconds = config.getValueAsInt(ServerConfig.OAUTH_JWKS_REFRESH_MIN_PAUSE_SECONDS, 1);
         boolean failFast = config.getValueAsBoolean(ServerConfig.OAUTH_FAIL_FAST, true);
+        boolean jwksIgnoreKeyUse = config.getValueAsBoolean(ServerConfig.OAUTH_JWKS_IGNORE_KEY_USE, false);
 
         ValidatorKey vkey = new ValidatorKey.JwtValidatorKey(
                 validIssuerUri,
@@ -396,11 +398,13 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                 jwksRefreshSeconds,
                 jwksExpirySeconds,
                 jwksMinPauseSeconds,
+                jwksIgnoreKeyUse,
                 checkTokenType,
                 connectTimeout,
                 readTimeout,
                 enableMetrics,
-                failFast);
+                failFast
+        );
 
         String effectiveConfigId = configId != null ? configId : vkey.getConfigIdHash();
 
@@ -416,6 +420,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                 jwksRefreshSeconds,
                 jwksMinPauseSeconds,
                 jwksExpirySeconds,
+                jwksIgnoreKeyUse,
                 checkTokenType,
                 audience,
                 customClaimCheck,

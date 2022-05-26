@@ -192,6 +192,10 @@ public class OAuthAuthenticator {
         return Base64.getUrlEncoder().encodeToString(value.getBytes(StandardCharsets.UTF_8));
     }
 
+    public static String base64decode(String value) {
+        return new String(Base64.getUrlDecoder().decode(value), StandardCharsets.UTF_8);
+    }
+
     public static String urlencode(String value) {
         try {
             return URLEncoder.encode(value, "utf-8");

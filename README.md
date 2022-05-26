@@ -350,6 +350,9 @@ You can control the minimum pause between two consecutive scheduled keys refresh
 
 All access tokens can be invalidated by rotating the keys on authorization server and expiring old keys.
 
+Some authorization servers don't specify the `"use": "sig"` attribute in validation keys in the JWKS endpoint response. By default only the public keys with `"use": "sig"` are considered for signature validation. There is an option to ignore the `use` attribute, and consider all the keys for token signature validation:
+- `oauth.jwks.ignore.key.use` (e.g.: "true" - ignore the `use` attribute on the keys in JWKS response)
+
 During the Kafka broker startup, a request to the JWKS endpoint immediately tries to load the keys.
 If JWKS keys can not be loaded or can not be successfully parsed during startup, the Kafka broker will exit.
 That behaviour can be turned off:
