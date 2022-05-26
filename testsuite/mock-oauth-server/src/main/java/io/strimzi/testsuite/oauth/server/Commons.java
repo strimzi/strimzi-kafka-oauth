@@ -17,14 +17,14 @@ import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERR
 
 public class Commons {
 
-    private static final ThreadLocal<Logger> contextLog = new ThreadLocal<>();
+    private static final ThreadLocal<Logger> CONTEXT_LOG = new ThreadLocal<>();
 
     public static void setContextLog(Logger log) {
-        contextLog.set(log);
+        CONTEXT_LOG.set(log);
     }
 
     public static Logger getContextLog() {
-        Logger log = contextLog.get();
+        Logger log = CONTEXT_LOG.get();
         return log != null ? log : NOPLogger.NOP_LOGGER;
     }
 
