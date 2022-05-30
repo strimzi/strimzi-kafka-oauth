@@ -107,6 +107,7 @@ public class JWTSignatureValidator implements TokenValidator {
      * @param refreshSeconds The optional time interval between two consecutive regular JWKS keys refresh runs
      * @param refreshMinPauseSeconds The optional minimum pause between two consecutive JWKS keys refreshes.
      * @param expirySeconds The maximum time to trust the unrefreshed JWKS keys. If keys are not successfully refreshed within this time, the validation will start failing.
+     * @param ignoreKeyUse Should any key present in JWKS key set be considered a public key for signature checking
      * @param checkAccessTokenType Should the 'typ' claim in the token be validated (be equal to 'Bearer')
      * @param audience The optional audience
      * @param customClaimCheck The optional JSONPath filter query for additional custom claim checking
@@ -114,7 +115,6 @@ public class JWTSignatureValidator implements TokenValidator {
      * @param readTimeoutSeconds The maximum time to wait for response from authorization server after connection has been established and request sent (in seconds)
      * @param enableMetrics The switch that enables metrics collection
      * @param failFast Should exception be thrown during initialisation if unable to retrieve JWKS keys
-     * @param ignoreKeyUse Should any key present in JWKS key set be considered a public key for signature checking
      */
     @SuppressWarnings("checkstyle:ParameterNumber")
     public JWTSignatureValidator(String validatorId,
