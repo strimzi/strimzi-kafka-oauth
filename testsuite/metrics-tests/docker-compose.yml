@@ -12,9 +12,9 @@ services:
       - ${PWD}/../docker/certificates:/application/config
 
     environment:
-      - JAVA_DEBUG=y
-      - DEBUG_SUSPEND_FLAG=n
-      - JAVA_DEBUG_PORT=0.0.0.0:5005
+      #- JAVA_DEBUG=y
+      #- DEBUG_SUSPEND_FLAG=n
+      #- JAVA_DEBUG_PORT=0.0.0.0:5005
 
       - KEYSTORE_ONE_PATH=/application/config/mockoauth.server.keystore.p12
       - KEYSTORE_ONE_PASSWORD=changeit

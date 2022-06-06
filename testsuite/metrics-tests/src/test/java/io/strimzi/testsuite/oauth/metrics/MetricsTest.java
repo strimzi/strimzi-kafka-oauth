@@ -5,6 +5,13 @@
 package io.strimzi.testsuite.oauth.metrics;
 
 import io.strimzi.kafka.oauth.common.HttpUtil;
+import io.strimzi.kafka.oauth.common.OAuthAuthenticator;
+import io.strimzi.kafka.oauth.common.PrincipalExtractor;
+import io.strimzi.kafka.oauth.common.SSLUtil;
+import io.strimzi.kafka.oauth.common.TokenInfo;
+import io.strimzi.kafka.oauth.services.Services;
+import io.strimzi.kafka.oauth.validator.JWTSignatureValidator;
+import io.strimzi.kafka.oauth.validator.TokenValidationException;
 import org.jboss.arquillian.junit.Arquillian;
 import org.junit.Assert;
 import org.junit.Test;
@@ -12,9 +19,14 @@ import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.Locale;
 
 /**
@@ -45,10 +57,58 @@ public class MetricsTest {
 
             testInternalServerErrors();
 
+            testJwksIgnoreKeyUse();
+
         } catch (Throwable e) {
             log.error("Keycloak Authentication Test failed: ", e);
             throw e;
         }
+    }
+
+    private void testJwksIgnoreKeyUse() throws IOException {
+
+        Services.configure(Collections.emptyMap());
+
+        changeAuthServerMode("jwks", "MODE_JWKS_RSA_WITHOUT_SIG_USE");
+        changeAuthServerMode("token", "MODE_200");
+
+        String testClient = "testclient";
+        String testSecret = "testsecret";
+        createOAuthClient(testClient, testSecret);
+
+        String projectRoot = getProjectRoot();
+        SSLSocketFactory sslFactory = SSLUtil.createSSLFactory(
+                projectRoot + "/../docker/certificates/ca-truststore.p12", null, "changeit", null, null);
+
+        JWTSignatureValidator validator = createTokenValidator("enforceKeyUse", sslFactory, false);
+
+        // Now get a new token
+        TokenInfo tokenInfo = OAuthAuthenticator.loginWithClientSecret(
+                URI.create("https://mockoauth:8090/token"),
+                sslFactory,
+                null,
+                testClient,
+                testSecret,
+                true,
+                null,
+                null,
+                null);
+
+        // and try to validate it
+        // It should fail
+        try {
+            validator.validate(tokenInfo.token());
+            Assert.fail("Token validation should fail");
+
+        } catch (TokenValidationException ignored) {
+        }
+
+        // Repeat the test with `ignoreKeyUse: true`
+        JWTSignatureValidator validatorIgnoreKeyUse = createTokenValidator("ignoreKeyUse", sslFactory, true);
+
+        // Try to validate the token
+        // It should pass
+        validatorIgnoreKeyUse.validate(tokenInfo.token());
     }
 
     private void testInternalServerErrors() throws IOException, InterruptedException {
@@ -74,9 +134,11 @@ public class MetricsTest {
 
         // We should see some 503 errors
         value = metrics.getValue("strimzi_oauth_http_requests_count", "context", "JWT", "outcome", "error", "error_type", "http", "status", "503");
+        Assert.assertNotNull("Metric missing", value);
         Assert.assertTrue("There should be some 503 errors", new BigDecimal(value).doubleValue() > 0.0);
 
         value = metrics.getValue("strimzi_oauth_http_requests_totaltimems", "context", "JWT", "outcome", "error", "error_type", "http", "status", "503");
+        Assert.assertNotNull("Metric missing", value);
         Assert.assertTrue("There should be some 503 errors", new BigDecimal(value).doubleValue() > 0.0);
     }
 
@@ -91,9 +153,11 @@ public class MetricsTest {
 
         // We should see some TLS errors
         String value = metrics.getValue("strimzi_oauth_http_requests_count", "context", "JWT", "outcome", "error", "error_type", "tls");
+        Assert.assertNotNull("Metric missing", value);
         Assert.assertTrue("There should be some TLS errors", new BigDecimal(value).doubleValue() > 0.0);
 
         value = metrics.getValue("strimzi_oauth_http_requests_totaltimems", "context", "JWT", "outcome", "error", "error_type", "tls");
+        Assert.assertNotNull("Metric missing", value);
         Assert.assertTrue("There should be some TLS errors", new BigDecimal(value).doubleValue() > 0.0);
     }
 
@@ -108,9 +172,11 @@ public class MetricsTest {
 
         // See some network errors on JWT's
         String value = metrics.getValue("strimzi_oauth_http_requests_count", "context", "JWT", "outcome", "error", "error_type", "connect");
+        Assert.assertNotNull("Metric missing", value);
         Assert.assertTrue("There should be some network errors", new BigDecimal(value).doubleValue() > 0.0);
 
         value = metrics.getValue("strimzi_oauth_http_requests_totaltimems", "context", "JWT", "outcome", "error", "error_type", "connect");
+        Assert.assertNotNull("Metric missing", value);
         Assert.assertTrue("There should be some network errors", new BigDecimal(value).doubleValue() > 0.0);
     }
 
@@ -121,9 +187,11 @@ public class MetricsTest {
         // error counter for 404 for JWT should not be zero as at least one JWKS request should fail
         // during JWT listener's JWTSignatureValidator initialisation
         String value = metrics.getValue("strimzi_oauth_http_requests_count", "context", "JWT", "outcome", "error", "error_type", "http", "status", "404");
+        Assert.assertNotNull("Metric missing", value);
         Assert.assertTrue("There should be some 404 errors", new BigDecimal(value).doubleValue() > 0.0);
 
         value = metrics.getValue("strimzi_oauth_http_requests_totaltimems", "context", "JWT", "outcome", "error", "error_type", "http", "status", "404");
+        Assert.assertNotNull("Metric missing", value);
         Assert.assertTrue("There should be some 404 errors", new BigDecimal(value).doubleValue() > 0.0);
     }
 
@@ -169,6 +237,47 @@ public class MetricsTest {
     private void changeAuthServerMode(String resource, String mode) throws IOException {
         String result = HttpUtil.post(URI.create("http://mockoauth:8091/admin/" + resource + "?mode=" + mode), null, "text/plain", "", String.class);
         Assert.assertEquals("admin server response should be ", mode.toUpperCase(Locale.ROOT), result);
+    }
+
+    private void createOAuthClient(String clientId, String secret) throws IOException {
+        HttpUtil.post(URI.create("http://mockoauth:8091/admin/clients"),
+                null,
+                "application/json",
+                "{\"clientId\": \"" + clientId + "\", \"secret\": \"" + secret + "\"}", String.class);
+    }
+
+
+    private static JWTSignatureValidator createTokenValidator(String validatorId, SSLSocketFactory sslFactory, boolean ignoreKeyUse) {
+        return new JWTSignatureValidator(validatorId,
+                "https://mockoauth:8090/jwks",
+                sslFactory,
+                null,
+                new PrincipalExtractor(),
+                null,
+                null,
+                "https://mockoauth:8090",
+                30,
+                0,
+                300,
+                ignoreKeyUse,
+                false,
+                null,
+                null,
+                60,
+                60,
+                true,
+                true);
+    }
+
+    private static String getProjectRoot() {
+        String cwd = System.getProperty("user.dir");
+        Path path = Paths.get(cwd);
+        if (path.endsWith("metrics-tests") && Files.exists(path.resolve("../docker"))) {
+            return path.toAbsolutePath().toString();
+        } else if (path.endsWith("strimzi-kafka-oauth") && Files.exists(path.resolve("testsuite/docker")) && Files.exists(path.resolve("testsuite/metrics-tests")))  {
+            return path.resolve("testsuite/metrics-tests").toAbsolutePath().toString();
+        }
+        return cwd;
     }
 
     private void logStart(String msg) {

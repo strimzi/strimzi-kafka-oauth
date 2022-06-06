@@ -77,6 +77,7 @@ public class JWTSignatureValidator implements TokenValidator {
     private final SSLSocketFactory socketFactory;
     private final HostnameVerifier hostnameVerifier;
     private final PrincipalExtractor principalExtractor;
+    private final boolean ignoreKeyUse;
 
     private final int connectTimeout;
     private final int readTimeout;
@@ -106,6 +107,7 @@ public class JWTSignatureValidator implements TokenValidator {
      * @param refreshSeconds The optional time interval between two consecutive regular JWKS keys refresh runs
      * @param refreshMinPauseSeconds The optional minimum pause between two consecutive JWKS keys refreshes.
      * @param expirySeconds The maximum time to trust the unrefreshed JWKS keys. If keys are not successfully refreshed within this time, the validation will start failing.
+     * @param ignoreKeyUse Should any key present in JWKS key set be considered a public key for signature checking
      * @param checkAccessTokenType Should the 'typ' claim in the token be validated (be equal to 'Bearer')
      * @param audience The optional audience
      * @param customClaimCheck The optional JSONPath filter query for additional custom claim checking
@@ -126,6 +128,7 @@ public class JWTSignatureValidator implements TokenValidator {
                                  int refreshSeconds,
                                  int refreshMinPauseSeconds,
                                  int expirySeconds,
+                                 boolean ignoreKeyUse,
                                  boolean checkAccessTokenType,
                                  String audience,
                                  String customClaimCheck,
@@ -186,7 +189,7 @@ public class JWTSignatureValidator implements TokenValidator {
         metrics = enableMetrics ? Services.getInstance().getMetrics() : null;
 
         jwksHttpSensorKeyProducer = new JwksHttpSensorKeyProducer(validatorId, keysUri);
-
+        this.ignoreKeyUse = ignoreKeyUse;
         ScheduledExecutorService executor = setupExecutorAndFetchInitialKeys(refreshSeconds, refreshMinPauseSeconds, failFast);
 
         // set up periodic timer to trigger fastScheduler job every refreshSeconds
@@ -205,6 +208,7 @@ public class JWTSignatureValidator implements TokenValidator {
                     + "\n    certsRefreshSeconds: " + refreshSeconds
                     + "\n    certsRefreshMinPauseSeconds: " + refreshMinPauseSeconds
                     + "\n    certsExpirySeconds: " + expirySeconds
+                    + "\n    certsIgnoreKeyUse: " + ignoreKeyUse
                     + "\n    checkAccessTokenType: " + checkAccessTokenType
                     + "\n    audience: " + audience
                     + "\n    customClaimCheck: " + customClaimCheck
@@ -332,7 +336,7 @@ public class JWTSignatureValidator implements TokenValidator {
             JWKSet jwks = JWKSet.parse(response);
 
             for (JWK jwk : jwks.getKeys()) {
-                if (jwk.getKeyUse().equals(KeyUse.SIGNATURE)) {
+                if (ignoreKeyUse || KeyUse.SIGNATURE.equals(jwk.getKeyUse())) {
 
                     PublicKey publicKey;
 
