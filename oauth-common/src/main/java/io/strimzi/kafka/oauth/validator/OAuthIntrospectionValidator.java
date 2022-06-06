@@ -5,6 +5,7 @@
 package io.strimzi.kafka.oauth.validator;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.BooleanNode;
 import io.strimzi.kafka.oauth.common.JSONUtil;
 import io.strimzi.kafka.oauth.common.PrincipalExtractor;
 import io.strimzi.kafka.oauth.common.TimeUtil;
@@ -275,13 +276,11 @@ public class OAuthIntrospectionValidator implements TokenValidator {
             throw new ValidationException("Failed to introspect token - send, fetch or parse failed: ", e);
         }
 
-        boolean active;
-        try {
-            active = response.get("active").asBoolean();
-        } catch (Exception e) {
-            throw new ValidationException("Failed to introspect token - invalid response: \"active\" attribute is missing or not a boolean (" + response.get("active") + ")");
+        JsonNode activeAttr = response.get("active");
+        if (!(activeAttr instanceof BooleanNode)) {
+            throw new ValidationException("Failed to introspect token - invalid response: \"active\" attribute is missing or not a boolean (" + activeAttr + ")");
         }
-
+        boolean active = activeAttr.asBoolean();
         if (!active) {
             throw new TokenValidationException("Token validation failed: Token not active");
         }
