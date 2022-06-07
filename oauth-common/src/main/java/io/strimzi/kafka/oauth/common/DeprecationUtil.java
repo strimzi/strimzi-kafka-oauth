@@ -14,7 +14,7 @@ public class DeprecationUtil {
         if (legacy != null) {
             log.warn("OAUTH_TOKENS_NOT_JWT is deprecated. Use OAUTH_ACCESS_TOKEN_IS_JWT (with reverse meaning) instead.");
             if (config.getValue(Config.OAUTH_ACCESS_TOKEN_IS_JWT) != null) {
-                throw new RuntimeException((errorPrefix != null ? errorPrefix : "") + "Can't use both OAUTH_ACCESS_TOKEN_IS_JWT and OAUTH_TOKENS_NOT_JWT");
+                throw new ConfigException((errorPrefix != null ? errorPrefix : "") + "Can't use both OAUTH_ACCESS_TOKEN_IS_JWT and OAUTH_TOKENS_NOT_JWT");
             }
         }
 

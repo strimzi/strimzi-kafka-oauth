@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.strimzi.kafka.oauth.client.ClientConfig;
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
 import io.strimzi.kafka.oauth.common.Config;
+import io.strimzi.kafka.oauth.common.ConfigException;
 import io.strimzi.kafka.oauth.common.ConfigUtil;
 import io.strimzi.kafka.oauth.common.HttpException;
 import io.strimzi.kafka.oauth.common.JSONUtil;
@@ -18,6 +19,7 @@ import io.strimzi.kafka.oauth.server.OAuthKafkaPrincipal;
 import io.strimzi.kafka.oauth.server.authorizer.metrics.GrantsHttpSensorKeyProducer;
 import io.strimzi.kafka.oauth.server.authorizer.metrics.KeycloakAuthorizationSensorKeyProducer;
 import io.strimzi.kafka.oauth.services.OAuthMetrics;
+import io.strimzi.kafka.oauth.services.ServiceException;
 import io.strimzi.kafka.oauth.services.Services;
 import io.strimzi.kafka.oauth.services.SessionFuture;
 import io.strimzi.kafka.oauth.services.Sessions;
@@ -196,7 +198,7 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
 
         String pbclass = (String) configs.get("principal.builder.class");
         if (!PRINCIPAL_BUILDER_CLASS.equals(pbclass) && !DEPRECATED_PRINCIPAL_BUILDER_CLASS.equals(pbclass)) {
-            throw new RuntimeException("KeycloakRBACAuthorizer requires " + PRINCIPAL_BUILDER_CLASS + " as 'principal.builder.class'");
+            throw new ConfigException("KeycloakRBACAuthorizer requires " + PRINCIPAL_BUILDER_CLASS + " as 'principal.builder.class'");
         }
 
         if (DEPRECATED_PRINCIPAL_BUILDER_CLASS.equals(pbclass)) {
@@ -206,18 +208,18 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
         String endpoint = ConfigUtil.getConfigWithFallbackLookup(config, AuthzConfig.STRIMZI_AUTHORIZATION_TOKEN_ENDPOINT_URI,
                 ClientConfig.OAUTH_TOKEN_ENDPOINT_URI);
         if (endpoint == null) {
-            throw new RuntimeException("OAuth2 Token Endpoint ('strimzi.authorization.token.endpoint.uri') not set.");
+            throw new ConfigException("OAuth2 Token Endpoint ('strimzi.authorization.token.endpoint.uri') not set.");
         }
 
         try {
             tokenEndpointUrl = new URI(endpoint);
         } catch (URISyntaxException e) {
-            throw new RuntimeException("Specified token endpoint uri is invalid: " + endpoint);
+            throw new ConfigException("Specified token endpoint uri is invalid: " + endpoint);
         }
 
         clientId = ConfigUtil.getConfigWithFallbackLookup(config, AuthzConfig.STRIMZI_AUTHORIZATION_CLIENT_ID, ClientConfig.OAUTH_CLIENT_ID);
         if (clientId == null) {
-            throw new RuntimeException("OAuth2 Client Id ('strimzi.authorization.client.id') not set.");
+            throw new ConfigException("OAuth2 Client Id ('strimzi.authorization.client.id') not set.");
         }
 
         connectTimeoutSeconds = ConfigUtil.getTimeoutConfigWithFallbackLookup(config, AuthzConfig.STRIMZI_AUTHORIZATION_CONNECT_TIMEOUT_SECONDS, ClientConfig.OAUTH_CONNECT_TIMEOUT_SECONDS);
@@ -243,7 +245,7 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
         // Number of threads that can perform token endpoint requests at the same time
         final int grantsRefreshPoolSize = config.getValueAsInt(AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_REFRESH_POOL_SIZE, 5);
         if (grantsRefreshPoolSize < 1) {
-            throw new RuntimeException("Invalid value of 'strimzi.authorization.grants.refresh.pool.size': " + grantsRefreshPoolSize + ". Has to be >= 1.");
+            throw new ConfigException("Invalid value of 'strimzi.authorization.grants.refresh.pool.size': " + grantsRefreshPoolSize + ". Has to be >= 1.");
         }
 
         // Less or equal zero means to never check
@@ -450,6 +452,10 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
                         ", cluster: " + clusterName + ", actions: " + actions + ",\n permissions: " + grants);
             }
             addAuthzMetricErrorTime(t, startTime);
+
+            // We don't rethrow the exception, not even if it is an error.
+            // Rethrowing would not trigger JVM shutdown, but it would log the error again, bloating the log file
+
             return Collections.nCopies(actions.size(), AuthorizationResult.DENIED);
         }
     }
@@ -598,7 +604,7 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
             throw e;
         } catch (Exception e) {
             addGrantsHttpMetricErrorTime(e, startTime);
-            throw new RuntimeException("Failed to fetch authorization data from authorization server: ", e);
+            throw new ServiceException("Failed to fetch authorization data from authorization server: ", e);
         }
 
         return response;
@@ -748,7 +754,7 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
     @Override
     public List<? extends CompletionStage<AclCreateResult>> createAcls(AuthorizableRequestContext requestContext, List<AclBinding> aclBindings) {
         if (!delegateToKafkaACL) {
-            throw new RuntimeException("Simple ACL delegation not enabled");
+            throw new UnsupportedOperationException("Simple ACL delegation not enabled");
         }
         return super.createAcls(requestContext, aclBindings);
     }
@@ -756,7 +762,7 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
     @Override
     public List<? extends CompletionStage<AclDeleteResult>> deleteAcls(AuthorizableRequestContext requestContext, List<AclBindingFilter> aclBindingFilters) {
         if (!delegateToKafkaACL) {
-            throw new RuntimeException("Simple ACL delegation not enabled");
+            throw new UnsupportedOperationException("Simple ACL delegation not enabled");
         }
         return super.deleteAcls(requestContext, aclBindingFilters);
     }
@@ -764,7 +770,7 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
     @Override
     public Iterable<AclBinding> acls(AclBindingFilter filter) {
         if (!delegateToKafkaACL) {
-            throw new RuntimeException("Simple ACL delegation not enabled");
+            throw new UnsupportedOperationException("Simple ACL delegation not enabled");
         }
         return super.acls(filter);
     }

@@ -4,6 +4,8 @@
  */
 package io.strimzi.kafka.oauth.metrics;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -137,6 +139,7 @@ public class SensorKey {
      *
      * @return The attributes as a Map
      */
+    @SuppressFBWarnings("EI_EXPOSE_REP")
     public Map<String, String> getAttributes() {
         return attributes;
     }

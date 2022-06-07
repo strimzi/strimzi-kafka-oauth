@@ -5,6 +5,7 @@
 package io.strimzi.kafka.oauth.common;
 
 import java.net.URI;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -63,7 +64,7 @@ public class Config {
      * @param p Default property values
      */
     public Config(Map<String, ?> p) {
-        defaults = p;
+        defaults = Collections.unmodifiableMap(p);
     }
 
     /**
@@ -169,7 +170,7 @@ public class Config {
         try {
             return result != null ? isTrue(result) : fallback;
         } catch (Exception e) {
-            throw new RuntimeException("Bad boolean value for key: " + key + ", value: " + result);
+            throw new ConfigException("Bad boolean value for key: " + key + ", value: " + result);
         }
     }
 
@@ -184,7 +185,7 @@ public class Config {
         try {
             return URI.create(result);
         } catch (Exception e) {
-            throw new RuntimeException("Bad URI value for key: " + key + ", value: " + result, e);
+            throw new ConfigException("Bad URI value for key: " + key + ", value: " + result, e);
         }
     }
 

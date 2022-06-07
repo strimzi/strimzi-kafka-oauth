@@ -54,7 +54,7 @@ public class JSONUtil {
         try {
             return MAPPER.convertValue(value, JsonNode.class);
         } catch (RuntimeException e) {
-            throw new RuntimeException("Failed to convert value to JSON (" + value + ")", e);
+            throw new IllegalArgumentException("Failed to convert value to JSON (" + value + ")", e);
         }
     }
 

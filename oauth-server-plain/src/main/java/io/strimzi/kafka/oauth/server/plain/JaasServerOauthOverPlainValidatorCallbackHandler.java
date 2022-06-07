@@ -17,6 +17,7 @@ import io.strimzi.kafka.oauth.server.OAuthSaslAuthenticationException;
 import io.strimzi.kafka.oauth.server.ServerConfig;
 import io.strimzi.kafka.oauth.services.OAuthMetrics;
 import io.strimzi.kafka.oauth.services.Services;
+import io.strimzi.kafka.oauth.validator.ValidationException;
 import org.apache.kafka.common.errors.SaslAuthenticationException;
 import org.apache.kafka.common.security.auth.KafkaPrincipal;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerToken;
@@ -203,7 +204,6 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
                     throw new UnsupportedCallbackException(callback);
                 }
             }
-
             handleCallback(cb, username, password);
 
         } catch (OAuthSaslAuthenticationException e) {
@@ -220,7 +220,7 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
         }
     }
 
-    private void handleCallback(PlainAuthenticateCallback callback, String username, String password) throws Exception {
+    private void handleCallback(PlainAuthenticateCallback callback, String username, String password) throws UnsupportedCallbackException, IOException {
         if (callback == null) throw new IllegalArgumentException("callback == null");
         if (username == null) throw new IllegalArgumentException("username == null");
 
@@ -249,7 +249,7 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
                         username, password, isJwt(), getPrincipalExtractor(), scope, audience, getConnectTimeout(), getReadTimeout(), authMetrics)
                         .token();
             } else {
-                throw new RuntimeException("Empty password where access token was expected");
+                throw new ValidationException("Empty password where access token was expected");
             }
 
             OAuthBearerValidatorCallback[] callbacks = new OAuthBearerValidatorCallback[]{new OAuthBearerValidatorCallback(accessToken)};
@@ -257,7 +257,7 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
 
             OAuthBearerToken token = callbacks[0].token();
             if (token == null) {
-                throw new RuntimeException("Authentication with OAuth token has failed (no token returned)");
+                throw new ValidationException("Authentication with OAuth token has failed (no token returned)");
             }
 
             if (checkUsernameMatch) {

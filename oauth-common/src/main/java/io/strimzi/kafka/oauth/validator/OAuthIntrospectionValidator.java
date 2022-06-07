@@ -5,6 +5,7 @@
 package io.strimzi.kafka.oauth.validator;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.BooleanNode;
 import io.strimzi.kafka.oauth.common.JSONUtil;
 import io.strimzi.kafka.oauth.common.PrincipalExtractor;
 import io.strimzi.kafka.oauth.common.TimeUtil;
@@ -272,16 +273,14 @@ public class OAuthIntrospectionValidator implements TokenValidator {
 
         } catch (IOException e) {
             addIntrospectHttpMetricErrorTime(e, requestStartTime);
-            throw new RuntimeException("Failed to introspect token - send, fetch or parse failed: ", e);
+            throw new ValidationException("Failed to introspect token - send, fetch or parse failed: ", e);
         }
 
-        boolean active;
-        try {
-            active = response.get("active").asBoolean();
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to introspect token - invalid response: \"active\" attribute is missing or not a boolean (" + response.get("active") + ")");
+        JsonNode activeAttr = response.get("active");
+        if (!(activeAttr instanceof BooleanNode)) {
+            throw new ValidationException("Failed to introspect token - invalid response: \"active\" attribute is missing or not a boolean (" + activeAttr + ")");
         }
-
+        boolean active = activeAttr.asBoolean();
         if (!active) {
             throw new TokenValidationException("Token validation failed: Token not active");
         }
@@ -312,7 +311,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
                 principal = principalExtractor.getSub(response);
             }
             if (principal == null) {
-                throw new RuntimeException("Failed to extract principal - check usernameClaim, fallbackUsernameClaim configuration");
+                throw new ValidationException("Failed to extract principal - check usernameClaim, fallbackUsernameClaim configuration");
             }
         }
         performOptionalChecks(response);
@@ -354,7 +353,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
 
         } catch (IOException e) {
             addUserInfoHttpMetricErrorTime(e, requestStartTime);
-            throw new RuntimeException("Request to User Info Endpoint failed: ", e);
+            throw new ValidationException("Request to User Info Endpoint failed: ", e);
         }
 
         return response;

@@ -4,6 +4,7 @@
  */
 package io.strimzi.examples.producer;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.strimzi.kafka.oauth.client.ClientConfig;
 import io.strimzi.kafka.oauth.common.Config;
 import io.strimzi.kafka.oauth.common.ConfigProperties;
@@ -24,6 +25,7 @@ import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
+@SuppressFBWarnings("THROWS_METHOD_THROWS_RUNTIMEEXCEPTION")
 public class ExampleConcurrentProducer {
 
     private static Logger log = LoggerFactory.getLogger(ExampleConcurrentProducer.class);

@@ -114,7 +114,7 @@ public class OAuthKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder imp
                 | NoSuchMethodException
                 | IllegalAccessException
                 | InvocationTargetException e) {
-            throw new RuntimeException("Failed to initialize OAuthKafkaPrincipalBuilder", e);
+            throw new IllegalStateException("Failed to initialize OAuthKafkaPrincipalBuilder", e);
         }
     }
 

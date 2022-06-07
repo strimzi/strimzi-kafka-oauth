@@ -12,7 +12,9 @@ public class ConfigProperties {
     private final Config config;
 
     public ConfigProperties(Properties defaults) {
-        this.defaults = defaults;
+        Properties p = new Properties();
+        p.putAll(defaults);
+        this.defaults = p;
         config = new Config(defaults);
     }
 

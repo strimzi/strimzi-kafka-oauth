@@ -6,6 +6,7 @@ package io.strimzi.kafka.oauth.common;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.nimbusds.jose.JWSObject;
+import io.strimzi.kafka.oauth.validator.ValidationException;
 import org.slf4j.Logger;
 
 import java.time.LocalDateTime;
@@ -24,7 +25,7 @@ public class TokenIntrospection {
         try {
             jws = JWSObject.parse(token);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to parse JWT token", e);
+            throw new ValidationException("Failed to parse JWT token", e);
         }
 
         try {
@@ -41,7 +42,7 @@ public class TokenIntrospection {
             return new TokenInfo(parsed, token, principal);
 
         } catch (Exception e) {
-            throw new RuntimeException("Failed to read payload from JWT access token", e);
+            throw new ValidationException("Failed to read payload from JWT access token", e);
         }
     }
 

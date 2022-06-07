@@ -121,7 +121,7 @@ public class HttpUtil {
         try {
             con = (HttpURLConnection) uri.toURL().openConnection();
         } catch (IOException e) {
-            throw new RuntimeException("Failed to initialise connection to: " + uri, e);
+            throw new IOException("Failed to initialise connection to: " + uri, e);
         }
 
         configureTimeouts(con, connectTimeout, readTimeout);

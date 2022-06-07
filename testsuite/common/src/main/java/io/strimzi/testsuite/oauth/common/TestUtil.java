@@ -4,6 +4,8 @@
  */
 package io.strimzi.testsuite.oauth.common;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
@@ -26,6 +28,7 @@ public class TestUtil {
      * @param filter The string to look for (not a regex) in the log
      * @return A list of lines from the log that match the filter (logging entries that contain the filter string)
      */
+    @SuppressFBWarnings("THROWS_METHOD_THROWS_RUNTIMEEXCEPTION")
     public static List<String> getKafkaLogsForString(String filter) {
         try {
             boolean inmatch = false;

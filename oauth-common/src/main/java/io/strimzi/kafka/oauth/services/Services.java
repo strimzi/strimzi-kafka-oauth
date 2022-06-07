@@ -4,11 +4,14 @@
  */
 package io.strimzi.kafka.oauth.services;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.util.Map;
 
 /**
  * This class contains singleton components shared among Kafka Broker sessions
  */
+@SuppressFBWarnings("EI_EXPOSE_REP")
 public class Services {
 
     private static Services services;

@@ -5,6 +5,7 @@
 package io.strimzi.kafka.oauth.validator;
 
 import io.strimzi.kafka.oauth.services.CurrentTime;
+import io.strimzi.kafka.oauth.services.ServiceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -119,7 +120,7 @@ public class BackOffTaskScheduler {
             // Release taskSchedule lock
             releaseTaskScheduleLock();
 
-            throw new RuntimeException("Failed to re-schedule the task", e);
+            throw new ServiceException("Failed to re-schedule the task", e);
         }
     }
 
@@ -168,7 +169,11 @@ public class BackOffTaskScheduler {
                 if (cutoffIntervalSeconds <= 0 || delay < cutoffIntervalSeconds) {
 
                     // We still hold the taskScheduled lock
-                    scheduleServiceTask(this, 1000 * delay);
+                    try {
+                        scheduleServiceTask(this, 1000 * delay);
+                    } catch (RuntimeException e) {
+                        log.error("Failed to reschedule JWKS keys refresh: ", e);
+                    }
 
                     if (log.isDebugEnabled()) {
                         log.debug("Task rescheduled in {} seconds", delay);

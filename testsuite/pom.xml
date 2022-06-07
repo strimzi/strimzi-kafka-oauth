@@ -40,7 +40,7 @@
         <version.arquillian_universe>1.5.0.0</version.arquillian_universe>
         <version.junit>4.12</version.junit>
         <arquillian.cube.version>1.18.2</arquillian.cube.version>
-        <spotbugs.version>3.1.12</spotbugs.version>
+        <spotbugs.version>4.7.0</spotbugs.version>
         <strimzi-oauth.version>1.0.0-SNAPSHOT</strimzi-oauth.version>
         <checkstyle.dir>..</checkstyle.dir>
 
@@ -261,13 +261,15 @@
             <plugin>
                 <groupId>com.github.spotbugs</groupId>
                 <artifactId>spotbugs-maven-plugin</artifactId>
-                <version>3.1.12</version><dependencies>
-                <!-- overwrite dependency on spotbugs if you want to specify the version of˓→spotbugs -->
-                <dependency>
-                    <groupId>com.github.spotbugs</groupId>
-                    <artifactId>spotbugs</artifactId>
-                    <version>${spotbugs.version}</version>
-                </dependency></dependencies>
+                <version>4.6.0.0</version>
+                <dependencies>
+                    <!-- overwrite dependency on spotbugs if you want to specify the version of˓→spotbugs -->
+                    <dependency>
+                        <groupId>com.github.spotbugs</groupId>
+                        <artifactId>spotbugs</artifactId>
+                        <version>${spotbugs.version}</version>
+                    </dependency>
+                </dependencies>
                 <configuration>
                     <effort>Max</effort>
                     <!-- Reports all bugs (other values are medium and max) -->

@@ -4,6 +4,7 @@
  */
 package io.strimzi.kafka.oauth.client;
 
+import io.strimzi.kafka.oauth.common.ConfigException;
 import io.strimzi.kafka.oauth.common.MetricsHandler;
 import io.strimzi.kafka.oauth.common.Config;
 import io.strimzi.kafka.oauth.common.ConfigUtil;
@@ -90,13 +91,13 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
             String endpoint = config.getValue(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI);
 
             if (endpoint == null) {
-                throw new RuntimeException("Access Token not specified (OAUTH_ACCESS_TOKEN). OAuth2 Token Endpoint (OAUTH_TOKEN_ENDPOINT_URI) should then be set.");
+                throw new ConfigException("Access Token not specified (OAUTH_ACCESS_TOKEN). OAuth2 Token Endpoint (OAUTH_TOKEN_ENDPOINT_URI) should then be set.");
             }
 
             try {
                 tokenEndpoint = new URI(endpoint);
             } catch (URISyntaxException e) {
-                throw new RuntimeException("Specified token endpoint uri is invalid: " + endpoint);
+                throw new ConfigException("Specified token endpoint uri is invalid: " + endpoint, e);
             }
 
             refreshToken = config.getValue(ClientConfig.OAUTH_REFRESH_TOKEN);
@@ -105,11 +106,11 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
             clientSecret = config.getValue(Config.OAUTH_CLIENT_SECRET);
 
             if (clientId == null) {
-                throw new RuntimeException("No client id specified (OAUTH_CLIENT_ID)");
+                throw new ConfigException("No client id specified (OAUTH_CLIENT_ID)");
             }
 
             if (refreshToken == null && clientSecret == null) {
-                throw new RuntimeException("No access token, refresh token, nor client secret specified");
+                throw new ConfigException("No access token, refresh token, nor client secret specified");
             }
 
             scope = config.getValue(Config.OAUTH_SCOPE);
@@ -132,7 +133,7 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
 
         maxTokenExpirySeconds = config.getValueAsInt(ClientConfig.OAUTH_MAX_TOKEN_EXPIRY_SECONDS, -1);
         if (maxTokenExpirySeconds > 0 && maxTokenExpirySeconds < 60) {
-            throw new RuntimeException("Invalid value configured for OAUTH_MAX_TOKEN_EXPIRY_SECONDS: " + maxTokenExpirySeconds + " (should be at least 60)");
+            throw new ConfigException("Invalid value configured for OAUTH_MAX_TOKEN_EXPIRY_SECONDS: " + maxTokenExpirySeconds + " (should be at least 60)");
         }
 
         String configId = configureMetrics(configs);

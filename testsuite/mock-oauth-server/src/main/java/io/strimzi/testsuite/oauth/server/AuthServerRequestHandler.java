@@ -4,6 +4,7 @@
  */
 package io.strimzi.testsuite.oauth.server;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
@@ -50,6 +51,7 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
 
     private final MockOAuthServerMainVerticle verticle;
 
+    @SuppressFBWarnings("EI_EXPOSE_REP2")
     public AuthServerRequestHandler(MockOAuthServerMainVerticle verticle) {
         this.verticle = verticle;
     }

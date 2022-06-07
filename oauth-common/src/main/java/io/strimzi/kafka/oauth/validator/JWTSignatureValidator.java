@@ -23,6 +23,7 @@ import io.strimzi.kafka.oauth.jsonpath.JsonPathQuery;
 import io.strimzi.kafka.oauth.metrics.JwksHttpSensorKeyProducer;
 import io.strimzi.kafka.oauth.metrics.SensorKeyProducer;
 import io.strimzi.kafka.oauth.services.OAuthMetrics;
+import io.strimzi.kafka.oauth.services.ServiceException;
 import io.strimzi.kafka.oauth.services.Services;
 import org.apache.kafka.common.utils.Time;
 import org.slf4j.Logger;
@@ -362,7 +363,7 @@ public class JWTSignatureValidator implements TokenValidator {
 
         } catch (Throwable ex) {
             addJwksHttpMetricErrorTime(ex, requestStartTime);
-            throw new RuntimeException("Failed to fetch public keys needed to validate JWT signatures: " + keysUri, ex);
+            throw new ServiceException("Failed to fetch public keys needed to validate JWT signatures: " + keysUri, ex);
         }
     }
 
@@ -388,7 +389,11 @@ public class JWTSignatureValidator implements TokenValidator {
                     throw new TokenValidationException("Token validation failed: The signing key is no longer valid (kid:" + kid + ")");
                 } else {
                     // Request quick keys refresh
-                    fastScheduler.scheduleTask();
+                    try {
+                        fastScheduler.scheduleTask();
+                    } catch (RuntimeException e) {
+                        log.error("Failed to reschedule JWKS keys refresh: ", e);
+                    }
                     throw new TokenValidationException("Token validation failed: Unknown signing key (kid:" + kid + ")");
                 }
             }
@@ -439,7 +444,7 @@ public class JWTSignatureValidator implements TokenValidator {
             principal = principalExtractor.getSub(tokenJson);
         }
         if (principal == null) {
-            throw new RuntimeException("Failed to extract principal - check usernameClaim, fallbackUsernameClaim configuration");
+            throw new ValidationException("Failed to extract principal - check usernameClaim, fallbackUsernameClaim configuration");
         }
         return principal;
     }

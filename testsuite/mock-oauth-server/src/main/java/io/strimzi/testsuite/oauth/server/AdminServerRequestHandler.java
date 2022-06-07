@@ -4,6 +4,7 @@
  */
 package io.strimzi.testsuite.oauth.server;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpServerRequest;
@@ -32,6 +33,7 @@ public class AdminServerRequestHandler implements Handler<HttpServerRequest> {
 
     private final MockOAuthServerMainVerticle verticle;
 
+    @SuppressFBWarnings("EI_EXPOSE_REP2")
     public AdminServerRequestHandler(MockOAuthServerMainVerticle verticle) {
         this.verticle = verticle;
     }
