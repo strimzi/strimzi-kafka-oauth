@@ -92,6 +92,8 @@ public class MetricsTest {
                 true,
                 null,
                 null,
+                null,
+                null,
                 null);
 
         // and try to validate it

@@ -53,6 +53,8 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
     private String refreshToken;
     private String clientId;
     private String clientSecret;
+    private String username;
+    private String password;
     private String scope;
     private String audience;
     private URI tokenEndpoint;
@@ -104,6 +106,8 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
 
             clientId = config.getValue(Config.OAUTH_CLIENT_ID);
             clientSecret = config.getValue(Config.OAUTH_CLIENT_SECRET);
+            username = config.getValue(Config.OAUTH_PASSWORD_GRANT_USERNAME);
+            password = config.getValue(Config.OAUTH_PASSWORD_GRANT_PASSWORD);
 
             if (clientId == null) {
                 throw new ConfigException("No client id specified (OAUTH_CLIENT_ID)");
@@ -146,6 +150,8 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
                     + "\n    tokenEndpointUri: " + tokenEndpoint
                     + "\n    clientId: " + clientId
                     + "\n    clientSecret: " + mask(clientSecret)
+                    + "\n    username: " + username
+                    + "\n    password: " + mask(password)
                     + "\n    scope: " + scope
                     + "\n    audience: " + audience
                     + "\n    isJwt: " + isJwt
@@ -204,7 +210,7 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
             } else if (refreshToken != null) {
                 result = loginWithRefreshToken(tokenEndpoint, socketFactory, hostnameVerifier, refreshToken, clientId, clientSecret, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout, authenticatorMetrics);
             } else if (clientSecret != null) {
-                result = loginWithClientSecret(tokenEndpoint, socketFactory, hostnameVerifier, clientId, clientSecret, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout, authenticatorMetrics);
+                result = loginWithClientSecret(tokenEndpoint, socketFactory, hostnameVerifier, clientId, clientSecret, isJwt, username, password, principalExtractor, scope, audience, connectTimeout, readTimeout, authenticatorMetrics);
             } else {
                 throw new IllegalStateException("Invalid oauth client configuration - no credentials");
             }

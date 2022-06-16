@@ -113,7 +113,7 @@ public class HydraAuthenticationTest {
         // first, request access token using client id and secret
         TokenInfo info = OAuthAuthenticator.loginWithClientSecret(URI.create(tokenEndpointUri),
                 ConfigUtil.createSSLFactory(new ClientConfig()),
-                null, clientId, clientSecret, true, null, null);
+                null, clientId, clientSecret, true, null, null, null, null);
 
         Map<String, String> oauthConfig = new HashMap<>();
         oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, tokenEndpointUri);

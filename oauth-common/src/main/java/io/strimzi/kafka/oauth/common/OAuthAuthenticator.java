@@ -44,24 +44,28 @@ public class OAuthAuthenticator {
     public static TokenInfo loginWithClientSecret(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
                                                   HostnameVerifier hostnameVerifier,
                                                   String clientId, String clientSecret, boolean isJwt,
+                                                  String username, String password,
                                                   PrincipalExtractor principalExtractor, String scope) throws IOException {
 
         return loginWithClientSecret(tokenEndpointUrl, socketFactory, hostnameVerifier,
-                clientId, clientSecret, isJwt, principalExtractor, scope, null, HttpUtil.DEFAULT_CONNECT_TIMEOUT, HttpUtil.DEFAULT_READ_TIMEOUT, null);
+                clientId, clientSecret, isJwt, username, password, principalExtractor, scope, null, HttpUtil.DEFAULT_CONNECT_TIMEOUT, HttpUtil.DEFAULT_READ_TIMEOUT, null);
     }
 
     public static TokenInfo loginWithClientSecret(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
                                                   HostnameVerifier hostnameVerifier,
                                                   String clientId, String clientSecret, boolean isJwt,
+                                                  String username, String password,
                                                   PrincipalExtractor principalExtractor, String scope, String audience) throws IOException {
 
         return loginWithClientSecret(tokenEndpointUrl, socketFactory, hostnameVerifier,
-                clientId, clientSecret, isJwt, principalExtractor, scope, audience, HttpUtil.DEFAULT_CONNECT_TIMEOUT, HttpUtil.DEFAULT_READ_TIMEOUT, null);
+                clientId, clientSecret, isJwt, username, password, principalExtractor, scope, audience, HttpUtil.DEFAULT_CONNECT_TIMEOUT, HttpUtil.DEFAULT_READ_TIMEOUT, null);
     }
 
+    @SuppressWarnings("checkstyle:ParameterNumber")
     public static TokenInfo loginWithClientSecret(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
                                                   HostnameVerifier hostnameVerifier,
                                                   String clientId, String clientSecret, boolean isJwt,
+                                                  String username, String password,
                                                   PrincipalExtractor principalExtractor, String scope, String audience,
                                                   int connectTimeout, int readTimeout, MetricsHandler metrics) throws IOException {
         if (log.isDebugEnabled()) {
@@ -71,12 +75,16 @@ public class OAuthAuthenticator {
 
         String authorization = "Basic " + base64encode(clientId + ':' + clientSecret);
 
-        StringBuilder body = new StringBuilder("grant_type=client_credentials");
+        StringBuilder body = new StringBuilder("grant_type=" + (username != null ? "password" : "client_credentials"));
         if (scope != null) {
             body.append("&scope=").append(urlencode(scope));
         }
         if (audience != null) {
             body.append("&audience=").append(urlencode(audience));
+        }
+        if (username != null) {
+            body.append("&username=").append(urlencode(username));
+            body.append("&password=").append(urlencode(password));
         }
 
         return post(tokenEndpointUrl, socketFactory, hostnameVerifier, authorization, body.toString(), isJwt, principalExtractor, connectTimeout, readTimeout, metrics);

@@ -129,7 +129,7 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
     @Override
     public void configure(Map<String, ?> configs, String saslMechanism, List<AppConfigurationEntry> jaasConfigEntries) {
 
-        if (!"PLAIN".equals(saslMechanism))    {
+        if (!"PLAIN".equals(saslMechanism)) {
             throw new IllegalArgumentException(String.format("Unexpected SASL mechanism: %s", saslMechanism));
         }
 
@@ -246,7 +246,7 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
                 checkUsernameMatch = true;
             } else if (tokenEndpointUri != null) {
                 accessToken = OAuthAuthenticator.loginWithClientSecret(tokenEndpointUri, getSocketFactory(), getVerifier(),
-                        username, password, isJwt(), getPrincipalExtractor(), scope, audience, getConnectTimeout(), getReadTimeout(), authMetrics)
+                        username, password, isJwt(), null, null, getPrincipalExtractor(), scope, audience, getConnectTimeout(), getReadTimeout(), authMetrics)
                         .token();
             } else {
                 throw new ValidationException("Empty password where access token was expected");

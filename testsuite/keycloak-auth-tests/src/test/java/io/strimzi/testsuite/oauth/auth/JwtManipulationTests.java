@@ -220,7 +220,7 @@ public class JwtManipulationTests {
 
         // first, request access token using client id and secret
         TokenInfo info = OAuthAuthenticator.loginWithClientSecret(URI.create(tokenEndpointUri), null, null,
-                "kafka-producer-client", "kafka-producer-client-secret", true, null, null);
+                "kafka-producer-client", "kafka-producer-client-secret", true, null, null, null, null);
 
         return info.token();
     }
