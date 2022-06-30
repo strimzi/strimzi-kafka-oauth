@@ -558,13 +558,18 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
 
                 if (grantLogOn || denyLogOn) {
                     String status = result == AuthorizationResult.ALLOWED ? "GRANTED" : "DENIED";
-                    String message = "Authorization " + status + " by ACL -" + nonAuthMessageFragment + " user: " + context.principal() +
-                            ", operation: " + action.operation() + ", resource: " + fromResourcePattern(action.resourcePattern());
+                    String message = getACLMessage(context, nonAuthMessageFragment, action, status);
 
                     if (grantLogOn) {
                         GRANT_LOG.debug(message);
                     } else {
                         DENY_LOG.debug(message);
+                    }
+                } else if (result == AuthorizationResult.DENIED) {
+                    // To ease debugging we log DENIED even if action says to not log it to audit log
+                    // We log it to regular logger instead
+                    if (log.isDebugEnabled()) {
+                        log.debug(getACLMessage(context, nonAuthMessageFragment, action, "DENIED"));
                     }
                 }
                 i++;
@@ -575,13 +580,28 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
         if (DENY_LOG.isDebugEnabled()) {
             for (Action action: actions) {
                 if (action.logIfDenied()) {
-                    DENY_LOG.debug("Authorization DENIED -" + nonAuthMessageFragment + " user: " + context.principal() +
-                            ", cluster: " + clusterName + ", operation: " + action.operation() +
-                            ", resource: " + fromResourcePattern(action.resourcePattern()) + ",\n permissions: " + authz);
+                    logDenied(DENY_LOG, context, authz, nonAuthMessageFragment, action);
                 }
+            }
+        } else if (log.isDebugEnabled()) {
+            // To ease debugging we log DENIED even if action says to not log it to audit log
+            // We log it to regular logger instead
+            for (Action action: actions) {
+                logDenied(log, context, authz, nonAuthMessageFragment, action);
             }
         }
         return Collections.nCopies(actions.size(), AuthorizationResult.DENIED);
+    }
+
+    private String getACLMessage(AuthorizableRequestContext context, String nonAuthMessageFragment, Action action, String status) {
+        return "Authorization " + status + " by ACL -" + nonAuthMessageFragment + " user: " + context.principal() +
+                ", operation: " + action.operation() + ", resource: " + fromResourcePattern(action.resourcePattern());
+    }
+
+    private void logDenied(Logger logger, AuthorizableRequestContext context, JsonNode authz, String nonAuthMessageFragment, Action action) {
+        logger.debug("Authorization DENIED -" + nonAuthMessageFragment + " user: " + context.principal() +
+                ", cluster: " + clusterName + ", operation: " + action.operation() +
+                ", resource: " + fromResourcePattern(action.resourcePattern()) + ",\n permissions: " + authz);
     }
 
     private JsonNode fetchAuthorizationGrants(String token) {

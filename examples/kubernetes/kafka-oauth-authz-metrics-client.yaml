@@ -40,7 +40,7 @@ metadata:
 spec:
   containers:
     - name: kafka-client-shell
-      image: quay.io/strimzi/kafka:latest-kafka-3.1.0
+      image: quay.io/strimzi/kafka:latest-kafka-3.2.0
       command:
         - /bin/sh
       env:

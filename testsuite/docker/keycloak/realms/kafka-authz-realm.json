@@ -503,6 +503,25 @@
             ]
           },
           {
+            "name": "kafka-cluster:my-cluster,Group:b_*",
+            "type": "Group",
+            "ownerManagedAccess": false,
+            "displayName": "Consumer groups on cluster my-cluster that start with b_",
+            "attributes": {},
+            "uris": [],
+            "scopes": [
+              {
+                "name": "Describe"
+              },
+              {
+                "name": "Delete"
+              },
+              {
+                "name": "Read"
+              }
+            ]
+          },
+          {
             "name": "kafka-cluster:my-cluster,Cluster:*",
             "type": "Cluster",
             "ownerManagedAccess": false,
@@ -518,6 +537,9 @@
               },
               {
                 "name": "ClusterAction"
+              },
+              {
+                "name": "IdempotentWrite"
               }
             ]
           },
@@ -588,7 +610,21 @@
             "type" : "Cluster",
             "ownerManagedAccess" : false,
             "attributes" : { },
-            "uris" : [ ]
+            "uris" : [ ],
+            "scopes": [
+              {
+                "name": "DescribeConfigs"
+              },
+              {
+                "name": "AlterConfigs"
+              },
+              {
+                "name": "ClusterAction"
+              },
+              {
+                "name": "IdempotentWrite"
+              }
+            ]
           },
           {
             "name": "Topic:messages-1",
@@ -1118,12 +1154,44 @@
             }
           },
           {
+            "name": "Dev Team A can do IdempotentWrites on cluster my-cluster",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "resources": "[\"kafka-cluster:my-cluster,Cluster:*\"]",
+              "scopes": "[\"IdempotentWrite\"]",
+              "applyPolicies": "[\"Dev Team A\"]"
+            }
+          },
+          {
             "name": "Dev Team B owns topics that start with b_ on cluster my-cluster",
             "type": "resource",
             "logic": "POSITIVE",
             "decisionStrategy": "UNANIMOUS",
             "config": {
               "resources": "[\"kafka-cluster:my-cluster,Topic:b_*\"]",
+              "applyPolicies": "[\"Dev Team B\"]"
+            }
+          },
+          {
+            "name": "Dev Team B can do IdempotentWrites on cluster my-cluster",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "resources": "[\"kafka-cluster:my-cluster,Cluster:*\"]",
+              "scopes": "[\"IdempotentWrite\"]",
+              "applyPolicies": "[\"Dev Team B\"]"
+            }
+          },
+          {
+            "name": "Dev Team B owns groups that start with b_ on cluster my-cluster",
+            "type": "resource",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "resources": "[\"kafka-cluster:my-cluster,Group:b_*\"]",
               "applyPolicies": "[\"Dev Team B\"]"
             }
           },
@@ -1408,6 +1476,17 @@
             }
           },
           {
+            "name": "Producer Client 1 has IdempotentWrite permission on cluster",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "resources": "[\"Cluster:*\"]",
+              "scopes": "[\"IdempotentWrite\"]",
+              "applyPolicies": "[\"Producer Client 1\"]"
+            }
+          },
+          {
             "name": "Consumer Client 1 can read from topic 'messages-1'",
             "type": "scope",
             "logic": "POSITIVE",
@@ -1437,6 +1516,17 @@
             "config": {
               "resources": "[\"Topic:messages-2\"]",
               "scopes": "[\"Delete\",\"Describe\",\"Create\",\"Write\"]",
+              "applyPolicies": "[\"Producer Client 2\"]"
+            }
+          },
+          {
+            "name": "Producer Client 2 has IdempotentWrite permission on cluster",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "resources": "[\"Cluster:*\"]",
+              "scopes": "[\"IdempotentWrite\"]",
               "applyPolicies": "[\"Producer Client 2\"]"
             }
           },
@@ -1474,6 +1564,17 @@
             }
           },
           {
+            "name": "Producer Client 3 has IdempotentWrite permission on cluster",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "resources": "[\"Cluster:*\"]",
+              "scopes": "[\"IdempotentWrite\"]",
+              "applyPolicies": "[\"Producer Client 3\"]"
+            }
+          },
+          {
             "name": "Consumer Client 3 can read from topic 'messages-3'",
             "type": "scope",
             "logic": "POSITIVE",
@@ -1503,6 +1604,17 @@
             "config": {
               "resources": "[\"Topic:messages-4\"]",
               "scopes": "[\"Delete\",\"Describe\",\"Create\",\"Write\"]",
+              "applyPolicies": "[\"Producer Client 4\"]"
+            }
+          },
+          {
+            "name": "Producer Client 4 has IdempotentWrite permission on cluster",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "resources": "[\"Cluster:*\"]",
+              "scopes": "[\"IdempotentWrite\"]",
               "applyPolicies": "[\"Producer Client 4\"]"
             }
           },
@@ -1540,6 +1652,17 @@
             }
           },
           {
+            "name": "Producer Client 5 has IdempotentWrite permission on cluster",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "resources": "[\"Cluster:*\"]",
+              "scopes": "[\"IdempotentWrite\"]",
+              "applyPolicies": "[\"Producer Client 5\"]"
+            }
+          },
+          {
             "name": "Consumer Client 5 can read from topic 'messages-5'",
             "type": "scope",
             "logic": "POSITIVE",
@@ -1569,6 +1692,17 @@
             "config": {
               "resources": "[\"Topic:messages-6\"]",
               "scopes": "[\"Delete\",\"Describe\",\"Create\",\"Write\"]",
+              "applyPolicies": "[\"Producer Client 6\"]"
+            }
+          },
+          {
+            "name": "Producer Client 6 has IdempotentWrite permission on cluster",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "resources": "[\"Cluster:*\"]",
+              "scopes": "[\"IdempotentWrite\"]",
               "applyPolicies": "[\"Producer Client 6\"]"
             }
           },
@@ -1606,6 +1740,17 @@
             }
           },
           {
+            "name": "Producer Client 7 has IdempotentWrite permission on cluster",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "resources": "[\"Cluster:*\"]",
+              "scopes": "[\"IdempotentWrite\"]",
+              "applyPolicies": "[\"Producer Client 7\"]"
+            }
+          },
+          {
             "name": "Consumer Client 7 can read from topic 'messages-7'",
             "type": "scope",
             "logic": "POSITIVE",
@@ -1635,6 +1780,17 @@
             "config": {
               "resources": "[\"Topic:messages-8\"]",
               "scopes": "[\"Delete\",\"Describe\",\"Create\",\"Write\"]",
+              "applyPolicies": "[\"Producer Client 8\"]"
+            }
+          },
+          {
+            "name": "Producer Client 8 has IdempotentWrite permission on cluster",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "resources": "[\"Cluster:*\"]",
+              "scopes": "[\"IdempotentWrite\"]",
               "applyPolicies": "[\"Producer Client 8\"]"
             }
           },
@@ -1672,6 +1828,17 @@
             }
           },
           {
+            "name": "Producer Client 9 has IdempotentWrite permission on cluster",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "resources": "[\"Cluster:*\"]",
+              "scopes": "[\"IdempotentWrite\"]",
+              "applyPolicies": "[\"Producer Client 9\"]"
+            }
+          },
+          {
             "name": "Consumer Client 9 can read from topic 'messages-9'",
             "type": "scope",
             "logic": "POSITIVE",
@@ -1701,6 +1868,17 @@
             "config": {
               "resources": "[\"Topic:messages-10\"]",
               "scopes": "[\"Delete\",\"Describe\",\"Create\",\"Write\"]",
+              "applyPolicies": "[\"Producer Client 10\"]"
+            }
+          },
+          {
+            "name": "Producer Client 10 has IdempotentWrite permission on cluster",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "resources": "[\"Cluster:*\"]",
+              "scopes": "[\"IdempotentWrite\"]",
               "applyPolicies": "[\"Producer Client 10\"]"
             }
           },

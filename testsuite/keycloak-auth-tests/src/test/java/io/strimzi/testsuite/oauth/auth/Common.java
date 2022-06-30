@@ -6,19 +6,26 @@ package io.strimzi.testsuite.oauth.auth;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.strimzi.kafka.oauth.common.HttpUtil;
+import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URI;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Properties;
 
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
 
 public class Common {
+
+    private static final Logger log = LoggerFactory.getLogger(Common.class);
 
     static String getJaasConfigOptionsString(Map<String, String> options) {
         StringBuilder sb = new StringBuilder();
@@ -151,5 +158,12 @@ public class Common {
         return token.asText();
     }
 
-
+    static <K, V> ConsumerRecords<K, V> poll(Consumer<K, V> consumer) {
+        ConsumerRecords<K, V> result = consumer.poll(Duration.ofSeconds(5));
+        if (result.isEmpty()) {
+            log.warn("No result after 5 seconds. Repeating ...");
+            result = consumer.poll(Duration.ofSeconds(5));
+        }
+        return result;
+    }
 }
