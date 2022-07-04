@@ -110,6 +110,7 @@ fi
 
 cmd=()
 cmd+=(curl)
+if [[ "$INSECURE" != "" ]]; then cmd+=(-k); fi
 cmd+=(-s)
 cmd+=(-X)
 cmd+=(POST)
