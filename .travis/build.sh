@@ -89,12 +89,6 @@ if [ ${JAVA_MAJOR_VERSION} -eq 1 ] ; then
     EXIT=$?
     exitIfError
 
-    clearDockerEnv
-    docker pull quay.io/strimzi/kafka:0.25.0-kafka-2.7.1
-    mvn -e -V -B clean install -f testsuite -Pkafka-2_7_1
-    EXIT=$?
-    exitIfError
-
     set -e
   fi
 fi
