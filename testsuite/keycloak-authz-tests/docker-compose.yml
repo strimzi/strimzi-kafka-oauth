@@ -2,13 +2,11 @@ version: '3'
 
 services:
   keycloak:
-    image: quay.io/keycloak/keycloak:15.0.0
+    image: quay.io/keycloak/keycloak:19.0.1-legacy
     ports:
       - "8080:8080"
       - "8443:8443"
     volumes:
-      - ${PWD}/../docker/keycloak/scripts:/opt/jboss/keycloak/ssl
-      - ${PWD}/../target/keycloak/certs:/opt/jboss/keycloak/standalone/configuration/certs
       - ${PWD}/../docker/keycloak/realms:/opt/jboss/keycloak/realms
 
     entrypoint: ""
@@ -16,7 +14,7 @@ services:
     command:
       - /bin/bash
       - -c
-      - cd /opt/jboss/keycloak && bin/jboss-cli.sh --file=ssl/keycloak-ssl.cli && rm -rf standalone/configuration/standalone_xml_history/current && cd .. && /opt/jboss/tools/docker-entrypoint.sh  -Dkeycloak.profile.feature.upload_scripts=enabled -b 0.0.0.0
+      - cd /opt/jboss && /opt/jboss/tools/docker-entrypoint.sh  -Dkeycloak.profile.feature.upload_scripts=enabled -b 0.0.0.0
 
     environment:
       - KEYCLOAK_USER=admin
