@@ -1,0 +1,29 @@
+FROM alpine:3.13 as hydra-import
+
+COPY --from=golang:1.16-alpine /usr/local/go/ /usr/local/go/
+ENV PATH="/usr/local/go/bin:${PATH}" \
+    GODEBUG=x509ignoreCN=0
+
+RUN apk add -U --no-cache bash ca-certificates curl git make gcc musl-dev \
+    && cd /tmp \
+    && export GOPATH=/opt/go/ \
+    && git clone -b v1.8.5 https://github.com/ory/hydra.git \
+    && cd hydra \
+    && GO111MODULE=on make install-stable \
+    && cp $GOPATH/bin/hydra /usr/bin/ \
+    && cd \
+    && rm -rf /tmp/hydra
+
+FROM hydra-import as oryd-hydra
+
+RUN addgroup -S ory; \
+    adduser -S ory -G ory -D -H -s /bin/nologin
+
+# set up nsswitch.conf for Go's "netgo" implementation
+# - https://github.com/golang/go/blob/go1.9.1/src/net/conf.go#L194-L275
+RUN [ ! -e /etc/nsswitch.conf ] && echo 'hosts: files dns' > /etc/nsswitch.conf
+
+USER ory
+
+ENTRYPOINT ["hydra"]
+CMD ["serve", "all"]

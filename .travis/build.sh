@@ -38,38 +38,59 @@ mvn spotbugs:check
 # Run testsuite with java 8 only
 if [ ${JAVA_MAJOR_VERSION} -eq 1 ] ; then
 
-  docker pull oryd/hydra:v1.8.5
-  docker pull quay.io/keycloak/keycloak:15.0.0
+  arch=$(uname -m)
 
-  mvn test-compile spotbugs:check -e -V -B -f testsuite
+  if [ "$arch" == 's390x' ]; then
+    # Build s390x compatible hydra image
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/s390x-linux-gnu/jni
+    docker build --target hydra-import -t strimzi-oauth-testsuite/hydra-import:latest -f ./testsuite/docker/hydra-import/Dockerfile.s390x .
+    git clone -b 15.0.0 https://github.com/keycloak/keycloak-containers.git
+    cd keycloak-containers/server/
+    docker build -t quay.io/keycloak/keycloak:15.0.0 .
+    cd ../../ && rm -rf keycloak-containers
+    docker build --target oryd-hydra -t oryd/hydra:v1.8.5 -f ./testsuite/docker/hydra-import/Dockerfile.s390x .
+    mvn test-compile spotbugs:check -e -V -B -f testsuite
+    set +e
+    clearDockerEnv
+    docker pull quay.io/strimzi/kafka:0.29.0-kafka-3.1.1
+    mvn -e -V -B clean install -f testsuite -Pcustom -Dkafka.docker.image=quay.io/strimzi/kafka:0.29.0-kafka-3.1.1
+    EXIT=$?
+    exitIfError
+    set -e
+  else
+    docker pull oryd/hydra:v1.8.5
+    docker pull quay.io/keycloak/keycloak:15.0.0
 
-  set +e
+    mvn test-compile spotbugs:check -e -V -B -f testsuite
 
-  clearDockerEnv
-  docker pull quay.io/strimzi/kafka:0.28.0-kafka-3.1.0
-  mvn -e -V -B clean install -f testsuite -Pkafka-3_1_0
-  EXIT=$?
-  exitIfError
+    set +e
 
-  clearDockerEnv
-  docker pull quay.io/strimzi/kafka:0.28.0-kafka-3.0.0
-  mvn -e -V -B clean install -f testsuite -Pkafka-3_0_0
-  EXIT=$?
-  exitIfError
+    clearDockerEnv
+    docker pull quay.io/strimzi/kafka:0.28.0-kafka-3.1.0
+    mvn -e -V -B clean install -f testsuite -Pkafka-3_1_0
+    EXIT=$?
+    exitIfError
 
-  clearDockerEnv
-  docker pull quay.io/strimzi/kafka:0.27.1-kafka-2.8.1
-  mvn -e -V -B clean install -f testsuite -Pkafka-2_8_1
-  EXIT=$?
-  exitIfError
+    clearDockerEnv
+    docker pull quay.io/strimzi/kafka:0.28.0-kafka-3.0.0
+    mvn -e -V -B clean install -f testsuite -Pkafka-3_0_0
+    EXIT=$?
+    exitIfError
 
-  clearDockerEnv
-  docker pull quay.io/strimzi/kafka:0.25.0-kafka-2.7.1
-  mvn -e -V -B clean install -f testsuite -Pkafka-2_7_1
-  EXIT=$?
-  exitIfError
+    clearDockerEnv
+    docker pull quay.io/strimzi/kafka:0.27.1-kafka-2.8.1
+    mvn -e -V -B clean install -f testsuite -Pkafka-2_8_1
+    EXIT=$?
+    exitIfError
 
-  set -e
+    clearDockerEnv
+    docker pull quay.io/strimzi/kafka:0.25.0-kafka-2.7.1
+    mvn -e -V -B clean install -f testsuite -Pkafka-2_7_1
+    EXIT=$?
+    exitIfError
+
+    set -e
+  fi
 fi
 
 # Push only releases

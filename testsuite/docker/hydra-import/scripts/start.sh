@@ -29,27 +29,13 @@ fi
 wait_for_url $URI "Waiting for Hydra admin REST to start"
 
 echo "Creating kafka-broker"
-hydra clients create \
-      --id kafka-broker \
-      --secret kafka-broker-secret \
-      --grant-types refresh_token,client_credentials \
-      --response-types token,id_token \
-      --scope openid,offline
+curl -s -X POST $URI -H "Content-Type: application/json" -d '{"client_id": "kafka-broker", "client_secret": "kafka-broker-secret", "grant_types": ["refresh_token","client_credentials"], "response_types": ["token", "id_token"], "scope": "openid,offline"}'
 
 echo "Creating kafka-producer-client"
-hydra clients create \
-      --id kafka-producer-client \
-      --secret kafka-producer-client-secret \
-      --grant-types refresh_token,client_credentials \
-      --response-types token,id_token \
-      --scope openid,offline
+curl -s -X POST $URI -H "Content-Type: application/json" -d '{"client_id": "kafka-producer-client", "client_secret": "kafka-producer-client-secret", "grant_types": ["refresh_token","client_credentials"], "response_types": ["token", "id_token"], "scope": "openid,offline"}'
 
 echo "Creating kafka-consumer-client"
-hydra clients create \
-      --id kafka-consumer-client \
-      --secret kafka-consumer-client-secret \
-      --grant-types refresh_token,client_credentials \
-      --response-types token,id_token \
-      --scope openid,offline
+curl -s -X POST $URI -H "Content-Type: application/json" -d '{"client_id": "kafka-consumer-client", "client_secret": "kafka-consumer-client-secret", "grant_types": ["refresh_token","client_credentials"], "response_types": ["token", "id_token"], "scope": "openid,offline"}'
 
+echo "Hydra import complete"
 
