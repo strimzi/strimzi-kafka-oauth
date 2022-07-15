@@ -85,7 +85,7 @@ public class UnprotectedTruststoreTest {
                 Assert.fail("Fetch to localhost should fail due to non-matching certificate name");
 
             } catch (SSLHandshakeException e) {
-                Assert.assertTrue("", e.getCause() instanceof CertificateException);
+                Assert.assertTrue("Expected CertificateException", e.getCause() instanceof CertificateException);
             }
 
             // use AnyHostHostnameVerifier, this should now successfully return content
