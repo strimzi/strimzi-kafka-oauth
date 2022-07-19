@@ -2,22 +2,26 @@
  * Copyright 2017-2020, Strimzi authors.
  * License: Apache License 2.0 (see the file LICENSE or http://apache.org/licenses/LICENSE-2.0.html).
  */
-package io.strimzi.testsuite.oauth.metrics;
+package io.strimzi.testsuite.oauth.mockoauth;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.strimzi.kafka.oauth.common.HttpUtil;
+import io.strimzi.testsuite.oauth.metrics.Metrics;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.junit.Assert;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
-import java.math.BigDecimal;
 import java.net.URI;
-import java.util.ArrayList;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 
@@ -33,7 +37,7 @@ public class Common {
         return sb.toString();
     }
 
-    static Properties buildProducerConfigOAuthBearer(String kafkaBootstrap, Map<String, String> oauthConfig) {
+    public static Properties buildProducerConfigOAuthBearer(String kafkaBootstrap, Map<String, String> oauthConfig) {
         Properties p = buildCommonConfigOAuthBearer(oauthConfig);
         setCommonProducerProperties(kafkaBootstrap, p);
         return p;
@@ -48,7 +52,7 @@ public class Common {
         p.setProperty(ProducerConfig.RETRIES_CONFIG, "0");
     }
 
-    static Properties buildConsumerConfigOAuthBearer(String kafkaBootstrap, Map<String, String> oauthConfig) {
+    public static Properties buildConsumerConfigOAuthBearer(String kafkaBootstrap, Map<String, String> oauthConfig) {
         Properties p = buildCommonConfigOAuthBearer(oauthConfig);
         setCommonConsumerProperties(kafkaBootstrap, p);
         return p;
@@ -66,19 +70,19 @@ public class Common {
         return p;
     }
 
-    static Properties buildProducerConfigPlain(String kafkaBootstrap, Map<String, String> plainConfig) {
+    public static Properties buildProducerConfigPlain(String kafkaBootstrap, Map<String, String> plainConfig) {
         Properties p = buildCommonConfigPlain(plainConfig);
         setCommonProducerProperties(kafkaBootstrap, p);
         return p;
     }
 
-    static Properties buildProducerConfigScram(String kafkaBootstrap, Map<String, String> scramConfig) {
+    public static Properties buildProducerConfigScram(String kafkaBootstrap, Map<String, String> scramConfig) {
         Properties p = buildCommonConfigScram(scramConfig);
         setCommonProducerProperties(kafkaBootstrap, p);
         return p;
     }
 
-    static Properties buildConsumerConfigPlain(String kafkaBootstrap, Map<String, String> plainConfig) {
+    public static Properties buildConsumerConfigPlain(String kafkaBootstrap, Map<String, String> plainConfig) {
         Properties p = buildCommonConfigPlain(plainConfig);
         setCommonConsumerProperties(kafkaBootstrap, p);
         return p;
@@ -158,7 +162,7 @@ public class Common {
      * @return Metrics object
      * @throws IOException
      */
-    static Metrics getPrometheusMetrics(URI metricsEndpointUri) throws IOException {
+    public static Metrics getPrometheusMetrics(URI metricsEndpointUri) throws IOException {
         String response = HttpUtil.get(metricsEndpointUri, null, null, null, String.class);
 
         Metrics metrics = new Metrics();
@@ -210,81 +214,44 @@ public class Common {
                 value;
     }
 
-    static class Metrics {
-        ArrayList<MetricEntry> entries = new ArrayList<>();
-
-        void addMetric(String key, Map<String, String> attrs, String value) {
-            entries.add(new MetricEntry(key, attrs, value));
-        }
-
-        /**
-         * Returns a value of a single metric matching the key and the attributes.
-         * Not all attributes have to be specified.
-         *
-         * @param key
-         * @param attrs
-         * @return Metric value as String
-         */
-        String getValue(String key, String... attrs) {
-            boolean match = false;
-            String result = null;
-            next:
-            for (MetricEntry entry: entries) {
-                if (entry.key.equals(key)) {
-                    for (int i = 0; i < attrs.length; i += 2) {
-                        if (!attrs[i + 1].equals(entry.attrs.get(attrs[i]))) {
-                            continue next;
-                        }
-                    }
-                    if (!match) {
-                        match = true;
-                        result = entry.value;
-                    } else {
-                        throw new RuntimeException("More than one matching metric entry");
-                    }
-                }
-            }
-            return result;
-        }
-
-        /**
-         * Get the sum of values of all the matching metrics
-         *
-         * @param key
-         * @param attrs
-         * @return
-         */
-        String getValueSum(String key, String... attrs) {
-
-            BigDecimal result = new BigDecimal(0);
-            next:
-            for (MetricEntry entry: entries) {
-                if (entry.key.equals(key)) {
-                    for (int i = 0; i < attrs.length; i += 2) {
-                        if (!attrs[i + 1].equals(entry.attrs.get(attrs[i]))) {
-                            continue next;
-                        }
-                    }
-                    result = result.add(new BigDecimal(entry.value));
-                }
-            }
-            return result.toPlainString();
-        }
-
-        static String quoted(String value) {
-            return "\\\"" + value + "\\\"";
-        }
+    public static void changeAuthServerMode(String resource, String mode) throws IOException {
+        String result = HttpUtil.post(URI.create("http://mockoauth:8091/admin/" + resource + "?mode=" + mode), null, "text/plain", "", String.class);
+        Assert.assertEquals("admin server response should be ", mode.toUpperCase(Locale.ROOT), result);
     }
 
-    static class MetricEntry {
-        String key;
-        Map<String, String> attrs;
-        String value;
+    public static void createOAuthClient(String clientId, String secret) throws IOException {
+        HttpUtil.post(URI.create("http://mockoauth:8091/admin/clients"),
+                null,
+                "application/json",
+                "{\"clientId\": \"" + clientId + "\", \"secret\": \"" + secret + "\"}", String.class);
+    }
 
-        MetricEntry(String key, Map<String, String> attrs, String value) {
-            this.key = key;
-            this.attrs = attrs;
-            this.value = value;
+    public static void createOAuthUser(String username, String password) throws IOException {
+        HttpUtil.post(URI.create("http://mockoauth:8091/admin/users"),
+                null,
+                "application/json",
+                "{\"username\": \"" + username + "\", \"password\": \"" + password + "\"}", String.class);
+    }
+
+    public static void revokeToken(String token) throws IOException {
+        HttpUtil.post(URI.create("http://mockoauth:8091/admin/revocations"),
+                null,
+                "application/json",
+                "{\"token\": \"" + token + "\"}", String.class);
+    }
+
+    public static Metrics reloadMetrics() throws IOException {
+        return getPrometheusMetrics(URI.create("http://kafka:9404/metrics"));
+    }
+
+    public static String getProjectRoot() {
+        String cwd = System.getProperty("user.dir");
+        Path path = Paths.get(cwd);
+        if (path.endsWith("mockoauth-tests") && Files.exists(path.resolve("../docker"))) {
+            return path.toAbsolutePath().toString();
+        } else if (path.endsWith("strimzi-kafka-oauth") && Files.exists(path.resolve("testsuite/docker")) && Files.exists(path.resolve("testsuite/mockoauth-tests")))  {
+            return path.resolve("testsuite/mockoauth-tests").toAbsolutePath().toString();
         }
+        return cwd;
     }
 }

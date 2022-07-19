@@ -13,7 +13,7 @@ services:
 
     environment:
       #- JAVA_DEBUG=y
-      #- DEBUG_SUSPEND_FLAG=n
+      #- DEBUG_SUSPEND_FLAG=y
       #- JAVA_DEBUG_PORT=0.0.0.0:5005
 
       - KEYSTORE_ONE_PATH=/application/config/mockoauth.server.keystore.p12

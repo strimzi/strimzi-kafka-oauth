@@ -260,8 +260,6 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
         String clientId = config.getValue(Config.OAUTH_CLIENT_ID);
         String clientSecret = config.getValue(Config.OAUTH_CLIENT_SECRET);
-        String username = config.getValue(Config.OAUTH_PASSWORD_GRANT_USERNAME);
-        String password = config.getValue(Config.OAUTH_PASSWORD_GRANT_PASSWORD);
 
         if (checkAudience && clientId == null) {
             throw new ConfigException("Oauth validator configuration error: OAUTH_CLIENT_ID must be set when OAUTH_CHECK_AUDIENCE is 'true'");
@@ -293,7 +291,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
             validationSensorKeyProducer = new JwksValidationSensorKeyProducer(effectiveConfigId, saslMechanism, jwksEndpointUri);
         } else {
             String effectiveConfigId = setupIntrospectionValidator(configId, validIssuerUri, usernameClaim, fallbackUsernameClaim, fallbackUsernamePrefix,
-                    groupQuery, groupDelimiter, clientId, clientSecret, username, password, audience, customClaimCheck,
+                    groupQuery, groupDelimiter, clientId, clientSecret, audience, customClaimCheck,
                     sslTruststore, sslPassword, sslType, sslRnd);
 
             URI introspectionUri = config.getValueAsURI(ServerConfig.OAUTH_INTROSPECTION_ENDPOINT_URI);
@@ -314,7 +312,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
     @SuppressWarnings("checkstyle:ParameterNumber")
     private String setupIntrospectionValidator(String configId, String validIssuerUri, String usernameClaim, String fallbackUsernameClaim, String fallbackUsernamePrefix,
-                                             String groupQuery, String groupDelimiter, String clientId, String clientSecret, String username, String password, String audience, String customClaimCheck,
+                                             String groupQuery, String groupDelimiter, String clientId, String clientSecret, String audience, String customClaimCheck,
                                              String sslTruststore, String sslPassword, String sslType, String sslRnd) {
 
         String introspectionEndpoint = config.getValue(ServerConfig.OAUTH_INTROSPECTION_ENDPOINT_URI);
@@ -340,8 +338,6 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                 validTokenType,
                 clientId,
                 clientSecret,
-                username,
-                password,
                 connectTimeout,
                 readTimeout,
                 enableMetrics);

@@ -247,9 +247,6 @@ public class ValidatorKey {
         private final String validTokenType;
         private final String clientId;
         private final String clientSecret;
-        private final String username;
-        private final String password;
-
         private final String configIdHash;
 
         @SuppressWarnings("checkstyle:parameternumber")
@@ -272,8 +269,6 @@ public class ValidatorKey {
                                   String validTokenType,
                                   String clientId,
                                   String clientSecret,
-                                  String username,
-                                  String password,
                                   int connectTimeout,
                                   int readTimeout,
                                   boolean enableMetrics) {
@@ -299,17 +294,13 @@ public class ValidatorKey {
             this.validTokenType = validTokenType;
             this.clientId = clientId;
             this.clientSecret = clientSecret;
-            this.username = username;
-            this.password = password;
 
             this.configIdHash = IOUtil.hashForObjects(super.getConfigIdHash(),
                     introspectionEndpoint,
                     userInfoEndpoint,
                     validTokenType,
                     clientId,
-                    clientSecret,
-                    username,
-                    password);
+                    clientSecret);
         }
 
         @Override
@@ -322,9 +313,7 @@ public class ValidatorKey {
                     Objects.equals(userInfoEndpoint, that.userInfoEndpoint) &&
                     Objects.equals(validTokenType, that.validTokenType) &&
                     Objects.equals(clientId, that.clientId) &&
-                    Objects.equals(clientSecret, that.clientSecret) &&
-                    Objects.equals(username, that.username) &&
-                    Objects.equals(password, that.password);
+                    Objects.equals(clientSecret, that.clientSecret);
         }
 
         @Override
@@ -334,9 +323,7 @@ public class ValidatorKey {
                     userInfoEndpoint,
                     validTokenType,
                     clientId,
-                    clientSecret,
-                    username,
-                    password);
+                    clientSecret);
         }
 
         @Override

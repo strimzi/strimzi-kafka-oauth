@@ -164,7 +164,7 @@ public class ErrorReportingTests {
         final String clientSecret = "kafka-producer-client-secret";
 
         // first, request access token using client id and secret
-        TokenInfo info = loginWithClientSecret(URI.create(tokenEndpointUri), null, null, clientId, clientSecret, true, null, null, null, null);
+        TokenInfo info = loginWithClientSecret(URI.create(tokenEndpointUri), null, null, clientId, clientSecret, true, null, null);
 
         Map<String, String> oauthConfig = new HashMap<>();
         String tokenWithBrokenSig = info.token().substring(0, info.token().length() - 6) + "ffffff";
@@ -205,7 +205,7 @@ public class ErrorReportingTests {
         final String clientSecret = "kafka-producer-client-secret";
 
         // first, request access token using client id and secret
-        TokenInfo info = loginWithClientSecret(URI.create(tokenEndpointUri), null, null, clientId, clientSecret, true, null, null, null, null);
+        TokenInfo info = loginWithClientSecret(URI.create(tokenEndpointUri), null, null, clientId, clientSecret, true, null, null);
 
         Map<String, String> oauthConfig = new HashMap<>();
         String tokenWithBrokenSig = info.token().substring(0, info.token().length() - 6) + "ffffff";
@@ -246,7 +246,7 @@ public class ErrorReportingTests {
         final String clientSecret = "kafka-producer-client-secret";
 
         // first, request access token using client id and secret
-        TokenInfo info = loginWithClientSecret(URI.create(tokenEndpointUri), null, null, clientId, clientSecret, true, null, null, null, null);
+        TokenInfo info = loginWithClientSecret(URI.create(tokenEndpointUri), null, null, clientId, clientSecret, true, null, null);
 
         Map<String, String> oauthConfig = new HashMap<>();
         oauthConfig.put(ClientConfig.OAUTH_ACCESS_TOKEN, info.token());

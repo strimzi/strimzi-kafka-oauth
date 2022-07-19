@@ -59,6 +59,12 @@ public class AdminServerRequestHandler implements Handler<HttpServerRequest> {
             if (endpoint == Endpoint.CLIENTS) {
                 processClientsRequest(req, path);
                 return;
+            } else if (endpoint == Endpoint.USERS) {
+                processUsersRequest(req, path);
+                return;
+            } else if (endpoint == Endpoint.REVOCATIONS) {
+                processRevocation(req, path);
+                return;
             }
 
             if (req.method() == GET) {
@@ -105,6 +111,86 @@ public class AdminServerRequestHandler implements Handler<HttpServerRequest> {
         } catch (Exception e) {
             handleFailure(req, e, log);
         }
+    }
+
+    private void processRevocation(HttpServerRequest req, String[] path) {
+        if (path.length > 3) {
+            sendResponse(req, NOT_FOUND);
+            return;
+        }
+
+        if (req.method() == GET) {
+            sendResponse(req, OK, getRevokedTokensAsJsonString());
+            return;
+
+        } else if (isOneOf(req.method(), POST, PUT)) {
+
+            req.bodyHandler(buffer -> {
+                try {
+                    log.info(buffer.toString());
+
+                    JsonObject json = buffer.toJsonObject();
+
+                    String token = json.getString("token");
+                    if (token == null) {
+                        sendResponse(req, BAD_REQUEST, "Required attribute 'token' is null or missing.");
+                        return;
+                    }
+
+                    verticle.revokeToken(token);
+                    sendResponse(req, OK);
+
+                } catch (Exception e) {
+                    handleFailure(req, e, log);
+                }
+            });
+            return;
+        }
+
+        sendResponse(req, METHOD_NOT_ALLOWED);
+    }
+
+    private void processUsersRequest(HttpServerRequest req, String[] path) {
+        if (path.length > 3) {
+            sendResponse(req, NOT_FOUND);
+            return;
+        }
+
+        if (req.method() == GET) {
+            sendResponse(req, OK, getUsersAsJsonString());
+            return;
+
+        } else if (isOneOf(req.method(), POST, PUT)) {
+
+            req.bodyHandler(buffer -> {
+                try {
+                    log.info(buffer.toString());
+
+                    JsonObject json = buffer.toJsonObject();
+
+                    String username = json.getString("username");
+                    if (username == null) {
+                        sendResponse(req, BAD_REQUEST, "Required attribute 'username' is null or missing.");
+                        return;
+                    }
+
+                    String password = json.getString("password");
+                    if (password == null) {
+                        sendResponse(req, BAD_REQUEST, "Required attribute 'password' is null or missing.");
+                        return;
+                    }
+
+                    verticle.createOrUpdateUser(username, password);
+                    sendResponse(req, OK);
+
+                } catch (Exception e) {
+                    handleFailure(req, e, log);
+                }
+            });
+            return;
+        }
+
+        sendResponse(req, METHOD_NOT_ALLOWED);
     }
 
     private void processClientsRequest(HttpServerRequest req, String[] path) {
@@ -161,4 +247,21 @@ public class AdminServerRequestHandler implements Handler<HttpServerRequest> {
         return result.toString();
     }
 
+    private String getUsersAsJsonString() {
+        JsonArray result = new JsonArray();
+        for (Map.Entry<String, String> ent: verticle.getUsers().entrySet()) {
+            JsonObject json = new JsonObject();
+            json.put(ent.getKey(), ent.getValue());
+            result.add(json);
+        }
+        return result.toString();
+    }
+
+    private String getRevokedTokensAsJsonString() {
+        JsonArray result = new JsonArray();
+        for (String token: verticle.getRevokedTokens()) {
+            result.add(token);
+        }
+        return result.toString();
+    }
 }

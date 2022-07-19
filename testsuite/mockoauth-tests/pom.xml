@@ -10,7 +10,7 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>metrics-tests</artifactId>
+    <artifactId>mockoauth-tests</artifactId>
 
     <licenses>
         <license>

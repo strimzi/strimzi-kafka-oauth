@@ -60,7 +60,7 @@ public class OAuthOverPlainTests {
 
         // first, request access token using client id and secret
         TokenInfo info = loginWithClientSecret(URI.create(tokenEndpointUri), null, null,
-                "team-a-client", "team-a-client-secret", true, null, null, null, null);
+                "team-a-client", "team-a-client-secret", true, null, null);
 
         Map<String, String> plainConfig = new HashMap<>();
         plainConfig.put("username", "service-account-team-a-client");
@@ -214,7 +214,7 @@ public class OAuthOverPlainTests {
 
         // first, request access token using client id and secret
         TokenInfo info = loginWithClientSecret(URI.create(tokenEndpointUri), null, null,
-                "team-a-client", "team-a-client-secret", true, null, null, null, null);
+                "team-a-client", "team-a-client-secret", true, null, null);
 
         Map<String, String> plainConfig = new HashMap<>();
         plainConfig.put("username", "service-account-team-a-client");
