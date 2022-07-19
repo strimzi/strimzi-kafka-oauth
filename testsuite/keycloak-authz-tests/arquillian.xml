@@ -14,7 +14,7 @@
             zookeeper:
               await:
                 strategy: sleeping
-                sleepTime: 5 s
+                sleepTime: 10 s
             kafka:
               await:
                 strategy: docker_health
@@ -29,7 +29,7 @@
             kafka-acls:
               await:
                 strategy: sleeping
-                sleepTime: 10 s
+                sleepTime: 15 s
         </property>
     </extension>
 </arquillian>

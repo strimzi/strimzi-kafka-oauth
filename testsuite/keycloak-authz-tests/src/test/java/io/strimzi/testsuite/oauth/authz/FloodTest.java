@@ -69,7 +69,7 @@ public class FloodTest extends Common {
             }
             this.tokens = tokens;
         }
-
+        System.out.println("   === Test sending to unauthorized topic");
         // Try write to the mismatched topic - we should get AuthorizationException
         try {
             sendSingleMessage("kafka-producer-client-1", "kafka-producer-client-1-secret", "messages-2");
@@ -83,7 +83,7 @@ public class FloodTest extends Common {
 
         // Do 5 iterations - each time hitting the broker with 10 parallel requests
         for (int run = 0; run < 5; run++) {
-
+            System.out.println("\n*** Run " + (run + 1) + "/5\n");
             for (int i = 1; i <= clientCount; i++) {
                 String topic = "messages-" + i;
 
@@ -276,6 +276,9 @@ public class FloodTest extends Common {
                     consumer.close();
                 }
             }
+            if (error != null) {
+                log.error("[" + clientId + "] failed: ", error);
+            }
         }
     }
 
@@ -324,6 +327,9 @@ public class FloodTest extends Common {
                 if (producer != null) {
                     producer.close();
                 }
+            }
+            if (error != null) {
+                log.error("[" + clientId + "] failed: ", error);
             }
         }
     }

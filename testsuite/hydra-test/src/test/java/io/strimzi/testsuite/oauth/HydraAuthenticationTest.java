@@ -24,6 +24,8 @@ import org.jboss.arquillian.junit.Arquillian;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.nio.file.Files;
@@ -44,6 +46,8 @@ import java.util.Properties;
  */
 @RunWith(Arquillian.class)
 public class HydraAuthenticationTest {
+
+    private static final Logger log = LoggerFactory.getLogger(HydraAuthenticationTest.class);
 
     @Test
     public void doTest() throws Exception {
@@ -135,7 +139,7 @@ public class HydraAuthenticationTest {
         }
         consumer.seekToBeginning(Collections.singletonList(partition));
 
-        ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(1));
+        ConsumerRecords<String, String> records = poll(consumer);
 
         consumer.close();
 
@@ -175,7 +179,7 @@ public class HydraAuthenticationTest {
         }
         consumer.seekToBeginning(Collections.singletonList(partition));
 
-        ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(1));
+        ConsumerRecords<String, String> records = poll(consumer);
 
         consumer.close();
 
@@ -229,5 +233,14 @@ public class HydraAuthenticationTest {
         for (Object key: p.keySet()) {
             System.clearProperty(key.toString());
         }
+    }
+
+    static <K, V> ConsumerRecords<K, V> poll(Consumer<K, V> consumer) {
+        ConsumerRecords<K, V> result = consumer.poll(Duration.ofSeconds(5));
+        if (result.isEmpty()) {
+            log.warn("No result after 5 seconds. Repeating ...");
+            result = consumer.poll(Duration.ofSeconds(5));
+        }
+        return result;
     }
 }

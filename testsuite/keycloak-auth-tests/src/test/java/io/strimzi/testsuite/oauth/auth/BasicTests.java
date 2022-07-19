@@ -28,6 +28,7 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithClientSe
 import static io.strimzi.testsuite.oauth.auth.Common.buildConsumerConfigOAuthBearer;
 import static io.strimzi.testsuite.oauth.auth.Common.buildProducerConfigOAuthBearer;
 import static io.strimzi.testsuite.oauth.auth.Common.loginWithUsernameForRefreshToken;
+import static io.strimzi.testsuite.oauth.auth.Common.poll;
 import static io.strimzi.testsuite.oauth.common.TestMetrics.getPrometheusMetrics;
 import static io.strimzi.testsuite.oauth.common.TestUtil.getKafkaLogsForString;
 import static java.util.Collections.singletonList;
@@ -155,7 +156,7 @@ public class BasicTests {
         }
         consumer.seekToBeginning(singletonList(partition));
 
-        ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(1));
+        ConsumerRecords<String, String> records = poll(consumer);
 
         Assert.assertEquals("Got message", 1, records.count());
         Assert.assertEquals("Is message text: 'The Message'", "The Message", records.iterator().next().value());
@@ -171,7 +172,7 @@ public class BasicTests {
 
         value = metrics.getValueSum("strimzi_oauth_validation_requests_count", "context", "JWT", "kind", "jwks", "mechanism", "OAUTHBEARER", "outcome", "success");
         // There is no inter-broker connection on this listener, producer did 2 validations, and consumer also did 2 validations
-        Assert.assertEquals("strimzi_oauth_validation_requests_count for jwks == 4", 4, value.intValue());
+        Assert.assertTrue("strimzi_oauth_validation_requests_count for jwks >= 4", value != null && value.intValue() >= 4);
 
         value = metrics.getValueSum("strimzi_oauth_validation_requests_totaltimems", "context", "JWT", "kind", "jwks", "mechanism", "OAUTHBEARER", "outcome", "success");
         Assert.assertTrue("strimzi_oauth_http_requests_totaltimems for jwks > 0.0", value.doubleValue() > 0.0);
@@ -225,7 +226,7 @@ public class BasicTests {
         }
         consumer.seekToBeginning(singletonList(partition));
 
-        ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(1));
+        ConsumerRecords<String, String> records = poll(consumer);
 
         Assert.assertEquals("Got message", 1, records.count());
         Assert.assertEquals("Is message text: 'The Message'", "The Message", records.iterator().next().value());
@@ -236,7 +237,7 @@ public class BasicTests {
         BigDecimal value = metrics.getValueSum("strimzi_oauth_validation_requests_count", "context", "JWTPLAIN", "kind", "jwks", "host", authHostPort, "path", jwksPath, "mechanism", "OAUTHBEARER", "outcome", "success");
 
         // There is no inter-broker connection on this listener, producer did 2 validations, and consumer also did 2
-        Assert.assertEquals("strimzi_oauth_validation_requests_count for jwks == 4", 4, value.intValue());
+        Assert.assertTrue("strimzi_oauth_validation_requests_count for jwks >= 4", value != null && value.intValue() >= 4);
 
         value = metrics.getValueSum("strimzi_oauth_validation_requests_totaltimems", "context", "JWTPLAIN", "kind", "jwks", "host", authHostPort, "path", jwksPath, "mechanism", "OAUTHBEARER", "outcome", "success");
         Assert.assertTrue("strimzi_oauth_validation_requests_totaltimems for jwks > 0.0", value.doubleValue() > 0.0);
@@ -284,7 +285,7 @@ public class BasicTests {
         }
         consumer.seekToBeginning(singletonList(partition));
 
-        ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(1));
+        ConsumerRecords<String, String> records = poll(consumer);
 
         Assert.assertEquals("Got message", 1, records.count());
         Assert.assertEquals("Is message text: 'The Message'", "The Message", records.iterator().next().value());
@@ -294,7 +295,7 @@ public class BasicTests {
 
         BigDecimal value = metrics.getValueSum("strimzi_oauth_http_requests_count", "kind", "introspect", "host", authHostPort, "path", introspectPath, "outcome", "success");
         // Inter-broker connection did some validation, producer and consumer did some
-        Assert.assertEquals("strimzi_oauth_http_requests_count for introspect == 5", 5, value.intValue());
+        Assert.assertTrue("strimzi_oauth_http_requests_count for introspect >= 5", value != null && value.intValue() >= 5);
 
         value = metrics.getValueSum("strimzi_oauth_http_requests_totaltimems", "kind", "introspect", "host", authHostPort, "path", introspectPath, "outcome", "success");
         Assert.assertTrue("strimzi_oauth_http_requests_totaltimems for introspect > 0.0", value.doubleValue() > 0.0);
@@ -347,7 +348,7 @@ public class BasicTests {
         }
         consumer.seekToBeginning(singletonList(partition));
 
-        ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(1));
+        ConsumerRecords<String, String> records = poll(consumer);
 
         Assert.assertEquals("Got message", 1, records.count());
         Assert.assertEquals("Is message text: 'The Message'", "The Message", records.iterator().next().value());
@@ -356,7 +357,7 @@ public class BasicTests {
         TestMetrics metrics = getPrometheusMetrics(URI.create("http://kafka:9404/metrics"));
         BigDecimal value = metrics.getValueSum("strimzi_oauth_http_requests_count", "kind", "introspect", "host", authHostPort, "path", introspectPath, "outcome", "success");
         // On top of the access token test, producer and consumer together did 4 requests
-        Assert.assertEquals("strimzi_oauth_http_requests_count for introspect == 9", 9, value.intValue());
+        Assert.assertTrue("strimzi_oauth_http_requests_count for introspect >= 9", value != null && value.intValue() >= 9);
 
         value = metrics.getValueSum("strimzi_oauth_http_requests_totaltimems", "kind", "introspect", "host", authHostPort, "path", introspectPath, "outcome", "success");
         Assert.assertTrue("strimzi_oauth_http_requests_totaltimems for introspect > 0.0", value.doubleValue() > 0.0);

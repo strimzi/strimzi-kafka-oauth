@@ -29,7 +29,7 @@
                 </executions>
                 <configuration>
                     <repository>strimzi-oauth-testsuite/kafka</repository>
-                    <tag>2.8.0</tag>
+                    <tag>3.2.0</tag>
                 </configuration>
             </plugin>
         </plugins>
