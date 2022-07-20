@@ -7,7 +7,6 @@ package io.strimzi.kafka.oauth.common;
 import io.strimzi.kafka.oauth.services.Services;
 import io.strimzi.kafka.oauth.validator.OAuthIntrospectionValidator;
 import org.junit.Assert;
-import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,8 +23,13 @@ public class HttpUtilTimeoutTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(HttpUtilTimeoutTest.class);
 
-    @Test
-    public void testHttpTimeouts() throws Exception {
+    private static final int FIRST_TIMEOUT = 5;
+    static {
+        System.setProperty("oauth.connect.timeout.seconds", String.valueOf(FIRST_TIMEOUT));
+        System.setProperty("oauth.read.timeout.seconds", String.valueOf(FIRST_TIMEOUT));
+    }
+
+    public void doTest() throws Exception {
         Services.configure(Collections.emptyMap());
 
         CompletableFuture<ServerSocket> future = new CompletableFuture<>();
@@ -45,9 +49,8 @@ public class HttpUtilTimeoutTest {
         // Wait for the server to start
         future.get();
 
-        int timeout = 5;
-        System.setProperty("oauth.connect.timeout.seconds", String.valueOf(timeout));
-        System.setProperty("oauth.read.timeout.seconds", String.valueOf(timeout));
+        // This sh
+        int timeout = FIRST_TIMEOUT;
 
         long start = System.currentTimeMillis();
         try {
