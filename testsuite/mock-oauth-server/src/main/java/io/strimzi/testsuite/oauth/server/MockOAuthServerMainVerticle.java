@@ -26,7 +26,9 @@ import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import static io.strimzi.testsuite.oauth.server.Endpoint.INTROSPECT;
@@ -132,6 +134,8 @@ public class MockOAuthServerMainVerticle extends AbstractVerticle {
     private String keystoreExpiredPass;
 
     private final Map<String, String> clients = new HashMap<>();
+    private final Map<String, String> users = new HashMap<>();
+    private final Set<String> revokedTokens = new HashSet<>();
     private RSAKey sigKey;
 
     public void start() {
@@ -273,6 +277,22 @@ public class MockOAuthServerMainVerticle extends AbstractVerticle {
 
     Map<String, String> getClients() {
         return Collections.unmodifiableMap(clients);
+    }
+
+    void createOrUpdateUser(String username, String password) {
+        users.put(username, password);
+    }
+
+    Map<String, String> getUsers() {
+        return Collections.unmodifiableMap(users);
+    }
+
+    void revokeToken(String token) {
+        revokedTokens.add(token);
+    }
+
+    Set<String> getRevokedTokens() {
+        return Collections.unmodifiableSet(revokedTokens);
     }
 
     private static String getEnvVar(String name, String defaultValue) {

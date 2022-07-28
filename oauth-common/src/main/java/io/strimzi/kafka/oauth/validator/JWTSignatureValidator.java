@@ -25,7 +25,6 @@ import io.strimzi.kafka.oauth.metrics.SensorKeyProducer;
 import io.strimzi.kafka.oauth.services.OAuthMetrics;
 import io.strimzi.kafka.oauth.services.ServiceException;
 import io.strimzi.kafka.oauth.services.Services;
-import org.apache.kafka.common.utils.Time;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -415,7 +414,7 @@ public class JWTSignatureValidator implements TokenValidator {
             throw new TokenValidationException("Token validation failed: Expiry not set");
         }
         long expiresMillis = exp.asInt(0) * 1000L;
-        if (Time.SYSTEM.milliseconds() > expiresMillis) {
+        if (System.currentTimeMillis() > expiresMillis) {
             throw new TokenExpiredException("Token expired at: " + expiresMillis + " (" +
                     TimeUtil.formatIsoDateTimeUTC(expiresMillis) + " UTC)");
         }

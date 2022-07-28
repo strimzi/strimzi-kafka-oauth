@@ -43,6 +43,11 @@ Strimzi Kafka OAuth modules provide support for OAuth2 as authentication mechani
   - [Configuring the JAAS login module](#configuring-the-jaas-login-module-client)
   - [Enabling the custom callbacks](#enabling-the-custom-callbacks-client)
   - [Configuring the OAuth2](#configuring-the-oauth2-client)
+    - [Client Credentials](#client-credentials)
+    - [Refresh Token](#refresh-token)
+    - [Access Token](#access-token)
+    - [Password Grant](#password-grant)
+    - [Common Options](#common-options)
   - [Configuring the re-authentication on the client](#configuring-the-re-authentication-on-the-client)
   - [Client config example](#client-config-example)
   - [Handling expired or invalid tokens gracefully](#handling-expired-or-invalid-tokens-gracefully)
@@ -857,17 +862,23 @@ Install the Strimzi Kafka OAuth login callback:
 
 ### <a name="configuring-the-oauth2-client"></a>Configuring the OAuth2
 
-The `oauth.token.endpoint.uri` property always has to be specified. 
+The `oauth.token.endpoint.uri` property has to be specified whenever the token endpoint of the authorization server has to be contacted to obtain an access token. In practice that is in all cases except when access token is directly configured.
+
 Its value points to OAuth2 Token Endpoint provided by authorization server.
 
-Strimzi Kafka OAuth supports three ways to configure authentication on the client.
-The first is to specify the client ID and secret configured on the authorization server specifically for the individual client deployment.
+Strimzi Kafka OAuth supports four ways to configure authentication on the client.
+
+#### Client Credentials
+
+The first is to specify the client ID and secret configured on the authorization server specifically for the individual client deployment. This is also called `client credentials grants`.
 
 This is achieved by specifying the following:
 - `oauth.client.id` (e.g.: "my-client")
 - `oauth.client.secret` (e.g.: "my-client-secret")
 
 When client starts to establish the connection with the Kafka Broker it will first obtain an access token from the configured Token Endpoint, authenticating with the configured client ID and secret using client_credentials grant type.
+
+#### Refresh Token
 
 The second way is to manually obtain and set a refresh token:
 
@@ -879,12 +890,30 @@ There is a [simple CLI tool](examples/docker/kafka-oauth-strimzi/kafka/oauth.sh)
 
 When client starts to establish the connection with the Kafka Broker it will first obtain an access token from the configured Token Endpoint, using refresh_token grant type for authentication.
 
+#### Access Token
+
 The third way is to manually obtain and set an access token:
 
 - `oauth.access.token`
 
 Access tokens are supposed to be short-lived in order to prevent unauthorized access if the token leaks.
 It is up to you, your environment, and how you plan to run your Kafka client application to consider if using long-lived access tokens is appropriate.
+
+#### Password Grant
+
+The fourth way is to use the OAuth 2 Resource Owner Password Credentials, also called `password grants`. 
+
+Support for that mechanism was added for integration purposes, for environments where client credentials for some reason can not be used for Kafka client applications. It is highly advised to create special user accounts with very limited permissions to represent the Kafka client applications. Before resorting to this mechanism, consider using refresh tokens instead.
+
+- `oauth.password.grant.username`
+- `oauth.password.grant.password`
+
+Note, that the password is configured in plain text. It is thus not supposed to represent a personal account with broad permissions. It should use long, randomly generated passwords. For all practical purposes it should thus be the same as a service account one would use with client credentials. 
+
+Consider using an external secrets management tool to securely store configuration.
+
+
+#### Common Options
 
 Some authorization servers require that scope is specified:
 
@@ -925,7 +954,7 @@ If you have DEBUG logging turned on for `io.strimzi`, and are using opaque (non 
 
 When setting this to `false` the client library will not attempt to parse and introspect the token as if it was JWT.
 
-#### Configuring the re-authentication on the client
+### Configuring the re-authentication on the client
 
 Java based clients using Kafka client library 2.2 or later will automatically perform re-authentication if the broker supports it.
 

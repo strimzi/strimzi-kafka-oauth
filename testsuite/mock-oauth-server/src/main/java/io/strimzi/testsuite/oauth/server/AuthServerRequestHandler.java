@@ -4,6 +4,8 @@
  */
 package io.strimzi.testsuite.oauth.server;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.nimbusds.jose.JWSObject;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
@@ -15,6 +17,7 @@ import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import io.strimzi.kafka.oauth.common.JSONUtil;
+import io.strimzi.kafka.oauth.common.NimbusPayloadTransformer;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
@@ -34,10 +37,13 @@ import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import static io.netty.handler.codec.http.HttpResponseStatus.SERVICE_UNAVAILABLE;
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.base64decode;
+import static io.strimzi.kafka.oauth.common.TokenInfo.EXP;
+import static io.strimzi.kafka.oauth.common.TokenInfo.ISS;
 import static io.strimzi.testsuite.oauth.server.Commons.handleFailure;
 import static io.strimzi.testsuite.oauth.server.Commons.isOneOf;
 import static io.strimzi.testsuite.oauth.server.Commons.sendResponse;
 import static io.strimzi.testsuite.oauth.server.Commons.setContextLog;
+import static io.strimzi.testsuite.oauth.server.Endpoint.INTROSPECT;
 import static io.strimzi.testsuite.oauth.server.Endpoint.TOKEN;
 import static io.strimzi.testsuite.oauth.server.Mode.MODE_200;
 import static io.strimzi.testsuite.oauth.server.Mode.MODE_JWKS_RSA_WITHOUT_SIG_USE;
@@ -48,6 +54,9 @@ import static io.vertx.core.http.HttpMethod.POST;
 public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
 
     private static final Logger log = LoggerFactory.getLogger("oauth");
+    private static final NimbusPayloadTransformer TRANSFORMER = new NimbusPayloadTransformer();
+
+    private static final int EXPIRES_IN_SECONDS = 60;
 
     private final MockOAuthServerMainVerticle verticle;
 
@@ -84,6 +93,9 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
 
             } else if (endpoint == TOKEN && mode == MODE_200) {
                 processTokenRequest(req);
+                return;
+            } else if (endpoint == INTROSPECT && mode == MODE_200) {
+                processIntrospectRequest(req);
                 return;
             }
 
@@ -136,20 +148,34 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
             }
 
             String authorization = req.headers().get("Authorization");
-            String clientId = authorize(authorization);
 
-            if (!grantType.equals("client_credentials") || clientId == null) {
+            String username = null;
+
+            // clientId should always be passed via Authorization header - with or without a password
+            String clientId = authorizeClient(authorization);
+
+            // if password auth rather than client_credentials, also make sure the username and password are a match
+            if (clientId != null && "password".equals(grantType)) {
+                username = authorizeUser(form.get("username"), form.get("password"));
+            }
+
+            if (!("client_credentials".equals(grantType) || "password".equals(grantType)) || clientId == null) {
+                sendResponse(req, UNAUTHORIZED);
+                return;
+            }
+
+            if ("password".equals(grantType) && username == null) {
                 sendResponse(req, UNAUTHORIZED);
                 return;
             }
 
             try {
                 // Create a signed JWT token
-                String accessToken = createSignedAccessToken(clientId);
+                String accessToken = createSignedAccessToken(clientId, username);
 
                 JsonObject result = new JsonObject();
                 result.put("access_token", accessToken);
-                result.put("expires_in", 60_000);
+                result.put("expires_in", EXPIRES_IN_SECONDS);
                 result.put("scope", "all");
 
                 String jsonString = result.encode();
@@ -161,18 +187,104 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
         });
     }
 
-    private String createSignedAccessToken(String clientId) throws JOSEException, NoSuchAlgorithmException {
+    private void processIntrospectRequest(HttpServerRequest req) {
+        if (req.method() != POST) {
+            sendResponse(req, METHOD_NOT_ALLOWED);
+            return;
+        }
+
+        // Need to read the complete body before we can get the form attributes
+        req.setExpectMultipart(true);
+        req.endHandler(v -> {
+
+            MultiMap form = req.formAttributes();
+            log.info(form.toString());
+
+            String token = form.get("token");
+            if (token == null) {
+                sendResponse(req, BAD_REQUEST);
+                return;
+            }
+
+            String authorization = req.headers().get("Authorization");
+            String clientId = authorizeClient(authorization);
+
+            if (clientId == null) {
+                sendResponse(req, UNAUTHORIZED);
+                return;
+            }
+
+            // Let's take the info from the token itself
+            JWSObject jws;
+            try {
+                jws = JWSObject.parse(token);
+            } catch (Exception e) {
+                log.error("Failed to parse the token: ", e);
+                sendResponse(req, OK, new JsonObject().put("active", false).encode());
+                return;
+            }
+
+            try {
+                JsonNode parsed = jws.getPayload().toType(TRANSFORMER);
+
+                // Create JSON response
+                JsonObject result = new JsonObject();
+
+                // token is active if not in the revokation list, if issued by us and if current date is less than expiry
+                JsonNode node = parsed.get(ISS);
+                JsonNode expNode = parsed.get(EXP);
+                result.put("active", node != null && "https://mockoauth:8090".equals(node.asText())
+                        && expNode != null && !isExpired(expNode.asInt()) && !isRevoked(token));
+                result.put("scope", "all");
+
+                node = parsed.get("clientId");
+                result.put("client_id", node.asText());
+
+                node = parsed.get("username");
+                if (node != null) {
+                    result.put("username", node.asText());
+                }
+
+                if (expNode != null) {
+                    result.put("exp", expNode.asInt());
+                }
+
+                String jsonString = result.encode();
+                sendResponse(req, OK, jsonString);
+
+            } catch (Throwable t) {
+                handleFailure(req, t, log);
+            }
+        });
+    }
+
+    private boolean isRevoked(String token) {
+        return verticle.getRevokedTokens().contains(token);
+    }
+
+    private boolean isExpired(int expiryTimeSeconds) {
+        // is expiry in the past
+        return System.currentTimeMillis() > expiryTimeSeconds * 1000L;
+    }
+
+    private String createSignedAccessToken(String clientId, String username) throws JOSEException, NoSuchAlgorithmException {
 
         // Create RSA-signer with the private key
         JWSSigner signer = new RSASSASigner(verticle.getSigKey());
 
         // Prepare JWT with claims set
-        JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
-                .subject(clientId)
+        JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder()
+                .subject(username != null ? username : clientId)
                 .issuer("https://mockoauth:8090")
-                .expirationTime(new Date(new Date().getTime() + 60 * 1000))
-                .build();
+                .expirationTime(new Date(System.currentTimeMillis() + EXPIRES_IN_SECONDS * 1000));
 
+        if (clientId != null) {
+            builder.claim("clientId", clientId);
+        }
+        if (username != null) {
+            builder.claim("username", username);
+        }
+        JWTClaimsSet claimsSet = builder.build();
         SignedJWT signedJWT = new SignedJWT(
                 new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(verticle.getSigKey().getKeyID()).build(),
                 claimsSet);
@@ -183,7 +295,7 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
         return signedJWT.serialize();
     }
 
-    private String authorize(String authorization) {
+    private String authorizeClient(String authorization) {
         if (authorization == null || !authorization.startsWith("Basic ")) {
             return null;
         }
@@ -197,6 +309,14 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
             return null;
         }
         return idSecret[0];
+    }
+
+    private String authorizeUser(String username, String password) {
+        String pass = verticle.getUsers().get(username);
+        if (pass == null) {
+            return null;
+        }
+        return pass.equals(password) ? username : null;
     }
 
     private void processJwksRequest(HttpServerRequest req, Mode mode) throws NoSuchAlgorithmException, JOSEException {

@@ -12,7 +12,9 @@ public enum Endpoint {
     USERINFO,
     TOKEN,
     SERVER,
-    CLIENTS;
+    CLIENTS,
+    USERS,
+    REVOCATIONS;
 
     public static Endpoint fromString(String value) {
         return valueOf(value.toUpperCase(Locale.ROOT));
