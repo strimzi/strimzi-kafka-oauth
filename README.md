@@ -903,14 +903,14 @@ It is up to you, your environment, and how you plan to run your Kafka client app
 
 The fourth way is to use the OAuth 2 Resource Owner Password Credentials, also called `password grants`. 
 
-Support for that mechanism was added for integration purposes, for environments where client credentials for some reason can not be used for Kafka client applications. It is highly advised to create special user accounts with very limited permissions to represent the Kafka client applications. Before resorting to this mechanism, consider using refresh tokens instead.
+Support for that mechanism has been added for use in environments where client credentials for some reason can not be used for Kafka client applications and the use of refresh tokens is undesired. It is highly advised to create special user accounts with very limited permissions to represent the Kafka client applications. Before resorting to this mechanism, consider using refresh tokens instead.
 
 - `oauth.password.grant.username`
 - `oauth.password.grant.password`
 
-Note, that the password is configured in plain text. It is thus not supposed to represent a personal account with broad permissions. It should use long, randomly generated passwords. For all practical purposes it should thus be the same as a service account one would use with client credentials. 
+Note, that the password is configured in plain text. It is not supposed to represent a personal account nor any kind of account with broad permissions. It should use long, randomly generated passwords and for all the practical purposes it should behave as if it was a service account one would use with client credentials. 
 
-Consider using an external secrets management tool to securely store configuration.
+Consider using an external secrets management tool to securely store your configuration.
 
 
 #### Common Options

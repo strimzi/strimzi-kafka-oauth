@@ -427,7 +427,7 @@ public class BasicTests {
         final String password = "alice-password";
         final String clientId = "kafka";
 
-        // First, request access token using client id and secret
+        // Request access token using username and password with public client
         String accessToken = loginWithUsernamePassword(URI.create(tokenEndpointUri), username, password, clientId);
 
         TokenInfo tokenInfo = introspectAccessToken(accessToken,
@@ -452,9 +452,22 @@ public class BasicTests {
         producer.send(new ProducerRecord<>(topic, "The Message")).get();
         System.out.println("Produced The Message");
 
-        // use a different clientId + secret for consumer
-        oauthConfig.put(ClientConfig.OAUTH_CLIENT_ID, "kafka-producer-client");
-        oauthConfig.put(ClientConfig.OAUTH_CLIENT_SECRET, "kafka-producer-client-secret");
+
+
+        // Authenticate using the username and password and a confidential client - different clientId + secret for consumer
+
+        String confidentialClientId = "kafka-producer-client";
+        String confidentialClientSecret = "kafka-producer-client-secret";
+
+        accessToken = loginWithUsernamePassword(URI.create(tokenEndpointUri), username, password, confidentialClientId, confidentialClientSecret);
+
+        tokenInfo = introspectAccessToken(accessToken,
+                new PrincipalExtractor("preferred_username", null, null));
+
+        Assert.assertEquals("Token contains 'preferred_username' claim with value equal to username", username, tokenInfo.principal());
+
+        oauthConfig.put(ClientConfig.OAUTH_CLIENT_ID, confidentialClientId);
+        oauthConfig.put(ClientConfig.OAUTH_CLIENT_SECRET, confidentialClientSecret);
 
         Properties consumerProps = buildConsumerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
         Consumer<String, String> consumer = new KafkaConsumer<>(consumerProps);

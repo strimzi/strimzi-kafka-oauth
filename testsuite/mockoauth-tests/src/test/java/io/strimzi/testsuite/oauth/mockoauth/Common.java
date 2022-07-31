@@ -29,6 +29,8 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
 
 public class Common {
 
+    static final String WWW_FORM_CONTENT_TYPE = "application/x-www-form-urlencoded";
+
     static String getJaasConfigOptionsString(Map<String, String> options) {
         StringBuilder sb = new StringBuilder();
         for (Map.Entry<String, String> ent: options.entrySet()) {
@@ -123,7 +125,7 @@ public class Common {
                 null,
                 null,
                 null,
-                "application/x-www-form-urlencoded",
+                WWW_FORM_CONTENT_TYPE,
                 "grant_type=password&username=" + username + "&password=" + password + "&client_id=" + clientId,
                 JsonNode.class);
 
@@ -143,7 +145,7 @@ public class Common {
                 null,
                 null,
                 null,
-                "application/x-www-form-urlencoded",
+                WWW_FORM_CONTENT_TYPE,
                 body,
                 JsonNode.class);
 
