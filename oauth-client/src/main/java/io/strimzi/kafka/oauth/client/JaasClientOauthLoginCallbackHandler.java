@@ -108,8 +108,8 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
 
         clientId = config.getValue(Config.OAUTH_CLIENT_ID);
         clientSecret = config.getValue(Config.OAUTH_CLIENT_SECRET);
-        username = config.getValue(Config.OAUTH_PASSWORD_GRANT_USERNAME);
-        password = config.getValue(Config.OAUTH_PASSWORD_GRANT_PASSWORD);
+        username = config.getValue(ClientConfig.OAUTH_PASSWORD_GRANT_USERNAME);
+        password = config.getValue(ClientConfig.OAUTH_PASSWORD_GRANT_PASSWORD);
 
         scope = config.getValue(Config.OAUTH_SCOPE);
         audience = config.getValue(Config.OAUTH_AUDIENCE);
