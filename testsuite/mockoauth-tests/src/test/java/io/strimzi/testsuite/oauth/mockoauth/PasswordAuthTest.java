@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import javax.net.ssl.SSLSocketFactory;
 import java.net.URI;
 
+import static io.strimzi.testsuite.oauth.mockoauth.Common.WWW_FORM_CONTENT_TYPE;
 import static io.strimzi.testsuite.oauth.mockoauth.Common.changeAuthServerMode;
 import static io.strimzi.testsuite.oauth.mockoauth.Common.createOAuthClient;
 import static io.strimzi.testsuite.oauth.mockoauth.Common.createOAuthUser;
@@ -76,7 +77,7 @@ public class PasswordAuthTest {
 
         // introspect the token using the introspection endpoint
         json = HttpUtil.post(URI.create("https://mockoauth:8090/introspect"), sslFactory, null,
-                "Basic " + OAuthAuthenticator.base64encode(clientSrv + ':' + clientSrvSecret), "application/x-www-form-urlencoded", "token=" + token, ObjectNode.class);
+                "Basic " + OAuthAuthenticator.base64encode(clientSrv + ':' + clientSrvSecret), WWW_FORM_CONTENT_TYPE, "token=" + token, ObjectNode.class);
 
         log.info("Got introspection endpoint response: " + json);
         Assert.assertTrue("Token active", json.get("active").asBoolean());
@@ -88,14 +89,14 @@ public class PasswordAuthTest {
 
         // introspect the token again
         json = HttpUtil.post(URI.create("https://mockoauth:8090/introspect"), sslFactory, null,
-                "Basic " + OAuthAuthenticator.base64encode(clientSrv + ':' + clientSrvSecret), "application/x-www-form-urlencoded", "token=" + token, ObjectNode.class);
+                "Basic " + OAuthAuthenticator.base64encode(clientSrv + ':' + clientSrvSecret), WWW_FORM_CONTENT_TYPE, "token=" + token, ObjectNode.class);
 
         log.info("Got introspection endpoint response: " + json);
         Assert.assertFalse("Token not active", json.get("active").asBoolean());
 
         // introspect an invalid token
         json = HttpUtil.post(URI.create("https://mockoauth:8090/introspect"), sslFactory, null,
-                "Basic " + OAuthAuthenticator.base64encode(clientSrv + ':' + clientSrvSecret), "application/x-www-form-urlencoded", "token=invalidtoken", ObjectNode.class);
+                "Basic " + OAuthAuthenticator.base64encode(clientSrv + ':' + clientSrvSecret), WWW_FORM_CONTENT_TYPE, "token=invalidtoken", ObjectNode.class);
 
         log.info("Got introspection endpoint response: " + json);
         Assert.assertFalse("Token not active", json.get("active").asBoolean());
@@ -103,7 +104,7 @@ public class PasswordAuthTest {
         // introspect the token using the introspection endpoint with a bad secret
         try {
             HttpUtil.post(URI.create("https://mockoauth:8090/introspect"), sslFactory, null,
-                    "Basic " + OAuthAuthenticator.base64encode(clientSrv + ":bad"), "application/x-www-form-urlencoded", "token=" + token, ObjectNode.class);
+                    "Basic " + OAuthAuthenticator.base64encode(clientSrv + ":bad"), WWW_FORM_CONTENT_TYPE, "token=" + token, ObjectNode.class);
 
             Assert.fail("Should have failed with 401");
         } catch (HttpException e) {
@@ -129,7 +130,7 @@ public class PasswordAuthTest {
 
         // introspect the token using the introspection endpoint
         json = HttpUtil.post(URI.create("https://mockoauth:8090/introspect"), sslFactory, null,
-                "Basic " + OAuthAuthenticator.base64encode(clientSrv + ':' + clientSrvSecret), "application/x-www-form-urlencoded", "token=" + token, ObjectNode.class);
+                "Basic " + OAuthAuthenticator.base64encode(clientSrv + ':' + clientSrvSecret), WWW_FORM_CONTENT_TYPE, "token=" + token, ObjectNode.class);
 
         log.info("Got introspection endpoint response: " + json);
         Assert.assertTrue("Token active", json.get("active").asBoolean());

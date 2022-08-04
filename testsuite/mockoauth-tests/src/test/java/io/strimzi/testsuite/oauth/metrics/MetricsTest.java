@@ -12,7 +12,6 @@ import io.strimzi.kafka.oauth.common.TokenIntrospection;
 import io.strimzi.kafka.oauth.services.Services;
 import io.strimzi.kafka.oauth.validator.JWTSignatureValidator;
 import io.strimzi.kafka.oauth.validator.TokenValidationException;
-import io.strimzi.testsuite.oauth.mockoauth.Common;
 import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +21,12 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.util.Collections;
+
+import static io.strimzi.testsuite.oauth.mockoauth.Common.changeAuthServerMode;
+import static io.strimzi.testsuite.oauth.mockoauth.Common.createOAuthClient;
+import static io.strimzi.testsuite.oauth.mockoauth.Common.getProjectRoot;
+import static io.strimzi.testsuite.oauth.mockoauth.Common.getPrometheusMetrics;
+import static io.strimzi.testsuite.oauth.mockoauth.Common.reloadMetrics;
 
 /**
  * Tests for OAuth authentication using Keycloak
@@ -59,14 +64,14 @@ public class MetricsTest {
 
         Services.configure(Collections.emptyMap());
 
-        Common.changeAuthServerMode("jwks", "MODE_JWKS_RSA_WITHOUT_SIG_USE");
-        Common.changeAuthServerMode("token", "MODE_200");
+        changeAuthServerMode("jwks", "MODE_JWKS_RSA_WITHOUT_SIG_USE");
+        changeAuthServerMode("token", "MODE_200");
 
         String testClient = "testclient";
         String testSecret = "testsecret";
-        Common.createOAuthClient(testClient, testSecret);
+        createOAuthClient(testClient, testSecret);
 
-        String projectRoot = Common.getProjectRoot();
+        String projectRoot = getProjectRoot();
         SSLSocketFactory sslFactory = SSLUtil.createSSLFactory(
                 projectRoot + "/../docker/certificates/ca-truststore.p12", null, "changeit", null, null);
 
@@ -106,22 +111,22 @@ public class MetricsTest {
     private void testInternalServerErrors() throws IOException, InterruptedException {
 
         // Configure jwks endpoint to return 503
-        Common.changeAuthServerMode("jwks", "mode_503");
+        changeAuthServerMode("jwks", "mode_503");
         // Turn mockoauth auth server back on with cert no. 2
-        Common.changeAuthServerMode("server", "mode_cert_two_on");
+        changeAuthServerMode("server", "mode_cert_two_on");
 
         Thread.sleep(20000);
-        Metrics metrics = Common.reloadMetrics();
+        Metrics metrics = reloadMetrics();
 
 
         // We should not see any 503 errors yet because of more TLS errors due to CERT_TWO being used
         String value = metrics.getValue("strimzi_oauth_http_requests_count", "context", "JWT", "outcome", "error", "error_type", "http", "status", "503");
         Assert.assertNull("There should be no 503 errors", value);
         // Switch mockoauth auth server back to using cert no. 1
-        Common.changeAuthServerMode("server", "mode_cert_one_on");
+        changeAuthServerMode("server", "mode_cert_one_on");
 
         Thread.sleep(20000);
-        metrics = Common.reloadMetrics();
+        metrics = reloadMetrics();
 
 
         // We should see some 503 errors
@@ -137,10 +142,10 @@ public class MetricsTest {
     private void testExpiredCert() throws IOException, InterruptedException {
 
         // Turn mockoauth auth server back on, and make JWT produce SSL errors
-        Common.changeAuthServerMode("server", "mode_expired_cert_on");
+        changeAuthServerMode("server", "mode_expired_cert_on");
 
         Thread.sleep(20000);
-        Metrics metrics = Common.reloadMetrics();
+        Metrics metrics = reloadMetrics();
 
 
         // We should see some TLS errors
@@ -156,10 +161,10 @@ public class MetricsTest {
     private void testNetworkErrors() throws IOException, InterruptedException {
 
         // Turn off mockoauth auth server to cause network errors
-        Common.changeAuthServerMode("server", "mode_off");
+        changeAuthServerMode("server", "mode_off");
 
         Thread.sleep(20000);
-        Metrics metrics = Common.reloadMetrics();
+        Metrics metrics = reloadMetrics();
 
 
         // See some network errors on JWT's
@@ -173,7 +178,7 @@ public class MetricsTest {
     }
 
     private void postInitCheck() throws IOException {
-        Metrics metrics = Common.getPrometheusMetrics(URI.create("http://kafka:9404/metrics"));
+        Metrics metrics = getPrometheusMetrics(URI.create("http://kafka:9404/metrics"));
 
         // mockoauth has JWKS endpoint configured to return 404
         // error counter for 404 for JWT should not be zero as at least one JWKS request should fail
@@ -188,7 +193,7 @@ public class MetricsTest {
     }
 
     private void zeroCheck() throws IOException {
-        Metrics metrics = Common.getPrometheusMetrics(URI.create("http://kafka:9404/metrics"));
+        Metrics metrics = getPrometheusMetrics(URI.create("http://kafka:9404/metrics"));
 
         // assumption check
         // JWT listener config (on port 9404 in docker-compose.yml) has no token endpoint so the next metric should not exist
