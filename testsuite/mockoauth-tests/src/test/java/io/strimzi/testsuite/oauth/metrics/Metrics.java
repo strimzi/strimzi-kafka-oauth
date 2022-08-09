@@ -19,8 +19,8 @@ public class Metrics {
      * Returns a value of a single metric matching the key and the attributes.
      * Not all attributes have to be specified.
      *
-     * @param key
-     * @param attrs
+     * @param key The key identifying the metric
+     * @param attrs The attributes filter passed as [attrName1, attrValue1, ... attrNameN, attrValueN]
      * @return Metric value as String
      */
     String getValue(String key, String... attrs) {
@@ -48,9 +48,9 @@ public class Metrics {
     /**
      * Get the sum of values of all the matching metrics
      *
-     * @param key
-     * @param attrs
-     * @return
+     * @param key The key identifying the metric
+     * @param attrs The attributes filter passed as [attrName1, attrValue1, ... attrNameN, attrValueN]
+     * @return The sum of the values of the matching metrics as string
      */
     String getValueSum(String key, String... attrs) {
 

@@ -162,7 +162,7 @@ public class Common {
      *
      * @param metricsEndpointUri The endpoint used to fetch metrics
      * @return Metrics object
-     * @throws IOException
+     * @throws IOException if an error occurs while getting or parsing the metrics endpoint content
      */
     public static Metrics getPrometheusMetrics(URI metricsEndpointUri) throws IOException {
         String response = HttpUtil.get(metricsEndpointUri, null, null, null, String.class);
