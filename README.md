@@ -870,7 +870,7 @@ Strimzi Kafka OAuth supports four ways to configure authentication on the client
 
 #### Client Credentials
 
-The first is to specify the client ID and secret configured on the authorization server specifically for the individual client deployment. This is also called `client credentials grants`.
+The first is to specify the client ID and secret configured on the authorization server specifically for the individual client deployment. This is also called `client credentials grant`.
 
 This is achieved by specifying the following:
 - `oauth.client.id` (e.g.: "my-client")
@@ -901,7 +901,7 @@ It is up to you, your environment, and how you plan to run your Kafka client app
 
 #### Password Grant
 
-The fourth way is to use the OAuth 2 Resource Owner Password Credentials, also called `password grants`. 
+The fourth way is to use the OAuth 2 Resource Owner Password Credentials, also called `password grant`. 
 
 Support for that mechanism has been added for use in environments where client credentials for some reason can not be used for Kafka client applications and the use of refresh tokens is undesired. It is highly advised to create special user accounts with very limited permissions to represent the Kafka client applications. Before resorting to this mechanism, consider using refresh tokens instead.
 
