@@ -41,6 +41,7 @@ import static io.strimzi.kafka.oauth.common.DeprecationUtil.isAccessTokenJwt;
 import static io.strimzi.kafka.oauth.common.LogUtil.mask;
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithAccessToken;
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithClientSecret;
+import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithPassword;
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithRefreshToken;
 
 public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallbackHandler {
@@ -53,6 +54,8 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
     private String refreshToken;
     private String clientId;
     private String clientSecret;
+    private String username;
+    private String password;
     private String scope;
     private String audience;
     private URI tokenEndpoint;
@@ -99,27 +102,23 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
             } catch (URISyntaxException e) {
                 throw new ConfigException("Specified token endpoint uri is invalid: " + endpoint, e);
             }
-
-            refreshToken = config.getValue(ClientConfig.OAUTH_REFRESH_TOKEN);
-
-            clientId = config.getValue(Config.OAUTH_CLIENT_ID);
-            clientSecret = config.getValue(Config.OAUTH_CLIENT_SECRET);
-
-            if (clientId == null) {
-                throw new ConfigException("No client id specified (OAUTH_CLIENT_ID)");
-            }
-
-            if (refreshToken == null && clientSecret == null) {
-                throw new ConfigException("No access token, refresh token, nor client secret specified");
-            }
-
-            scope = config.getValue(Config.OAUTH_SCOPE);
-            audience = config.getValue(Config.OAUTH_AUDIENCE);
-            socketFactory = ConfigUtil.createSSLFactory(config);
-            hostnameVerifier = ConfigUtil.createHostnameVerifier(config);
-            connectTimeout = getConnectTimeout(config);
-            readTimeout = getReadTimeout(config);
         }
+
+        refreshToken = config.getValue(ClientConfig.OAUTH_REFRESH_TOKEN);
+
+        clientId = config.getValue(Config.OAUTH_CLIENT_ID);
+        clientSecret = config.getValue(Config.OAUTH_CLIENT_SECRET);
+        username = config.getValue(ClientConfig.OAUTH_PASSWORD_GRANT_USERNAME);
+        password = config.getValue(ClientConfig.OAUTH_PASSWORD_GRANT_PASSWORD);
+
+        scope = config.getValue(Config.OAUTH_SCOPE);
+        audience = config.getValue(Config.OAUTH_AUDIENCE);
+        socketFactory = ConfigUtil.createSSLFactory(config);
+        hostnameVerifier = ConfigUtil.createHostnameVerifier(config);
+        connectTimeout = getConnectTimeout(config);
+        readTimeout = getReadTimeout(config);
+
+        checkConfiguration();
 
         principalExtractor = new PrincipalExtractor(
                 config.getValue(Config.OAUTH_USERNAME_CLAIM),
@@ -146,6 +145,8 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
                     + "\n    tokenEndpointUri: " + tokenEndpoint
                     + "\n    clientId: " + clientId
                     + "\n    clientSecret: " + mask(clientSecret)
+                    + "\n    username: " + username
+                    + "\n    password: " + mask(password)
                     + "\n    scope: " + scope
                     + "\n    audience: " + audience
                     + "\n    isJwt: " + isJwt
@@ -154,6 +155,38 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
                     + "\n    connectTimeout: " + connectTimeout
                     + "\n    readTimeout: " + readTimeout
                     + "\n    enableMetrics: " + enableMetrics);
+        }
+    }
+
+    private void checkConfiguration() {
+        if (token != null) {
+            if (refreshToken != null) {
+                LOG.warn("Access token is configured, refresh token will be ignored.");
+            }
+            if (username != null) {
+                LOG.warn("Access token is configured, username will be ignored.");
+            }
+            if (clientId != null) {
+                LOG.warn("Access token is configured, client id will be ignored.");
+            }
+        } else if (refreshToken != null) {
+            if (username != null) {
+                LOG.warn("Refresh token is configured, username will be ignored.");
+            }
+        }
+
+        if (token == null) {
+            if (clientId == null) {
+                throw new ConfigException("No client id specified (OAUTH_CLIENT_ID)");
+            }
+
+            if (username != null && password == null) {
+                throw new ConfigException("Username configured but no password specified (OAUTH_PASSWORD_GRANT_PASSWORD)");
+            }
+
+            if (refreshToken == null && clientSecret == null && username == null) {
+                throw new ConfigException("No access token, refresh token, client credentials or user credentials specified");
+            }
         }
     }
 
@@ -203,6 +236,8 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
                 result = loginWithAccessToken(token, isJwt, principalExtractor);
             } else if (refreshToken != null) {
                 result = loginWithRefreshToken(tokenEndpoint, socketFactory, hostnameVerifier, refreshToken, clientId, clientSecret, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout, authenticatorMetrics);
+            } else if (username != null) {
+                result = loginWithPassword(tokenEndpoint, socketFactory, hostnameVerifier, username, password, clientId, clientSecret, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout, authenticatorMetrics);
             } else if (clientSecret != null) {
                 result = loginWithClientSecret(tokenEndpoint, socketFactory, hostnameVerifier, clientId, clientSecret, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout, authenticatorMetrics);
             } else {

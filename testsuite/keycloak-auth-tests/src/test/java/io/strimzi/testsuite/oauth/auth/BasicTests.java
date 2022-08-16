@@ -5,6 +5,7 @@
 package io.strimzi.testsuite.oauth.auth;
 
 import io.strimzi.kafka.oauth.client.ClientConfig;
+import io.strimzi.kafka.oauth.common.PrincipalExtractor;
 import io.strimzi.kafka.oauth.common.TokenInfo;
 import io.strimzi.testsuite.oauth.common.TestMetrics;
 import org.apache.kafka.clients.consumer.Consumer;
@@ -25,9 +26,11 @@ import java.util.Map;
 import java.util.Properties;
 
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithClientSecret;
+import static io.strimzi.kafka.oauth.common.TokenIntrospection.introspectAccessToken;
 import static io.strimzi.testsuite.oauth.auth.Common.buildConsumerConfigOAuthBearer;
 import static io.strimzi.testsuite.oauth.auth.Common.buildProducerConfigOAuthBearer;
 import static io.strimzi.testsuite.oauth.auth.Common.loginWithUsernameForRefreshToken;
+import static io.strimzi.testsuite.oauth.auth.Common.loginWithUsernamePassword;
 import static io.strimzi.testsuite.oauth.auth.Common.poll;
 import static io.strimzi.testsuite.oauth.common.TestMetrics.getPrometheusMetrics;
 import static io.strimzi.testsuite.oauth.common.TestUtil.getKafkaLogsForString;
@@ -42,6 +45,8 @@ public class BasicTests {
         clientCredentialsWithJwtRSAValidation();
         accessTokenWithIntrospection();
         refreshTokenWithIntrospection();
+        passwordGrantWithJwtRSAValidation();
+        passwordGrantWithIntrospection();
     }
 
     static void oauthMetricsConfigIntegration() {
@@ -362,4 +367,123 @@ public class BasicTests {
         value = metrics.getValueSum("strimzi_oauth_http_requests_totaltimems", "kind", "introspect", "host", authHostPort, "path", introspectPath, "outcome", "success");
         Assert.assertTrue("strimzi_oauth_http_requests_totaltimems for introspect > 0.0", value.doubleValue() > 0.0);
     }
+
+    static void passwordGrantWithJwtRSAValidation() throws Exception {
+
+        System.out.println("==== KeycloakAuthenticationTest :: passwordGrantWithJwtRSAValidationTest ====");
+
+        final String kafkaBootstrap = "kafka:9096";
+        final String authHostPort = "keycloak:8080";
+        final String realm = "kafka-authz";
+        final String path = "/auth/realms/" + realm + "/protocol/openid-connect/token";
+
+        final String tokenEndpointUri = "http://" + authHostPort + path;
+
+        Map<String, String> oauthConfig = new HashMap<>();
+        oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, tokenEndpointUri);
+        oauthConfig.put(ClientConfig.OAUTH_CLIENT_ID, "kafka-cli");
+        oauthConfig.put(ClientConfig.OAUTH_PASSWORD_GRANT_USERNAME, "alice");
+        oauthConfig.put(ClientConfig.OAUTH_PASSWORD_GRANT_PASSWORD, "alice-password");
+        oauthConfig.put(ClientConfig.OAUTH_USERNAME_CLAIM, "preferred_username");
+
+        Properties producerProps = buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
+        Producer<String, String> producer = new KafkaProducer<>(producerProps);
+
+        final String topic = "KeycloakAuthenticationTest-passwordGrantWithJwtRSAValidationTest";
+
+
+        producer.send(new ProducerRecord<>(topic, "The Message")).get();
+        System.out.println("Produced The Message");
+
+        Properties consumerProps = buildConsumerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
+        Consumer<String, String> consumer = new KafkaConsumer<>(consumerProps);
+
+        TopicPartition partition = new TopicPartition(topic, 0);
+        consumer.assign(singletonList(partition));
+
+        while (consumer.partitionsFor(topic, Duration.ofSeconds(1)).size() == 0) {
+            System.out.println("No assignment yet for consumer");
+        }
+        consumer.seekToBeginning(singletonList(partition));
+
+        ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(1));
+
+        Assert.assertEquals("Got message", 1, records.count());
+        Assert.assertEquals("Is message text: 'The Message'", "The Message", records.iterator().next().value());
+    }
+
+
+    static void passwordGrantWithIntrospection() throws Exception {
+        System.out.println("==== KeycloakAuthenticationTest :: passwordGrantWithIntrospectionTest ====");
+
+        final String kafkaBootstrap = "kafka:9093";
+        final String authHostPort = "keycloak:8080";
+        final String realm = "demo";
+        final String path = "/auth/realms/" + realm + "/protocol/openid-connect/token";
+
+        final String tokenEndpointUri = "http://" + authHostPort + path;
+
+        final String username = "alice";
+        final String password = "alice-password";
+        final String clientId = "kafka";
+
+        // Request access token using username and password with public client
+        String accessToken = loginWithUsernamePassword(URI.create(tokenEndpointUri), username, password, clientId);
+
+        TokenInfo tokenInfo = introspectAccessToken(accessToken,
+                new PrincipalExtractor("preferred_username", null, null));
+
+        Assert.assertEquals("Token contains 'preferred_username' claim with value equal to username", username, tokenInfo.principal());
+
+
+        Map<String, String> oauthConfig = new HashMap<>();
+        oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, tokenEndpointUri);
+        oauthConfig.put(ClientConfig.OAUTH_CLIENT_ID, clientId);
+        oauthConfig.put(ClientConfig.OAUTH_PASSWORD_GRANT_USERNAME, username);
+        oauthConfig.put(ClientConfig.OAUTH_PASSWORD_GRANT_PASSWORD, password);
+        oauthConfig.put(ClientConfig.OAUTH_USERNAME_CLAIM, "preferred_username");
+
+        Properties producerProps = buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
+        Producer<String, String> producer = new KafkaProducer<>(producerProps);
+
+
+        final String topic = "KeycloakAuthenticationTest-passwordGrantWithIntrospectionTest";
+
+        producer.send(new ProducerRecord<>(topic, "The Message")).get();
+        System.out.println("Produced The Message");
+
+
+
+        // Authenticate using the username and password and a confidential client - different clientId + secret for consumer
+
+        String confidentialClientId = "kafka-producer-client";
+        String confidentialClientSecret = "kafka-producer-client-secret";
+
+        accessToken = loginWithUsernamePassword(URI.create(tokenEndpointUri), username, password, confidentialClientId, confidentialClientSecret);
+
+        tokenInfo = introspectAccessToken(accessToken,
+                new PrincipalExtractor("preferred_username", null, null));
+
+        Assert.assertEquals("Token contains 'preferred_username' claim with value equal to username", username, tokenInfo.principal());
+
+        oauthConfig.put(ClientConfig.OAUTH_CLIENT_ID, confidentialClientId);
+        oauthConfig.put(ClientConfig.OAUTH_CLIENT_SECRET, confidentialClientSecret);
+
+        Properties consumerProps = buildConsumerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
+        Consumer<String, String> consumer = new KafkaConsumer<>(consumerProps);
+
+        TopicPartition partition = new TopicPartition(topic, 0);
+        consumer.assign(singletonList(partition));
+
+        while (consumer.partitionsFor(topic, Duration.ofSeconds(1)).size() == 0) {
+            System.out.println("No assignment yet for consumer");
+        }
+        consumer.seekToBeginning(singletonList(partition));
+
+        ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(1));
+
+        Assert.assertEquals("Got message", 1, records.count());
+        Assert.assertEquals("Is message text: 'The Message'", "The Message", records.iterator().next().value());
+    }
+
 }

@@ -129,7 +129,7 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
     @Override
     public void configure(Map<String, ?> configs, String saslMechanism, List<AppConfigurationEntry> jaasConfigEntries) {
 
-        if (!"PLAIN".equals(saslMechanism))    {
+        if (!"PLAIN".equals(saslMechanism)) {
             throw new IllegalArgumentException(String.format("Unexpected SASL mechanism: %s", saslMechanism));
         }
 

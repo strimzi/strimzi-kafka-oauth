@@ -21,9 +21,12 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.Properties;
 
+import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.base64encode;
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
 
 public class Common {
+
+    static final String WWW_FORM_CONTENT_TYPE = "application/x-www-form-urlencoded";
 
     private static final Logger log = LoggerFactory.getLogger(Common.class);
 
@@ -127,7 +130,7 @@ public class Common {
                 null,
                 null,
                 null,
-                "application/x-www-form-urlencoded",
+                WWW_FORM_CONTENT_TYPE,
                 "grant_type=password&username=" + username + "&password=" + password + "&client_id=" + clientId,
                 JsonNode.class);
 
@@ -139,15 +142,21 @@ public class Common {
     }
 
     static String loginWithUsernamePassword(URI tokenEndpointUri, String username, String password, String clientId) throws IOException {
+        return loginWithUsernamePassword(tokenEndpointUri, username, password, clientId, null);
+    }
+
+    static String loginWithUsernamePassword(URI tokenEndpointUri, String username, String password, String clientId, String secret) throws IOException {
 
         String body = "grant_type=password&username=" + urlencode(username) +
-                "&password=" + urlencode(password) + "&client_id=" + urlencode(clientId);
+                "&password=" + urlencode(password);
+
+        String authorization = "Basic " + base64encode(clientId + ":" + (secret != null ? secret : ""));
 
         JsonNode result = HttpUtil.post(tokenEndpointUri,
                 null,
                 null,
-                null,
-                "application/x-www-form-urlencoded",
+                authorization,
+                WWW_FORM_CONTENT_TYPE,
                 body,
                 JsonNode.class);
 

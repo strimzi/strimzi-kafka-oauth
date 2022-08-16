@@ -4,18 +4,15 @@
  */
 package io.strimzi.testsuite.oauth.metrics;
 
-import io.strimzi.kafka.oauth.common.HttpUtil;
 import io.strimzi.kafka.oauth.common.OAuthAuthenticator;
 import io.strimzi.kafka.oauth.common.PrincipalExtractor;
 import io.strimzi.kafka.oauth.common.SSLUtil;
 import io.strimzi.kafka.oauth.common.TokenInfo;
+import io.strimzi.kafka.oauth.common.TokenIntrospection;
 import io.strimzi.kafka.oauth.services.Services;
 import io.strimzi.kafka.oauth.validator.JWTSignatureValidator;
 import io.strimzi.kafka.oauth.validator.TokenValidationException;
-import org.jboss.arquillian.junit.Arquillian;
 import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,11 +20,13 @@ import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collections;
-import java.util.Locale;
+
+import static io.strimzi.testsuite.oauth.mockoauth.Common.changeAuthServerMode;
+import static io.strimzi.testsuite.oauth.mockoauth.Common.createOAuthClient;
+import static io.strimzi.testsuite.oauth.mockoauth.Common.getProjectRoot;
+import static io.strimzi.testsuite.oauth.mockoauth.Common.getPrometheusMetrics;
+import static io.strimzi.testsuite.oauth.mockoauth.Common.reloadMetrics;
 
 /**
  * Tests for OAuth authentication using Keycloak
@@ -37,16 +36,12 @@ import java.util.Locale;
  *
  * There is no authorization configured on the Kafka broker.
  */
-@RunWith(Arquillian.class)
 public class MetricsTest {
 
     static final Logger log = LoggerFactory.getLogger(MetricsTest.class);
 
-    @Test
     public void doTest() throws Exception {
         try {
-            logStart("MetricsTest :: BasicTests");
-
             zeroCheck();
 
             postInitCheck();
@@ -94,6 +89,8 @@ public class MetricsTest {
                 null,
                 null);
 
+        TokenIntrospection.debugLogJWT(log, tokenInfo.token());
+
         // and try to validate it
         // It should fail
         try {
@@ -119,7 +116,7 @@ public class MetricsTest {
         changeAuthServerMode("server", "mode_cert_two_on");
 
         Thread.sleep(20000);
-        Common.Metrics metrics = reloadMetrics();
+        Metrics metrics = reloadMetrics();
 
 
         // We should not see any 503 errors yet because of more TLS errors due to CERT_TWO being used
@@ -148,7 +145,7 @@ public class MetricsTest {
         changeAuthServerMode("server", "mode_expired_cert_on");
 
         Thread.sleep(20000);
-        Common.Metrics metrics = reloadMetrics();
+        Metrics metrics = reloadMetrics();
 
 
         // We should see some TLS errors
@@ -167,7 +164,7 @@ public class MetricsTest {
         changeAuthServerMode("server", "mode_off");
 
         Thread.sleep(20000);
-        Common.Metrics metrics = reloadMetrics();
+        Metrics metrics = reloadMetrics();
 
 
         // See some network errors on JWT's
@@ -181,7 +178,7 @@ public class MetricsTest {
     }
 
     private void postInitCheck() throws IOException {
-        Common.Metrics metrics = Common.getPrometheusMetrics(URI.create("http://kafka:9404/metrics"));
+        Metrics metrics = getPrometheusMetrics(URI.create("http://kafka:9404/metrics"));
 
         // mockoauth has JWKS endpoint configured to return 404
         // error counter for 404 for JWT should not be zero as at least one JWKS request should fail
@@ -196,7 +193,7 @@ public class MetricsTest {
     }
 
     private void zeroCheck() throws IOException {
-        Common.Metrics metrics = Common.getPrometheusMetrics(URI.create("http://kafka:9404/metrics"));
+        Metrics metrics = getPrometheusMetrics(URI.create("http://kafka:9404/metrics"));
 
         // assumption check
         // JWT listener config (on port 9404 in docker-compose.yml) has no token endpoint so the next metric should not exist
@@ -230,22 +227,6 @@ public class MetricsTest {
         Assert.assertNull(value);
     }
 
-    private Common.Metrics reloadMetrics() throws IOException {
-        return Common.getPrometheusMetrics(URI.create("http://kafka:9404/metrics"));
-    }
-
-    private void changeAuthServerMode(String resource, String mode) throws IOException {
-        String result = HttpUtil.post(URI.create("http://mockoauth:8091/admin/" + resource + "?mode=" + mode), null, "text/plain", "", String.class);
-        Assert.assertEquals("admin server response should be ", mode.toUpperCase(Locale.ROOT), result);
-    }
-
-    private void createOAuthClient(String clientId, String secret) throws IOException {
-        HttpUtil.post(URI.create("http://mockoauth:8091/admin/clients"),
-                null,
-                "application/json",
-                "{\"clientId\": \"" + clientId + "\", \"secret\": \"" + secret + "\"}", String.class);
-    }
-
 
     private static JWTSignatureValidator createTokenValidator(String validatorId, SSLSocketFactory sslFactory, boolean ignoreKeyUse) {
         return new JWTSignatureValidator(validatorId,
@@ -267,24 +248,5 @@ public class MetricsTest {
                 60,
                 true,
                 true);
-    }
-
-    private static String getProjectRoot() {
-        String cwd = System.getProperty("user.dir");
-        Path path = Paths.get(cwd);
-        if (path.endsWith("metrics-tests") && Files.exists(path.resolve("../docker"))) {
-            return path.toAbsolutePath().toString();
-        } else if (path.endsWith("strimzi-kafka-oauth") && Files.exists(path.resolve("testsuite/docker")) && Files.exists(path.resolve("testsuite/metrics-tests")))  {
-            return path.resolve("testsuite/metrics-tests").toAbsolutePath().toString();
-        }
-        return cwd;
-    }
-
-    private void logStart(String msg) {
-        System.out.println();
-        System.out.println();
-        System.out.println("========    "  + msg);
-        System.out.println();
-        System.out.println();
     }
 }

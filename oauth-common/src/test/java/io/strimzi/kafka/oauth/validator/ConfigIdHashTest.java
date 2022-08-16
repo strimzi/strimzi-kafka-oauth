@@ -27,7 +27,7 @@ public class ConfigIdHashTest {
     }
 
     ValidatorKey getKey(String groupQuery, String groupDelimiter) {
-        ValidatorKey key = new ValidatorKey.IntrospectionValidatorKey(
+        return new ValidatorKey.IntrospectionValidatorKey(
                 "http://mockoauth:8080",
                 null,
                 "@.aud='http://example.com/'",
@@ -49,7 +49,5 @@ public class ConfigIdHashTest {
                 60,
                 60,
                 true);
-
-        return key;
     }
 }

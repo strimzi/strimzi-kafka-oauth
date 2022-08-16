@@ -29,6 +29,10 @@ public class OAuthAuthenticator {
             log.debug("loginWithAccessToken() - pass-through access_token: {}", mask(token));
         }
 
+        if (token == null) {
+            throw new IllegalArgumentException("No access token specified");
+        }
+
         if (isJwt) {
             // try introspect token
             try {
@@ -59,6 +63,7 @@ public class OAuthAuthenticator {
                 clientId, clientSecret, isJwt, principalExtractor, scope, audience, HttpUtil.DEFAULT_CONNECT_TIMEOUT, HttpUtil.DEFAULT_READ_TIMEOUT, null);
     }
 
+    @SuppressWarnings("checkstyle:ParameterNumber")
     public static TokenInfo loginWithClientSecret(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
                                                   HostnameVerifier hostnameVerifier,
                                                   String clientId, String clientSecret, boolean isJwt,
@@ -69,9 +74,71 @@ public class OAuthAuthenticator {
                     tokenEndpointUrl, clientId, mask(clientSecret), scope, audience, connectTimeout, readTimeout);
         }
 
+        if (clientId == null) {
+            throw new IllegalArgumentException("No clientId specified");
+        }
+
         String authorization = "Basic " + base64encode(clientId + ':' + clientSecret);
 
         StringBuilder body = new StringBuilder("grant_type=client_credentials");
+        if (scope != null) {
+            body.append("&scope=").append(urlencode(scope));
+        }
+        if (audience != null) {
+            body.append("&audience=").append(urlencode(audience));
+        }
+
+        return post(tokenEndpointUrl, socketFactory, hostnameVerifier, authorization, body.toString(), isJwt, principalExtractor, connectTimeout, readTimeout, metrics);
+    }
+
+    public static TokenInfo loginWithPassword(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
+                                              HostnameVerifier hostnameVerifier,
+                                              String username, String password,
+                                              String clientId, String clientSecret, boolean isJwt,
+                                              PrincipalExtractor principalExtractor, String scope, String audience) throws IOException {
+
+        return loginWithPassword(tokenEndpointUrl, socketFactory, hostnameVerifier,
+                username, password, clientId, clientSecret, isJwt, principalExtractor, scope, audience, HttpUtil.DEFAULT_CONNECT_TIMEOUT, HttpUtil.DEFAULT_READ_TIMEOUT, null);
+    }
+
+
+    public static TokenInfo loginWithPassword(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
+                                              HostnameVerifier hostnameVerifier,
+                                              String username, String password,
+                                              String clientId, String clientSecret, boolean isJwt,
+                                              PrincipalExtractor principalExtractor, String scope, String audience, int connectTimeout, int readTimeout) throws IOException {
+
+        return loginWithPassword(tokenEndpointUrl, socketFactory, hostnameVerifier,
+                username, password, clientId, clientSecret, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout, null);
+    }
+
+    @SuppressWarnings("checkstyle:ParameterNumber")
+    public static TokenInfo loginWithPassword(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
+                                                  HostnameVerifier hostnameVerifier,
+                                                  String username, String password,
+                                                  String clientId, String clientSecret, boolean isJwt,
+                                                  PrincipalExtractor principalExtractor, String scope, String audience,
+                                                  int connectTimeout, int readTimeout, MetricsHandler metrics) throws IOException {
+
+        if (log.isDebugEnabled()) {
+            log.debug("loginWithPassword() - tokenEndpointUrl: {}, username: {}, password: {}, clientId: {}, clientSecret: {}, scope: {}, audience: {}, connectTimeout: {}, readTimeout: {}",
+                    tokenEndpointUrl, username, mask(password), clientId, mask(clientSecret), scope, audience, connectTimeout, readTimeout);
+        }
+
+        if (username == null) {
+            throw new IllegalArgumentException("No username specified");
+        }
+        if (clientId == null) {
+            throw new IllegalArgumentException("No clientId specified");
+        }
+
+        String authorization = "Basic " + base64encode(clientId + ':' + clientSecret);
+
+        StringBuilder body = new StringBuilder("grant_type=password");
+
+        body.append("&username=").append(urlencode(username));
+        body.append("&password=").append(urlencode(password));
+
         if (scope != null) {
             body.append("&scope=").append(urlencode(scope));
         }
@@ -115,6 +182,10 @@ public class OAuthAuthenticator {
         if (log.isDebugEnabled()) {
             log.debug("loginWithRefreshToken() - tokenEndpointUrl: {}, refreshToken: {}, clientId: {}, clientSecret: {}, scope: {}, audience: {}, connectTimeout: {}, readTimeout: {}",
                     tokenEndpointUrl, refreshToken, clientId, mask(clientSecret), scope, audience, connectTimeout, readTimeout);
+        }
+
+        if (refreshToken == null) {
+            throw new IllegalArgumentException("No refresh token specified");
         }
 
         String authorization = clientSecret != null ?

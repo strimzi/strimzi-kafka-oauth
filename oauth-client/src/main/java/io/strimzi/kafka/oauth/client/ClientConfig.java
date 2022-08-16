@@ -12,6 +12,8 @@ public class ClientConfig extends Config {
     public static final String OAUTH_REFRESH_TOKEN = "oauth.refresh.token";
     public static final String OAUTH_TOKEN_ENDPOINT_URI = "oauth.token.endpoint.uri";
     public static final String OAUTH_MAX_TOKEN_EXPIRY_SECONDS = "oauth.max.token.expiry.seconds";
+    public static final String OAUTH_PASSWORD_GRANT_USERNAME = "oauth.password.grant.username";
+    public static final String OAUTH_PASSWORD_GRANT_PASSWORD = "oauth.password.grant.password";
 
     public ClientConfig() {
     }

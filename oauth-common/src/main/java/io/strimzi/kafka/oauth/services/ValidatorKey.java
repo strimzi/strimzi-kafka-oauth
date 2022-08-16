@@ -247,7 +247,6 @@ public class ValidatorKey {
         private final String validTokenType;
         private final String clientId;
         private final String clientSecret;
-
         private final String configIdHash;
 
         @SuppressWarnings("checkstyle:parameternumber")
