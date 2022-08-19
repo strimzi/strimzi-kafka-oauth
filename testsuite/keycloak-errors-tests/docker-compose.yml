@@ -3,7 +3,6 @@ version: '3'
 services:
   keycloak:
     image: quay.io/keycloak/keycloak:15.0.0
-    container_name: keycloak
     ports:
       - 8080:8080
       - 8443:8443
@@ -28,7 +27,6 @@ services:
 
   kafka:
     image: ${KAFKA_DOCKER_IMAGE}
-    container_name: kafka
     ports:
       - 9201:9201
       - 9202:9202
@@ -108,7 +106,6 @@ services:
 
   zookeeper:
     image: ${KAFKA_DOCKER_IMAGE}
-    container_name: zookeeper
     ports:
       - 2181:2181
     volumes:

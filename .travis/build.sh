@@ -8,8 +8,7 @@ clearDockerEnv() {
 }
 
 exitIfError() {
-  FILE=testsuite/kafka.log
-  [ "$EXIT" != "0" ] && test -f "$FILE" && cat $FILE && exit $EXIT
+  [ "$EXIT" != "0" ] && exit $EXIT
 }
 
 # The first segment of the version number is '1' for releases < 9; then '9', '10', '11', ...

@@ -4,11 +4,16 @@
  */
 package io.strimzi.testsuite.oauth.authz;
 
-import org.jboss.arquillian.junit.Arquillian;
+import io.strimzi.testsuite.oauth.common.LogKafkaImage;
+import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testcontainers.containers.DockerComposeContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
+
+import java.io.File;
+import java.time.Duration;
 
 /**
  * Tests for OAuth authentication using Keycloak + Keycloak Authorization Services based authorization
@@ -18,8 +23,20 @@ import org.slf4j.LoggerFactory;
  *
  * There is KeycloakRBACAuthorizer configured on the Kafka broker.
  */
-@RunWith(Arquillian.class)
 public class KeycloakAuthorizationTests {
+
+    static LogKafkaImage logAction = new LogKafkaImage();
+
+    @ClassRule
+    public static DockerComposeContainer<?> environment =
+            new DockerComposeContainer<>(new File("docker-compose.yml"))
+                    .withLocalCompose(true)
+                    .withEnv("KAFKA_DOCKER_IMAGE", System.getProperty("KAFKA_DOCKER_IMAGE"))
+                    .withServices("keycloak", "zookeeper", "kafka", "kafka-acls")
+                    .waitingFor("kafka", Wait.forLogMessage(".*started \\(kafka.server.KafkaServer\\).*", 1)
+                            .withStartupTimeout(Duration.ofSeconds(180)))
+                    .waitingFor("kafka-acls", Wait.forLogMessage(".*principal=User:alice, host=\\*, operation=IDEMPOTENT_WRITE, permissionType=ALLOW.*", 2)
+                            .withStartupTimeout(Duration.ofSeconds(210)));
 
     private static final Logger log = LoggerFactory.getLogger(KeycloakAuthorizationTests.class);
 
@@ -32,9 +49,10 @@ public class KeycloakAuthorizationTests {
     @Test
     public void doTest() throws Exception {
         try {
+            String kafkaContainer = environment.getContainerByServiceName("kafka_1").get().getContainerInfo().getName().substring(1);
 
             logStart("KeycloakAuthorizationTest :: ConfigurationTest");
-            ConfigurationTest.doTest();
+            new ConfigurationTest(kafkaContainer).doTest();
 
             logStart("KeycloakAuthorizationTest :: MetricsTest");
             MetricsTest.doTest();

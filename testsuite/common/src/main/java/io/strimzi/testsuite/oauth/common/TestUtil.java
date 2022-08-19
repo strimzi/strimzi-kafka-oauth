@@ -29,13 +29,13 @@ public class TestUtil {
      * @return A list of lines from the log that match the filter (logging entries that contain the filter string)
      */
     @SuppressFBWarnings("THROWS_METHOD_THROWS_RUNTIMEEXCEPTION")
-    public static List<String> getKafkaLogsForString(String filter) {
+    public static List<String> getContainerLogsForString(String containerName, String filter) {
         try {
             boolean inmatch = false;
             ArrayList<String> result = new ArrayList<>();
             Pattern pat = Pattern.compile("\\[\\d\\d\\d\\d-\\d\\d-\\d\\d .*");
-
-            Process p = Runtime.getRuntime().exec(new String[] {"docker", "logs", "kafka"});
+//StringBuilder sb = new StringBuilder();
+            Process p = Runtime.getRuntime().exec(new String[] {"docker", "logs", containerName});
             try (BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream(), StandardCharsets.ISO_8859_1))) {
                 String line;
                 while ((line = r.readLine()) != null) {
@@ -47,13 +47,14 @@ public class TestUtil {
                     if (inmatch) {
                         result.add(line);
                     }
+//                    sb.append(line).append("\n");
                 }
             }
-
+//System.out.println("\nLog: \n" + sb + "\n");
             return result;
 
         } catch (Throwable e) {
-            throw new RuntimeException("Failed to get 'kafka' log", e);
+            throw new RuntimeException("Failed to get '" + containerName + "' log", e);
         }
     }
 }

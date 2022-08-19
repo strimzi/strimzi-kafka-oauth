@@ -33,12 +33,18 @@ import static io.strimzi.testsuite.oauth.auth.Common.loginWithUsernameForRefresh
 import static io.strimzi.testsuite.oauth.auth.Common.loginWithUsernamePassword;
 import static io.strimzi.testsuite.oauth.auth.Common.poll;
 import static io.strimzi.testsuite.oauth.common.TestMetrics.getPrometheusMetrics;
-import static io.strimzi.testsuite.oauth.common.TestUtil.getKafkaLogsForString;
+import static io.strimzi.testsuite.oauth.common.TestUtil.getContainerLogsForString;
 import static java.util.Collections.singletonList;
 
 public class BasicTests {
 
-    static void doTests() throws Exception {
+    private final String kafkaContainer;
+
+    BasicTests(String kafkaContainer) {
+        this.kafkaContainer = kafkaContainer;
+    }
+
+    public void doTests() throws Exception {
         oauthMetricsConfigIntegration();
         oauthMetricsClientAuth();
         clientCredentialsWithJwtECDSAValidation();
@@ -49,18 +55,18 @@ public class BasicTests {
         passwordGrantWithIntrospection();
     }
 
-    static void oauthMetricsConfigIntegration() {
+    void oauthMetricsConfigIntegration() {
         System.out.println("==== KeycloakAuthenticationTest :: oauthMetricsConfigIntegrationTest ====");
 
         // Test MetricReporter config works as expected
         // Get kafka log and make sure the TestMetricReporter was initialised exactly twice
-        List<String> lines = getKafkaLogsForString("TestMetricsReporter no. ");
+        List<String> lines = getContainerLogsForString(kafkaContainer, "TestMetricsReporter no. ");
         Assert.assertEquals("Kafka log should contain: \"TestMetricsReporter no. \" exactly twice", 2, lines.size());
         Assert.assertTrue("Contains \"TestMetricsReporter no. 1\"", lines.get(0).contains("TestMetricsReporter no. 1 "));
         Assert.assertTrue("Contains \"TestMetricsReporter no. 2\"", lines.get(1).contains("TestMetricsReporter no. 2 "));
 
         // Ensure the configuration was applied as expected
-        lines = getKafkaLogsForString("Creating Metrics:");
+        lines = getContainerLogsForString(kafkaContainer, "Creating Metrics:");
         String line = lines.get(1);
         Assert.assertTrue("samples: 3", line.contains("samples: 3"));
         Assert.assertTrue("recordingLevel: DEBUG", line.contains("recordingLevel: DEBUG"));
@@ -76,7 +82,7 @@ public class BasicTests {
         Assert.assertTrue("org.apache.kafka.common.metrics.JmxReporter", line.contains("org.apache.kafka.common.metrics.JmxReporter"));
     }
 
-    static void oauthMetricsClientAuth() throws Exception {
+    void oauthMetricsClientAuth() throws Exception {
 
         System.out.println("==== KeycloakAuthenticationTest :: oauthMetricsClientAuthTest ====");
 
@@ -121,7 +127,7 @@ public class BasicTests {
         Assert.assertTrue("strimzi_oauth_http_requests_maxtimems for client-auth > 0.0", value.doubleValue() > 0.0);
     }
 
-    static void clientCredentialsWithJwtECDSAValidation() throws Exception {
+    void clientCredentialsWithJwtECDSAValidation() throws Exception {
 
         System.out.println("==== KeycloakAuthenticationTest :: clientCredentialsWithJwtECDSAValidationTest ====");
 
@@ -191,7 +197,7 @@ public class BasicTests {
      *
      * @throws Exception Any unhandled error
      */
-    static void clientCredentialsWithJwtRSAValidation() throws Exception {
+    void clientCredentialsWithJwtRSAValidation() throws Exception {
 
         System.out.println("==== KeycloakAuthenticationTest :: clientCredentialsWithJwtRSAValidation ====");
 
@@ -248,7 +254,7 @@ public class BasicTests {
         Assert.assertTrue("strimzi_oauth_validation_requests_totaltimems for jwks > 0.0", value.doubleValue() > 0.0);
     }
 
-    static void accessTokenWithIntrospection() throws Exception {
+    void accessTokenWithIntrospection() throws Exception {
         System.out.println("==== KeycloakAuthenticationTest :: accessTokenWithIntrospectionTest ====");
 
         final String kafkaBootstrap = "kafka:9093";
@@ -306,7 +312,7 @@ public class BasicTests {
         Assert.assertTrue("strimzi_oauth_http_requests_totaltimems for introspect > 0.0", value.doubleValue() > 0.0);
     }
 
-    static void refreshTokenWithIntrospection() throws Exception {
+    void refreshTokenWithIntrospection() throws Exception {
 
         System.out.println("==== KeycloakAuthenticationTest :: refreshTokenWithIntrospectionTest ====");
 
@@ -368,7 +374,7 @@ public class BasicTests {
         Assert.assertTrue("strimzi_oauth_http_requests_totaltimems for introspect > 0.0", value.doubleValue() > 0.0);
     }
 
-    static void passwordGrantWithJwtRSAValidation() throws Exception {
+    void passwordGrantWithJwtRSAValidation() throws Exception {
 
         System.out.println("==== KeycloakAuthenticationTest :: passwordGrantWithJwtRSAValidationTest ====");
 
@@ -413,7 +419,7 @@ public class BasicTests {
     }
 
 
-    static void passwordGrantWithIntrospection() throws Exception {
+    void passwordGrantWithIntrospection() throws Exception {
         System.out.println("==== KeycloakAuthenticationTest :: passwordGrantWithIntrospectionTest ====");
 
         final String kafkaBootstrap = "kafka:9093";

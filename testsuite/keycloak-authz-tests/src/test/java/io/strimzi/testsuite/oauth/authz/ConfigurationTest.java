@@ -8,13 +8,19 @@ import org.junit.Assert;
 
 import java.util.List;
 
-import static io.strimzi.testsuite.oauth.common.TestUtil.getKafkaLogsForString;
+import static io.strimzi.testsuite.oauth.common.TestUtil.getContainerLogsForString;
 
 public class ConfigurationTest {
 
-    public static void doTest() {
+    private final String kafkaContainer;
+
+    ConfigurationTest(String kafkaContainer) {
+        this.kafkaContainer = kafkaContainer;
+    }
+
+    public void doTest() {
         // get kafka log and make sure KeycloakRBACAuthorizer has been configured with expected settings
-        List<String> lines = getKafkaLogsForString("Configured KeycloakRBACAuthorizer");
+        List<String> lines = getContainerLogsForString(kafkaContainer, "Configured KeycloakRBACAuthorizer");
         Assert.assertTrue("Kafka log should contain string: 'KeycloakRBACAuthorizer'", lines.size() > 0);
 
         String value = getLoggerAttribute(lines, "connectTimeoutSeconds");

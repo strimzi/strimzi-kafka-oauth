@@ -37,10 +37,9 @@
         <maven.dependency.version>3.1.1</maven.dependency.version>
         <maven.checkstyle.version>3.1.0</maven.checkstyle.version>
         <maven.surefire.version>2.22.1</maven.surefire.version>
-        <version.arquillian_universe>1.5.0.0</version.arquillian_universe>
         <version.junit>4.12</version.junit>
-        <arquillian.cube.version>1.18.2</arquillian.cube.version>
         <spotbugs.version>4.7.0</spotbugs.version>
+        <jackson.annotation.version>2.12.6</jackson.annotation.version>
         <strimzi-oauth.version>1.0.0-SNAPSHOT</strimzi-oauth.version>
         <checkstyle.dir>..</checkstyle.dir>
 
@@ -62,11 +61,16 @@
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.arquillian</groupId>
-                <artifactId>arquillian-universe</artifactId>
-                <version>${version.arquillian_universe}</version>
-                <scope>import</scope>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers-bom</artifactId>
+                <version>1.17.3</version>
                 <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-annotations</artifactId>
+                <version>${jackson.annotation.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

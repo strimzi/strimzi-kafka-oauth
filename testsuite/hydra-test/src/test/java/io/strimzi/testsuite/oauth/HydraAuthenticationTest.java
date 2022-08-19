@@ -9,6 +9,7 @@ import io.strimzi.kafka.oauth.common.ConfigProperties;
 import io.strimzi.kafka.oauth.common.ConfigUtil;
 import io.strimzi.kafka.oauth.common.OAuthAuthenticator;
 import io.strimzi.kafka.oauth.common.TokenInfo;
+import io.strimzi.testsuite.oauth.common.LogKafkaImage;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -20,13 +21,15 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.jboss.arquillian.junit.Arquillian;
 import org.junit.Assert;
+import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testcontainers.containers.DockerComposeContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
 
+import java.io.File;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -44,8 +47,18 @@ import java.util.Properties;
  *
  * There should be no authorization configured on the Kafka broker.
  */
-@RunWith(Arquillian.class)
 public class HydraAuthenticationTest {
+
+    static LogKafkaImage logAction = new LogKafkaImage();
+
+    @ClassRule
+    public static DockerComposeContainer<?> environment =
+            new DockerComposeContainer<>(new File("docker-compose.yml"))
+                    .withLocalCompose(true)
+                    .withEnv("KAFKA_DOCKER_IMAGE", System.getProperty("KAFKA_DOCKER_IMAGE"))
+                    .withServices("hydra", "hydra-import", "hydra-jwt", "hydra-jwt-import", "zookeeper", "kafka")
+                    .waitingFor("kafka", Wait.forLogMessage(".*started \\(kafka.server.KafkaServer\\).*", 1)
+                            .withStartupTimeout(Duration.ofSeconds(180)));
 
     private static final Logger log = LoggerFactory.getLogger(HydraAuthenticationTest.class);
 

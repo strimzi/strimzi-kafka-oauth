@@ -4,10 +4,9 @@ services:
 
   hydra:
     image: oryd/hydra:v1.8.5
-    container_name: hydra
     ports:
-      - 4444:4444
-      - 4445:4445
+      - "4444:4444"
+      - "4445:4445"
     volumes:
       - ${PWD}/../docker/target/hydra/certs:/tmp/certs
     command: serve all
@@ -24,7 +23,6 @@ services:
 
   hydra-import:
     image: strimzi-oauth-testsuite/hydra-import:latest
-    container_name: hydra-import
     volumes:
       - ${PWD}/../docker/hydra-import/scripts:/hydra
       - ${PWD}/../docker/target/hydra-import/certs:/hydra/certs
@@ -40,10 +38,9 @@ services:
 
   hydra-jwt:
     image: oryd/hydra:v1.8.5
-    container_name: hydra-jwt
     ports:
-      - 4454:4454
-      - 4455:4455
+      - "4454:4454"
+      - "4455:4455"
     volumes:
       - ${PWD}/../docker/target/hydra/certs:/tmp/certs
     command: serve all
@@ -61,7 +58,6 @@ services:
 
   hydra-jwt-import:
     image: strimzi-oauth-testsuite/hydra-import:latest
-    container_name: hydra-jwt-import
     volumes:
       - ${PWD}/../docker/hydra-import/scripts:/hydra
       - ${PWD}/../docker/target/hydra-import/certs:/hydra/certs
@@ -77,10 +73,9 @@ services:
 
   kafka:
     image: ${KAFKA_DOCKER_IMAGE}
-    container_name: kafka
     ports:
-      - 9092:9092
-      - 9093:9093
+      - "9092:9092"
+      - "9093:9093"
     links:
       - hydra
       - hydra-jwt
@@ -124,9 +119,8 @@ services:
 
   zookeeper:
     image: ${KAFKA_DOCKER_IMAGE}
-    container_name: zookeeper
     ports:
-      - 2181:2181
+      - "2181:2181"
     volumes:
       - ${PWD}/../docker/zookeeper/scripts:/opt/kafka/strimzi
     command:
