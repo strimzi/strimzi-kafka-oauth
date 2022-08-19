@@ -53,7 +53,7 @@ public class SSLUtil {
         } else if (truststore != null) {
             try (FileInputStream is = new FileInputStream(truststore)) {
                 store = KeyStore.getInstance(type != null ? type : KeyStore.getDefaultType());
-                store.load(is, password.toCharArray());
+                store.load(is, password != null ? password.toCharArray() : new char[0]);
             } catch (Exception e) {
                 throw new ConfigException("Failed to load truststore: " + truststore, e);
             }
