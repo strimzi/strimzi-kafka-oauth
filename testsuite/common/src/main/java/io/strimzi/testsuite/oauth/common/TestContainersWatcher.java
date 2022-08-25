@@ -9,7 +9,7 @@ import org.junit.runner.Description;
 
 public class TestContainersWatcher extends TestWatcher {
 
-    public void starting(Description description) {
+    protected void starting(Description description) {
         System.out.println("\nUsing Kafka Image: " + System.getProperty("KAFKA_DOCKER_IMAGE") + "\n");
     }
 }

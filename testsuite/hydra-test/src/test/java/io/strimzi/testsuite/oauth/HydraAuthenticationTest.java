@@ -9,6 +9,7 @@ import io.strimzi.kafka.oauth.common.ConfigProperties;
 import io.strimzi.kafka.oauth.common.ConfigUtil;
 import io.strimzi.kafka.oauth.common.OAuthAuthenticator;
 import io.strimzi.kafka.oauth.common.TokenInfo;
+import io.strimzi.testsuite.oauth.common.TestContainersLogCollector;
 import io.strimzi.testsuite.oauth.common.TestContainersWatcher;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -60,6 +61,9 @@ public class HydraAuthenticationTest {
                     .withServices("hydra", "hydra-import", "hydra-jwt", "hydra-jwt-import", "zookeeper", "kafka")
                     .waitingFor("kafka", Wait.forLogMessage(".*started \\(kafka.server.KafkaServer\\).*", 1)
                             .withStartupTimeout(Duration.ofSeconds(180)));
+
+    @ClassRule
+    public static TestContainersLogCollector logCollector = new TestContainersLogCollector(environment);
 
     private static final Logger log = LoggerFactory.getLogger(HydraAuthenticationTest.class);
 

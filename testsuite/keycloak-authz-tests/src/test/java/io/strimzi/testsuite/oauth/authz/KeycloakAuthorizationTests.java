@@ -4,6 +4,7 @@
  */
 package io.strimzi.testsuite.oauth.authz;
 
+import io.strimzi.testsuite.oauth.common.TestContainersLogCollector;
 import io.strimzi.testsuite.oauth.common.TestContainersWatcher;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -38,6 +39,9 @@ public class KeycloakAuthorizationTests {
                             .withStartupTimeout(Duration.ofSeconds(180)))
                     .waitingFor("kafka-acls", Wait.forLogMessage(".*principal=User:alice, host=\\*, operation=IDEMPOTENT_WRITE, permissionType=ALLOW.*", 2)
                             .withStartupTimeout(Duration.ofSeconds(210)));
+
+    @ClassRule
+    public static TestContainersLogCollector logCollector = new TestContainersLogCollector(environment);
 
     private static final Logger log = LoggerFactory.getLogger(KeycloakAuthorizationTests.class);
 
