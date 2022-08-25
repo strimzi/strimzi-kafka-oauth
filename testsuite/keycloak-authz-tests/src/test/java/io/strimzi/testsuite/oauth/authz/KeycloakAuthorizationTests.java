@@ -4,7 +4,7 @@
  */
 package io.strimzi.testsuite.oauth.authz;
 
-import io.strimzi.testsuite.oauth.common.LogKafkaImage;
+import io.strimzi.testsuite.oauth.common.TestContainersWatcher;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -25,7 +25,8 @@ import java.time.Duration;
  */
 public class KeycloakAuthorizationTests {
 
-    static LogKafkaImage logAction = new LogKafkaImage();
+    @ClassRule
+    public static TestContainersWatcher logAction = new TestContainersWatcher();
 
     @ClassRule
     public static DockerComposeContainer<?> environment =

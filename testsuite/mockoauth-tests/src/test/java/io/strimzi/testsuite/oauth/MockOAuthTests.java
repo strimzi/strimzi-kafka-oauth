@@ -5,7 +5,7 @@
 package io.strimzi.testsuite.oauth;
 
 
-import io.strimzi.testsuite.oauth.common.LogKafkaImage;
+import io.strimzi.testsuite.oauth.common.TestContainersWatcher;
 import io.strimzi.testsuite.oauth.metrics.MetricsTest;
 import io.strimzi.testsuite.oauth.mockoauth.JaasClientConfigTest;
 import io.strimzi.testsuite.oauth.mockoauth.PasswordAuthTest;
@@ -22,7 +22,8 @@ import java.time.Duration;
 
 public class MockOAuthTests {
 
-    static LogKafkaImage logAction = new LogKafkaImage();
+    @ClassRule
+    public static TestContainersWatcher logAction = new TestContainersWatcher();
 
     @ClassRule
     public static DockerComposeContainer<?> environment =

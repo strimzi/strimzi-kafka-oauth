@@ -9,7 +9,7 @@ import io.strimzi.kafka.oauth.common.ConfigProperties;
 import io.strimzi.kafka.oauth.common.ConfigUtil;
 import io.strimzi.kafka.oauth.common.OAuthAuthenticator;
 import io.strimzi.kafka.oauth.common.TokenInfo;
-import io.strimzi.testsuite.oauth.common.LogKafkaImage;
+import io.strimzi.testsuite.oauth.common.TestContainersWatcher;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -49,7 +49,8 @@ import java.util.Properties;
  */
 public class HydraAuthenticationTest {
 
-    static LogKafkaImage logAction = new LogKafkaImage();
+    @ClassRule
+    public static TestContainersWatcher logAction = new TestContainersWatcher();
 
     @ClassRule
     public static DockerComposeContainer<?> environment =
