@@ -4,8 +4,8 @@ services:
   keycloak:
     image: quay.io/keycloak/keycloak:15.0.0
     ports:
-      - 8080:8080
-      - 8443:8443
+      - "8080:8080"
+      - "8443:8443"
     volumes:
       - ${PWD}/../docker/keycloak/scripts:/opt/jboss/keycloak/ssl
       - ${PWD}/../target/keycloak/certs:/opt/jboss/keycloak/standalone/configuration/certs
@@ -28,14 +28,14 @@ services:
   kafka:
     image: ${KAFKA_DOCKER_IMAGE}
     ports:
-      - 9201:9201
-      - 9202:9202
-      - 9203:9203
-      - 9204:9204
-      - 9205:9205
-      - 9206:9206
-      - 9207:9207
-      - 9208:9208
+      - "9201:9201"
+      - "9202:9202"
+      - "9203:9203"
+      - "9204:9204"
+      - "9205:9205"
+      - "9206:9206"
+      - "9207:9207"
+      - "9208:9208"
       #- 5006:5006
     volumes:
       - ${PWD}/../docker/target/kafka/libs:/opt/kafka/libs/strimzi
@@ -107,7 +107,7 @@ services:
   zookeeper:
     image: ${KAFKA_DOCKER_IMAGE}
     ports:
-      - 2181:2181
+      - "2181:2181"
     volumes:
       - ${PWD}/../docker/zookeeper/scripts:/opt/kafka/strimzi
     command:

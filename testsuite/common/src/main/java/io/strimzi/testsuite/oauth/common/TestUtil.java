@@ -34,7 +34,7 @@ public class TestUtil {
             boolean inmatch = false;
             ArrayList<String> result = new ArrayList<>();
             Pattern pat = Pattern.compile("\\[\\d\\d\\d\\d-\\d\\d-\\d\\d .*");
-//StringBuilder sb = new StringBuilder();
+
             Process p = Runtime.getRuntime().exec(new String[] {"docker", "logs", containerName});
             try (BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream(), StandardCharsets.ISO_8859_1))) {
                 String line;
@@ -47,10 +47,8 @@ public class TestUtil {
                     if (inmatch) {
                         result.add(line);
                     }
-//                    sb.append(line).append("\n");
                 }
             }
-//System.out.println("\nLog: \n" + sb + "\n");
             return result;
 
         } catch (Throwable e) {
