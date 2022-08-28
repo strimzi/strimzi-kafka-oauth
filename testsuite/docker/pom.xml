@@ -14,7 +14,7 @@
     <artifactId>kafka-oauth-testsuite-docker-pom</artifactId>
 
     <properties>
-        <maven.dockerfile.version>1.4.12</maven.dockerfile.version>
+        <fabric8-docker-plugin.version>0.40.2</fabric8-docker-plugin.version>
         <checkstyle.dir>../..</checkstyle.dir>
     </properties>
 
@@ -52,9 +52,9 @@
         <pluginManagement>
             <plugins>
                 <plugin>
-                    <groupId>com.spotify</groupId>
-                    <artifactId>dockerfile-maven-plugin</artifactId>
-                    <version>${dockerfile-maven-version}</version>
+                    <groupId>io.fabric8</groupId>
+                    <artifactId>docker-maven-plugin</artifactId>
+                    <version>${fabric8-docker-plugin.version}</version>
                 </plugin>
             </plugins>
         </pluginManagement>

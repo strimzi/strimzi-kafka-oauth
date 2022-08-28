@@ -2,7 +2,7 @@ version: '3'
 
 services:
   mockoauth:
-    image: strimzi-oauth-testsuite/mock-oauth-server
+    image: testsuite/mock-oauth-server
     ports:
       - "8090:8090"
       - "8091:8091"

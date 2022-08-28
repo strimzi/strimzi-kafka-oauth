@@ -22,7 +22,7 @@ services:
       - SERVE_ADMIN_PORT=4445
 
   hydra-import:
-    image: strimzi-oauth-testsuite/hydra-import:latest
+    image: testsuite/hydra-import:latest
     volumes:
       - ${PWD}/../docker/hydra-import/scripts:/hydra
       - ${PWD}/../docker/target/hydra-import/certs:/hydra/certs
@@ -57,7 +57,7 @@ services:
       - STRATEGIES_ACCESS_TOKEN=jwt
 
   hydra-jwt-import:
-    image: strimzi-oauth-testsuite/hydra-import:latest
+    image: testsuite/hydra-import:latest
     volumes:
       - ${PWD}/../docker/hydra-import/scripts:/hydra
       - ${PWD}/../docker/target/hydra-import/certs:/hydra/certs
