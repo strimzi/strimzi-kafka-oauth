@@ -19,7 +19,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <plugins.dependency.version>3.1.1</plugins.dependency.version>
         <plugins.resources.version>3.1.0</plugins.resources.version>
-        <plugins.spotify.version>1.4.13</plugins.spotify.version>
+        <fabric8-docker-plugin.version>0.40.2</fabric8-docker-plugin.version>
+
         <spring.boot.version>2.2.6.RELEASE</spring.boot.version>
     </properties>
 
@@ -62,7 +63,7 @@
                 <plugin>
                     <groupId>io.fabric8</groupId>
                     <artifactId>docker-maven-plugin</artifactId>
-                    <version>0.38.1</version>
+                    <version>${fabric8-docker-plugin.version}</version>
                 </plugin>
             </plugins>
         </pluginManagement>

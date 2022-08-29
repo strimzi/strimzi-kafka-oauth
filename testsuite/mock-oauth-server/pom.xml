@@ -121,7 +121,11 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <name>testsuite/mock-oauth-server:latest</name>
+                    <images>
+                        <image>
+                            <name>testsuite/mock-oauth-server:latest</name>
+                        </image>
+                    </images>
                 </configuration>
             </plugin>
         </plugins>

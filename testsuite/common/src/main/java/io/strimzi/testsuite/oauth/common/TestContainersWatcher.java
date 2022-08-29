@@ -46,9 +46,10 @@ public class TestContainersWatcher implements TestRule {
 
     public Statement apply(Statement base, Description description) {
         return new Statement() {
+            @SuppressFBWarnings("THROWS_METHOD_THROWS_CLAUSE_THROWABLE")
             @Override
             public void evaluate() throws Throwable {
-                List<Throwable> errors = new ArrayList<Throwable>();
+                List<Throwable> errors = new ArrayList<>();
 
                 try {
                     starting(description);

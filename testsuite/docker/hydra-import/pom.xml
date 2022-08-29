@@ -29,7 +29,11 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <name>testsuite/hydra-import:latest</name>
+                    <images>
+                        <image>
+                            <name>testsuite/hydra-import:latest</name>
+                        </image>
+                    </images>
                 </configuration>
             </plugin>
         </plugins>

@@ -29,7 +29,11 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <name>testsuite/kafka:3.2.0</name>
+                    <images>
+                        <image>
+                            <name>testsuite/kafka:3.2.0</name>
+                        </image>
+                    </images>
                 </configuration>
             </plugin>
         </plugins>

@@ -14,7 +14,6 @@
     <artifactId>kafka-oauth-testsuite-docker-pom</artifactId>
 
     <properties>
-        <fabric8-docker-plugin.version>0.40.2</fabric8-docker-plugin.version>
         <checkstyle.dir>../..</checkstyle.dir>
     </properties>
 

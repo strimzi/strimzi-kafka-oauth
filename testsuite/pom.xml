@@ -37,6 +37,8 @@
         <maven.dependency.version>3.1.1</maven.dependency.version>
         <maven.checkstyle.version>3.1.0</maven.checkstyle.version>
         <maven.surefire.version>2.22.1</maven.surefire.version>
+        <fabric8-docker-plugin.version>0.40.2</fabric8-docker-plugin.version>
+
         <version.junit>4.12</version.junit>
         <spotbugs.version>4.7.0</spotbugs.version>
         <jackson.annotation.version>2.12.6</jackson.annotation.version>
@@ -123,6 +125,11 @@
                             </configuration>
                         </execution>
                     </executions>
+                </plugin>
+                <plugin>
+                    <groupId>io.fabric8</groupId>
+                    <artifactId>docker-maven-plugin</artifactId>
+                    <version>${fabric8-docker-plugin.version}</version>
                 </plugin>
             </plugins>
         </pluginManagement>
