@@ -186,36 +186,39 @@ public class JWTSignatureValidator implements TokenValidator {
         this.readTimeout = readTimeoutSeconds;
 
         this.enableMetrics = enableMetrics;
-        metrics = enableMetrics ? Services.getInstance().getMetrics() : null;
-
-        jwksHttpSensorKeyProducer = new JwksHttpSensorKeyProducer(validatorId, keysUri);
         this.ignoreKeyUse = ignoreKeyUse;
-        ScheduledExecutorService executor = setupExecutorAndFetchInitialKeys(refreshSeconds, refreshMinPauseSeconds, failFast);
 
-        // set up periodic timer to trigger fastScheduler job every refreshSeconds
-        setupRefreshKeysJob(executor, refreshSeconds);
+        try {
+            metrics = enableMetrics ? Services.getInstance().getMetrics() : null;
+            jwksHttpSensorKeyProducer = new JwksHttpSensorKeyProducer(validatorId, keysUri);
 
-        if (log.isDebugEnabled()) {
-            log.debug("Configured JWTSignatureValidator:"
-                    + "\n    validatorId: " + validatorId
-                    + "\n    keysEndpointUri: " + keysEndpointUri
-                    + "\n    sslSocketFactory: " + socketFactory
-                    + "\n    hostnameVerifier: " + hostnameVerifier
-                    + "\n    principalExtractor: " + principalExtractor
-                    + "\n    groupsClaimQuery: " + groupsClaimQuery
-                    + "\n    groupsClaimDelimiter: " + groupsClaimDelimiter
-                    + "\n    validIssuerUri: " + validIssuerUri
-                    + "\n    certsRefreshSeconds: " + refreshSeconds
-                    + "\n    certsRefreshMinPauseSeconds: " + refreshMinPauseSeconds
-                    + "\n    certsExpirySeconds: " + expirySeconds
-                    + "\n    certsIgnoreKeyUse: " + ignoreKeyUse
-                    + "\n    checkAccessTokenType: " + checkAccessTokenType
-                    + "\n    audience: " + audience
-                    + "\n    customClaimCheck: " + customClaimCheck
-                    + "\n    connectTimeoutSeconds: " + connectTimeoutSeconds
-                    + "\n    readTimeoutSeconds: " + readTimeoutSeconds
-                    + "\n    enableMetrics: " + enableMetrics
-                    + "\n    failFast: " + failFast);
+            ScheduledExecutorService executor = setupExecutorAndFetchInitialKeys(refreshSeconds, refreshMinPauseSeconds, failFast);
+
+            // set up periodic timer to trigger fastScheduler job every refreshSeconds
+            setupRefreshKeysJob(executor, refreshSeconds);
+        } finally {
+            if (log.isDebugEnabled()) {
+                log.debug("Configured JWTSignatureValidator:"
+                        + "\n    validatorId: " + validatorId
+                        + "\n    keysEndpointUri: " + keysEndpointUri
+                        + "\n    sslSocketFactory: " + socketFactory
+                        + "\n    hostnameVerifier: " + hostnameVerifier
+                        + "\n    principalExtractor: " + principalExtractor
+                        + "\n    groupsClaimQuery: " + groupsClaimQuery
+                        + "\n    groupsClaimDelimiter: " + groupsClaimDelimiter
+                        + "\n    validIssuerUri: " + validIssuerUri
+                        + "\n    certsRefreshSeconds: " + refreshSeconds
+                        + "\n    certsRefreshMinPauseSeconds: " + refreshMinPauseSeconds
+                        + "\n    certsExpirySeconds: " + expirySeconds
+                        + "\n    certsIgnoreKeyUse: " + ignoreKeyUse
+                        + "\n    checkAccessTokenType: " + checkAccessTokenType
+                        + "\n    audience: " + audience
+                        + "\n    customClaimCheck: " + customClaimCheck
+                        + "\n    connectTimeoutSeconds: " + connectTimeoutSeconds
+                        + "\n    readTimeoutSeconds: " + readTimeoutSeconds
+                        + "\n    enableMetrics: " + enableMetrics
+                        + "\n    failFast: " + failFast);
+            }
         }
     }
 
