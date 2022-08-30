@@ -28,9 +28,14 @@ public class KeycloakAuthorizationTests {
     public static TestContainersWatcher environment =
             new TestContainersWatcher(new File("docker-compose.yml"))
                     .withServices("keycloak", "zookeeper", "kafka", "kafka-acls")
+                    // ensure kafka has started
                     .waitingFor("kafka", Wait.forLogMessage(".*started \\(kafka.server.KafkaServer\\).*", 1)
                             .withStartupTimeout(Duration.ofSeconds(180)))
-                    .waitingFor("kafka-acls", Wait.forLogMessage(".*principal=User:alice, host=\\*, operation=IDEMPOTENT_WRITE, permissionType=ALLOW.*", 2)
+                    // ensure ACLs for user 'alice' have been added
+                    .waitingFor("kafka", Wait.forLogMessage(".*User:alice has ALLOW permission for operations: IDEMPOTENT_WRITE.*", 1)
+                            .withStartupTimeout(Duration.ofSeconds(210)))
+                    // ensure a grants fetch request to 'keycloak' has been performed by authorizer's grants refresh job
+                    .waitingFor("kafka", Wait.forLogMessage(".*after: \\{\\}.*", 1)
                             .withStartupTimeout(Duration.ofSeconds(210)));
 
     private static final Logger log = LoggerFactory.getLogger(KeycloakAuthorizationTests.class);

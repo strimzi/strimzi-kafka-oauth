@@ -73,13 +73,13 @@ public class TestContainersWatcher implements TestRule {
 
     protected void failed(Throwable e, Description description) {
         // Dump the logs to stdout
-        environment.getContainerByServiceName("kafka_1").ifPresent(c -> System.out.println("\n\nKafka log:\n" + c.getLogs() + "\n"));
-        environment.getContainerByServiceName("mockoauth_1").ifPresent(c -> System.out.println("\n\nMockoauth log:\n" + c.getLogs() + "\n"));
-        environment.getContainerByServiceName("keycloak_1").ifPresent(c -> System.out.println("\n\nKeycloak log:\n" + c.getLogs() + "\n"));
-        environment.getContainerByServiceName("kafka-acls_1").ifPresent(c -> System.out.println("\n\nKafka ACLs log:\n" + c.getLogs() + "\n"));
-        environment.getContainerByServiceName("hydra_1").ifPresent(c -> System.out.println("\n\nHydra log:\n" + c.getLogs() + "\n"));
-        environment.getContainerByServiceName("hydra-jwt_1").ifPresent(c -> System.out.println("\n\nHydra JWT log:\n" + c.getLogs() + "\n"));
-        environment.getContainerByServiceName("hydra-import_1").ifPresent(c -> System.out.println("\n\nHydra Import log:\n" + c.getLogs() + "\n"));
-        environment.getContainerByServiceName("hydra-jwt-import_1").ifPresent(c -> System.out.println("\n\nHydra JWT Import log:\n" + c.getLogs() + "\n"));
+        environment.getContainerByServiceName("kafka_1").ifPresent(c -> System.out.println("\n\n'kafka' log:\n" + c.getLogs() + "\n"));
+        environment.getContainerByServiceName("mockoauth_1").ifPresent(c -> System.out.println("\n\n'mockoauth' log:\n" + c.getLogs() + "\n"));
+        environment.getContainerByServiceName("keycloak_1").ifPresent(c -> System.out.println("\n\n'keycloak' log:\n" + c.getLogs() + "\n"));
+        environment.getContainerByServiceName("kafka-acls_1").ifPresent(c -> System.out.println("\n\n'kafka-acls' log:\n" + c.getLogs() + "\n"));
+        environment.getContainerByServiceName("hydra_1").ifPresent(c -> System.out.println("\n\n'hydra' log:\n" + c.getLogs() + "\n"));
+        environment.getContainerByServiceName("hydra-jwt_1").ifPresent(c -> System.out.println("\n\n'hydra-jwt' log:\n" + c.getLogs() + "\n"));
+        environment.getContainerByServiceName("hydra-import_1").ifPresent(c -> System.out.println("\n\n'hydra-import' log:\n" + c.getLogs() + "\n"));
+        environment.getContainerByServiceName("hydra-jwt-import_1").ifPresent(c -> System.out.println("\n\n'hydra-jwt-import' log:\n" + c.getLogs() + "\n"));
     }
 }
