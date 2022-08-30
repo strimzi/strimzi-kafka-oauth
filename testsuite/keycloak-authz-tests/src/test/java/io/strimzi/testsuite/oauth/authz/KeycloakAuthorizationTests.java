@@ -4,9 +4,12 @@
  */
 package io.strimzi.testsuite.oauth.authz;
 
+import io.strimzi.testsuite.oauth.common.TestContainersLogCollector;
 import io.strimzi.testsuite.oauth.common.TestContainersWatcher;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.wait.strategy.Wait;
@@ -37,6 +40,9 @@ public class KeycloakAuthorizationTests {
                     // ensure a grants fetch request to 'keycloak' has been performed by authorizer's grants refresh job
                     .waitingFor("kafka", Wait.forLogMessage(".*after: \\{\\}.*", 1)
                             .withStartupTimeout(Duration.ofSeconds(210)));
+
+    @Rule
+    public TestRule logCollector = new TestContainersLogCollector(environment);
 
     private static final Logger log = LoggerFactory.getLogger(KeycloakAuthorizationTests.class);
 

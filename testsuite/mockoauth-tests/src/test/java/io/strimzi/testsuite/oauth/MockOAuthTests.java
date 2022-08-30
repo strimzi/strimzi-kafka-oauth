@@ -4,13 +4,16 @@
  */
 package io.strimzi.testsuite.oauth;
 
+import io.strimzi.testsuite.oauth.common.TestContainersLogCollector;
 import io.strimzi.testsuite.oauth.common.TestContainersWatcher;
 import io.strimzi.testsuite.oauth.metrics.MetricsTest;
 import io.strimzi.testsuite.oauth.mockoauth.JaasClientConfigTest;
 import io.strimzi.testsuite.oauth.mockoauth.PasswordAuthTest;
 
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.wait.strategy.Wait;
@@ -28,6 +31,9 @@ public class MockOAuthTests {
                             .withStartupTimeout(Duration.ofSeconds(180)))
                     .waitingFor("kafka", Wait.forLogMessage(".*started \\(kafka.server.KafkaServer\\).*", 1)
                             .withStartupTimeout(Duration.ofSeconds(180)));
+
+    @Rule
+    public TestRule logCollector = new TestContainersLogCollector(environment);
 
     private static final Logger log = LoggerFactory.getLogger(MockOAuthTests.class);
 

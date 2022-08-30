@@ -24,6 +24,8 @@ public class TestContainersWatcher implements TestRule {
 
     private DockerComposeContainer<?> environment;
 
+    private boolean collectLogs;
+
     public TestContainersWatcher(File composeFile) {
         this.environment = new DockerComposeContainer<>(composeFile)
                 .withLocalCompose(true)
@@ -57,8 +59,11 @@ public class TestContainersWatcher implements TestRule {
                     base.evaluate();
                 } catch (Throwable e) {
                     errors.add(e);
-                    failed(e, description);
+                    collectLogs = true;
                 } finally {
+                    if (collectLogs) {
+                        outputLogs();
+                    }
                     environment.stop();
                 }
 
@@ -71,15 +76,19 @@ public class TestContainersWatcher implements TestRule {
         System.out.println("\nUsing Kafka Image: " + System.getProperty("KAFKA_DOCKER_IMAGE") + "\n");
     }
 
-    protected void failed(Throwable e, Description description) {
+    protected void outputLogs() {
         // Dump the logs to stdout
-        environment.getContainerByServiceName("kafka_1").ifPresent(c -> System.out.println("\n\n'kafka' log:\n" + c.getLogs() + "\n"));
-        environment.getContainerByServiceName("mockoauth_1").ifPresent(c -> System.out.println("\n\n'mockoauth' log:\n" + c.getLogs() + "\n"));
-        environment.getContainerByServiceName("keycloak_1").ifPresent(c -> System.out.println("\n\n'keycloak' log:\n" + c.getLogs() + "\n"));
-        environment.getContainerByServiceName("kafka-acls_1").ifPresent(c -> System.out.println("\n\n'kafka-acls' log:\n" + c.getLogs() + "\n"));
-        environment.getContainerByServiceName("hydra_1").ifPresent(c -> System.out.println("\n\n'hydra' log:\n" + c.getLogs() + "\n"));
-        environment.getContainerByServiceName("hydra-jwt_1").ifPresent(c -> System.out.println("\n\n'hydra-jwt' log:\n" + c.getLogs() + "\n"));
-        environment.getContainerByServiceName("hydra-import_1").ifPresent(c -> System.out.println("\n\n'hydra-import' log:\n" + c.getLogs() + "\n"));
-        environment.getContainerByServiceName("hydra-jwt-import_1").ifPresent(c -> System.out.println("\n\n'hydra-jwt-import' log:\n" + c.getLogs() + "\n"));
+        environment.getContainerByServiceName("kafka_1").ifPresent(c -> System.out.println("\n\n'kafka' log:\n\n" + c.getLogs() + "\n"));
+        environment.getContainerByServiceName("mockoauth_1").ifPresent(c -> System.out.println("\n\n'mockoauth' log:\n\n" + c.getLogs() + "\n"));
+        environment.getContainerByServiceName("keycloak_1").ifPresent(c -> System.out.println("\n\n'keycloak' log:\n\n" + c.getLogs() + "\n"));
+        environment.getContainerByServiceName("kafka-acls_1").ifPresent(c -> System.out.println("\n\n'kafka-acls' log:\n\n" + c.getLogs() + "\n"));
+        environment.getContainerByServiceName("hydra_1").ifPresent(c -> System.out.println("\n\n'hydra' log:\n\n" + c.getLogs() + "\n"));
+        environment.getContainerByServiceName("hydra-jwt_1").ifPresent(c -> System.out.println("\n\n'hydra-jwt' log:\n\n" + c.getLogs() + "\n"));
+        environment.getContainerByServiceName("hydra-import_1").ifPresent(c -> System.out.println("\n\n'hydra-import' log:\n\n" + c.getLogs() + "\n"));
+        environment.getContainerByServiceName("hydra-jwt-import_1").ifPresent(c -> System.out.println("\n\n'hydra-jwt-import' log:\n\n" + c.getLogs() + "\n"));
+    }
+
+    public void collectLogsOnExit() {
+        collectLogs = true;
     }
 }

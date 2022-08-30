@@ -4,9 +4,12 @@
  */
 package io.strimzi.testsuite.oauth.auth;
 
+import io.strimzi.testsuite.oauth.common.TestContainersLogCollector;
 import io.strimzi.testsuite.oauth.common.TestContainersWatcher;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.wait.strategy.Wait;
@@ -30,6 +33,9 @@ public class KeycloakAuthenticationTest {
                     .withServices("keycloak", "zookeeper", "kafka")
                     .waitingFor("kafka", Wait.forLogMessage(".*started \\(kafka.server.KafkaServer\\).*", 1)
                             .withStartupTimeout(Duration.ofSeconds(180)));
+
+    @Rule
+    public TestRule logCollector = new TestContainersLogCollector(environment);
 
     static final Logger log = LoggerFactory.getLogger(KeycloakAuthenticationTest.class);
 
