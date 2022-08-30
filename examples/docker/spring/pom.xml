@@ -101,15 +101,21 @@
                         <id>build</id>
                         <phase>pre-integration-test</phase>
                         <goals>
-                            <goal>docker:build</goal>
+                            <goal>build</goal>
                         </goals>
                     </execution>
                 </executions>
                 <configuration>
-                    <name>strimzi/example-spring:latest</name>
-                    <args>
-                        <JAR_FILE>${project.build.finalName}.jar</JAR_FILE>
-                    </args>
+                    <images>
+                        <image>
+                            <name>strimzi/example-spring:latest</name>
+                            <build>
+                                <env>
+                                    <JAR_FILE>${project.build.finalName}.jar</JAR_FILE>
+                                </env>
+                            </build>
+                        </image>
+                    </images>
                 </configuration>
             </plugin>
         </plugins>

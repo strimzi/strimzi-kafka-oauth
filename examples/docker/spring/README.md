@@ -63,6 +63,8 @@ Configure your Kafka client by obtaining the token as user `user`:
     curl spring:8080/oauth/token -d "grant_type=password&scope=read&username=user&password=$PASSWORD" -u kafka:kafkasecret
 
 
+Use the following configuration options to configure your client with the refresh token:
+
     oauth.token.endpoint.uri=http://spring:8080/oauth/token
     oauth.refresh.token=$REFRESH_TOKEN
     oauth.scope=any
