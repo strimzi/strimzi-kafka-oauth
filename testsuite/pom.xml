@@ -39,6 +39,7 @@
         <maven.surefire.version>2.22.1</maven.surefire.version>
         <fabric8-docker-plugin.version>0.40.2</fabric8-docker-plugin.version>
 
+        <testcontainers.version>1.17.3</testcontainers.version>
         <version.junit>4.12</version.junit>
         <spotbugs.version>4.7.0</spotbugs.version>
         <jackson.annotation.version>2.12.6</jackson.annotation.version>
@@ -65,7 +66,7 @@
             <dependency>
                 <groupId>org.testcontainers</groupId>
                 <artifactId>testcontainers-bom</artifactId>
-                <version>1.17.3</version>
+                <version>${testcontainers.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -76,32 +77,6 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
-
-    <dependencies>
-        <!-- OAuth support runtime dependencies -->
-
-        <dependency>
-            <groupId>io.strimzi</groupId>
-            <artifactId>kafka-oauth-client</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.strimzi</groupId>
-            <artifactId>kafka-oauth-server</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.strimzi</groupId>
-            <artifactId>kafka-oauth-server-plain</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.strimzi</groupId>
-            <artifactId>kafka-oauth-common</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.strimzi</groupId>
-            <artifactId>kafka-oauth-keycloak-authorizer</artifactId>
-        </dependency>
-
-    </dependencies>
 
     <build>
         <pluginManagement>

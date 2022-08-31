@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 set -e
 
+#
+# If current Java version is 8 the script will perform a full run including Spotbugs checks, documentation build,
+#   and multiple testsuite runs using different versions of Kafka images.
+#
+# Set environment variable MAIN_BUILD=TRUE to force a full run when current Java version is not 8.
+#
+
 clearDockerEnv() {
   docker rm -f kafka zookeeper keycloak keycloak-import hydra hydra-import hydra-jwt hydra-jwt-import || true
   DOCKER_TEST_NETWORKS=$(docker network ls | grep test | awk '{print $1}')
@@ -18,7 +25,7 @@ if [ ${JAVA_MAJOR_VERSION} -gt 1 ] ; then
 fi
 
 if [ ${JAVA_MAJOR_VERSION} -eq 1 ] ; then
-  # some parts of the workflow should be done only one on the main build which is currently Java 8
+  # some parts of the workflow should be done only once on the main build which is currently Java 8
   export MAIN_BUILD="TRUE"
 fi
 
@@ -26,7 +33,7 @@ export PULL_REQUEST=${PULL_REQUEST:-true}
 export BRANCH=${BRANCH:-main}
 export TAG=${TAG:-latest}
 
-if [ ${JAVA_MAJOR_VERSION} -eq 1 ] ; then
+if [ "${MAIN_BUILD}" == "TRUE" ] ; then
   mvn -e -V -B install
 else
   mvn -e -V -B -Dmaven.javadoc.skip=true install
@@ -34,8 +41,8 @@ fi
 
 mvn spotbugs:check
 
-# Run testsuite with java 8 only
-if [ ${JAVA_MAJOR_VERSION} -eq 1 ] ; then
+# Run testsuite if this is a main build
+if [ "${MAIN_BUILD}" == "TRUE" ] ; then
 
   arch=$(uname -m)
 
