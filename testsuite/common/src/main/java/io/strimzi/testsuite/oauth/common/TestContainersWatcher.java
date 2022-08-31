@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-@SuppressFBWarnings("EI_EXPOSE_REP2")
+
 public class TestContainersWatcher implements TestRule {
 
     private DockerComposeContainer<?> environment;
