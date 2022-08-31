@@ -43,7 +43,7 @@ if [ ${JAVA_MAJOR_VERSION} -eq 1 ] ; then
     # Build s390x compatible hydra image
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/s390x-linux-gnu/jni
     docker build --target hydra-import -t strimzi-oauth-testsuite/hydra-import:latest -f ./testsuite/docker/hydra-import/Dockerfile.s390x .
-    git clone -b 19.0.1-legacy https://github.com/keycloak/keycloak-containers.git
+    git clone -b 19.0.1 https://github.com/keycloak/keycloak-containers.git
     cd keycloak-containers/server/
     docker build -t quay.io/keycloak/keycloak:19.0.1-legacy .
     cd ../../ && rm -rf keycloak-containers
@@ -51,7 +51,7 @@ if [ ${JAVA_MAJOR_VERSION} -eq 1 ] ; then
     mvn test-compile spotbugs:check -e -V -B -f testsuite
     set +e
     clearDockerEnv
-    mvn -e -V -B clean install -f testsuite -Pcustom -Dkafka.docker.image=quay.io/strimzi/kafka:0.29.0-kafka-3.1.1
+    mvn -e -V -B clean install -f testsuite -Pcustom -Dkafka.docker.image=quay.io/strimzi/kafka:0.30.0-kafka-3.2.0
     EXIT=$?
     exitIfError
     set -e
