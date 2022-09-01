@@ -37,14 +37,16 @@
         <maven.dependency.version>3.1.1</maven.dependency.version>
         <maven.checkstyle.version>3.1.0</maven.checkstyle.version>
         <maven.surefire.version>2.22.1</maven.surefire.version>
-        <version.arquillian_universe>1.5.0.0</version.arquillian_universe>
+        <fabric8-docker-plugin.version>0.40.2</fabric8-docker-plugin.version>
+
+        <testcontainers.version>1.17.3</testcontainers.version>
         <version.junit>4.12</version.junit>
-        <arquillian.cube.version>1.18.2</arquillian.cube.version>
         <spotbugs.version>4.7.0</spotbugs.version>
+        <jackson.annotation.version>2.12.6</jackson.annotation.version>
         <strimzi-oauth.version>1.0.0-SNAPSHOT</strimzi-oauth.version>
         <checkstyle.dir>..</checkstyle.dir>
 
-        <kafka.docker.image>quay.io/strimzi/kafka:0.29.0-kafka-3.2.0</kafka.docker.image>
+        <kafka.docker.image>quay.io/strimzi/kafka:0.30.0-kafka-3.2.0</kafka.docker.image>
     </properties>
 
     <dependencyManagement>
@@ -62,40 +64,19 @@
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.arquillian</groupId>
-                <artifactId>arquillian-universe</artifactId>
-                <version>${version.arquillian_universe}</version>
-                <scope>import</scope>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers-bom</artifactId>
+                <version>${testcontainers.version}</version>
                 <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-annotations</artifactId>
+                <version>${jackson.annotation.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
-
-    <dependencies>
-        <!-- OAuth support runtime dependencies -->
-
-        <dependency>
-            <groupId>io.strimzi</groupId>
-            <artifactId>kafka-oauth-client</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.strimzi</groupId>
-            <artifactId>kafka-oauth-server</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.strimzi</groupId>
-            <artifactId>kafka-oauth-server-plain</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.strimzi</groupId>
-            <artifactId>kafka-oauth-common</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.strimzi</groupId>
-            <artifactId>kafka-oauth-keycloak-authorizer</artifactId>
-        </dependency>
-
-    </dependencies>
 
     <build>
         <pluginManagement>
@@ -119,6 +100,11 @@
                             </configuration>
                         </execution>
                     </executions>
+                </plugin>
+                <plugin>
+                    <groupId>io.fabric8</groupId>
+                    <artifactId>docker-maven-plugin</artifactId>
+                    <version>${fabric8-docker-plugin.version}</version>
                 </plugin>
             </plugins>
         </pluginManagement>
@@ -376,7 +362,7 @@
         <profile>
             <id>kafka-3_2_0</id>
             <properties>
-                <kafka.docker.image>quay.io/strimzi/kafka:0.29.0-kafka-3.2.0</kafka.docker.image>
+                <kafka.docker.image>quay.io/strimzi/kafka:0.30.0-kafka-3.2.0</kafka.docker.image>
             </properties>
         </profile>
         <profile>

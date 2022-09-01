@@ -9,6 +9,8 @@ import io.strimzi.kafka.oauth.common.ConfigProperties;
 import io.strimzi.kafka.oauth.common.ConfigUtil;
 import io.strimzi.kafka.oauth.common.OAuthAuthenticator;
 import io.strimzi.kafka.oauth.common.TokenInfo;
+import io.strimzi.testsuite.oauth.common.TestContainersLogCollector;
+import io.strimzi.testsuite.oauth.common.TestContainersWatcher;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -20,13 +22,16 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.jboss.arquillian.junit.Arquillian;
 import org.junit.Assert;
+import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.rules.TestRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testcontainers.containers.wait.strategy.Wait;
 
+import java.io.File;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -44,8 +49,17 @@ import java.util.Properties;
  *
  * There should be no authorization configured on the Kafka broker.
  */
-@RunWith(Arquillian.class)
 public class HydraAuthenticationTest {
+
+    @ClassRule
+    public static TestContainersWatcher environment =
+            new TestContainersWatcher(new File("docker-compose.yml"))
+                    .withServices("hydra", "hydra-import", "hydra-jwt", "hydra-jwt-import", "zookeeper", "kafka")
+                    .waitingFor("kafka", Wait.forLogMessage(".*started \\(kafka.server.KafkaServer\\).*", 1)
+                            .withStartupTimeout(Duration.ofSeconds(180)));
+
+    @Rule
+    public TestRule logCollector = new TestContainersLogCollector(environment);
 
     private static final Logger log = LoggerFactory.getLogger(HydraAuthenticationTest.class);
 

@@ -25,9 +25,9 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.arquillian.universe</groupId>
-            <artifactId>arquillian-junit-standalone</artifactId>
-            <type>pom</type>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
@@ -35,11 +35,9 @@
             <version>${version.junit}</version>
         </dependency>
         <dependency>
-            <groupId>org.arquillian.universe</groupId>
-            <artifactId>arquillian-cube-docker</artifactId>
-            <type>pom</type>
+            <groupId>io.strimzi.oauth.testsuite</groupId>
+            <artifactId>common</artifactId>
         </dependency>
-
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka-clients</artifactId>

@@ -16,27 +16,32 @@ import java.util.Map;
 import java.util.Properties;
 
 import static io.strimzi.testsuite.oauth.auth.Common.buildProducerConfigOAuthBearer;
-import static io.strimzi.testsuite.oauth.common.TestUtil.getKafkaLogsForString;
-
+import static io.strimzi.testsuite.oauth.common.TestUtil.getContainerLogsForString;
 
 public class GroupsExtractionTests {
 
-    static void doTests() throws Exception {
+    private final String kafkaContainer;
+
+    GroupsExtractionTests(String kafkaContainer) {
+        this.kafkaContainer = kafkaContainer;
+    }
+
+    void doTests() throws Exception {
         groupsExtractionWithJwtTest();
         groupsExtractionWithIntrospectionTest();
     }
 
-    private static void groupsExtractionWithJwtTest() throws Exception {
+    private void groupsExtractionWithJwtTest() throws Exception {
         System.out.println("==== KeycloakAuthenticationTest :: groupsExtractionWithJwtTest ====");
         runTest("kafka:9098", "principalName: service-account-team-b-client, groups: [offline_access, Dev Team B]");
     }
 
-    private static void groupsExtractionWithIntrospectionTest() throws Exception {
+    private void groupsExtractionWithIntrospectionTest() throws Exception {
         System.out.println("==== KeycloakAuthenticationTest :: groupsExtractionWithIntrospectionTest ====");
         runTest("kafka:9099", "principalName: service-account-team-b-client, groups: [kafka-user]");
     }
 
-    private static void runTest(String kafkaBootstrap, String logFilter) throws Exception {
+    private void runTest(String kafkaBootstrap, String logFilter) throws Exception {
 
         final String hostPort = "keycloak:8080";
         final String realm = "kafka-authz";
@@ -61,7 +66,7 @@ public class GroupsExtractionTests {
         System.out.println("Produced The Message");
 
         // get kafka log and make sure groups were extracted during authentication
-        List<String> lines = getKafkaLogsForString(logFilter);
+        List<String> lines = getContainerLogsForString(kafkaContainer, logFilter);
         Assert.assertTrue("Kafka log should contain: \"" + logFilter + "\"", lines.size() > 0);
     }
 

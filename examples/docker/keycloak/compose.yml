@@ -3,7 +3,7 @@ version: '3.5'
 services:
 
   keycloak:
-    image: quay.io/keycloak/keycloak:15.0.0
+    image: quay.io/keycloak/keycloak:19.0.1-legacy
     container_name: keycloak
     ports:
       -  8080:8080

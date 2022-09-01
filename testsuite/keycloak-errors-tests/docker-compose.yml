@@ -2,14 +2,11 @@ version: '3'
 
 services:
   keycloak:
-    image: quay.io/keycloak/keycloak:15.0.0
-    container_name: keycloak
+    image: quay.io/keycloak/keycloak:19.0.1-legacy
     ports:
-      - 8080:8080
-      - 8443:8443
+      - "8080:8080"
+      - "8443:8443"
     volumes:
-      - ${PWD}/../docker/keycloak/scripts:/opt/jboss/keycloak/ssl
-      - ${PWD}/../target/keycloak/certs:/opt/jboss/keycloak/standalone/configuration/certs
       - ${PWD}/../docker/keycloak/realms:/opt/jboss/keycloak/realms
 
     entrypoint: ""
@@ -17,7 +14,7 @@ services:
     command:
       - /bin/bash
       - -c
-      - cd /opt/jboss/keycloak && bin/jboss-cli.sh --file=ssl/keycloak-ssl.cli && rm -rf standalone/configuration/standalone_xml_history/current && cd .. && /opt/jboss/tools/docker-entrypoint.sh  -Dkeycloak.profile.feature.upload_scripts=enabled -b 0.0.0.0
+      - cd /opt/jboss && cd .. && /opt/jboss/tools/docker-entrypoint.sh  -Dkeycloak.profile.feature.upload_scripts=enabled -b 0.0.0.0
 
     environment:
       - KEYCLOAK_USER=admin
@@ -28,16 +25,15 @@ services:
 
   kafka:
     image: ${KAFKA_DOCKER_IMAGE}
-    container_name: kafka
     ports:
-      - 9201:9201
-      - 9202:9202
-      - 9203:9203
-      - 9204:9204
-      - 9205:9205
-      - 9206:9206
-      - 9207:9207
-      - 9208:9208
+      - "9201:9201"
+      - "9202:9202"
+      - "9203:9203"
+      - "9204:9204"
+      - "9205:9205"
+      - "9206:9206"
+      - "9207:9207"
+      - "9208:9208"
       #- 5006:5006
     volumes:
       - ${PWD}/../docker/target/kafka/libs:/opt/kafka/libs/strimzi
@@ -108,9 +104,8 @@ services:
 
   zookeeper:
     image: ${KAFKA_DOCKER_IMAGE}
-    container_name: zookeeper
     ports:
-      - 2181:2181
+      - "2181:2181"
     volumes:
       - ${PWD}/../docker/zookeeper/scripts:/opt/kafka/strimzi
     command:

@@ -2,8 +2,7 @@ version: '3'
 
 services:
   mockoauth:
-    image: strimzi-oauth-testsuite/mock-oauth-server
-    container_name: mockoauth
+    image: testsuite/mock-oauth-server
     ports:
       - "8090:8090"
       - "8091:8091"
@@ -25,7 +24,6 @@ services:
 
   kafka:
     image: ${KAFKA_DOCKER_IMAGE}
-    container_name: kafka
     ports:
       - "9091:9091"
       - "9092:9092"
@@ -87,7 +85,6 @@ services:
 
   zookeeper:
     image: ${KAFKA_DOCKER_IMAGE}
-    container_name: zookeeper
     ports:
       - "2181:2181"
     volumes:

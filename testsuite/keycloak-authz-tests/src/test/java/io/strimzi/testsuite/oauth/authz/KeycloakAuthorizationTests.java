@@ -4,11 +4,18 @@
  */
 package io.strimzi.testsuite.oauth.authz;
 
-import org.jboss.arquillian.junit.Arquillian;
+import io.strimzi.testsuite.oauth.common.TestContainersLogCollector;
+import io.strimzi.testsuite.oauth.common.TestContainersWatcher;
+import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.rules.TestRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testcontainers.containers.wait.strategy.Wait;
+
+import java.io.File;
+import java.time.Duration;
 
 /**
  * Tests for OAuth authentication using Keycloak + Keycloak Authorization Services based authorization
@@ -18,8 +25,24 @@ import org.slf4j.LoggerFactory;
  *
  * There is KeycloakRBACAuthorizer configured on the Kafka broker.
  */
-@RunWith(Arquillian.class)
 public class KeycloakAuthorizationTests {
+
+    @ClassRule
+    public static TestContainersWatcher environment =
+            new TestContainersWatcher(new File("docker-compose.yml"))
+                    .withServices("keycloak", "zookeeper", "kafka", "kafka-acls")
+                    // ensure kafka has started
+                    .waitingFor("kafka", Wait.forLogMessage(".*started \\(kafka.server.KafkaServer\\).*", 1)
+                            .withStartupTimeout(Duration.ofSeconds(180)))
+                    // ensure ACLs for user 'alice' have been added
+                    .waitingFor("kafka", Wait.forLogMessage(".*User:alice has ALLOW permission for operations: IDEMPOTENT_WRITE.*", 1)
+                            .withStartupTimeout(Duration.ofSeconds(210)))
+                    // ensure a grants fetch request to 'keycloak' has been performed by authorizer's grants refresh job
+                    .waitingFor("kafka", Wait.forLogMessage(".*after: \\{\\}.*", 1)
+                            .withStartupTimeout(Duration.ofSeconds(210)));
+
+    @Rule
+    public TestRule logCollector = new TestContainersLogCollector(environment);
 
     private static final Logger log = LoggerFactory.getLogger(KeycloakAuthorizationTests.class);
 
@@ -32,9 +55,10 @@ public class KeycloakAuthorizationTests {
     @Test
     public void doTest() throws Exception {
         try {
+            String kafkaContainer = environment.getContainerByServiceName("kafka_1").get().getContainerInfo().getName().substring(1);
 
             logStart("KeycloakAuthorizationTest :: ConfigurationTest");
-            ConfigurationTest.doTest();
+            new ConfigurationTest(kafkaContainer).doTest();
 
             logStart("KeycloakAuthorizationTest :: MetricsTest");
             MetricsTest.doTest();

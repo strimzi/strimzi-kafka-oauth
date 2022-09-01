@@ -4,11 +4,18 @@
  */
 package io.strimzi.testsuite.oauth.auth;
 
-import org.jboss.arquillian.junit.Arquillian;
+import io.strimzi.testsuite.oauth.common.TestContainersLogCollector;
+import io.strimzi.testsuite.oauth.common.TestContainersWatcher;
+import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.rules.TestRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testcontainers.containers.wait.strategy.Wait;
+
+import java.io.File;
+import java.time.Duration;
 
 /**
  * Tests for errors during OAuth authentication using Keycloak
@@ -18,16 +25,27 @@ import org.slf4j.LoggerFactory;
  *
  * There is no authorization configured on the Kafka broker.
  */
-@RunWith(Arquillian.class)
 public class KeycloakErrorsTest {
+
+    @ClassRule
+    public static TestContainersWatcher environment =
+            new TestContainersWatcher(new File("docker-compose.yml"))
+                    .withServices("keycloak", "zookeeper", "kafka")
+                    .waitingFor("kafka", Wait.forLogMessage(".*started \\(kafka.server.KafkaServer\\).*", 1)
+                            .withStartupTimeout(Duration.ofSeconds(180)));
+
+    @Rule
+    public TestRule logCollector = new TestContainersLogCollector(environment);
 
     static final Logger log = LoggerFactory.getLogger(KeycloakErrorsTest.class);
 
     @Test
     public void doTest() throws Exception {
         try {
+            String kafkaContainer = environment.getContainerByServiceName("kafka_1").get().getContainerInfo().getName().substring(1);
+
             logStart("KeycloakErrorsTest :: ErrorReportingTests");
-            new ErrorReportingTests().doTests();
+            new ErrorReportingTests(kafkaContainer).doTests();
 
         } catch (Throwable e) {
             log.error("Keycloak Errors Test failed: ", e);

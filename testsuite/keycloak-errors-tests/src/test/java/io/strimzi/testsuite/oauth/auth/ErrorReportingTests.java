@@ -23,9 +23,15 @@ import java.util.concurrent.ExecutionException;
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithClientSecret;
 import static io.strimzi.testsuite.oauth.auth.Common.buildProducerConfigOAuthBearer;
 import static io.strimzi.testsuite.oauth.auth.Common.buildProducerConfigPlain;
-import static io.strimzi.testsuite.oauth.auth.Common.getKafkaLogsForError;
+import static io.strimzi.testsuite.oauth.common.TestUtil.getContainerLogsForString;
 
 public class ErrorReportingTests {
+
+    private final String kafkaContainer;
+
+    ErrorReportingTests(String kafkaContainer) {
+        this.kafkaContainer = kafkaContainer;
+    }
 
     void doTests() throws Exception {
         unparseableJwtToken();
@@ -431,7 +437,7 @@ public class ErrorReportingTests {
 
     private void checkKafkaLogConnectTimedOut(String message) {
         String errId = message.substring(message.length() - 16, message.length() - 1);
-        List<String> log = getKafkaLogsForError(errId);
+        List<String> log = getContainerLogsForString(kafkaContainer, errId);
         long matchedCount = log.stream().filter(s -> s.startsWith("Caused by:") && s.contains("connect timed out")).count();
         Assert.assertTrue("Found connect timed out cause of the error", matchedCount > 0);
     }

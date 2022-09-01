@@ -28,7 +28,7 @@ spec:
       tokenEndpointUri: http://keycloak:8080/auth/realms/kafka-authz/protocol/openid-connect/token
       delegateToKafkaAcls: true
       superUsers:
-      - User:service-account-kafka
+      - service-account-kafka
     logging:
       type: inline
       loggers:

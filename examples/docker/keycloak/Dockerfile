@@ -1,4 +1,4 @@
-FROM quay.io/keycloak/keycloak:15.0.0
+FROM quay.io/keycloak/keycloak:19.0.1-legacy
 
 COPY certificates/keycloak.server.keystore.p12 /opt/jboss/keycloak/standalone/configuration/
 COPY keycloak-ssl.cli /opt/jboss/keycloak/

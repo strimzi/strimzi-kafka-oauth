@@ -3,13 +3,12 @@ set -e
 
 source functions.sh
 
-URI=${HYDRA_URI}
-if [ "" == "${URI}" ]; then
-    URI="https://${HYDRA_HOST:-hydra}:4445/clients"
-fi
-
+URI="https://hydra:4445/clients"
 wait_for_url $URI "Waiting for Hydra admin REST to start"
+wait_for_url $URI/kafka-broker "Waiting for kafka-broker client to be available"
 
+URI="https://hydra-jwt:4455/clients"
+wait_for_url $URI "Waiting for Hydra JWT admin REST to start"
 wait_for_url $URI/kafka-broker "Waiting for kafka-broker client to be available"
 
 ./simple_kafka_config.sh | tee /tmp/strimzi.properties

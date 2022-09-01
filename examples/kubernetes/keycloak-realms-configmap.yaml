@@ -576,6 +576,25 @@ data:
                 ]
               },
               {
+                "name": "kafka-cluster:my-cluster,Group:b_*",
+                "type": "Group",
+                "ownerManagedAccess": false,
+                "displayName": "Consumer groups on cluster my-cluster that start with b_",
+                "attributes": {},
+                "uris": [],
+                "scopes": [
+                  {
+                    "name": "Describe"
+                  },
+                  {
+                    "name": "Delete"
+                  },
+                  {
+                    "name": "Read"
+                  }
+                ]
+              },    
+              {
                 "name": "kafka-cluster:my-cluster,Cluster:*",
                 "type": "Cluster",
                 "ownerManagedAccess": false,
@@ -591,6 +610,9 @@ data:
                   },
                   {
                     "name": "ClusterAction"
+                  },
+                  {
+                    "name": "IdempotentWrite"
                   }
                 ]
               },
@@ -661,7 +683,21 @@ data:
                 "type" : "Cluster",
                 "ownerManagedAccess" : false,
                 "attributes" : { },
-                "uris" : [ ]
+                "uris" : [ ],
+                "scopes": [
+                  {
+                    "name": "DescribeConfigs"
+                  },
+                  {
+                    "name": "AlterConfigs"
+                  },
+                  {
+                    "name": "ClusterAction"
+                  },
+                  {
+                    "name": "IdempotentWrite"
+                  }
+                ]
               }
             ],
             "policies": [
@@ -731,12 +767,44 @@ data:
                 }
               },
               {
+                "name": "Dev Team A can do IdempotentWrites on cluster my-cluster",
+                "type": "scope",
+                "logic": "POSITIVE",
+                "decisionStrategy": "UNANIMOUS",
+                "config": {
+                  "resources": "[\"kafka-cluster:my-cluster,Cluster:*\"]",
+                  "scopes": "[\"IdempotentWrite\"]",
+                  "applyPolicies": "[\"Dev Team A\"]"
+                }
+              },
+              {
                 "name": "Dev Team B owns topics that start with b_ on cluster my-cluster",
                 "type": "resource",
                 "logic": "POSITIVE",
                 "decisionStrategy": "UNANIMOUS",
                 "config": {
                   "resources": "[\"kafka-cluster:my-cluster,Topic:b_*\"]",
+                  "applyPolicies": "[\"Dev Team B\"]"
+                }
+              },
+              {
+                "name": "Dev Team B can do IdempotentWrites on cluster my-cluster",
+                "type": "scope",
+                "logic": "POSITIVE",
+                "decisionStrategy": "UNANIMOUS",
+                "config": {
+                  "resources": "[\"kafka-cluster:my-cluster,Cluster:*\"]",
+                  "scopes": "[\"IdempotentWrite\"]",
+                  "applyPolicies": "[\"Dev Team B\"]"
+                }
+              },
+              {
+                "name": "Dev Team B owns groups that start with b_ on cluster my-cluster",
+                "type": "resource",
+                "logic": "POSITIVE",
+                "decisionStrategy": "UNANIMOUS",
+                "config": {
+                  "resources": "[\"kafka-cluster:my-cluster,Group:b_*\"]",
                   "applyPolicies": "[\"Dev Team B\"]"
                 }
               },

@@ -2,14 +2,11 @@ version: '3'
 
 services:
   keycloak:
-    image: quay.io/keycloak/keycloak:15.0.0
-    container_name: keycloak
+    image: quay.io/keycloak/keycloak:19.0.1-legacy
     ports:
-      - 8080:8080
-      - 8443:8443
+      - "8080:8080"
+      - "8443:8443"
     volumes:
-      - ${PWD}/../docker/keycloak/scripts:/opt/jboss/keycloak/ssl
-      - ${PWD}/../target/keycloak/certs:/opt/jboss/keycloak/standalone/configuration/certs
       - ${PWD}/../docker/keycloak/realms:/opt/jboss/keycloak/realms
 
     entrypoint: ""
@@ -17,7 +14,7 @@ services:
     command:
       - /bin/bash
       - -c
-      - cd /opt/jboss/keycloak && bin/jboss-cli.sh --file=ssl/keycloak-ssl.cli && rm -rf standalone/configuration/standalone_xml_history/current && cd .. && /opt/jboss/tools/docker-entrypoint.sh  -Dkeycloak.profile.feature.upload_scripts=enabled -b 0.0.0.0
+      - cd /opt/jboss && /opt/jboss/tools/docker-entrypoint.sh  -Dkeycloak.profile.feature.upload_scripts=enabled -b 0.0.0.0
 
     environment:
       - KEYCLOAK_USER=admin
@@ -28,21 +25,20 @@ services:
 
   kafka:
     image: ${KAFKA_DOCKER_IMAGE}
-    container_name: kafka
     ports:
-      - 9092:9092
-      - 9093:9093
-      - 9094:9094
-      - 9095:9095
-      - 9096:9096
-      - 9100:9100
-      - 9101:9101
+      - "9092:9092"
+      - "9093:9093"
+      - "9094:9094"
+      - "9095:9095"
+      - "9096:9096"
+      - "9100:9100"
+      - "9101:9101"
 
       # Prometheus JMX Exporter
-      - 9404:9404
+      - "9404:9404"
 
       # javaagent debug port
-      - 5006:5006
+      - "5006:5006"
     volumes:
       - ${PWD}/../docker/target/kafka/libs:/opt/kafka/libs/strimzi
       - ${PWD}/../docker/kafka/config:/opt/kafka/config/strimzi
@@ -75,7 +71,7 @@ services:
       - OAUTH_ENABLE_METRICS=true
 
       # Configuration of individual listeners
-      - KAFKA_LISTENER_NAME_JWT_OAUTHBEARER_SASL_JAAS_CONFIG=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required    oauth.jwks.endpoint.uri=\"http://keycloak:8080/auth/realms/kafka-authz/protocol/openid-connect/certs\"    oauth.valid.issuer.uri=\"http://keycloak:8080/auth/realms/kafka-authz\"    oauth.token.endpoint.uri=\"http://keycloak:8080/auth/realms/kafka-authz/protocol/openid-connect/token\"    oauth.client.id=\"kafka\"    oauth.client.secret=\"kafka-secret\"    oauth.groups.claim=\"$.realm_access.roles\" ;
+      - KAFKA_LISTENER_NAME_JWT_OAUTHBEARER_SASL_JAAS_CONFIG=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required    oauth.jwks.endpoint.uri=\"http://keycloak:8080/auth/realms/kafka-authz/protocol/openid-connect/certs\"    oauth.valid.issuer.uri=\"http://keycloak:8080/auth/realms/kafka-authz\"    oauth.token.endpoint.uri=\"http://keycloak:8080/auth/realms/kafka-authz/protocol/openid-connect/token\"    oauth.client.id=\"kafka\"    oauth.client.secret=\"kafka-secret\"    oauth.groups.claim=\"$$.realm_access.roles\" ;
       - KAFKA_LISTENER_NAME_JWT_OAUTHBEARER_SASL_SERVER_CALLBACK_HANDLER_CLASS=io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
       - KAFKA_LISTENER_NAME_JWT_OAUTHBEARER_SASL_LOGIN_CALLBACK_HANDLER_CLASS=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
 
@@ -129,7 +125,6 @@ services:
 
   kafka-acls:
     image: ${KAFKA_DOCKER_IMAGE}
-    container_name: kafka-acls
     links:
       - kafka
     volumes:
@@ -141,9 +136,8 @@ services:
 
   zookeeper:
     image: ${KAFKA_DOCKER_IMAGE}
-    container_name: zookeeper
     ports:
-      - 2181:2181
+      - "2181:2181"
     volumes:
       - ${PWD}/../docker/zookeeper/scripts:/opt/kafka/strimzi
     command:
