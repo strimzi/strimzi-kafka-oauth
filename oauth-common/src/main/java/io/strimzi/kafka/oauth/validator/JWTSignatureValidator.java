@@ -379,7 +379,7 @@ public class JWTSignatureValidator implements TokenValidator {
             jwt = SignedJWT.parse(token);
             kid = jwt.getHeader().getKeyID();
         } catch (Exception e) {
-            throw new TokenValidationException("Token validation failed: Failed to parse JWT: " + token, e)
+            throw new TokenValidationException("Token validation failed: Failed to parse JWT.", e)
                     .status(Status.INVALID_TOKEN);
         }
 

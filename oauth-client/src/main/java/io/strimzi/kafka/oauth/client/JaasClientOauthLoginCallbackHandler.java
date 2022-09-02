@@ -94,13 +94,13 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
             String endpoint = config.getValue(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI);
 
             if (endpoint == null) {
-                throw new ConfigException("Access Token not specified (OAUTH_ACCESS_TOKEN). OAuth2 Token Endpoint (OAUTH_TOKEN_ENDPOINT_URI) should then be set.");
+                throw new ConfigException("Access token not specified ('" + ClientConfig.OAUTH_ACCESS_TOKEN + "'). OAuth token endpoint ('" + ClientConfig.OAUTH_TOKEN_ENDPOINT_URI + "') should then be set.");
             }
 
             try {
                 tokenEndpoint = new URI(endpoint);
             } catch (URISyntaxException e) {
-                throw new ConfigException("Specified token endpoint uri is invalid: " + endpoint, e);
+                throw new ConfigException("Specified token endpoint uri is invalid ('" + ClientConfig.OAUTH_TOKEN_ENDPOINT_URI + "'): " + endpoint, e);
             }
         }
 
@@ -127,12 +127,13 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
 
         isJwt = isAccessTokenJwt(config, LOG, null);
         if (!isJwt && principalExtractor.isConfigured()) {
-            LOG.warn("Token is not JWT (OAUTH_ACCESS_TOKEN_IS_JWT=false) - custom username claim configuration will be ignored (OAUTH_USERNAME_CLAIM, OAUTH_FALLBACK_USERNAME_CLAIM, OAUTH_FALLBACK_USERNAME_PREFIX)");
+            LOG.warn("Token is not JWT ('{}' is 'false') - custom username claim configuration will be ignored ('{}', '{}', '{}')",
+                    Config.OAUTH_ACCESS_TOKEN_IS_JWT, ClientConfig.OAUTH_USERNAME_CLAIM, ClientConfig.OAUTH_FALLBACK_USERNAME_CLAIM, ClientConfig.OAUTH_FALLBACK_USERNAME_PREFIX);
         }
 
         maxTokenExpirySeconds = config.getValueAsInt(ClientConfig.OAUTH_MAX_TOKEN_EXPIRY_SECONDS, -1);
         if (maxTokenExpirySeconds > 0 && maxTokenExpirySeconds < 60) {
-            throw new ConfigException("Invalid value configured for OAUTH_MAX_TOKEN_EXPIRY_SECONDS: " + maxTokenExpirySeconds + " (should be at least 60)");
+            throw new ConfigException("Invalid value configured for '" + ClientConfig.OAUTH_MAX_TOKEN_EXPIRY_SECONDS + "': " + maxTokenExpirySeconds + " (should be at least 60)");
         }
 
         String configId = configureMetrics(configs);
@@ -161,31 +162,38 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
     private void checkConfiguration() {
         if (token != null) {
             if (refreshToken != null) {
-                LOG.warn("Access token is configured, refresh token will be ignored.");
+                LOG.warn("Access token is configured ('{}'), refresh token will be ignored ('{}').",
+                        ClientConfig.OAUTH_ACCESS_TOKEN, ClientConfig.OAUTH_REFRESH_TOKEN);
             }
             if (username != null) {
-                LOG.warn("Access token is configured, username will be ignored.");
+                LOG.warn("Access token is configured ('{}'), username will be ignored ('{}').",
+                        ClientConfig.OAUTH_ACCESS_TOKEN, ClientConfig.OAUTH_PASSWORD_GRANT_USERNAME);
             }
             if (clientId != null) {
-                LOG.warn("Access token is configured, client id will be ignored.");
+                LOG.warn("Access token is configured ('{}'), client id will be ignored ('{}').",
+                        ClientConfig.OAUTH_ACCESS_TOKEN, ClientConfig.OAUTH_CLIENT_ID);
             }
         } else if (refreshToken != null) {
             if (username != null) {
-                LOG.warn("Refresh token is configured, username will be ignored.");
+                LOG.warn("Refresh token is configured ('{}'), username will be ignored ('{}').",
+                        ClientConfig.OAUTH_REFRESH_TOKEN, ClientConfig.OAUTH_PASSWORD_GRANT_USERNAME);
             }
         }
 
         if (token == null) {
             if (clientId == null) {
-                throw new ConfigException("No client id specified (OAUTH_CLIENT_ID)");
+                throw new ConfigException("No client id specified ('" + ClientConfig.OAUTH_CLIENT_ID + "')");
             }
 
             if (username != null && password == null) {
-                throw new ConfigException("Username configured but no password specified (OAUTH_PASSWORD_GRANT_PASSWORD)");
+                throw new ConfigException("Username configured ('" + ClientConfig.OAUTH_PASSWORD_GRANT_USERNAME
+                        + "') but no password specified ('" + ClientConfig.OAUTH_PASSWORD_GRANT_PASSWORD + "')");
             }
 
             if (refreshToken == null && clientSecret == null && username == null) {
-                throw new ConfigException("No access token, refresh token, client credentials or user credentials specified");
+                throw new ConfigException("No access token ('" + ClientConfig.OAUTH_ACCESS_TOKEN + "'), refresh token ('"
+                        + ClientConfig.OAUTH_REFRESH_TOKEN + "'), client credentials ('" + ClientConfig.OAUTH_CLIENT_SECRET
+                        + "') or user credentials specified ('" + ClientConfig.OAUTH_PASSWORD_GRANT_USERNAME + "')");
             }
         }
     }

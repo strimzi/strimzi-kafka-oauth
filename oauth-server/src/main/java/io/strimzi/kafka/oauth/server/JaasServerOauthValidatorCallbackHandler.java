@@ -262,7 +262,8 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         String clientSecret = config.getValue(Config.OAUTH_CLIENT_SECRET);
 
         if (checkAudience && clientId == null) {
-            throw new ConfigException("Oauth validator configuration error: OAUTH_CLIENT_ID must be set when OAUTH_CHECK_AUDIENCE is 'true'");
+            throw new ConfigException("OAuth validator configuration error: '" + Config.OAUTH_CLIENT_ID + "' must be set when '"
+                    + ServerConfig.OAUTH_CHECK_AUDIENCE + "' is 'true'");
         }
         String audience = checkAudience ? clientId : null;
         String customClaimCheck = config.getValue(ServerConfig.OAUTH_CUSTOM_CLAIM_CHECK);
@@ -438,10 +439,10 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
     private void checkDeprecatedConfig() {
         if (config.getValue("oauth.crypto.provider.bouncycastle") != null) {
-            log.warn("The OAUTH_CRYPTO_PROVIDER_BOUNCYCASTLE option has been deprecated. ECDSA is automatically available without the need for BouncyCastle JCE provider.");
+            log.warn("The 'oauth.crypto.provider.bouncycastle' option has been deprecated. ECDSA is automatically available without the need for BouncyCastle JCE provider.");
         }
         if (config.getValue("oauth.crypto.provider.bouncycastle.position") != null) {
-            log.warn("The OAUTH_CRYPTO_PROVIDER_BOUNCYCASTLE_POSITION option has been deprecated. ECDSA is automatically available without the need for BouncyCastle JCE provider.");
+            log.warn("The 'oauth.crypto.provider.bouncycastle.position' option has been deprecated. ECDSA is automatically available without the need for BouncyCastle JCE provider.");
         }
     }
 
@@ -464,9 +465,11 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
     private static boolean isCheckAccessTokenType(Config config) {
         String legacy = config.getValue(ServerConfig.OAUTH_VALIDATION_SKIP_TYPE_CHECK);
         if (legacy != null) {
-            log.warn("OAUTH_VALIDATION_SKIP_TYPE_CHECK is deprecated. Use OAUTH_CHECK_ACCESS_TOKEN_TYPE (with reverse meaning) instead.");
+            log.warn("Config option '{}' is deprecated. Use '{}' (with reverse meaning) instead.",
+                    ServerConfig.OAUTH_VALIDATION_SKIP_TYPE_CHECK, ServerConfig.OAUTH_CHECK_ACCESS_TOKEN_TYPE);
             if (config.getValue(ServerConfig.OAUTH_CHECK_ACCESS_TOKEN_TYPE) != null) {
-                throw new ConfigException("OAuth validator configuration error: can't use both OAUTH_CHECK_ACCESS_TOKEN_TYPE and OAUTH_VALIDATION_SKIP_TYPE_CHECK");
+                throw new ConfigException("OAuth validator configuration error: can't use both '" + ServerConfig.OAUTH_CHECK_ACCESS_TOKEN_TYPE
+                        + "' and '" + ServerConfig.OAUTH_VALIDATION_SKIP_TYPE_CHECK + "'");
             }
         }
         return legacy != null ? !Config.isTrue(legacy) :
@@ -478,29 +481,37 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         String introspectUri = config.getValue(ServerConfig.OAUTH_INTROSPECTION_ENDPOINT_URI);
 
         if ((jwksUri == null) && (introspectUri == null)) {
-            throw new ConfigException("OAuth validator configuration error: either OAUTH_JWKS_ENDPOINT_URI (for fast local signature validation) or OAUTH_INTROSPECTION_ENDPOINT_URI (for using authorization server during validation) should be specified!");
+            throw new ConfigException("OAuth validator configuration error: either '" + ServerConfig.OAUTH_JWKS_ENDPOINT_URI
+                    + "' (for fast local signature validation) or '" + ServerConfig.OAUTH_INTROSPECTION_ENDPOINT_URI
+                    + "' (for using authorization server during validation) should be specified!");
         } else if ((jwksUri != null) && (introspectUri != null)) {
-            throw new ConfigException("OAuth validator configuration error: only one of OAUTH_JWKS_ENDPOINT_URI (for fast local signature validation) and OAUTH_INTROSPECTION_ENDPOINT_URI (for using authorization server during validation) can be specified!");
+            throw new ConfigException("OAuth validator configuration error: only one of '" + ServerConfig.OAUTH_JWKS_ENDPOINT_URI
+                    + "' (for fast local signature validation) and '" + ServerConfig.OAUTH_INTROSPECTION_ENDPOINT_URI
+                    + "' (for using authorization server during validation) can be specified!");
         }
 
         if (jwksUri != null && !isJwt) {
-            throw new ConfigException("OAuth validator configuration error: OAUTH_JWKS_ENDPOINT_URI (for fast local signature validation) is not compatible with OAUTH_ACCESS_TOKEN_IS_JWT=false");
+            throw new ConfigException("OAuth validator configuration error: '" + ServerConfig.OAUTH_JWKS_ENDPOINT_URI
+                    + "' (for fast local signature validation) is not compatible with '" + ServerConfig.OAUTH_ACCESS_TOKEN_IS_JWT + "' set to 'false'");
         }
     }
 
     private void validateIssuerUri(String validIssuerUri) {
         if (validIssuerUri == null && config.getValueAsBoolean(ServerConfig.OAUTH_CHECK_ISSUER, true)) {
-            throw new ConfigException("OAuth validator configuration error: OAUTH_VALID_ISSUER_URI must be set or OAUTH_CHECK_ISSUER has to be set to 'false'");
+            throw new ConfigException("OAuth validator configuration error: '" + ServerConfig.OAUTH_VALID_ISSUER_URI
+                    + "' must be set or '" + ServerConfig.OAUTH_CHECK_ISSUER + "' has to be set to 'false'");
         }
     }
 
     private void validateFallbackUsernameParameters(String usernameClaim, String fallbackUsernameClaim, String fallbackUsernamePrefix) {
         if (fallbackUsernameClaim != null && usernameClaim == null) {
-            throw new ConfigException("OAuth validator configuration error: OAUTH_USERNAME_CLAIM must be set when OAUTH_FALLBACK_USERNAME_CLAIM is set");
+            throw new ConfigException("OAuth validator configuration error: '" + ServerConfig.OAUTH_USERNAME_CLAIM
+                    + "' must be set when '" + ServerConfig.OAUTH_FALLBACK_USERNAME_CLAIM + "' is set");
         }
 
         if (fallbackUsernamePrefix != null && fallbackUsernameClaim == null) {
-            throw new ConfigException("OAuth validator configuration error: OAUTH_FALLBACK_USERNAME_CLAIM must be set when OAUTH_FALLBACK_USERNAME_PREFIX is set");
+            throw new ConfigException("OAuth validator configuration error: '" + ServerConfig.OAUTH_FALLBACK_USERNAME_CLAIM
+                    + "' must be set when '" + ServerConfig.OAUTH_FALLBACK_USERNAME_PREFIX + "' is set");
         }
     }
 

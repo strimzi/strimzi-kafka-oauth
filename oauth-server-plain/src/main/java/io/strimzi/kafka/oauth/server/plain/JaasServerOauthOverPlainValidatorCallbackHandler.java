@@ -164,7 +164,8 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
                 + "\n    enableMetrics: " + enableMetrics);
 
         if (tokenEndpoint == null) {
-            log.debug("tokenEndpointUri is not configured - client_credentials will not be available, password parameter of SASL/PLAIN will automatically be treated as an access token (no '$accessToken:' prefix needed)");
+            log.debug("Token endpoint uri is not configured ('{}') - 'password' parameter of SASL/PLAIN will automatically be treated as an access token (no '$accessToken:' prefix needed)",
+                    ServerPlainConfig.OAUTH_TOKEN_ENDPOINT_URI);
         }
     }
 

@@ -76,7 +76,7 @@ public class JaasClientConfigTest {
             Assert.fail("Should have failed");
 
         } catch (KafkaException e) {
-            assertConfigException(e, "No client id specified (OAUTH_CLIENT_ID)");
+            assertConfigException(e, "No client id specified ('oauth.client.id')");
         }
 
         // has username but no password
@@ -86,7 +86,7 @@ public class JaasClientConfigTest {
             Assert.fail("Should have failed");
 
         } catch (KafkaException e) {
-            assertConfigException(e, "No client id specified (OAUTH_CLIENT_ID)");
+            assertConfigException(e, "No client id specified ('oauth.client.id')");
         }
 
         // add password, still has no client id
@@ -96,7 +96,7 @@ public class JaasClientConfigTest {
             Assert.fail("Should have failed");
 
         } catch (KafkaException e) {
-            assertConfigException(e, "No client id specified (OAUTH_CLIENT_ID)");
+            assertConfigException(e, "No client id specified ('oauth.client.id')");
         }
     }
 

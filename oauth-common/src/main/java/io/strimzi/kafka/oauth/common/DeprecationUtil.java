@@ -12,9 +12,9 @@ public class DeprecationUtil {
     public static boolean isAccessTokenJwt(Config config, Logger log, String errorPrefix) {
         String legacy = config.getValue(Config.OAUTH_TOKENS_NOT_JWT);
         if (legacy != null) {
-            log.warn("OAUTH_TOKENS_NOT_JWT is deprecated. Use OAUTH_ACCESS_TOKEN_IS_JWT (with reverse meaning) instead.");
+            log.warn("Config option '{}' is deprecated. Use '{}' (with reverse meaning) instead.", Config.OAUTH_TOKENS_NOT_JWT, Config.OAUTH_ACCESS_TOKEN_IS_JWT);
             if (config.getValue(Config.OAUTH_ACCESS_TOKEN_IS_JWT) != null) {
-                throw new ConfigException((errorPrefix != null ? errorPrefix : "") + "Can't use both OAUTH_ACCESS_TOKEN_IS_JWT and OAUTH_TOKENS_NOT_JWT");
+                throw new ConfigException((errorPrefix != null ? errorPrefix : "") + "Can't use both '" + Config.OAUTH_ACCESS_TOKEN_IS_JWT + "' and '" + Config.OAUTH_TOKENS_NOT_JWT + "'");
             }
         }
 

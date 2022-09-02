@@ -181,7 +181,7 @@ public class ExampleConcurrentProducer {
     private static boolean isAccessTokenJwt(Config config) {
         String legacy = config.getValue(Config.OAUTH_TOKENS_NOT_JWT);
         if (legacy != null) {
-            System.out.println("[WARN] OAUTH_TOKENS_NOT_JWT is deprecated. Use OAUTH_ACCESS_TOKEN_IS_JWT (with reverse meaning) instead.");
+            System.out.println("[WARN] Config option 'oauth.tokens.not.jwt' is deprecated. Use 'oauth.access.token.is.jwt' (with reverse meaning) instead.");
         }
         return legacy != null ? !Config.isTrue(legacy) :
                 config.getValueAsBoolean(Config.OAUTH_ACCESS_TOKEN_IS_JWT, true);

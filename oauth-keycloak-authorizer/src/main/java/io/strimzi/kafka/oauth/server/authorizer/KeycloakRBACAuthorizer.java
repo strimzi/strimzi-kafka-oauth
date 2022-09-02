@@ -219,7 +219,7 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
 
         clientId = ConfigUtil.getConfigWithFallbackLookup(config, AuthzConfig.STRIMZI_AUTHORIZATION_CLIENT_ID, ClientConfig.OAUTH_CLIENT_ID);
         if (clientId == null) {
-            throw new ConfigException("OAuth2 Client Id ('strimzi.authorization.client.id') not set.");
+            throw new ConfigException("OAuth client id ('strimzi.authorization.client.id') not set.");
         }
 
         connectTimeoutSeconds = ConfigUtil.getTimeoutConfigWithFallbackLookup(config, AuthzConfig.STRIMZI_AUTHORIZATION_CONNECT_TIMEOUT_SECONDS, ClientConfig.OAUTH_CONNECT_TIMEOUT_SECONDS);
