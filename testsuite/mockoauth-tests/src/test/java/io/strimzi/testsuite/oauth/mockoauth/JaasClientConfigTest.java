@@ -107,7 +107,7 @@ public class JaasClientConfigTest {
             Assert.fail("Should have failed");
 
         } catch (KafkaException e) {
-            assertConfigException(e, "Access Token not specified");
+            assertConfigException(e, "Access token not specified ('oauth.access.token').");
         }
 
         oauthConfig.put(ClientConfig.OAUTH_PASSWORD_GRANT_PASSWORD, KAFKA_USER_PASSWORD);
@@ -116,7 +116,7 @@ public class JaasClientConfigTest {
             Assert.fail("Should have failed");
 
         } catch (KafkaException e) {
-            assertConfigException(e, "Access Token not specified");
+            assertConfigException(e, "Access token not specified ('oauth.access.token').");
         }
 
         oauthConfig.put(ClientConfig.OAUTH_CLIENT_SECRET, KAFKA_PRODUCER_CLIENT_SECRET);
@@ -125,7 +125,7 @@ public class JaasClientConfigTest {
             Assert.fail("Should have failed");
 
         } catch (KafkaException e) {
-            assertConfigException(e, "Access Token not specified");
+            assertConfigException(e, "Access token not specified ('oauth.access.token').");
         }
 
         oauthConfig = new HashMap<>();
@@ -135,7 +135,7 @@ public class JaasClientConfigTest {
             Assert.fail("Should have failed");
 
         } catch (KafkaException e) {
-            assertConfigException(e, "Access Token not specified");
+            assertConfigException(e, "Access token not specified ('oauth.access.token').");
         }
 
         oauthConfig = new HashMap<>();
@@ -145,7 +145,7 @@ public class JaasClientConfigTest {
             Assert.fail("Should have failed");
 
         } catch (KafkaException e) {
-            assertConfigException(e, "Access Token not specified");
+            assertConfigException(e, "Access token not specified ('oauth.access.token').");
         }
 
         // no token endpoint
@@ -157,7 +157,7 @@ public class JaasClientConfigTest {
             Assert.fail("Should have failed");
 
         } catch (KafkaException e) {
-            assertConfigException(e, "Access Token not specified");
+            assertConfigException(e, "Access token not specified ('oauth.access.token').");
         }
 
         // fix it by adding token endpoint
