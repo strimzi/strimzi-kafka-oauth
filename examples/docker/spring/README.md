@@ -13,13 +13,13 @@ Building
 Running
 -------
 
-You can run it by using docker:
-
-    docker run --rm -ti --name spring strimzi/example-spring
-
-Or by using docker-compose in which case run it from parent directory (`examples/docker`):
+You can run it by using docker-compose in which case run it from parent directory (`examples/docker`):
 
     docker-compose -f compose.yml -f spring/compose.yml up
+
+Or by using `docker` (explicitly setting the network makes `spring` hostname visible from other containers):
+
+    docker run --rm -ti -p 8080:8080 --network docker_default --name spring strimzi/example-spring
 
 
 Using
@@ -54,8 +54,16 @@ We can then use Kafka Simple ACL Authorization to define ACL policies based on a
 
 You can run the prepared example from parent directory (`examples/docker`):
 
-    docker-compose -f compose.yml -f kafka-oauth-strimzi/compose-spring.yml
+    docker-compose -f compose.yml -f kafka-oauth-strimzi/compose-spring.yml up
     
+
+Check the logging output of the Spring container for the default user's password:
+
+    docker logs spring | grep "Using generated security password:"
+
+Set the password as env var `PASSWORD`:
+
+    export PASSWORD=$(docker logs spring | grep "Using generated security password:" | awk '{print $NF}')
 
 
 Configure your Kafka client by obtaining the token as user `user`:

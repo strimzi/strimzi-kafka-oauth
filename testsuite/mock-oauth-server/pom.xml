@@ -21,7 +21,7 @@
 
     <properties>
         <checkstyle.dir>../..</checkstyle.dir>
-        <vertx.version>4.3.0</vertx.version>
+        <vertx.version>4.3.1</vertx.version>
         <logback.version>1.2.11</logback.version>
 
         <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>

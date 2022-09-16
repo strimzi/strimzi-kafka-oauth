@@ -40,13 +40,13 @@
         <fabric8-docker-plugin.version>0.40.2</fabric8-docker-plugin.version>
 
         <testcontainers.version>1.17.3</testcontainers.version>
-        <version.junit>4.12</version.junit>
+        <version.junit>4.13.1</version.junit>
         <spotbugs.version>4.7.0</spotbugs.version>
         <jackson.annotation.version>2.12.6</jackson.annotation.version>
         <strimzi-oauth.version>1.0.0-SNAPSHOT</strimzi-oauth.version>
         <checkstyle.dir>..</checkstyle.dir>
 
-        <kafka.docker.image>quay.io/strimzi/kafka:0.30.0-kafka-3.2.0</kafka.docker.image>
+        <kafka.docker.image>quay.io/strimzi/kafka:0.31.0-kafka-3.2.1</kafka.docker.image>
     </properties>
 
     <dependencyManagement>
@@ -360,9 +360,9 @@
             </properties>
         </profile>
         <profile>
-            <id>kafka-3_2_0</id>
+            <id>kafka-3_2_1</id>
             <properties>
-                <kafka.docker.image>quay.io/strimzi/kafka:0.30.0-kafka-3.2.0</kafka.docker.image>
+                <kafka.docker.image>quay.io/strimzi/kafka:0.31.0-kafka-3.2.1</kafka.docker.image>
             </properties>
         </profile>
         <profile>

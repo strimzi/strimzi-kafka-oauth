@@ -80,12 +80,12 @@
         <spotbugs.version>4.7.0</spotbugs.version>
         <sonatype.nexus.staging>1.6.3</sonatype.nexus.staging>
 
-        <kafka.version>3.2.0</kafka.version>
+        <kafka.version>3.2.1</kafka.version>
         <jackson.version>2.12.6</jackson.version>
         <jackson.databind.version>2.12.6.1</jackson.databind.version>
         <jsonpath.version>2.6.0</jsonpath.version>
         <junit.version>4.13.1</junit.version>
-        <slf4j.version>1.7.26</slf4j.version>
+        <slf4j.version>1.7.36</slf4j.version>
         <mockito.version>3.12.4</mockito.version>
         <nimbus.jose.version>9.10</nimbus.jose.version>
     </properties>

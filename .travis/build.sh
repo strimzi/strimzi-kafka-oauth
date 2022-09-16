@@ -41,6 +41,8 @@ fi
 
 mvn spotbugs:check
 
+mvn clean install -f examples/docker
+
 # Run testsuite if this is a main build
 if [ "${MAIN_BUILD}" == "TRUE" ] ; then
 
@@ -58,7 +60,7 @@ if [ "${MAIN_BUILD}" == "TRUE" ] ; then
     mvn test-compile spotbugs:check -e -V -B -f testsuite
     set +e
     clearDockerEnv
-    mvn -e -V -B clean install -f testsuite -Pcustom -Dkafka.docker.image=quay.io/strimzi/kafka:0.30.0-kafka-3.2.0
+    mvn -e -V -B clean install -f testsuite -Pcustom -Dkafka.docker.image=quay.io/strimzi/kafka:0.31.0-kafka-3.2.1
     EXIT=$?
     exitIfError
     set -e
@@ -68,7 +70,7 @@ if [ "${MAIN_BUILD}" == "TRUE" ] ; then
     set +e
 
     clearDockerEnv
-    mvn -e -V -B clean install -f testsuite -Pkafka-3_2_0
+    mvn -e -V -B clean install -f testsuite -Pkafka-3_2_1
     EXIT=$?
     exitIfError
 

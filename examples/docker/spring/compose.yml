@@ -4,6 +4,6 @@ services:
 
   spring:
     image: strimzi/example-spring
-    container_name: strimzi
+    container_name: spring
     ports:
       -  8080:8080
