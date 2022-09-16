@@ -382,7 +382,8 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         if (validTokenType != null) {
             value = response.get("token_type");
             if (value == null || !validTokenType.equals(value.asText())) {
-                throw new TokenValidationException("Token check failed - Invalid token type: " + value + " (should be '" + validTokenType + "')" + (value == null ? ". Consider not setting OAUTH_VALID_TOKEN_TYPE." : ""))
+                throw new TokenValidationException("Token check failed - Invalid token type: " + value + " (should be '" + validTokenType + "')"
+                        + (value == null ? ". Consider not setting 'oauth.valid.token.type'" : ""))
                         .status(Status.UNSUPPORTED_TOKEN_TYPE);
             }
         }

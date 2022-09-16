@@ -439,7 +439,7 @@ public class ErrorReportingTests {
         String errId = message.substring(message.length() - 16, message.length() - 1);
         List<String> log = getContainerLogsForString(kafkaContainer, errId);
         long matchedCount = log.stream().filter(s -> s.startsWith("Caused by:") && s.contains("connect timed out")).count();
-        Assert.assertTrue("Found connect timed out cause of the error", matchedCount > 0);
+        Assert.assertTrue("Found connect timed out cause of the error?", matchedCount > 0);
     }
 
     private void cantConnectKeycloakWithTimeout() {
