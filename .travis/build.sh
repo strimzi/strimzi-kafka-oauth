@@ -41,6 +41,7 @@ fi
 
 mvn spotbugs:check
 
+# Also test examples build on different architectures
 mvn clean install -f examples/docker
 
 # Run testsuite if this is a main build
