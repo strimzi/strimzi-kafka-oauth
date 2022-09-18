@@ -1,4 +1,4 @@
-FROM openjdk:8-jre
+FROM adoptopenjdk/openjdk8:latest
 
 ENTRYPOINT ["java", "-jar", "/usr/share/oauth/server.jar"]
 
