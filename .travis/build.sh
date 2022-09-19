@@ -41,13 +41,15 @@ fi
 
 mvn spotbugs:check
 
-# Also test examples build on different architectures
-mvn clean install -f examples/docker
+arch=$(uname -m)
+
+# Also test examples build on different architectures (exclude ppc64le until fixed)
+if [ "$arch" != 'ppc64le' ]; then
+  mvn clean install -f examples/docker
+fi
 
 # Run testsuite if this is a main build
 if [ "${MAIN_BUILD}" == "TRUE" ] ; then
-
-  arch=$(uname -m)
 
   if [ "$arch" == 's390x' ]; then
     # Build s390x compatible hydra image
