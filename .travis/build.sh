@@ -41,10 +41,15 @@ fi
 
 mvn spotbugs:check
 
+arch=$(uname -m)
+
+# Also test examples build on different architectures (exclude ppc64le until fixed)
+if [ "$arch" != 'ppc64le' ]; then
+  mvn clean install -f examples/docker
+fi
+
 # Run testsuite if this is a main build
 if [ "${MAIN_BUILD}" == "TRUE" ] ; then
-
-  arch=$(uname -m)
 
   if [ "$arch" == 's390x' ]; then
     # Build s390x compatible hydra image
@@ -58,7 +63,7 @@ if [ "${MAIN_BUILD}" == "TRUE" ] ; then
     mvn test-compile spotbugs:check -e -V -B -f testsuite
     set +e
     clearDockerEnv
-    mvn -e -V -B clean install -f testsuite -Pcustom -Dkafka.docker.image=quay.io/strimzi/kafka:0.30.0-kafka-3.2.0
+    mvn -e -V -B clean install -f testsuite -Pcustom -Dkafka.docker.image=quay.io/strimzi/kafka:0.31.0-kafka-3.2.1
     EXIT=$?
     exitIfError
     set -e
@@ -68,7 +73,7 @@ if [ "${MAIN_BUILD}" == "TRUE" ] ; then
     set +e
 
     clearDockerEnv
-    mvn -e -V -B clean install -f testsuite -Pkafka-3_2_0
+    mvn -e -V -B clean install -f testsuite -Pkafka-3_2_1
     EXIT=$?
     exitIfError
 
