@@ -1,6 +1,30 @@
 Release Notes
 =============
 
+0.11.0
+------
+
+### Added OAuth metrics support
+
+Added support for OAuth related metrics. It is disabled by default. To enable it set `oauth.enable.metrics` OAuth configuration option to `true`. Use `metrics.reporters`, and other Kafka configuration `metrics.*` options to configure the behaviour of metrics capture and how they are exported.
+
+See [README.md](README.md#configuring-the-metrics) for details.
+
+### Added password grant support
+
+The Resource Owner Password Credentials support was added for interoperability in existing corporate environments where established security policies prevent using `client credentials` to authenticate the client applications. The reason can also be purely technical in that the existing Identity and Access Management solution (IAM) only supports user accounts, even where the 'user' is actually an application service.
+
+See [README.md](README.md#password-grant) for details.
+
+### Added `oauth.jwks.ignore.key.use` config option
+
+Set this option to `true` in order to use all the keys in the JWKS response for token signature validation, regardless of their `use` attribute.
+This makes it possible to use authorization servers that don't specify `use` attribute in JWKS keys.
+
+### Added support for unprotected truststores
+
+Truststores with empty password are now supported
+
 0.10.0
 ------
 
