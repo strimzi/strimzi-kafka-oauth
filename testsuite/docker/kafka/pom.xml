@@ -31,7 +31,7 @@
                 <configuration>
                     <images>
                         <image>
-                            <name>testsuite/kafka:3.2.1</name>
+                            <name>testsuite/kafka:3.2.3</name>
                         </image>
                     </images>
                 </configuration>

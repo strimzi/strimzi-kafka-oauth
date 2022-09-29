@@ -187,6 +187,6 @@ Thus, you don't need to use the latest local build of strimzi/kafka libraries to
 
 But if you want you can specify the kafka image to use for the test as follows:
 
-    mvn clean test -Dkafka.docker.image=quay.io/strimzi/kafka:0.28.0-kafka-3.1.0 -f testsuite/keycloak-auth-tests
+    mvn clean test -Dkafka.docker.image=quay.io/strimzi/kafka:0.31.1-kafka-3.1.2 -f testsuite/keycloak-auth-tests
 
 This will use the latest locally built kafka image of strimzi-kafka-operator project.

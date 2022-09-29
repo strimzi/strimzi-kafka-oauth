@@ -46,7 +46,7 @@
         <strimzi-oauth.version>0.11.0</strimzi-oauth.version>
         <checkstyle.dir>..</checkstyle.dir>
 
-        <kafka.docker.image>quay.io/strimzi/kafka:0.31.0-kafka-3.2.1</kafka.docker.image>
+        <kafka.docker.image>quay.io/strimzi/kafka:0.31.1-kafka-3.2.3</kafka.docker.image>
     </properties>
 
     <dependencyManagement>
@@ -354,15 +354,15 @@
             </properties>
         </profile>
         <profile>
-            <id>kafka-3_1_0</id>
+            <id>kafka-3_1_2</id>
             <properties>
-                <kafka.docker.image>quay.io/strimzi/kafka:0.28.0-kafka-3.1.0</kafka.docker.image>
+                <kafka.docker.image>quay.io/strimzi/kafka:0.31.1-kafka-3.1.2</kafka.docker.image>
             </properties>
         </profile>
         <profile>
-            <id>kafka-3_2_1</id>
+            <id>kafka-3_2_3</id>
             <properties>
-                <kafka.docker.image>quay.io/strimzi/kafka:0.31.0-kafka-3.2.1</kafka.docker.image>
+                <kafka.docker.image>quay.io/strimzi/kafka:0.31.1-kafka-3.2.3</kafka.docker.image>
             </properties>
         </profile>
         <profile>
