@@ -1,4 +1,4 @@
-FROM quay.io/strimzi/kafka:0.31.0-kafka-3.2.1
+FROM quay.io/strimzi/kafka:0.31.1-kafka-3.2.3
 
 COPY start.sh /opt/kafka/
 COPY simple_zk_config.sh /opt/kafka/
