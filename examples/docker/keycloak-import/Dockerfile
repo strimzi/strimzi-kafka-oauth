@@ -1,4 +1,4 @@
-FROM quay.io/keycloak/keycloak:19.0.1-legacy
+FROM quay.io/keycloak/keycloak:19.0.2-legacy
 
 RUN mkdir /opt/jboss/realms
 COPY realms/* /opt/jboss/realms/

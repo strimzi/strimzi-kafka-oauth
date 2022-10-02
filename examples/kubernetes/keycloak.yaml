@@ -27,7 +27,7 @@ metadata:
 spec:
   containers:
   - name: keycloak
-    image: quay.io/keycloak/keycloak:19.0.1-legacy
+    image: quay.io/keycloak/keycloak:19.0.2-legacy
     args:
     - "-b 0.0.0.0"
     - "-Dkeycloak.profile.feature.upload_scripts=enabled"

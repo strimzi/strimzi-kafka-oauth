@@ -14,4 +14,4 @@ services:
       KEYCLOAK_PASSWORD: "admin"
       KEYCLOAK_HTTPS_PORT: 8443
       PROXY_ADDRESS_FORWARDING: "true"
-    command: "-Dkeycloak.profile.feature.upload_scripts=enabled"
+    command: "-Dkeycloak.profile.feature.upload_scripts=enabled -b 0.0.0.0"

@@ -46,6 +46,9 @@ arch=$(uname -m)
 # Also test examples build on different architectures (exclude ppc64le until fixed)
 if [ "$arch" != 'ppc64le' ]; then
   mvn clean install -f examples/docker
+  cd examples/docker
+  docker-compose -f compose.yml -f keycloak/compose-ssl.yml build
+  cd ../..
 fi
 
 # Run testsuite if this is a main build
@@ -57,7 +60,7 @@ if [ "${MAIN_BUILD}" == "TRUE" ] ; then
     docker build --target hydra-import -t strimzi-oauth-testsuite/hydra-import:latest -f ./testsuite/docker/hydra-import/Dockerfile.s390x .
     git clone -b 19.0.1 https://github.com/keycloak/keycloak-containers.git
     cd keycloak-containers/server/
-    docker build -t quay.io/keycloak/keycloak:19.0.1-legacy .
+    docker build -t quay.io/keycloak/keycloak:19.0.2-legacy .
     cd ../../ && rm -rf keycloak-containers
     docker build --target oryd-hydra -t oryd/hydra:v1.8.5 -f ./testsuite/docker/hydra-import/Dockerfile.s390x .
     mvn test-compile spotbugs:check -e -V -B -f testsuite
