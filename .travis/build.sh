@@ -44,7 +44,7 @@ mvn spotbugs:check
 arch=$(uname -m)
 
 # Also test examples build on different architectures (exclude ppc64le until fixed)
-if [ "$arch" != 'ppc64le']; then
+if [ "$arch" != 'ppc64le' ]; then
   mvn clean install -f examples/docker
 fi
 
