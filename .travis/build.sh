@@ -43,6 +43,11 @@ mvn spotbugs:check
 
 arch=$(uname -m)
 
+# Also test examples build on different architectures (exclude ppc64le until fixed)
+if [ "$arch" != 'ppc64le']; then
+  mvn clean install -f examples/docker
+fi
+
 # Run testsuite if this is a main build
 if [ "${MAIN_BUILD}" == "TRUE" ] ; then
 
@@ -90,16 +95,10 @@ if [ "${MAIN_BUILD}" == "TRUE" ] ; then
     set -e
   fi
 
-  # Also test examples build on different architectures (exclude ppc64le until fixed)
-  if [ "$arch" != 'ppc64le']; then
-    mvn clean install -f examples/docker
-  fi
-
-  # Test example image for keycloak-ssl example
+  # Test example image build for keycloak-ssl example
   cd examples/docker
   docker-compose -f compose.yml -f keycloak/compose-ssl.yml build
   cd ../..
-
 fi
 
 # Push only releases
