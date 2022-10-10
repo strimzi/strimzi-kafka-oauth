@@ -163,7 +163,7 @@ public class MetricsTest {
         // Turn off mockoauth auth server to cause network errors
         changeAuthServerMode("server", "mode_off");
 
-        Thread.sleep(20000);
+        Thread.sleep(30000);
         Metrics metrics = reloadMetrics();
 
 
