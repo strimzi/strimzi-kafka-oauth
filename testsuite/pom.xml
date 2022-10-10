@@ -42,7 +42,7 @@
         <testcontainers.version>1.17.3</testcontainers.version>
         <version.junit>4.13.1</version.junit>
         <spotbugs.version>4.7.0</spotbugs.version>
-        <jackson.annotation.version>2.12.6</jackson.annotation.version>
+        <jackson.annotation.version>2.13.4</jackson.annotation.version>
         <strimzi-oauth.version>0.11.0</strimzi-oauth.version>
         <checkstyle.dir>..</checkstyle.dir>
 

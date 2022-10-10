@@ -30,6 +30,9 @@
         <exec-maven-plugin.version>3.0.0</exec-maven-plugin.version>
         <main.verticle>io.strimzi.testsuite.oauth.server.MockOAuthServerMainVerticle</main.verticle>
         <launcher.class>io.vertx.core.Launcher</launcher.class>
+
+        <jackson.version>2.13.4</jackson.version>
+        <jackson.databind.version>2.13.4</jackson.databind.version>
     </properties>
 
     <dependencyManagement>
@@ -40,6 +43,16 @@
                 <version>${vertx.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-core</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson.databind.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
