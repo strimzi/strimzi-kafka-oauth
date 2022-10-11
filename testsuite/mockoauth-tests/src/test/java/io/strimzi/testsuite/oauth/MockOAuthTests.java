@@ -7,6 +7,7 @@ package io.strimzi.testsuite.oauth;
 import io.strimzi.testsuite.oauth.common.TestContainersLogCollector;
 import io.strimzi.testsuite.oauth.common.TestContainersWatcher;
 import io.strimzi.testsuite.oauth.metrics.MetricsTest;
+import io.strimzi.testsuite.oauth.mockoauth.ClientAssertionAuthTest;
 import io.strimzi.testsuite.oauth.mockoauth.JaasClientConfigTest;
 import io.strimzi.testsuite.oauth.mockoauth.PasswordAuthTest;
 
@@ -50,6 +51,9 @@ public class MockOAuthTests {
 
             logStart("PasswordAuthTest :: Password Grant Tests");
             new PasswordAuthTest().doTest();
+
+            logStart("ClientAssertionAuthTest :: Client Assertion Tests");
+            new ClientAssertionAuthTest().doTest();
 
         } catch (Throwable e) {
             log.error("Exception has occured: ", e);

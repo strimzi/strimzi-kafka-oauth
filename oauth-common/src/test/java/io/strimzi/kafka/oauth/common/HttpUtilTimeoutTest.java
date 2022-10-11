@@ -17,6 +17,7 @@ import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.util.Collections;
+import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 
 public class HttpUtilTimeoutTest {
@@ -60,7 +61,7 @@ public class HttpUtilTimeoutTest {
                 Assert.fail("Should fail with SocketTimeoutException");
             } catch (SocketTimeoutException e) {
                 long diff = System.currentTimeMillis() - start;
-                Assert.assertTrue("Unexpected error: " + e, e.toString().contains("connect timed out"));
+                Assert.assertTrue("Unexpected error: " + e, e.toString().toLowerCase(Locale.ENGLISH).contains("connect timed out"));
                 Assert.assertTrue("Unexpected diff: " + diff, diff >= timeout * 1000 && diff < timeout * 1000 + 1000);
             } catch (IOException e) {
                 if (e.getCause() instanceof ConnectException) {
@@ -78,7 +79,7 @@ public class HttpUtilTimeoutTest {
                 Assert.fail("Should fail with SocketTimeoutException");
             } catch (SocketTimeoutException e) {
                 long diff = System.currentTimeMillis() - start;
-                Assert.assertTrue("Unexpected error: " + e, e.toString().contains("Read timed out"));
+                Assert.assertTrue("Unexpected error: " + e, e.toString().toLowerCase(Locale.ENGLISH).contains("read timed out"));
                 Assert.assertTrue("Unexpected diff: " + diff, diff >= timeout * 1000 && diff < timeout * 1000 + 1000);
             }
 
@@ -90,7 +91,7 @@ public class HttpUtilTimeoutTest {
                 Assert.fail("Should fail with SocketTimeoutException");
             } catch (SocketTimeoutException e) {
                 long diff = System.currentTimeMillis() - start;
-                Assert.assertTrue("Unexpected error: " + e, e.toString().contains("connect timed out"));
+                Assert.assertTrue("Unexpected error: " + e, e.toString().toLowerCase(Locale.ENGLISH).contains("connect timed out"));
                 Assert.assertTrue("Unexpected diff: " + diff, diff >= timeout * 1000 && diff < timeout * 1000 + 1000);
             } catch (IOException e) {
                 if (e.getCause() instanceof ConnectException) {
@@ -108,7 +109,7 @@ public class HttpUtilTimeoutTest {
                 Assert.fail("Should fail with SocketTimeoutException");
             } catch (SocketTimeoutException e) {
                 long diff = System.currentTimeMillis() - start;
-                Assert.assertTrue("Unexpected error: " + e, e.toString().contains("Read timed out"));
+                Assert.assertTrue("Unexpected error: " + e, e.toString().toLowerCase(Locale.ENGLISH).contains("read timed out"));
                 Assert.assertTrue("Unexpected diff: " + diff, diff >= timeout * 1000 && diff < timeout * 1000 + 1000);
             }
 
@@ -128,7 +129,7 @@ public class HttpUtilTimeoutTest {
                 long diff = System.currentTimeMillis() - start;
 
                 Assert.assertTrue("Wrong exception: " + e + " caused by " + cause, cause instanceof SocketTimeoutException);
-                Assert.assertTrue("Unexpected error: " + cause, cause.toString().contains("connect timed out"));
+                Assert.assertTrue("Unexpected error: " + cause, cause.toString().toLowerCase(Locale.ENGLISH).contains("connect timed out"));
                 Assert.assertTrue("Unexpected diff: " + diff, diff >= timeout * 1000 && diff < timeout * 1000 + 1000);
             }
 
