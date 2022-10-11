@@ -91,6 +91,46 @@ public class OAuthAuthenticator {
         return post(tokenEndpointUrl, socketFactory, hostnameVerifier, authorization, body.toString(), isJwt, principalExtractor, connectTimeout, readTimeout, metrics);
     }
 
+    @SuppressWarnings("checkstyle:ParameterNumber")
+    public static TokenInfo loginWithClientAssertion(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
+                                                     HostnameVerifier hostnameVerifier,
+                                                     String clientId, String clientAssertion, String clientAssertionType, boolean isJwt,
+                                                     PrincipalExtractor principalExtractor, String scope, String audience) throws IOException {
+
+        return loginWithClientAssertion(tokenEndpointUrl, socketFactory, hostnameVerifier,
+                clientId, clientAssertion, clientAssertionType, isJwt, principalExtractor, scope, audience, HttpUtil.DEFAULT_CONNECT_TIMEOUT, HttpUtil.DEFAULT_READ_TIMEOUT, null);
+    }
+
+    @SuppressWarnings("checkstyle:ParameterNumber")
+    public static TokenInfo loginWithClientAssertion(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
+                                                  HostnameVerifier hostnameVerifier,
+                                                  String clientId, String clientAssertion, String clientAssertionType, boolean isJwt,
+                                                  PrincipalExtractor principalExtractor, String scope, String audience,
+                                                  int connectTimeout, int readTimeout, MetricsHandler metrics) throws IOException {
+        if (log.isDebugEnabled()) {
+            log.debug("loginWithClientAssertion() - tokenEndpointUrl: {}, clientId: {}, clientAssertion: {}, clientAssertionType: {}, scope: {}, audience: {}, connectTimeout: {}, readTimeout: {}",
+                    tokenEndpointUrl, clientId, mask(clientAssertion), clientAssertionType, scope, audience, connectTimeout, readTimeout);
+        }
+
+        if (clientId == null) {
+            throw new IllegalArgumentException("No clientId specified");
+        }
+
+        StringBuilder body = new StringBuilder("grant_type=client_credentials")
+                .append("&client_id=").append(urlencode(clientId))
+                .append("&client_assertion=").append(urlencode(clientAssertion))
+                .append("&client_assertion_type=").append(urlencode(clientAssertionType));
+
+        if (scope != null) {
+            body.append("&scope=").append(urlencode(scope));
+        }
+        if (audience != null) {
+            body.append("&audience=").append(urlencode(audience));
+        }
+
+        return post(tokenEndpointUrl, socketFactory, hostnameVerifier, null, body.toString(), isJwt, principalExtractor, connectTimeout, readTimeout, metrics);
+    }
+
     public static TokenInfo loginWithPassword(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
                                               HostnameVerifier hostnameVerifier,
                                               String username, String password,

@@ -48,7 +48,6 @@ public class PasswordAuthTest {
         String user1Pass = "user1-password";
         createOAuthUser(user1, user1Pass);
 
-        // authenticate user against token endpoint with the wrong password
         String projectRoot = Common.getProjectRoot();
         SSLSocketFactory sslFactory = SSLUtil.createSSLFactory(
                 projectRoot + "/../docker/certificates/ca-truststore.p12", null, "changeit", null, null);
@@ -136,6 +135,5 @@ public class PasswordAuthTest {
         Assert.assertTrue("Token active", json.get("active").asBoolean());
         Assert.assertEquals("Introspection endpoint response contains `client_id`", client1, json.get("client_id") != null ? json.get("client_id").asText() : null);
         Assert.assertNull("Introspection endpoint response does not contain `username`", json.get("username"));
-
     }
 }

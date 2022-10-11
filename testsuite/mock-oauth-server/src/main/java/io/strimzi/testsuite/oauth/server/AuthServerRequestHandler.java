@@ -151,8 +151,16 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
 
             String username = null;
 
-            // clientId should always be passed via Authorization header - with or without a password
+            // clientId should be passed via Authorization header
             String clientId = authorizeClient(authorization);
+
+            // or via the body together with its assertion
+            if (clientId == null) {
+                final String clientIdFromForm = form.get("client_id");
+                final String clientAssertion = form.get("client_assertion");
+                final String clientAssertionType = form.get("client_assertion_type");
+                clientId = authorizeClientUsingAssertion(clientIdFromForm, clientAssertion, clientAssertionType);
+            }
 
             // if password auth rather than client_credentials, also make sure the username and password are a match
             if (clientId != null && "password".equals(grantType)) {
@@ -309,6 +317,16 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
             return null;
         }
         return idSecret[0];
+    }
+
+    private String authorizeClientUsingAssertion(final String clientId, final String clientAssertion, final String clientAssertionType) {
+        if (clientId == null || clientAssertion == null || clientAssertionType == null) {
+            return null;
+        }
+        if (!clientAssertion.equals(verticle.getClients().get(clientId))) {
+            return null;
+        }
+        return clientId;
     }
 
     private String authorizeUser(String username, String password) {

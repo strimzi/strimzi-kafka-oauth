@@ -85,6 +85,10 @@ public class Config {
      *   key.toUpperCase().replace('-', '_').replace('.', '_');
      *
      * If not, it checks if env variable with name equal to key exists.
+     *
+     * if the value contains the 'env:' prefix the rest of the value is treated as a reference to an env variable
+     * and the value is dereferenced to the value of the environment variable
+     *
      * Ultimately, it checks the defaults passed at Config object construction time.
      *
      * If no configuration is found for key, it returns the fallback value.
@@ -97,26 +101,26 @@ public class Config {
 
         // try system properties first
         String result = System.getProperty(key, null);
-        if (result != null) {
-            return result;
+
+        if (result == null) {
+            // try env properties
+            result = System.getenv(toEnvName(key));
         }
 
-        // try env properties
-        result = System.getenv(toEnvName(key));
-        if (result != null) {
-            return result;
+        if (result == null) {
+            // try env property by key name (without converting with toEnvName())
+            result = System.getenv(key);
         }
 
-        // try env property by key name (without converting with toEnvName())
-        result = System.getenv(key);
-        if (result != null) {
-            return result;
-        }
-
-        // try default properties and if all else fails return fallback value
-        if (defaults != null) {
+        if (result == null && defaults != null) {
+            // try default properties and if all else fails return fallback value
             Object val = defaults.get(key);
             result = val != null ? String.valueOf(val) : null;
+        }
+
+        if (result != null && result.startsWith("env:")) {
+            // try reference to environment variable
+            result = System.getenv(result.substring(4));
         }
 
         return result != null ? result : fallback;

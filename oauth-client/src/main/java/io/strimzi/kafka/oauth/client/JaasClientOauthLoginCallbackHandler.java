@@ -4,14 +4,17 @@
  */
 package io.strimzi.kafka.oauth.client;
 
-import io.strimzi.kafka.oauth.common.ConfigException;
-import io.strimzi.kafka.oauth.common.MetricsHandler;
-import io.strimzi.kafka.oauth.common.Config;
-import io.strimzi.kafka.oauth.common.ConfigUtil;
-import io.strimzi.kafka.oauth.common.PrincipalExtractor;
-import io.strimzi.kafka.oauth.common.TokenInfo;
 import io.strimzi.kafka.oauth.client.metrics.ClientAuthenticationSensorKeyProducer;
 import io.strimzi.kafka.oauth.client.metrics.ClientHttpSensorKeyProducer;
+import io.strimzi.kafka.oauth.common.Config;
+import io.strimzi.kafka.oauth.common.ConfigException;
+import io.strimzi.kafka.oauth.common.ConfigUtil;
+import io.strimzi.kafka.oauth.common.MetricsHandler;
+import io.strimzi.kafka.oauth.common.PrincipalExtractor;
+import io.strimzi.kafka.oauth.common.TokenInfo;
+import io.strimzi.kafka.oauth.common.TokenProvider;
+import io.strimzi.kafka.oauth.common.TokenProvider.FileBasedTokenProvider;
+import io.strimzi.kafka.oauth.common.TokenProvider.StaticTokenProvider;
 import io.strimzi.kafka.oauth.metrics.SensorKeyProducer;
 import io.strimzi.kafka.oauth.services.OAuthMetrics;
 import io.strimzi.kafka.oauth.services.Services;
@@ -40,6 +43,7 @@ import static io.strimzi.kafka.oauth.common.ConfigUtil.getReadTimeout;
 import static io.strimzi.kafka.oauth.common.DeprecationUtil.isAccessTokenJwt;
 import static io.strimzi.kafka.oauth.common.LogUtil.mask;
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithAccessToken;
+import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithClientAssertion;
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithClientSecret;
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithPassword;
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithRefreshToken;
@@ -50,10 +54,12 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
 
     private ClientConfig config = new ClientConfig();
 
-    private String token;
-    private String refreshToken;
     private String clientId;
     private String clientSecret;
+    private String clientAssertionType;
+    private TokenProvider tokenProvider;
+    private TokenProvider refreshTokenProvider;
+    private TokenProvider clientAssertionProvider;
     private String username;
     private String password;
     private String scope;
@@ -89,8 +95,11 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
             config = new ClientConfig(p);
         }
 
-        token = config.getValue(ClientConfig.OAUTH_ACCESS_TOKEN);
-        if (token == null) {
+        final String token = config.getValue(ClientConfig.OAUTH_ACCESS_TOKEN);
+        final String tokenLocation = config.getValue(ClientConfig.OAUTH_ACCESS_TOKEN_LOCATION);
+        tokenProvider = createProvider(token, tokenLocation);
+
+        if (token == null && tokenLocation == null) {
             String endpoint = config.getValue(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI);
 
             if (endpoint == null) {
@@ -104,10 +113,18 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
             }
         }
 
-        refreshToken = config.getValue(ClientConfig.OAUTH_REFRESH_TOKEN);
+        final String refreshToken = config.getValue(ClientConfig.OAUTH_REFRESH_TOKEN);
+        final String refreshTokenLocation = config.getValue(ClientConfig.OAUTH_REFRESH_TOKEN_LOCATION);
+        refreshTokenProvider = createProvider(refreshToken, refreshTokenLocation);
 
         clientId = config.getValue(Config.OAUTH_CLIENT_ID);
         clientSecret = config.getValue(Config.OAUTH_CLIENT_SECRET);
+
+        final String clientAssertion = config.getValue(ClientConfig.OAUTH_CLIENT_ASSERTION);
+        final String clientAssertionLocation = config.getValue(ClientConfig.OAUTH_CLIENT_ASSERTION_LOCATION);
+        clientAssertionProvider = createProvider(clientAssertion, clientAssertionLocation);
+        clientAssertionType = config.getValue(ClientConfig.OAUTH_CLIENT_ASSERTION_TYPE, "urn:ietf:params:oauth:client-assertion-type:jwt-bearer");
+
         username = config.getValue(ClientConfig.OAUTH_PASSWORD_GRANT_USERNAME);
         password = config.getValue(ClientConfig.OAUTH_PASSWORD_GRANT_PASSWORD);
 
@@ -142,10 +159,15 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
             LOG.debug("Configured JaasClientOauthLoginCallbackHandler:"
                     + "\n    configId: " + configId
                     + "\n    token: " + mask(token)
+                    + "\n    tokenLocation: " + tokenLocation
                     + "\n    refreshToken: " + mask(refreshToken)
+                    + "\n    refreshTokenLocation: " + refreshTokenLocation
                     + "\n    tokenEndpointUri: " + tokenEndpoint
                     + "\n    clientId: " + clientId
                     + "\n    clientSecret: " + mask(clientSecret)
+                    + "\n    clientAssertion: " + mask(clientAssertion)
+                    + "\n    clientAssertionLocation: " + clientAssertionLocation
+                    + "\n    clientAssertionType: " + clientAssertionType
                     + "\n    username: " + username
                     + "\n    password: " + mask(password)
                     + "\n    scope: " + scope
@@ -159,11 +181,20 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
         }
     }
 
+    private TokenProvider createProvider(final String token, final String tokenLocation) {
+        if (tokenLocation != null) {
+            return new FileBasedTokenProvider(tokenLocation);
+        } else if (token != null) {
+            return new StaticTokenProvider(token);
+        }
+        return null;
+    }
+
     private void checkConfiguration() {
-        if (token != null) {
-            if (refreshToken != null) {
-                LOG.warn("Access token is configured ('{}'), refresh token will be ignored ('{}').",
-                        ClientConfig.OAUTH_ACCESS_TOKEN, ClientConfig.OAUTH_REFRESH_TOKEN);
+        if (tokenProvider != null) {
+            if (refreshTokenProvider != null) {
+                LOG.warn("Access token is configured ('{}'), refresh token will be ignored ('{}', '{}').",
+                        ClientConfig.OAUTH_ACCESS_TOKEN, ClientConfig.OAUTH_REFRESH_TOKEN, ClientConfig.OAUTH_REFRESH_TOKEN_LOCATION);
             }
             if (username != null) {
                 LOG.warn("Access token is configured ('{}'), username will be ignored ('{}').",
@@ -173,14 +204,18 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
                 LOG.warn("Access token is configured ('{}'), client id will be ignored ('{}').",
                         ClientConfig.OAUTH_ACCESS_TOKEN, ClientConfig.OAUTH_CLIENT_ID);
             }
-        } else if (refreshToken != null) {
+            if (clientAssertionProvider != null) {
+                LOG.warn("Access token is configured ('{}'), client assertion (location) will be ignored ('{}', '{}').",
+                        ClientConfig.OAUTH_ACCESS_TOKEN, ClientConfig.OAUTH_CLIENT_ASSERTION, ClientConfig.OAUTH_CLIENT_ASSERTION_LOCATION);
+            }
+        } else if (refreshTokenProvider != null) {
             if (username != null) {
                 LOG.warn("Refresh token is configured ('{}'), username will be ignored ('{}').",
                         ClientConfig.OAUTH_REFRESH_TOKEN, ClientConfig.OAUTH_PASSWORD_GRANT_USERNAME);
             }
         }
 
-        if (token == null) {
+        if (tokenProvider == null) {
             if (clientId == null) {
                 throw new ConfigException("No client id specified ('" + ClientConfig.OAUTH_CLIENT_ID + "')");
             }
@@ -190,10 +225,14 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
                         + "') but no password specified ('" + ClientConfig.OAUTH_PASSWORD_GRANT_PASSWORD + "')");
             }
 
-            if (refreshToken == null && clientSecret == null && username == null) {
-                throw new ConfigException("No access token ('" + ClientConfig.OAUTH_ACCESS_TOKEN + "'), refresh token ('"
-                        + ClientConfig.OAUTH_REFRESH_TOKEN + "'), client credentials ('" + ClientConfig.OAUTH_CLIENT_SECRET
-                        + "') or user credentials specified ('" + ClientConfig.OAUTH_PASSWORD_GRANT_USERNAME + "')");
+            if (refreshTokenProvider == null && clientSecret == null && username == null && clientAssertionProvider == null) {
+                throw new ConfigException("No access token or location ('" + ClientConfig.OAUTH_ACCESS_TOKEN
+                        + "', '" + ClientConfig.OAUTH_ACCESS_TOKEN_LOCATION + "'), refresh token or location ('"
+                        + ClientConfig.OAUTH_REFRESH_TOKEN + "', '" + ClientConfig.OAUTH_REFRESH_TOKEN_LOCATION + "'),"
+                        + " client credentials ('" + ClientConfig.OAUTH_CLIENT_SECRET
+                        + "'), user credentials ('" + ClientConfig.OAUTH_PASSWORD_GRANT_USERNAME + "')"
+                        + " or clientAssertion or location ('" + ClientConfig.OAUTH_CLIENT_ASSERTION + "', '"
+                        + ClientConfig.OAUTH_CLIENT_ASSERTION_LOCATION + "') specified");
             }
         }
     }
@@ -239,15 +278,17 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
 
         long requestStartTime = System.currentTimeMillis();
         try {
-            if (token != null) {
+            if (tokenProvider != null) {
                 // we could check if it's a JWT - in that case we could check if it's expired
-                result = loginWithAccessToken(token, isJwt, principalExtractor);
-            } else if (refreshToken != null) {
-                result = loginWithRefreshToken(tokenEndpoint, socketFactory, hostnameVerifier, refreshToken, clientId, clientSecret, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout, authenticatorMetrics);
+                result = loginWithAccessToken(tokenProvider.token(), isJwt, principalExtractor);
+            } else if (refreshTokenProvider != null) {
+                result = loginWithRefreshToken(tokenEndpoint, socketFactory, hostnameVerifier, refreshTokenProvider.token(), clientId, clientSecret, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout, authenticatorMetrics);
             } else if (username != null) {
                 result = loginWithPassword(tokenEndpoint, socketFactory, hostnameVerifier, username, password, clientId, clientSecret, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout, authenticatorMetrics);
             } else if (clientSecret != null) {
                 result = loginWithClientSecret(tokenEndpoint, socketFactory, hostnameVerifier, clientId, clientSecret, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout, authenticatorMetrics);
+            } else if (clientAssertionProvider != null) {
+                result = loginWithClientAssertion(tokenEndpoint, socketFactory, hostnameVerifier, clientId, clientAssertionProvider.token(), clientAssertionType, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout, authenticatorMetrics);
             } else {
                 throw new IllegalStateException("Invalid oauth client configuration - no credentials");
             }
