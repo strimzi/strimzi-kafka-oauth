@@ -120,7 +120,10 @@ public class Config {
 
         if (result != null && result.startsWith("env:")) {
             // try reference to environment variable
-            result = System.getenv(result.substring(4));
+            final String envResult = System.getenv(result.substring(4));
+            if (envResult != null) {
+                result = envResult;
+            }
         }
 
         return result != null ? result : fallback;

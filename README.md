@@ -149,6 +149,8 @@ The authorization configuration for KeycloakRBACAuthorizer is specified as `serv
 Both authentication and authorization configuration specific to Strimzi Kafka OAuth can also be set as ENV vars, or as Java system properties.
 The limitation here is that authentication configuration specified in this manner can not be listener-scoped. 
 
+Note that property-values starting with `env:` are interpreted as references to existing ENV vars.
+
 ### Configuring the Kafka Broker authentication
 
 Note: Strimzi Kafka OAuth can not be used for Kafka Broker to Zookeeper authentication. It only supports Kafka Client to Kafka Broker authentication (including inter-broker communication).
@@ -870,19 +872,46 @@ Strimzi Kafka OAuth supports four ways to configure authentication on the client
 
 #### Client Credentials
 
-The first is to specify the client ID and secret configured on the authorization server specifically for the individual client deployment. This is also called `client credentials grant`.
+The first is to specify Client Credentials. This requires that a client is configured on the authorization server specifically for the individual client deployment. This is also called `client credentials grant`.
 
 This is achieved by specifying the following:
 - `oauth.client.id` (e.g.: "my-client")
+
+together with one of authentication options below 
+
+When client starts to establish the connection with the Kafka Broker it will first obtain an access token from the configured Token Endpoint, authenticating with the configured client ID and configured authentication option using client_credentials grant type.
+
+##### Option 1: Using a Client Secret 
+
+Specify the client secret.
+
 - `oauth.client.secret` (e.g.: "my-client-secret")
 
-When client starts to establish the connection with the Kafka Broker it will first obtain an access token from the configured Token Endpoint, authenticating with the configured client ID and secret using client_credentials grant type.
+##### Option 2: Using a Client Assertion (a.k.a. private_key_jwt)
+
+Specify the client assertion (JWT token) either directly through
+
+- `oauth.client.assertion`
+
+or pointing to a file on the filesystem
+
+- `oauth.client.assertion.location`
+
+the exact type of the token must also be communicated to the token endpoint and defaults to `urn:ietf:params:oauth:client-assertion-type:jwt-bearer`. 
+
+This can be overridden using property
+
+-  `oauth.client.assertion.type` (i.e. use `urn:ietf:params:oauth:client-assertion-type:saml2-bearer` for SAML 2 tokens)
 
 #### Refresh Token
 
-The second way is to manually obtain and set a refresh token:
+The second way is to manually obtain and set a refresh token either directly through
 
 - `oauth.refresh.token`
+
+or pointing to a file on the filesystem
+
+- `oauth.refresh.token.location`
 
 When using this approach you are not limited to OAuth2 client_credentials grant type for obtaining a token.
 You can use a password grant type and authenticate as an individual user, rather than a client application.
@@ -892,9 +921,13 @@ When client starts to establish the connection with the Kafka Broker it will fir
 
 #### Access Token
 
-The third way is to manually obtain and set an access token:
+The third way is to manually obtain and set an access token either directly through:
 
 - `oauth.access.token`
+
+or pointing to a file on the filesystem
+
+- `oauth.access.token.location`
 
 Access tokens are supposed to be short-lived in order to prevent unauthorized access if the token leaks.
 It is up to you, your environment, and how you plan to run your Kafka client application to consider if using long-lived access tokens is appropriate.
