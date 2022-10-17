@@ -49,12 +49,13 @@ public class TokenProviderTest {
 
     @Test
     public void testFileBasedTokenProvider_fileIsDir() {
+        String tempDir = new File(System.getProperty("java.io.tmpdir")).getAbsolutePath();
         try {
-            final TokenProvider fileBasedTokenProvider = new TokenProvider.FileBasedTokenProvider(System.getProperty("java.io.tmpdir"));
+            final TokenProvider fileBasedTokenProvider = new TokenProvider.FileBasedTokenProvider(tempDir);
             Assert.fail("failed to test for file existence");
 
         } catch (IllegalArgumentException e) {
-            Assert.assertEquals("'/tmp' does not point to a file!", e.getMessage());
+            Assert.assertEquals("'" + tempDir + "' does not point to a file!", e.getMessage());
         }
     }
 
