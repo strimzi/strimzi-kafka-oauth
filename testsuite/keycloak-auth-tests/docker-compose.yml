@@ -2,7 +2,7 @@ version: '3'
 
 services:
   keycloak:
-    image: quay.io/keycloak/keycloak:19.0.2-legacy
+    image: quay.io/keycloak/keycloak:19.0.3-legacy
     ports:
       - "8080:8080"
     volumes:
