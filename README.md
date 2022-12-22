@@ -1301,7 +1301,7 @@ For client-side authentication there are:
 
 - Get the average request time in ms during the last minute across all http requests to a specific authorization server:
 ```
-    rate(strimzi_oauth_http_requests_totaltimems{host="sso:443"}[1m] / rate(strimzi_oaouth_http_requests_count{host="sso:443"}[1m]
+    rate(strimzi_oauth_http_requests_totaltimems{host="sso:443"}[1m]) / rate(strimzi_oaouth_http_requests_count{host="sso:443"}[1m])
 ```
 Note, that this gives reliable results if scrape period is 15 seconds. If scrape period is longer, you should use a multiple of 4 as a minimum time span to average across. For example, if scrape period is 30 seconds, use 2m span instead of 1m.
 

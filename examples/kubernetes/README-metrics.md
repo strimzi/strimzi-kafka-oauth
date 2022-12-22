@@ -129,7 +129,7 @@ We can connect to the JMX remotely to inspect the content. We can use `jmxterm` 
 ```
 git clone https://github.com/jiaqi/jmxterm.git
 cd jmxterm
-git checkout -b v1.0.2
+git checkout v1.0.4
 mvn clean install
 ```
 
@@ -143,7 +143,7 @@ We assume that your Kafka client / broker is running locally with the following 
 We can then use the `jmxterm` by running:
 
 ```
-java -jar target/jmxterm-1.0.2-uber.jar
+java -jar target/jmxterm-1.0.4-uber.jar
 open localhost:9500
 domains
 beans -d strimzi.oauth
