@@ -63,6 +63,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import static io.strimzi.kafka.oauth.common.Config.isTrue;
 import static io.strimzi.kafka.oauth.common.HttpUtil.post;
 import static io.strimzi.kafka.oauth.common.LogUtil.mask;
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
@@ -283,18 +284,23 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
             Services.configure(configs);
         }
 
-        enableMetrics = config.getValueAsBoolean(Config.OAUTH_ENABLE_METRICS, false);
+        String enableMetricsString = ConfigUtil.getConfigWithFallbackLookup(config, AuthzConfig.STRIMZI_AUTHORIZATION_ENABLE_METRICS, Config.OAUTH_ENABLE_METRICS);
+        try {
+            enableMetrics = enableMetricsString != null && isTrue(enableMetricsString);
+        } catch (Exception e) {
+            throw new ConfigException("Bad boolean value for key: " + AuthzConfig.STRIMZI_AUTHORIZATION_ENABLE_METRICS + ", value: " + enableMetricsString);
+        }
+
         if (enableMetrics) {
             metrics = Services.getInstance().getMetrics();
         }
     }
 
     /**
-     * This method transforms strimzi.authorization.* entries into oauth.* entries in order to be able to use existing ConfigUtil
-     * methods for setting up certificate truststore and hostname verification.
+     * This method extracts the key=value configuration entries relevant for KeycloakRBACAuthorizer from
+     * Kafka properties configuration file (server.properties) and wraps them with AuthzConfig instance.
      *
-     * It also makes sure to copy over 'as-is' all the config keys expected in server.properties for configuring
-     * this authorizer.
+     * Any new config options have to be added here in order to become visible, otherwise they will be ignored.
      *
      * @param configs Kafka configs map
      * @return Config object
@@ -329,6 +335,7 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
             Config.OAUTH_CONNECT_TIMEOUT_SECONDS,
             AuthzConfig.STRIMZI_AUTHORIZATION_READ_TIMEOUT_SECONDS,
             Config.OAUTH_READ_TIMEOUT_SECONDS,
+            AuthzConfig.STRIMZI_AUTHORIZATION_ENABLE_METRICS,
             Config.OAUTH_ENABLE_METRICS
         };
 
