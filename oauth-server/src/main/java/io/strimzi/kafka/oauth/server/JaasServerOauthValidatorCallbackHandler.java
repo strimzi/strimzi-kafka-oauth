@@ -528,6 +528,9 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
             delegatedHandle(callbacks);
 
             addValidationMetricSuccessTime(requestStartTime);
+        } catch (UnsupportedCallbackException e) {
+            // we only support OAuthBearerValidatorCallback, not OAuthBearerExtensionsValidatorCallback
+            throw e;
         } catch (Throwable t) {
             addValidationMetricErrorTime(t, requestStartTime);
             throw t;
