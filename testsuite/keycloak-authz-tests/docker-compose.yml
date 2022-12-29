@@ -115,6 +115,8 @@ services:
       - KAFKA_STRIMZI_AUTHORIZATION_GRANTS_REFRESH_PERIOD_SECONDS=10
       # If a grants fetch fails, immediately perform one retry
       - KAFKA_STRIMZI_AUTHORIZATION_HTTP_RETRIES=1
+      # Use grants fetched for another session if available
+      - KAFKA_STRIMZI_AUTHORIZATION_REUSE_GRANTS=true
 
       - KAFKA_STRIMZI_AUTHORIZATION_ENABLE_METRICS=true
 

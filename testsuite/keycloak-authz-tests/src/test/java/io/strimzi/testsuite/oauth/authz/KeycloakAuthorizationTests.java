@@ -63,8 +63,9 @@ public class KeycloakAuthorizationTests {
             logStart("KeycloakAuthorizationTest :: MetricsTest");
             MetricsTest.doTest();
 
+            // This test assumes that it is the first producing and consuming test
             logStart("KeycloakAuthorizationTest :: MultiSaslTests");
-            MultiSaslTest.doTest();
+            new MultiSaslTest(kafkaContainer).doTest();
 
             logStart("KeycloakAuthorizationTest :: JwtValidationAuthzTest");
             new BasicTest(JWT_LISTENER, false).doTest();
@@ -79,13 +80,13 @@ public class KeycloakAuthorizationTests {
             new OAuthOverPlainTest(INTROSPECTPLAIN_LISTENER, true).doTest();
 
             logStart("KeycloakAuthorizationTest :: OAuthOverPLain + FloodTest");
-            new FloodTest(JWTPLAIN_LISTENER, true).doTest();
+            new FloodTest(kafkaContainer, JWTPLAIN_LISTENER, true).doTest();
 
             logStart("KeycloakAuthorizationTest :: JWT FloodTest");
-            new FloodTest(JWT_LISTENER, false).doTest();
+            new FloodTest(kafkaContainer, JWT_LISTENER, false).doTest();
 
             logStart("KeycloakAuthorizationTest :: Introspection FloodTest");
-            new FloodTest(INTROSPECT_LISTENER, false).doTest();
+            new FloodTest(kafkaContainer, INTROSPECT_LISTENER, false).doTest();
 
             // This test has to be the last one - it changes the team-a-client, and team-b-client permissions in Keycloak
             logStart("KeycloakAuthorizationTest :: JwtValidationAuthzTest + RefreshGrants");

@@ -72,4 +72,23 @@ public class Sessions {
             }
         }
     }
+
+    /**
+     * Iterate over sessions, and find the first element matching the filter.
+     *
+     * @param filter A filter to apply
+     * @return The first matching session
+     */
+    public BearerTokenWithPayload findFirst(Predicate<BearerTokenWithPayload> filter) {
+        // In order to prevent the possible ConcurrentModificationException in the middle of using an iterator
+        // we first make a local copy, then iterate over the copy
+        ArrayList<BearerTokenWithPayload> values = new ArrayList<>(activeSessions.keySet());
+
+        for (BearerTokenWithPayload token: values) {
+            if (filter.test(token)) {
+                return token;
+            }
+        }
+        return null;
+    }
 }

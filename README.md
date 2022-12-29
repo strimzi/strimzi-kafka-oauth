@@ -700,6 +700,17 @@ since they are not yet available. The following option enables reattempting the 
 receive the `AuthorizationException`. The default value is '0', meaning 'no retries'. Provide the value greater than '0' to set the number of repeated attempts:
 - `strimzi.authorization.http.retries` (e.g.: "1" - if initial fetching of grants for the session fails, immediately retry one more time)
 
+A single client typically uses a single unique access token for the concurrent sessions to the Kafka broker.
+As a result, the number of active tokens on the broker is generally less than the number of active sessions (connections).
+ However, keep in mind that this is replicated across all Kafka brokers in the cluster, as clients maintain active sessions to multiple brokers.
+
+New sessions will, by default, request the latest grants from the Keycloak in order for any changes in permissions to be reflected immediately.
+You can change this, and reuse the grants for the token, if they have previously been fetched due to the same token already having been used
+for another session on the broker. This can noticeably reduce the load from brokers to the Keycloak and can also help alleviate 'glitchiness' issues
+addressed by `strimzi.authorization.grants.retries`. However, as a result, the grants initially used for the new session may be out-of-sync with
+Keycloak for up to `strimzi.authorization.grants.refresh.period.seconds`.
+- `strimzi.authorization.reuse.grants` (e.g.: "true" - if enabled, then grants fetched for another session may be used)
+
 You may also want to configure some other things. You may want to set a logical cluster name so you can target it with authorization rules:
 - `strimzi.authorization.kafka.cluster.name` (e.g.: "dev-cluster" - a logical name of the cluster which can be targeted with authorization services resource definitions, and permission policies)
 

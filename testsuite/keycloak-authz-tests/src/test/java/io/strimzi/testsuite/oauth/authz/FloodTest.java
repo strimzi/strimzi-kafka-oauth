@@ -20,11 +20,13 @@ import java.io.InterruptedIOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithClientSecret;
+import static io.strimzi.testsuite.oauth.common.TestUtil.getContainerLogsForString;
 
 public class FloodTest extends Common {
 
@@ -36,9 +38,11 @@ public class FloodTest extends Common {
 
     static int sendLimit = 1;
 
+    private final String kafkaContainer;
 
-    FloodTest(String kafkaBootstrap, boolean oauthOverPlain) {
+    FloodTest(String kafkaContainer, String kafkaBootstrap, boolean oauthOverPlain) {
         super(kafkaBootstrap, oauthOverPlain);
+        this.kafkaContainer = kafkaContainer;
     }
 
     public void doTest() throws IOException {
@@ -80,6 +84,7 @@ public class FloodTest extends Common {
         } catch (ExecutionException e) {
             Assert.assertTrue("Exception type should be AuthorizationException", e.getCause() instanceof AuthorizationException);
         }
+
 
         // Do 5 iterations - each time hitting the broker with 10 parallel requests
         for (int run = 0; run < 5; run++) {
@@ -130,6 +135,26 @@ public class FloodTest extends Common {
             // Prepare for the next run
             clearThreads();
         }
+    }
+
+    private int currentFoundExistingGrantsLogCount() {
+        List<String> lines = getContainerLogsForString(kafkaContainer, "Found existing grants for the token on another session");
+        return lines.size();
+    }
+
+    private void checkExistingGrantsLogCountDiff(int previousCount) {
+        int current = currentFoundExistingGrantsLogCount();
+        Assert.assertTrue("Expected many new 'Found existing' messages in the log (" + current + " vs. " + previousCount + ")", current - previousCount > 40);
+    }
+
+    private int currentSemaphoreBlockLogCount() {
+        List<String> lines = getContainerLogsForString(kafkaContainer, "Waiting on another thread to get grants");
+        return lines.size();
+    }
+
+    private void checkSemaphoreBlockLogCountDiff(int previousCount) {
+        int current = currentSemaphoreBlockLogCount();
+        Assert.assertEquals("Expected some new 'Waiting on another thread' messages in the log", current - previousCount > 0);
     }
 
     private void sendSingleMessage(String clientId, String secret, String topic) throws ExecutionException, InterruptedException {

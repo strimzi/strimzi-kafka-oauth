@@ -34,6 +34,9 @@ public class ConfigurationTest {
 
         value = getLoggerAttribute(lines, "httpRetries");
         Assert.assertEquals("'httpRetries' should be 1", "1", value);
+
+        value = getLoggerAttribute(lines, "reuseGrants");
+        Assert.assertEquals("'reuseGrants' should be true", "true", value);
     }
 
     private static String getLoggerAttribute(List<String> lines, String name) {
