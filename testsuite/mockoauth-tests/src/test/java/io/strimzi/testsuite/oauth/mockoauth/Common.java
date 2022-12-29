@@ -5,7 +5,11 @@
 package io.strimzi.testsuite.oauth.mockoauth;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
 import io.strimzi.kafka.oauth.common.HttpUtil;
+import io.strimzi.kafka.oauth.common.TimeUtil;
+import io.strimzi.kafka.oauth.common.TokenInfo;
 import io.strimzi.testsuite.oauth.metrics.Metrics;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -23,7 +27,9 @@ import java.nio.file.Paths;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
+import java.util.Set;
 
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
 
@@ -255,5 +261,83 @@ public class Common {
             return path.resolve("testsuite/mockoauth-tests").toAbsolutePath().toString();
         }
         return cwd;
+    }
+
+    static class MockBearerTokenWithPayload implements BearerTokenWithPayload {
+
+        private final TokenInfo ti;
+        private Object payload;
+
+        MockBearerTokenWithPayload(TokenInfo ti) {
+            if (ti == null) {
+                throw new IllegalArgumentException("TokenInfo == null");
+            }
+            this.ti = ti;
+        }
+
+        @Override
+        public Object getPayload() {
+            return payload;
+        }
+
+        @Override
+        public void setPayload(Object value) {
+            payload = value;
+        }
+
+        @Override
+        public Set<String> getGroups() {
+            return ti.groups();
+        }
+
+        @Override
+        public ObjectNode getJSON() {
+            return ti.payload();
+        }
+
+        @Override
+        public String value() {
+            return ti.token();
+        }
+
+        @Override
+        public Set<String> scope() {
+            return ti.scope();
+        }
+
+        @Override
+        public long lifetimeMs() {
+            return ti.expiresAtMs();
+        }
+
+        @Override
+        public String principalName() {
+            return ti.principal();
+        }
+
+        @Override
+        public Long startTimeMs() {
+            return ti.issuedAtMs();
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof MockBearerTokenWithPayload)) return false;
+            MockBearerTokenWithPayload that = (MockBearerTokenWithPayload) o;
+            return ti.equals(that.ti) && Objects.equals(payload, that.payload);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(ti, payload);
+        }
+
+        @Override
+        public String toString() {
+            return "BearerTokenWithPayload (principalName: " + ti.principal() + ", groups: " + ti.groups() + ", lifetimeMs: " +
+                    ti.expiresAtMs() + " [" + TimeUtil.formatIsoDateTimeUTC(ti.expiresAtMs()) + " UTC], startTimeMs: " +
+                    ti.issuedAtMs() + " [" + TimeUtil.formatIsoDateTimeUTC(ti.issuedAtMs()) + " UTC], scope: " + ti.scope() + ")";
+        }
     }
 }

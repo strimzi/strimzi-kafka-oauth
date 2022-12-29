@@ -21,6 +21,7 @@ import io.strimzi.kafka.oauth.common.NimbusPayloadTransformer;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,6 +44,8 @@ import static io.strimzi.testsuite.oauth.server.Commons.handleFailure;
 import static io.strimzi.testsuite.oauth.server.Commons.isOneOf;
 import static io.strimzi.testsuite.oauth.server.Commons.sendResponse;
 import static io.strimzi.testsuite.oauth.server.Commons.setContextLog;
+import static io.strimzi.testsuite.oauth.server.Endpoint.FAILING_GRANTS;
+import static io.strimzi.testsuite.oauth.server.Endpoint.GRANTS;
 import static io.strimzi.testsuite.oauth.server.Endpoint.INTROSPECT;
 import static io.strimzi.testsuite.oauth.server.Endpoint.TOKEN;
 import static io.strimzi.testsuite.oauth.server.Mode.MODE_200;
@@ -97,6 +100,12 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
             } else if (endpoint == INTROSPECT && mode == MODE_200) {
                 processIntrospectRequest(req);
                 return;
+            } else if (endpoint == GRANTS && mode == MODE_200) {
+                processGrantsRequest(req);
+                return;
+            } else if (endpoint == FAILING_GRANTS) {
+                processFailingGrantsRequest(req, mode);
+                return;
             }
 
             switch (mode) {
@@ -126,6 +135,97 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
         } catch (Throwable t) {
             handleFailure(req, t, log);
         }
+    }
+
+    AtomicCoin coin = new AtomicCoin();
+
+    private void processFailingGrantsRequest(HttpServerRequest req, Mode mode) {
+        // make every other request fail with the error indicated by mode
+        if (coin.flip()) {
+            // fail
+            switch (mode) {
+                case MODE_400:
+                    sendResponse(req, BAD_REQUEST);
+                    return;
+                case MODE_401:
+                    sendResponse(req, UNAUTHORIZED);
+                    return;
+                case MODE_403:
+                    sendResponse(req, FORBIDDEN);
+                    return;
+                case MODE_404:
+                    sendResponse(req, NOT_FOUND);
+                    return;
+                case MODE_500:
+                    sendResponse(req, INTERNAL_SERVER_ERROR);
+                    return;
+                case MODE_503:
+                    sendResponse(req, SERVICE_UNAVAILABLE);
+                    return;
+                default:
+                    log.error("Unexpected mode: " + mode);
+            }
+        }
+        processGrantsRequest(req);
+    }
+
+    private void processGrantsRequest(HttpServerRequest req) {
+        if (req.method() != POST) {
+            sendResponse(req, METHOD_NOT_ALLOWED);
+            return;
+        }
+
+        // Need to read the complete body before we can get the form attributes
+        req.setExpectMultipart(true);
+        req.endHandler(v -> {
+
+            MultiMap form = req.formAttributes();
+            log.info(form.toString());
+
+            String grantType = form.get("grant_type");
+            if (grantType == null) {
+                sendResponse(req, BAD_REQUEST);
+                return;
+            }
+
+            if (!"urn:ietf:params:oauth:grant-type:uma-ticket".equals(grantType)) {
+                sendResponse(req, BAD_REQUEST);
+                return;
+            }
+
+            String authorization = req.headers().get("Authorization");
+
+            if (!authorization.startsWith("Bearer ")) {
+                sendResponse(req, UNAUTHORIZED);
+                return;
+            }
+
+            String token = authorization.substring(7);
+
+            // Let's take the info from the token itself
+            JWSObject jws;
+            try {
+                jws = JWSObject.parse(token);
+            } catch (Exception e) {
+                log.error("Failed to parse the token: ", e);
+                sendResponse(req, UNAUTHORIZED);
+                return;
+            }
+
+            try {
+                // Create JSON response
+                JsonArray result = new JsonArray(
+                    "[{\"scopes\":[\"Delete\",\"Write\",\"Describe\",\"Read\",\"Alter\",\"Create\",\"DescribeConfigs\",\"AlterConfigs\"],\"rsid\":\"ca6f195f-dbdc-48b7-a953-8e441d17f7fa\",\"rsname\":\"Topic:*\"}," +
+                        "{\"scopes\":[\"IdempotentWrite\"],\"rsid\":\"73af36e6-5796-43e7-8129-b57fe0bac7a1\",\"rsname\":\"Cluster:*\"}," +
+                        "{\"scopes\":[\"Describe\",\"Read\"],\"rsid\":\"141c56e8-1a85-40f3-b38a-f490bad76913\",\"rsname\":\"Group:*\"}]");
+
+                String jsonString = result.encode();
+                sendResponse(req, OK, jsonString);
+
+            } catch (Throwable t) {
+                handleFailure(req, t, log);
+            }
+        });
     }
 
     private void processTokenRequest(HttpServerRequest req) {
@@ -300,15 +400,18 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
             return null;
         }
         String decoded = base64decode(authorization.substring(6));
-        String[] idSecret = decoded.split(":");
-        if (idSecret.length != 2) {
+        int pos = decoded.indexOf(":");
+        if (pos == -1) {
             return null;
         }
 
-        if (!idSecret[1].equals(verticle.getClients().get(idSecret[0]))) {
+        String clientId = decoded.substring(0, pos);
+        String secret = decoded.substring(pos + 1);
+
+        if (!secret.equals(verticle.getClients().get(clientId))) {
             return null;
         }
-        return idSecret[0];
+        return clientId;
     }
 
     private String authorizeUser(String username, String password) {

@@ -693,9 +693,12 @@ The refresh job works by enumerating the active tokens and requesting the latest
 It does that by using a thread pool. You can control the size of the thread pool (how much parallelism you want), the default value is 5:
 - `strimzi.authorization.grants.refresh.pool.size` (e.g.: "10" - the maximum of 10 parallel fetches of grants at a time)
 
-A single client connection typically has a unique access token even though you could use the same access token for multiple connections. 
-Thus, the number of active tokens is generally proportional to the number of client connections.
-Also keep in mind that this is replicated across all Kafka brokers in the cluster, as they all have to be configured the same way.
+Sometimes the deployment environment is such that there is a reverse proxy in front of the Keycloak, or some service like a network traffic analyzer, or flood protection server.
+Or, the network may be glitchy resulting in intermittent connection problems. By default, any error while getting the initial grants for the new session,
+will result in `AuthorizationException` returned to the Kafka client application. Upon client retrying some operation, the grants will be fetched again,
+since not yet available. The following option enables reattempting the fetching of grants immediately so that if subsequent fetch is successful the client doesn't 
+receive the `AuthorizationException`. Provide the value greater than '0' to set the number of repeated attempts:
+- `strimzi.authorization.grants.retries` (e.g.: "1" - if initial fetching of grants for the session fails, immediately retry one more time)
 
 You may also want to configure some other things. You may want to set a logical cluster name so you can target it with authorization rules:
 - `strimzi.authorization.kafka.cluster.name` (e.g.: "dev-cluster" - a logical name of the cluster which can be targeted with authorization services resource definitions, and permission policies)

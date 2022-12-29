@@ -19,6 +19,7 @@ public class MetricsTest {
         final String authHostPort = "keycloak:8080";
         final String realm = "kafka-authz";
         final String jwksPath = "/auth/realms/" + realm + "/protocol/openid-connect/certs";
+        final String tokenPath = "/auth/realms/" + realm + "/protocol/openid-connect/token";
 
         TestMetrics metrics = getPrometheusMetrics(URI.create("http://kafka:9404/metrics"));
         BigDecimal value = metrics.getValueSum("strimzi_oauth_http_requests_count", "kind", "jwks", "host", authHostPort, "path", jwksPath, "outcome", "success");
@@ -40,5 +41,8 @@ public class MetricsTest {
 
         value = metrics.getValueSum("strimzi_oauth_validation_requests_totaltimems", "kind", "jwks", "mechanism", "OAUTHBEARER", "outcome", "success");
         Assert.assertTrue("strimzi_oauth_validation_requests_totaltimems for jwks > 0.0", value.doubleValue() > 0.0);
+
+        value = metrics.getValueSum("strimzi_oauth_http_requests_count", "kind", "keycloak-authorization", "host", authHostPort, "path", tokenPath, "outcome", "error");
+        Assert.assertTrue("strimzi_oauth_http_requests_count for keycloak-authorization > 0.0", value.doubleValue() > 0.0);
     }
 }

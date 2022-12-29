@@ -60,7 +60,7 @@ public class HttpUtilTimeoutTest {
                 Assert.fail("Should fail with SocketTimeoutException");
             } catch (SocketTimeoutException e) {
                 long diff = System.currentTimeMillis() - start;
-                Assert.assertTrue("Unexpected error: " + e, e.toString().contains("connect timed out"));
+                Assert.assertTrue("Unexpected error: " + e, e.toString().contains("onnect timed out"));
                 Assert.assertTrue("Unexpected diff: " + diff, diff >= timeout * 1000 && diff < timeout * 1000 + 1000);
             } catch (IOException e) {
                 if (e.getCause() instanceof ConnectException) {

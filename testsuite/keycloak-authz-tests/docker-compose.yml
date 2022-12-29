@@ -113,6 +113,10 @@ services:
       - KAFKA_STRIMZI_AUTHORIZATION_GRANTS_REFRESH_POOL_SIZE=4
       #   any change to permissions will be reflected within 10 seconds
       - KAFKA_STRIMZI_AUTHORIZATION_GRANTS_REFRESH_PERIOD_SECONDS=10
+      # If a grants fetch fails, immediately perform one retry
+      - KAFKA_STRIMZI_AUTHORIZATION_GRANTS_RETRIES=1
+
+      - KAFKA_STRIMZI_AUTHORIZATION_ENABLE_METRICS=true
 
       - KAFKA_SUPER_USERS=User:admin;User:service-account-kafka
 

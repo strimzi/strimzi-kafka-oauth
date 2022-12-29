@@ -31,11 +31,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import static io.strimzi.testsuite.oauth.server.Endpoint.FAILING_GRANTS;
+import static io.strimzi.testsuite.oauth.server.Endpoint.GRANTS;
 import static io.strimzi.testsuite.oauth.server.Endpoint.INTROSPECT;
 import static io.strimzi.testsuite.oauth.server.Endpoint.JWKS;
 import static io.strimzi.testsuite.oauth.server.Endpoint.SERVER;
 import static io.strimzi.testsuite.oauth.server.Endpoint.TOKEN;
 import static io.strimzi.testsuite.oauth.server.Endpoint.USERINFO;
+import static io.strimzi.testsuite.oauth.server.Mode.MODE_200;
 import static io.strimzi.testsuite.oauth.server.Mode.MODE_400;
 import static io.strimzi.testsuite.oauth.server.Mode.MODE_401;
 import static io.strimzi.testsuite.oauth.server.Mode.MODE_404;
@@ -144,6 +147,9 @@ public class MockOAuthServerMainVerticle extends AbstractVerticle {
         modes.put(TOKEN, MODE_400);
         modes.put(INTROSPECT, MODE_401);
         modes.put(USERINFO, MODE_401);
+        modes.put(GRANTS, MODE_200);
+        modes.put(FAILING_GRANTS, MODE_400);
+
 
         String projectRoot = getProjectRoot();
         keystoreOnePath = getEnvVar("KEYSTORE_ONE_PATH", projectRoot + "/../docker/certificates/mockoauth.server.keystore.p12");

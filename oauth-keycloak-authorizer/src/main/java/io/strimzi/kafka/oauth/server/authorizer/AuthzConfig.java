@@ -18,7 +18,7 @@ public class AuthzConfig extends Config {
 
     public static final String STRIMZI_AUTHORIZATION_GRANTS_REFRESH_PERIOD_SECONDS = "strimzi.authorization.grants.refresh.period.seconds";
     public static final String STRIMZI_AUTHORIZATION_GRANTS_REFRESH_POOL_SIZE = "strimzi.authorization.grants.refresh.pool.size";
-
+    public static final String STRIMZI_AUTHORIZATION_GRANTS_RETRIES = "strimzi.authorization.grants.retries";
     public static final String STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_LOCATION = "strimzi.authorization.ssl.truststore.location";
     public static final String STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_CERTIFICATES = "strimzi.authorization.ssl.truststore.certificates";
     public static final String STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_PASSWORD = "strimzi.authorization.ssl.truststore.password";

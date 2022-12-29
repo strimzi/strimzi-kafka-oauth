@@ -117,6 +117,9 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
  * <li><em>strimzi.authorization.grants.refresh.pool.size</em> The number of threads to fetch grants from token endpoint (in parallel).<br>
  * The default value is <em>5</em>
  * </li>
+ * <li><em>strimzi.authorization.grants.retries</em> The number of times to retry fetch grants from token endpoint.<br>
+ * The retry is immediate without pausing due to the authorize() method holding up the Kafka worker thread. The default is <em>0</em> i.e. no retries.
+ * </li>
  * <li><em>strimzi.authorization.connect.timeout.seconds</em> The maximum time to wait when establishing the connection to the authorization server.<br>
  * The default value is <em>60</em>.
  * If not present, <em>oauth.connect.timeout.seconds</em> is used as a fallback configuration key to avoid unnecessary duplication when already present.
@@ -177,6 +180,8 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
     private int connectTimeoutSeconds;
     private int readTimeoutSeconds;
 
+    private int grantsRetries;
+
     // Turning it to false will not enforce access token expiry time (only for debugging purposes during development)
     private final boolean denyWhenTokenInvalid = true;
 
@@ -193,7 +198,6 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
 
     @Override
     public void configure(Map<String, ?> configs) {
-        super.configure(configs);
 
         AuthzConfig config = convertToCommonConfig(configs);
 
@@ -257,10 +261,16 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
             setupRefreshGrantsJob(grantsRefreshPeriodSeconds);
         }
 
+        grantsRetries = config.getValueAsInt(AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_RETRIES, 0);
+
         configureMetrics(configs, config);
 
         authzSensorKeyProducer = new KeycloakAuthorizationSensorKeyProducer("keycloak-authorizer", tokenEndpointUrl);
         grantsSensorKeyProducer = new GrantsHttpSensorKeyProducer("keycloak-authorizer", tokenEndpointUrl);
+
+        if (delegateToKafkaACL) {
+            super.configure(configs);
+        }
 
         if (log.isDebugEnabled()) {
             log.debug("Configured KeycloakRBACAuthorizer:\n    tokenEndpointUri: " + tokenEndpointUrl
@@ -272,6 +282,7 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
                     + "\n    superUsers: " + superUsers.stream().map(u -> "'" + u.getType() + ":" + u.getName() + "'").collect(Collectors.toList())
                     + "\n    grantsRefreshPeriodSeconds: " + grantsRefreshPeriodSeconds
                     + "\n    grantsRefreshPoolSize: " + grantsRefreshPoolSize
+                    + "\n    grantsRetries: " + grantsRetries
                     + "\n    connectTimeoutSeconds: " + connectTimeoutSeconds
                     + "\n    readTimeoutSeconds: " + readTimeoutSeconds
                     + "\n    enableMetrics: " + enableMetrics
@@ -313,6 +324,7 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
         String[] keys = {
             AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_REFRESH_PERIOD_SECONDS,
             AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_REFRESH_POOL_SIZE,
+            AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_RETRIES,
             AuthzConfig.STRIMZI_AUTHORIZATION_DELEGATE_TO_KAFKA_ACL,
             AuthzConfig.STRIMZI_AUTHORIZATION_KAFKA_CLUSTER_NAME,
             AuthzConfig.STRIMZI_AUTHORIZATION_CLIENT_ID,
@@ -437,6 +449,7 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
             grants = (JsonNode) token.getPayload();
 
             if (grants == null) {
+                log.debug("No grants yet for user: {}", principal);
                 grants = handleFetchingGrants(token);
             }
 
@@ -524,6 +537,7 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
         try {
             grants = fetchAuthorizationGrants(token.value());
             if (grants == null) {
+                log.debug("Received null grants for token: {}", mask(token.value()));
                 grants = JSONUtil.newObjectNode();
             }
         } catch (HttpException e) {
@@ -535,6 +549,7 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
         }
         if (grants != null) {
             // Store authz grants in the token so they are available for subsequent requests
+            log.debug("Saving non-null grants for token: {}", mask(token.value()));
             token.setPayload(grants);
         }
         return grants;
@@ -611,7 +626,51 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
                 ", resource: " + fromResourcePattern(action.resourcePattern()) + ",\n permissions: " + authz);
     }
 
+
+    /**
+     * Method that performs the POST request to fetch grants for the token.
+     * In case of a connection failure or a non-200 status response this method immediately retries the request if so configured.
+     *
+     * Status 401 does not trigger a retry since it is used to signal an invalid token.
+     * Status 403 does not trigger a retry either since it signals no permissions.
+     *
+     * @param token
+     * @return Grants JSON response
+     */
     private JsonNode fetchAuthorizationGrants(String token) {
+
+        JsonNode response = null;
+        Throwable t = null;
+        int i = 0;
+        while (i <= grantsRetries) {
+            i += 1;
+
+            try {
+                if (t != null) {
+                    log.warn("Failed to fetch grants. Will retry (attempt no. " + i + ")", t);
+                }
+                response = fetchAuthorizationGrantsOnce(token);
+                break;
+            } catch (HttpException e) {
+                if (403 == e.getStatus() || 401 == e.getStatus()) {
+                    throw e;
+                }
+                if (i > grantsRetries) {
+                    throw e;
+                }
+                t = e;
+            } catch (Exception e) {
+                if (i > grantsRetries) {
+                    throw e;
+                }
+                t = e;
+            }
+        }
+
+        return response;
+    }
+
+    private JsonNode fetchAuthorizationGrantsOnce(String token) {
 
         String authorization = "Bearer " + token;
 
