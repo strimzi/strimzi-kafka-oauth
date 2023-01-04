@@ -262,6 +262,9 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
         }
 
         grantsRetries = config.getValueAsInt(AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_RETRIES, 0);
+        if (grantsRetries < 0) {
+            throw new ConfigException("Invalid value of 'strimzi.authorization.grants.retries': " + grantsRetries + ". Has to be >= 0.");
+        }
 
         configureMetrics(configs, config);
 
