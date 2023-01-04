@@ -695,8 +695,8 @@ It does that by using a thread pool. You can control the size of the thread pool
 
 Sometimes the deployment environment is such that there is a reverse proxy in front of the Keycloak, or some service like a network traffic analyzer, or flood protection server.
 Or, the network may be glitchy resulting in intermittent connection problems. By default, any error while getting the initial grants for the new session,
-will result in `AuthorizationException` returned to the Kafka client application. Upon client retrying some operation, the grants will be fetched again,
-since not yet available. The following option enables reattempting the fetching of grants immediately so that if subsequent fetch is successful the client doesn't 
+will result in `AuthorizationException` returned to the Kafka client application. When the client retries some operation, the grants will be fetched again,
+since they are not yet available. The following option enables reattempting the fetching of grants immediately so that if subsequent fetch is successful the client doesn't 
 receive the `AuthorizationException`. Provide the value greater than '0' to set the number of repeated attempts:
 - `strimzi.authorization.grants.retries` (e.g.: "1" - if initial fetching of grants for the session fails, immediately retry one more time)
 
