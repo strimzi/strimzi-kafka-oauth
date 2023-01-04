@@ -650,7 +650,7 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
 
             try {
                 if (t != null) {
-                    log.warn("Failed to fetch grants. Will retry (attempt no. " + i + ")", t);
+                    log.info("Failed to fetch grants. Will retry (attempt no. " + i + ")", t);
                 }
                 response = fetchAuthorizationGrantsOnce(token);
                 break;
