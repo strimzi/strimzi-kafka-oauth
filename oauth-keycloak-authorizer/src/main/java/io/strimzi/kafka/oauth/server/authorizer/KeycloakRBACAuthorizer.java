@@ -210,25 +210,14 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
             log.warn("The '" + DEPRECATED_PRINCIPAL_BUILDER_CLASS + "' class has been deprecated, and may be removed in the future. Please use '" + PRINCIPAL_BUILDER_CLASS + "' as 'principal.builder.class' instead.");
         }
 
-        String endpoint = ConfigUtil.getConfigWithFallbackLookup(config, AuthzConfig.STRIMZI_AUTHORIZATION_TOKEN_ENDPOINT_URI,
-                ClientConfig.OAUTH_TOKEN_ENDPOINT_URI);
-        if (endpoint == null) {
-            throw new ConfigException("OAuth2 Token Endpoint ('strimzi.authorization.token.endpoint.uri') not set.");
-        }
-
-        try {
-            tokenEndpointUrl = new URI(endpoint);
-        } catch (URISyntaxException e) {
-            throw new ConfigException("Specified token endpoint uri is invalid: " + endpoint);
-        }
+        configureTokenEndpoint(config);
 
         clientId = ConfigUtil.getConfigWithFallbackLookup(config, AuthzConfig.STRIMZI_AUTHORIZATION_CLIENT_ID, ClientConfig.OAUTH_CLIENT_ID);
         if (clientId == null) {
             throw new ConfigException("OAuth client id ('strimzi.authorization.client.id') not set.");
         }
 
-        connectTimeoutSeconds = ConfigUtil.getTimeoutConfigWithFallbackLookup(config, AuthzConfig.STRIMZI_AUTHORIZATION_CONNECT_TIMEOUT_SECONDS, ClientConfig.OAUTH_CONNECT_TIMEOUT_SECONDS);
-        readTimeoutSeconds = ConfigUtil.getTimeoutConfigWithFallbackLookup(config, AuthzConfig.STRIMZI_AUTHORIZATION_READ_TIMEOUT_SECONDS, ClientConfig.OAUTH_READ_TIMEOUT_SECONDS);
+        configureHttpTimeouts(config);
 
         socketFactory = createSSLFactory(config);
         hostnameVerifier = createHostnameVerifier(config);
@@ -240,12 +229,7 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
 
         delegateToKafkaACL = config.getValueAsBoolean(AuthzConfig.STRIMZI_AUTHORIZATION_DELEGATE_TO_KAFKA_ACL, false);
 
-        String users = (String) configs.get("super.users");
-        if (users != null) {
-            superUsers = Arrays.stream(users.split(";"))
-                    .map(UserSpec::of)
-                    .collect(Collectors.toList());
-        }
+        configureSuperUsers(configs);
 
         // Number of threads that can perform token endpoint requests at the same time
         final int grantsRefreshPoolSize = config.getValueAsInt(AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_REFRESH_POOL_SIZE, 5);
@@ -261,10 +245,7 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
             setupRefreshGrantsJob(grantsRefreshPeriodSeconds);
         }
 
-        grantsRetries = config.getValueAsInt(AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_RETRIES, 0);
-        if (grantsRetries < 0) {
-            throw new ConfigException("Invalid value of 'strimzi.authorization.grants.retries': " + grantsRetries + ". Has to be >= 0.");
-        }
+        configureGrantsRetries(config);
 
         configureMetrics(configs, config);
 
@@ -290,6 +271,41 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
                     + "\n    readTimeoutSeconds: " + readTimeoutSeconds
                     + "\n    enableMetrics: " + enableMetrics
             );
+        }
+    }
+
+    private void configureHttpTimeouts(AuthzConfig config) {
+        connectTimeoutSeconds = ConfigUtil.getTimeoutConfigWithFallbackLookup(config, AuthzConfig.STRIMZI_AUTHORIZATION_CONNECT_TIMEOUT_SECONDS, ClientConfig.OAUTH_CONNECT_TIMEOUT_SECONDS);
+        readTimeoutSeconds = ConfigUtil.getTimeoutConfigWithFallbackLookup(config, AuthzConfig.STRIMZI_AUTHORIZATION_READ_TIMEOUT_SECONDS, ClientConfig.OAUTH_READ_TIMEOUT_SECONDS);
+    }
+
+    private void configureSuperUsers(Map<String, ?> configs) {
+        String users = (String) configs.get("super.users");
+        if (users != null) {
+            superUsers = Arrays.stream(users.split(";"))
+                    .map(UserSpec::of)
+                    .collect(Collectors.toList());
+        }
+    }
+
+    private void configureGrantsRetries(AuthzConfig config) {
+        grantsRetries = config.getValueAsInt(AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_RETRIES, 0);
+        if (grantsRetries < 0) {
+            throw new ConfigException("Invalid value of 'strimzi.authorization.grants.retries': " + grantsRetries + ". Has to be >= 0.");
+        }
+    }
+
+    private void configureTokenEndpoint(AuthzConfig config) {
+        String endpoint = ConfigUtil.getConfigWithFallbackLookup(config, AuthzConfig.STRIMZI_AUTHORIZATION_TOKEN_ENDPOINT_URI,
+                ClientConfig.OAUTH_TOKEN_ENDPOINT_URI);
+        if (endpoint == null) {
+            throw new ConfigException("OAuth2 Token Endpoint ('strimzi.authorization.token.endpoint.uri') not set.");
+        }
+
+        try {
+            tokenEndpointUrl = new URI(endpoint);
+        } catch (URISyntaxException e) {
+            throw new ConfigException("Specified token endpoint uri is invalid: " + endpoint);
         }
     }
 
