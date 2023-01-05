@@ -698,7 +698,7 @@ Or, the network may be glitchy resulting in intermittent connection problems. By
 will result in `AuthorizationException` returned to the Kafka client application. When the client retries some operation, the grants will be fetched again,
 since they are not yet available. The following option enables reattempting the fetching of grants immediately so that if subsequent fetch is successful the client doesn't 
 receive the `AuthorizationException`. The default value is '0', meaning 'no retries'. Provide the value greater than '0' to set the number of repeated attempts:
-- `strimzi.authorization.grants.retries` (e.g.: "1" - if initial fetching of grants for the session fails, immediately retry one more time)
+- `strimzi.authorization.http.retries` (e.g.: "1" - if initial fetching of grants for the session fails, immediately retry one more time)
 
 You may also want to configure some other things. You may want to set a logical cluster name so you can target it with authorization rules:
 - `strimzi.authorization.kafka.cluster.name` (e.g.: "dev-cluster" - a logical name of the cluster which can be targeted with authorization services resource definitions, and permission policies)

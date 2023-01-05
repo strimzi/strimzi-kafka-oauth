@@ -72,7 +72,7 @@ public class KeycloakAuthorizerTest {
         props.put("strimzi.authorization.connect.timeout.seconds", "10");
         props.put("strimzi.authorization.grants.refresh.pool.size", "2");
         props.put("strimzi.authorization.grants.refresh.period.seconds", "60");
-        props.put("strimzi.authorization.grants.retries", "1");
+        props.put("strimzi.authorization.http.retries", "1");
         props.put("super.users", "User:admin;User:service-account-kafka");
         props.put("principal.builder.class", "io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder");
 

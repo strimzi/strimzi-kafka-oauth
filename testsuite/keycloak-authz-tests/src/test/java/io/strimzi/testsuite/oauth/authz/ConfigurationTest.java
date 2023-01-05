@@ -32,8 +32,8 @@ public class ConfigurationTest {
         value = getLoggerAttribute(lines, "enableMetrics");
         Assert.assertEquals("'enableMetrics' should be true", "true", value);
 
-        value = getLoggerAttribute(lines, "grantsRetries");
-        Assert.assertEquals("'grantsRetries' should be 1", "1", value);
+        value = getLoggerAttribute(lines, "httpRetries");
+        Assert.assertEquals("'httpRetries' should be 1", "1", value);
     }
 
     private static String getLoggerAttribute(List<String> lines, String name) {

@@ -117,7 +117,7 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
  * <li><em>strimzi.authorization.grants.refresh.pool.size</em> The number of threads to fetch grants from token endpoint (in parallel).<br>
  * The default value is <em>5</em>
  * </li>
- * <li><em>strimzi.authorization.grants.retries</em> The number of times to retry fetch grants from token endpoint.<br>
+ * <li><em>strimzi.authorization.http.retries</em> The number of times to retry fetch grants from token endpoint.<br>
  * The retry is immediate without pausing due to the authorize() method holding up the Kafka worker thread. The default is <em>0</em> i.e. no retries.
  * </li>
  * <li><em>strimzi.authorization.connect.timeout.seconds</em> The maximum time to wait when establishing the connection to the authorization server.<br>
@@ -180,7 +180,7 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
     private int connectTimeoutSeconds;
     private int readTimeoutSeconds;
 
-    private int grantsRetries;
+    private int httpRetries;
 
     // Turning it to false will not enforce access token expiry time (only for debugging purposes during development)
     private final boolean denyWhenTokenInvalid = true;
@@ -245,7 +245,7 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
             setupRefreshGrantsJob(grantsRefreshPeriodSeconds);
         }
 
-        configureGrantsRetries(config);
+        configureHttpRetries(config);
 
         configureMetrics(configs, config);
 
@@ -266,7 +266,7 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
                     + "\n    superUsers: " + superUsers.stream().map(u -> "'" + u.getType() + ":" + u.getName() + "'").collect(Collectors.toList())
                     + "\n    grantsRefreshPeriodSeconds: " + grantsRefreshPeriodSeconds
                     + "\n    grantsRefreshPoolSize: " + grantsRefreshPoolSize
-                    + "\n    grantsRetries: " + grantsRetries
+                    + "\n    httpRetries: " + httpRetries
                     + "\n    connectTimeoutSeconds: " + connectTimeoutSeconds
                     + "\n    readTimeoutSeconds: " + readTimeoutSeconds
                     + "\n    enableMetrics: " + enableMetrics
@@ -288,10 +288,10 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
         }
     }
 
-    private void configureGrantsRetries(AuthzConfig config) {
-        grantsRetries = config.getValueAsInt(AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_RETRIES, 0);
-        if (grantsRetries < 0) {
-            throw new ConfigException("Invalid value of 'strimzi.authorization.grants.retries': " + grantsRetries + ". Has to be >= 0.");
+    private void configureHttpRetries(AuthzConfig config) {
+        httpRetries = config.getValueAsInt(AuthzConfig.STRIMZI_AUTHORIZATION_HTTP_RETRIES, 0);
+        if (httpRetries < 0) {
+            throw new ConfigException("Invalid value of 'strimzi.authorization.http.retries': " + httpRetries + ". Has to be >= 0.");
         }
     }
 
@@ -343,7 +343,7 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
         String[] keys = {
             AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_REFRESH_PERIOD_SECONDS,
             AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_REFRESH_POOL_SIZE,
-            AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_RETRIES,
+            AuthzConfig.STRIMZI_AUTHORIZATION_HTTP_RETRIES,
             AuthzConfig.STRIMZI_AUTHORIZATION_DELEGATE_TO_KAFKA_ACL,
             AuthzConfig.STRIMZI_AUTHORIZATION_KAFKA_CLUSTER_NAME,
             AuthzConfig.STRIMZI_AUTHORIZATION_CLIENT_ID,
@@ -661,7 +661,7 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
         JsonNode response = null;
         Throwable t = null;
         int i = 0;
-        while (i <= grantsRetries) {
+        while (i <= httpRetries) {
             i += 1;
 
             try {
@@ -674,12 +674,12 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
                 if (403 == e.getStatus() || 401 == e.getStatus()) {
                     throw e;
                 }
-                if (i > grantsRetries) {
+                if (i > httpRetries) {
                     throw e;
                 }
                 t = e;
             } catch (Exception e) {
-                if (i > grantsRetries) {
+                if (i > httpRetries) {
                     throw e;
                 }
                 t = e;
