@@ -77,6 +77,9 @@ public class OAuthAuthenticator {
         if (clientId == null) {
             throw new IllegalArgumentException("No clientId specified");
         }
+        if (clientSecret == null) {
+            clientSecret = "";
+        }
 
         String authorization = "Basic " + base64encode(clientId + ':' + clientSecret);
 
@@ -130,6 +133,9 @@ public class OAuthAuthenticator {
         }
         if (clientId == null) {
             throw new IllegalArgumentException("No clientId specified");
+        }
+        if (clientSecret == null) {
+            clientSecret = "";
         }
 
         String authorization = "Basic " + base64encode(clientId + ':' + clientSecret);

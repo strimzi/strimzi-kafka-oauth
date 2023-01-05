@@ -8,6 +8,7 @@ import io.strimzi.testsuite.oauth.common.TestContainersLogCollector;
 import io.strimzi.testsuite.oauth.common.TestContainersWatcher;
 import io.strimzi.testsuite.oauth.metrics.MetricsTest;
 import io.strimzi.testsuite.oauth.mockoauth.JaasClientConfigTest;
+import io.strimzi.testsuite.oauth.mockoauth.KeycloakAuthorizerTest;
 import io.strimzi.testsuite.oauth.mockoauth.PasswordAuthTest;
 
 import org.junit.ClassRule;
@@ -41,6 +42,9 @@ public class MockOAuthTests {
     public void runTests() throws Exception {
         try {
             System.setProperty("oauth.read.timeout.seconds", "600");
+
+            logStart("KeycloakAuthorizerTest :: Grants Retries Tests");
+            new KeycloakAuthorizerTest().doTest();
 
             logStart("MetricsTest :: Basic Metrics Tests");
             new MetricsTest().doTest();

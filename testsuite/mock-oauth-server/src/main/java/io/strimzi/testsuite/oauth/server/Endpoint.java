@@ -14,7 +14,9 @@ public enum Endpoint {
     SERVER,
     CLIENTS,
     USERS,
-    REVOCATIONS;
+    REVOCATIONS,
+    GRANTS,
+    FAILING_GRANTS;
 
     public static Endpoint fromString(String value) {
         return valueOf(value.toUpperCase(Locale.ROOT));
