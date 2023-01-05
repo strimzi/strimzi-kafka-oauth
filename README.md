@@ -707,7 +707,7 @@ As a result, the number of active tokens on the broker is generally less than th
 New sessions will, by default, request the latest grants from the Keycloak in order for any changes in permissions to be reflected immediately.
 You can change this, and reuse the grants for the token, if they have previously been fetched due to the same token already having been used
 for another session on the broker. This can noticeably reduce the load from brokers to the Keycloak and can also help alleviate 'glitchiness' issues
-addressed by `strimzi.authorization.grants.retries`. However, as a result, the grants initially used for the new session may be out-of-sync with
+addressed by `strimzi.authorization.http.retries`. However, as a result, the grants initially used for the new session may be out-of-sync with
 Keycloak for up to `strimzi.authorization.grants.refresh.period.seconds`.
 - `strimzi.authorization.reuse.grants` (e.g.: "true" - if enabled, then grants fetched for another session may be used)
 

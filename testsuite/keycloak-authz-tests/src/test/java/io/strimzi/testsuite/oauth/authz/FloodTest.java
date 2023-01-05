@@ -142,19 +142,9 @@ public class FloodTest extends Common {
         return lines.size();
     }
 
-    private void checkExistingGrantsLogCountDiff(int previousCount) {
-        int current = currentFoundExistingGrantsLogCount();
-        Assert.assertTrue("Expected many new 'Found existing' messages in the log (" + current + " vs. " + previousCount + ")", current - previousCount > 40);
-    }
-
     private int currentSemaphoreBlockLogCount() {
         List<String> lines = getContainerLogsForString(kafkaContainer, "Waiting on another thread to get grants");
         return lines.size();
-    }
-
-    private void checkSemaphoreBlockLogCountDiff(int previousCount) {
-        int current = currentSemaphoreBlockLogCount();
-        Assert.assertEquals("Expected some new 'Waiting on another thread' messages in the log", current - previousCount > 0);
     }
 
     private void sendSingleMessage(String clientId, String secret, String topic) throws ExecutionException, InterruptedException {
