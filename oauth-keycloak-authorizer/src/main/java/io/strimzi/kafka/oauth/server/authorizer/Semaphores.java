@@ -10,24 +10,45 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 class Semaphores<T> {
 
-    private final ConcurrentHashMap<String, SemaphoreFuture<T>> futures = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Semaphore<T>> futures = new ConcurrentHashMap<>();
 
-    SemaphoreFuture<T> acquireSemaphore(String key) {
-        return futures.computeIfAbsent(key, v -> new SemaphoreFuture<>());
+    SemaphoreResult<T> acquireSemaphore(String key) {
+        Semaphore<T> semaphore = futures.computeIfAbsent(key, v -> new Semaphore<>());
+        return new SemaphoreResult<>(semaphore);
     }
 
     void releaseSemaphore(String key) {
         futures.remove(key);
     }
 
-    class SemaphoreFuture<S> extends CompletableFuture<S> {
+    static class Semaphore<T> {
 
-        private final AtomicBoolean semaphore = new AtomicBoolean(true);
+        private final CompletableFuture<T> future = new CompletableFuture<>();
+        private final AtomicBoolean acquired = new AtomicBoolean(true);
 
-        private SemaphoreFuture() {}
+        private Semaphore() {}
 
-        public boolean tryAcquire() {
-            return semaphore.getAndSet(false);
+        private boolean tryAcquire() {
+            return acquired.getAndSet(false);
+        }
+    }
+
+    static class SemaphoreResult<T> {
+
+        private final boolean acquired;
+        private final CompletableFuture<T> future;
+
+        private SemaphoreResult(Semaphore<T> semaphore) {
+            this.acquired = semaphore.tryAcquire();
+            this.future = semaphore.future;
+        }
+
+        boolean acquired() {
+            return acquired;
+        }
+
+        CompletableFuture<T> future() {
+            return future;
         }
     }
 }

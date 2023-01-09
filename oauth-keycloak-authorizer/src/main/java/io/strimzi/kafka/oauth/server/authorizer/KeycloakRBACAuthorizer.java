@@ -559,10 +559,10 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
 
     private JsonNode handleFetchingGrants(BearerTokenWithPayload token) {
         // Fetch authorization grants
-        Semaphores<JsonNode>.SemaphoreFuture<JsonNode> future = semaphores.acquireSemaphore(token.value());
+        Semaphores.SemaphoreResult<JsonNode> semaphore = semaphores.acquireSemaphore(token.value());
 
         // Try to acquire semaphore for fetching grants
-        if (future.tryAcquire()) {
+        if (semaphore.acquired()) {
             // If acquired
             try {
                 JsonNode grants = null;
@@ -577,11 +577,11 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
                     log.debug("Found existing grants for the token on another session");
                 }
 
-                future.complete(grants);
+                semaphore.future().complete(grants);
                 return grants;
 
             } catch (Throwable t) {
-                future.completeExceptionally(t);
+                semaphore.future().completeExceptionally(t);
                 throw t;
             } finally {
                 semaphores.releaseSemaphore(token.value());
@@ -590,7 +590,7 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
         } else {
             try {
                 log.debug("Waiting on another thread to get grants");
-                return future.get();
+                return semaphore.future().get();
             } catch (ExecutionException e) {
                 Throwable cause = e.getCause();
                 if (cause instanceof ServiceException) {
