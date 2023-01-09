@@ -702,7 +702,7 @@ receive the `AuthorizationException`. The default value is '0', meaning 'no retr
 
 A single client typically uses a single unique access token for the concurrent sessions to the Kafka broker.
 As a result, the number of active tokens on the broker is generally less than the number of active sessions (connections).
- However, keep in mind that this is replicated across all Kafka brokers in the cluster, as clients maintain active sessions to multiple brokers.
+However, keep in mind that this is replicated across all Kafka brokers in the cluster, as clients maintain active sessions to multiple brokers.
 
 New sessions will, by default, request the latest grants from the Keycloak in order for any changes in permissions to be reflected immediately.
 You can change this, and reuse the grants for the token, if they have previously been fetched due to the same token already having been used
