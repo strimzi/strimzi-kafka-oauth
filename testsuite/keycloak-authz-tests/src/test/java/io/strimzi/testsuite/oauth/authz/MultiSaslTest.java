@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -22,6 +23,7 @@ import static io.strimzi.testsuite.oauth.authz.Common.buildProducerConfigOAuthBe
 import static io.strimzi.testsuite.oauth.authz.Common.buildProducerConfigPlain;
 import static io.strimzi.testsuite.oauth.authz.Common.buildProducerConfigScram;
 import static io.strimzi.testsuite.oauth.common.TestMetrics.getPrometheusMetrics;
+import static io.strimzi.testsuite.oauth.common.TestUtil.getContainerLogsForString;
 
 public class MultiSaslTest {
 
@@ -30,7 +32,13 @@ public class MultiSaslTest {
     private static final String JWT_LISTENER = "kafka:9092";
     private static final String JWTPLAIN_LISTENER = "kafka:9094";
 
-    public static void doTest() throws Exception {
+    private final String kafkaContainer;
+
+    MultiSaslTest(String kafkaContainer) {
+        this.kafkaContainer = kafkaContainer;
+    }
+
+    public void doTest() throws Exception {
 
         // bobby:bobby-secret
         String username = "bobby";
@@ -118,6 +126,10 @@ public class MultiSaslTest {
         } catch (Exception ignored) {
         }
 
+        // Test the grants reuse feature
+        int fetchGrantsCount = currentFetchGrantsLogCount();
+        checkAuthorizationGrantsReuse(0);
+
         // Producing to JWT listener using SASL/OAUTHBEARER using access token should succeed
         String accessToken = Common.loginWithUsernamePassword(
                 URI.create("http://keycloak:8080/auth/realms/kafka-authz/protocol/openid-connect/token"),
@@ -125,13 +137,40 @@ public class MultiSaslTest {
         producerProps = producerConfigOAuthBearerAccessToken(JWT_LISTENER, accessToken);
         produceToTopic("KeycloakAuthorizationTest-multiSaslTest-oauthbearer", producerProps);
 
+        // Test the grants reuse feature
+        checkAuthorizationGrantsReuse(2);
+        checkGrantsFetchCountDiff(fetchGrantsCount);
+
         // producing to JWTPLAIN listener using SASL/PLAIN using $accessToken should succeed
         producerProps = producerConfigPlain(JWTPLAIN_LISTENER, username, "$accessToken:" + accessToken);
         produceToTopic("KeycloakAuthorizationTest-multiSaslTest-oauth-over-plain", producerProps);
 
+        // Test the grants reuse feature
+        checkGrantsFetchCountDiff(fetchGrantsCount);
+
         // check metrics
         checkAuthorizationRequestsMetrics(authHostPort, tokenPath);
         checkGrantsMetrics(authHostPort, tokenPath);
+    }
+
+    private void checkAuthorizationGrantsReuse(int numberOfReuses) {
+        List<String> lines = getContainerLogsForString(kafkaContainer, "Found existing grants for the token on another session");
+
+        if (numberOfReuses == 0) {
+            Assert.assertEquals("There should be no reuse of existing grants in Kafka log yet", 0, lines.size());
+        } else {
+            Assert.assertEquals("There should be " + numberOfReuses + " of reuses of existing grants in Kafka log", numberOfReuses, lines.size());
+        }
+    }
+
+    private int currentFetchGrantsLogCount() {
+        List<String> lines = getContainerLogsForString(kafkaContainer, "Fetching grants from Keycloak");
+        return lines.size();
+    }
+
+    private void checkGrantsFetchCountDiff(int previousFetchGrantsCount) {
+        int current = currentFetchGrantsLogCount();
+        Assert.assertEquals("Expected one grants fetch", 1, current - previousFetchGrantsCount);
     }
 
     private static void checkGrantsMetrics(String authHostPort, String tokenPath) throws IOException {

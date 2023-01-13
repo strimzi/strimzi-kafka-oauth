@@ -656,7 +656,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
     static class BearerTokenWithPayloadImpl implements BearerTokenWithPayload {
 
         private final TokenInfo ti;
-        private Object payload;
+        private volatile Object payload;
 
         BearerTokenWithPayloadImpl(TokenInfo ti) {
             if (ti == null) {
@@ -666,12 +666,12 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         }
 
         @Override
-        public Object getPayload() {
+        public synchronized Object getPayload() {
             return payload;
         }
 
         @Override
-        public void setPayload(Object value) {
+        public synchronized void setPayload(Object value) {
             payload = value;
         }
 

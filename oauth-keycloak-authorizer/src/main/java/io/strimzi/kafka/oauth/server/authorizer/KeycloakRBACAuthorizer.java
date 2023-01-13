@@ -182,6 +182,8 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
 
     private int httpRetries;
 
+    private boolean reuseGrants;
+
     // Turning it to false will not enforce access token expiry time (only for debugging purposes during development)
     private final boolean denyWhenTokenInvalid = true;
 
@@ -191,7 +193,7 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
     private boolean enableMetrics;
     private SensorKeyProducer authzSensorKeyProducer;
     private SensorKeyProducer grantsSensorKeyProducer;
-
+    private final Semaphores<JsonNode> semaphores = new Semaphores<>();
     public KeycloakRBACAuthorizer() {
         super();
     }
@@ -245,6 +247,8 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
             setupRefreshGrantsJob(grantsRefreshPeriodSeconds);
         }
 
+        reuseGrants = config.getValueAsBoolean(AuthzConfig.STRIMZI_AUTHORIZATION_REUSE_GRANTS, false);
+
         configureHttpRetries(config);
 
         configureMetrics(configs, config);
@@ -267,6 +271,7 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
                     + "\n    grantsRefreshPeriodSeconds: " + grantsRefreshPeriodSeconds
                     + "\n    grantsRefreshPoolSize: " + grantsRefreshPoolSize
                     + "\n    httpRetries: " + httpRetries
+                    + "\n    reuseGrants: " + reuseGrants
                     + "\n    connectTimeoutSeconds: " + connectTimeoutSeconds
                     + "\n    readTimeoutSeconds: " + readTimeoutSeconds
                     + "\n    enableMetrics: " + enableMetrics
@@ -329,7 +334,7 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
     /**
      * This method extracts the key=value configuration entries relevant for KeycloakRBACAuthorizer from
      * Kafka properties configuration file (server.properties) and wraps them with AuthzConfig instance.
-     *
+     * <p>
      * Any new config options have to be added here in order to become visible, otherwise they will be ignored.
      *
      * @param configs Kafka configs map
@@ -344,6 +349,7 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
             AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_REFRESH_PERIOD_SECONDS,
             AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_REFRESH_POOL_SIZE,
             AuthzConfig.STRIMZI_AUTHORIZATION_HTTP_RETRIES,
+            AuthzConfig.STRIMZI_AUTHORIZATION_REUSE_GRANTS,
             AuthzConfig.STRIMZI_AUTHORIZATION_DELEGATE_TO_KAFKA_ACL,
             AuthzConfig.STRIMZI_AUTHORIZATION_KAFKA_CLUSTER_NAME,
             AuthzConfig.STRIMZI_AUTHORIZATION_CLIENT_ID,
@@ -406,10 +412,10 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
 
     /**
      * The method that makes the authorization decision.
-     *
+     * <p>
      * We assume authorize() is thread-safe in a sense that there will not be two concurrent threads
      * calling it at the same time for the same session.
-     *
+     * <p>
      * Should that not be the case, the side effect could be to make more calls to token endpoint than necessary.
      * Other than that it should not affect proper functioning of this authorizer.
      *
@@ -549,11 +555,60 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
         return false;
     }
 
+
+
     private JsonNode handleFetchingGrants(BearerTokenWithPayload token) {
         // Fetch authorization grants
-        JsonNode grants = null;
+        Semaphores.SemaphoreResult<JsonNode> semaphore = semaphores.acquireSemaphore(token.value());
 
+        // Try to acquire semaphore for fetching grants
+        if (semaphore.acquired()) {
+            // If acquired
+            try {
+                JsonNode grants = null;
+                if (reuseGrants) {
+                    // If reuseGrants is enabled, first try to get the grants from one of the existing sessions having the same access token
+                    grants = lookupGrantsInExistingSessions(token);
+                }
+                if (grants == null) {
+                    // If grants not available it is on us to fetch (others may be waiting)
+                    grants = fetchAndStoreGrants(token);
+                } else {
+                    log.debug("Found existing grants for the token on another session");
+                }
+
+                semaphore.future().complete(grants);
+                return grants;
+
+            } catch (Throwable t) {
+                semaphore.future().completeExceptionally(t);
+                throw t;
+            } finally {
+                semaphores.releaseSemaphore(token.value());
+            }
+
+        } else {
+            try {
+                log.debug("Waiting on another thread to get grants");
+                return semaphore.future().get();
+            } catch (ExecutionException e) {
+                Throwable cause = e.getCause();
+                if (cause instanceof ServiceException) {
+                    throw (ServiceException) cause;
+                } else {
+                    throw new ServiceException("ExecutionException waiting for grants result: ", e);
+                }
+            } catch (InterruptedException e) {
+                throw new ServiceException("InterruptedException waiting for grants result: ", e);
+            }
+        }
+    }
+
+    private JsonNode fetchAndStoreGrants(BearerTokenWithPayload token) {
+        // If no grants found, fetch grants from server
+        JsonNode grants = null;
         try {
+            log.debug("Fetching grants from Keycloak");
             grants = fetchAuthorizationGrants(token.value());
             if (grants == null) {
                 log.debug("Received null grants for token: {}", mask(token.value()));
@@ -567,11 +622,19 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
             }
         }
         if (grants != null) {
-            // Store authz grants in the token so they are available for subsequent requests
+            // Store authz grants in the token, so they are available for subsequent requests
             log.debug("Saving non-null grants for token: {}", mask(token.value()));
             token.setPayload(grants);
         }
         return grants;
+    }
+
+    private static JsonNode lookupGrantsInExistingSessions(BearerTokenWithPayload token) {
+        Sessions sessions = Services.getInstance().getSessions();
+        BearerTokenWithPayload existing = sessions.findFirst(t ->
+            t.value().equals(token.value()) && t.getPayload() != null
+        );
+        return existing != null ? (JsonNode) existing.getPayload() : null;
     }
 
     static List<ScopesSpec.AuthzScope> validateScopes(List<String> scopes) {
@@ -649,11 +712,11 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
     /**
      * Method that performs the POST request to fetch grants for the token.
      * In case of a connection failure or a non-200 status response this method immediately retries the request if so configured.
-     *
+     * <p>
      * Status 401 does not trigger a retry since it is used to signal an invalid token.
      * Status 403 does not trigger a retry either since it signals no permissions.
      *
-     * @param token
+     * @param token The raw access token
      * @return Grants JSON response
      */
     private JsonNode fetchAuthorizationGrants(String token) {
