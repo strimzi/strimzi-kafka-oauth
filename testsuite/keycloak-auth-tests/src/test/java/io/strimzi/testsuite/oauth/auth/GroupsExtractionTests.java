@@ -32,12 +32,12 @@ public class GroupsExtractionTests {
     }
 
     private void groupsExtractionWithJwtTest() throws Exception {
-        System.out.println("==== KeycloakAuthenticationTest :: groupsExtractionWithJwtTest ====");
+        System.out.println("    ====    KeycloakAuthenticationTest :: groupsExtractionWithJwtTest");
         runTest("kafka:9098", "principalName: service-account-team-b-client, groups: [offline_access, Dev Team B]");
     }
 
     private void groupsExtractionWithIntrospectionTest() throws Exception {
-        System.out.println("==== KeycloakAuthenticationTest :: groupsExtractionWithIntrospectionTest ====");
+        System.out.println("    ====    KeycloakAuthenticationTest :: groupsExtractionWithIntrospectionTest");
         runTest("kafka:9099", "principalName: service-account-team-b-client, groups: [kafka-user]");
     }
 

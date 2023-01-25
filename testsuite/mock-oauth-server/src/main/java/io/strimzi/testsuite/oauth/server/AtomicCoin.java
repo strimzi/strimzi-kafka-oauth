@@ -25,4 +25,8 @@ public class AtomicCoin {
     public boolean isFaceUp() {
         return counter.get() % 2 == 1;
     }
+
+    public void setFaceUp(boolean faceup) {
+        counter.set(faceup ? 1 : 0);
+    }
 }

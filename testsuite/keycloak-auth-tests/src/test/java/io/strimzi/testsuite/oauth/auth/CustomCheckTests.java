@@ -28,12 +28,12 @@ public class CustomCheckTests {
     }
 
     private static void customClaimCheckWithJwtTest() throws Exception {
-        System.out.println("==== KeycloakAuthenticationTest :: customClaimCheckWithJwtTest ====");
+        System.out.println("    ====    KeycloakAuthenticationTest :: customClaimCheckWithJwtTest");
         runTest("kafka:9098");
     }
 
     private static void customClaimCheckWithIntrospectionTest() throws Exception {
-        System.out.println("==== KeycloakAuthenticationTest :: customClaimCheckWithIntrospectionTest ====");
+        System.out.println("    ====    KeycloakAuthenticationTest :: customClaimCheckWithIntrospectionTest");
         runTest("kafka:9099");
     }
 

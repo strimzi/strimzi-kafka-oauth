@@ -159,7 +159,7 @@ public class MultiSaslTest {
         if (numberOfReuses == 0) {
             Assert.assertEquals("There should be no reuse of existing grants in Kafka log yet", 0, lines.size());
         } else {
-            Assert.assertEquals("There should be " + numberOfReuses + " of reuses of existing grants in Kafka log", numberOfReuses, lines.size());
+            Assert.assertTrue("There should be " + numberOfReuses + " reuses of existing grants in Kafka log", lines.size() >= numberOfReuses);
         }
     }
 

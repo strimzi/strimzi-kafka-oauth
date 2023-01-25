@@ -30,6 +30,8 @@ public class Config {
     public static final String OAUTH_ACCESS_TOKEN_IS_JWT = "oauth.access.token.is.jwt";
     public static final String OAUTH_CONNECT_TIMEOUT_SECONDS = "oauth.connect.timeout.seconds";
     public static final String OAUTH_READ_TIMEOUT_SECONDS = "oauth.read.timeout.seconds";
+    public static final String OAUTH_HTTP_RETRIES = "oauth.http.retries";
+    public static final String OAUTH_HTTP_RETRY_PAUSE_MILLIS = "oauth.http.retry.pause.millis";
     public static final String OAUTH_CONFIG_ID = "oauth.config.id";
     public static final String OAUTH_ENABLE_METRICS = "oauth.enable.metrics";
 

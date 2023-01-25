@@ -73,7 +73,7 @@ public class FloodTest extends Common {
             }
             this.tokens = tokens;
         }
-        System.out.println("   === Test sending to unauthorized topic");
+        System.out.println("    ====    Test sending to unauthorized topic");
         // Try write to the mismatched topic - we should get AuthorizationException
         try {
             sendSingleMessage("kafka-producer-client-1", "kafka-producer-client-1-secret", "messages-2");
@@ -110,7 +110,7 @@ public class FloodTest extends Common {
         }
 
         System.out.println();
-        System.out.println("   === Test flooding a single topic using kafka-producer-client-1 and kafka-consumer-client-1");
+        System.out.println("    ====    Test flooding a single topic using kafka-producer-client-1 and kafka-consumer-client-1");
         System.out.println();
 
         // Now try the same with a single topic

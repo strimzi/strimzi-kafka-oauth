@@ -8,6 +8,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
 import io.strimzi.kafka.oauth.common.HttpUtil;
+import io.strimzi.kafka.oauth.common.OAuthAuthenticator;
+import io.strimzi.kafka.oauth.common.PrincipalExtractor;
+import io.strimzi.kafka.oauth.common.SSLUtil;
 import io.strimzi.kafka.oauth.common.TimeUtil;
 import io.strimzi.kafka.oauth.common.TokenInfo;
 import io.strimzi.testsuite.oauth.metrics.Metrics;
@@ -160,6 +163,21 @@ public class Common {
             throw new IllegalStateException("Invalid response from authorization server: no access_token");
         }
         return token.asText();
+    }
+
+    static String loginWithClientSecret(String tokenEndpoint, String clientId, String secret, String truststorePath, String truststorePass) throws IOException {
+        TokenInfo tokenInfo = OAuthAuthenticator.loginWithClientSecret(
+                URI.create(tokenEndpoint),
+                SSLUtil.createSSLFactory(truststorePath, null, truststorePass, null, null),
+                null,
+                clientId,
+                secret,
+                true,
+                new PrincipalExtractor(),
+                "all",
+                null);
+
+        return tokenInfo.token();
     }
 
     /**

@@ -430,6 +430,16 @@ If the user id could not be extracted from Introspection Endpoint response, then
 When you have a DEBUG logging configured for the `io.strimzi` category you may need to specify the following to prevent warnings about access token not being JWT:
 - `oauth.access.token.is.jwt` (e.g.: "false")
 
+Sometimes the network of the deployment environment may be glitchy resulting in intermittent connection problems. By default, a failed request to the Introspection Endpoint or the User Info Endpoint
+will result in immediate failed validation and `AuthenticationException` returned to the Kafka client application. The following option enables reattempting the request to either endpoint.
+The default value is '0', meaning 'no retries'. Provide the value greater than '0' to set the number of repeated attempts:
+- `oauth.http.retries` (e.g.: "1" - if initial request fails, retry one more time)
+
+You may also specify a pause time between requests in order not to flood the authorization server. Keep in mind though that this is holding up a request processing thread in the Kafka broker, which may result
+in the pool of worker threads to become exhausted, and broker possibly unavailable even to the clients connecting to the listeners not configured with OAuth.
+The default value is '0', meaning 'no pause'. Provide the value greater than '0' to set the pause time between attempts in milliseconds: 
+- `oauth.http.retry.pause.millis` (e.g.: "500" - if a retry is attempted, there will first be a half-a-second pause)
+
 ###### Custom claim checking
 
 You may want to place additional constraints on who can authenticate to your Kafka broker based on the content of JWT access token.
@@ -517,6 +527,10 @@ If this option is not specified the listener treats the `username` parameter of 
 However, if this option is specified, the listener, by default, performs `client_credentials` authentication to obtain the access token in the name of the connecting client. It treats the `username` and `password` parameters of SASL/PLAIN authentication as `clientId` and `secret` for `client_credentials` authentication, which the server performs against the authorization server to obtain an access token in client's name. In this mode the client can still authenticate with an access token directly, by specifying the account name as a `username` and specifying the raw access token prepended by a prefix `$accessToken:` as a `password` parameter of SASL/PLAIN authentication. In this case the raw access token will be extracted from the `password` parameter by removing the prefix, and passed directly for validation.
 
 We can also say that by not configuring the `oauth.token.endpoint.uri` we disable `client_credentials` authentication over PLAIN.
+
+When connecting to the token endpoint the listener's configuration options `oauth.http.retries` and `oauth.http.retry.pause.millis` will be used to control what to do if the request to the endpoint fails due to a network issue, a timeout, or unexpected response status.
+It means that you can set these options on the listener that uses `oauth.jwks.endpoint.uri` as well as on one that uses `oauth.introspection.endpoint.uri`.
+
 
 ##### Configuring the client side of inter-broker communication
 
@@ -968,6 +982,21 @@ If you have DEBUG logging turned on for `io.strimzi`, and are using opaque (non 
 
 When setting this to `false` the client library will not attempt to parse and introspect the token as if it was JWT.
 
+If your Kafka client applications are deployed in unreliable network environment, and the requests to your authorization server are failing intermittently, 
+you can use the following options to control automatic retries to obtain the token.
+
+By default, a failed request to the Token Endpoint will result in immediate failure and may result in `AuthenticationException`. 
+The following option enables retrying the request.
+
+The default value is '0', meaning 'no retries'. Provide the value greater than '0' to set the number of repeated attempts:
+- `oauth.http.retries` (e.g.: "1" - if initial request fails, retry one more time)
+
+You may also specify a pause time between requests in order not to flood the authorization server.
+
+The default value is '0', meaning 'no pause'. Provide the value greater than '0' to set the pause time between attempts in milliseconds:
+- `oauth.http.retry.pause.millis` (e.g.: "500" - if a retry is attempted, there will first be a half-a-second pause)
+
+
 ### Configuring the re-authentication on the client
 
 Java based clients using Kafka client library 2.2 or later will automatically perform re-authentication if the broker supports it.
@@ -981,7 +1010,7 @@ There are several Kafka client properties that control how the client refreshes 
 
 Also keep in mind that if configuring the client token by using `oauth.access.token` property (manually obtaining it first), there is no way to automatically refresh such a token, and thus the re-authentication will use the already expired token one more time, resulting in authentication failure, and closure of the connection.
 
-Note, that client-side token refresh works independently from re-authentication in the sense that it refreshes the token as necessary based on token's expiry information.
+Note, that client-side token refresh works independently of re-authentication in the sense that it refreshes the token as necessary based on token's expiry information.
 Once the token is obtained by the client, it is cached and re-used for multiple authentication attempts possibly across multiple connections.
 If AuthenticationException occurs, that does not trigger the token refresh on the client.
 The only way to force the Java client library to perform token refresh is to re-initialise the KafkaProducer / KafkaConsumer. 

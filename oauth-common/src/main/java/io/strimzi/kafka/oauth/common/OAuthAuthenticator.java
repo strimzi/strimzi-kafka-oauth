@@ -16,10 +16,12 @@ import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.concurrent.ExecutionException;
 
 import static io.strimzi.kafka.oauth.common.LogUtil.mask;
 import static io.strimzi.kafka.oauth.common.TokenIntrospection.introspectAccessToken;
 
+@SuppressWarnings("checkstyle:parameternumber")
 public class OAuthAuthenticator {
 
     private static final Logger log = LoggerFactory.getLogger(OAuthAuthenticator.class);
@@ -51,7 +53,7 @@ public class OAuthAuthenticator {
                                                   PrincipalExtractor principalExtractor, String scope) throws IOException {
 
         return loginWithClientSecret(tokenEndpointUrl, socketFactory, hostnameVerifier,
-                clientId, clientSecret, isJwt, principalExtractor, scope, null, HttpUtil.DEFAULT_CONNECT_TIMEOUT, HttpUtil.DEFAULT_READ_TIMEOUT, null);
+                clientId, clientSecret, isJwt, principalExtractor, scope, null, HttpUtil.DEFAULT_CONNECT_TIMEOUT, HttpUtil.DEFAULT_READ_TIMEOUT, null, 0, 0);
     }
 
     public static TokenInfo loginWithClientSecret(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
@@ -60,7 +62,7 @@ public class OAuthAuthenticator {
                                                   PrincipalExtractor principalExtractor, String scope, String audience) throws IOException {
 
         return loginWithClientSecret(tokenEndpointUrl, socketFactory, hostnameVerifier,
-                clientId, clientSecret, isJwt, principalExtractor, scope, audience, HttpUtil.DEFAULT_CONNECT_TIMEOUT, HttpUtil.DEFAULT_READ_TIMEOUT, null);
+                clientId, clientSecret, isJwt, principalExtractor, scope, audience, HttpUtil.DEFAULT_CONNECT_TIMEOUT, HttpUtil.DEFAULT_READ_TIMEOUT, null, 0, 0);
     }
 
     @SuppressWarnings("checkstyle:ParameterNumber")
@@ -68,10 +70,10 @@ public class OAuthAuthenticator {
                                                   HostnameVerifier hostnameVerifier,
                                                   String clientId, String clientSecret, boolean isJwt,
                                                   PrincipalExtractor principalExtractor, String scope, String audience,
-                                                  int connectTimeout, int readTimeout, MetricsHandler metrics) throws IOException {
+                                                  int connectTimeout, int readTimeout, MetricsHandler metrics, int retries, long retryPauseMillis) throws IOException {
         if (log.isDebugEnabled()) {
-            log.debug("loginWithClientSecret() - tokenEndpointUrl: {}, clientId: {}, clientSecret: {}, scope: {}, audience: {}, connectTimeout: {}, readTimeout: {}",
-                    tokenEndpointUrl, clientId, mask(clientSecret), scope, audience, connectTimeout, readTimeout);
+            log.debug("loginWithClientSecret() - tokenEndpointUrl: {}, clientId: {}, clientSecret: {}, scope: {}, audience: {}, connectTimeout: {}, readTimeout: {}, retries: {}, retryPauseMillis: {}",
+                    tokenEndpointUrl, clientId, mask(clientSecret), scope, audience, connectTimeout, readTimeout, retries, retryPauseMillis);
         }
 
         if (clientId == null) {
@@ -91,7 +93,7 @@ public class OAuthAuthenticator {
             body.append("&audience=").append(urlencode(audience));
         }
 
-        return post(tokenEndpointUrl, socketFactory, hostnameVerifier, authorization, body.toString(), isJwt, principalExtractor, connectTimeout, readTimeout, metrics);
+        return post(tokenEndpointUrl, socketFactory, hostnameVerifier, authorization, body.toString(), isJwt, principalExtractor, connectTimeout, readTimeout, metrics, retries, retryPauseMillis);
     }
 
     public static TokenInfo loginWithPassword(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
@@ -101,7 +103,7 @@ public class OAuthAuthenticator {
                                               PrincipalExtractor principalExtractor, String scope, String audience) throws IOException {
 
         return loginWithPassword(tokenEndpointUrl, socketFactory, hostnameVerifier,
-                username, password, clientId, clientSecret, isJwt, principalExtractor, scope, audience, HttpUtil.DEFAULT_CONNECT_TIMEOUT, HttpUtil.DEFAULT_READ_TIMEOUT, null);
+                username, password, clientId, clientSecret, isJwt, principalExtractor, scope, audience, HttpUtil.DEFAULT_CONNECT_TIMEOUT, HttpUtil.DEFAULT_READ_TIMEOUT, null, 0, 0);
     }
 
 
@@ -109,10 +111,10 @@ public class OAuthAuthenticator {
                                               HostnameVerifier hostnameVerifier,
                                               String username, String password,
                                               String clientId, String clientSecret, boolean isJwt,
-                                              PrincipalExtractor principalExtractor, String scope, String audience, int connectTimeout, int readTimeout) throws IOException {
+                                              PrincipalExtractor principalExtractor, String scope, String audience, int connectTimeout, int readTimeout, int retries, long retryPauseMillis) throws IOException {
 
         return loginWithPassword(tokenEndpointUrl, socketFactory, hostnameVerifier,
-                username, password, clientId, clientSecret, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout, null);
+                username, password, clientId, clientSecret, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout, null, retries, retryPauseMillis);
     }
 
     @SuppressWarnings("checkstyle:ParameterNumber")
@@ -121,11 +123,11 @@ public class OAuthAuthenticator {
                                                   String username, String password,
                                                   String clientId, String clientSecret, boolean isJwt,
                                                   PrincipalExtractor principalExtractor, String scope, String audience,
-                                                  int connectTimeout, int readTimeout, MetricsHandler metrics) throws IOException {
+                                                  int connectTimeout, int readTimeout, MetricsHandler metrics, int retries, long retryPauseMillis) throws IOException {
 
         if (log.isDebugEnabled()) {
-            log.debug("loginWithPassword() - tokenEndpointUrl: {}, username: {}, password: {}, clientId: {}, clientSecret: {}, scope: {}, audience: {}, connectTimeout: {}, readTimeout: {}",
-                    tokenEndpointUrl, username, mask(password), clientId, mask(clientSecret), scope, audience, connectTimeout, readTimeout);
+            log.debug("loginWithPassword() - tokenEndpointUrl: {}, username: {}, password: {}, clientId: {}, clientSecret: {}, scope: {}, audience: {}, connectTimeout: {}, readTimeout: {}, retries: {}, retryPauseMillis: {}",
+                    tokenEndpointUrl, username, mask(password), clientId, mask(clientSecret), scope, audience, connectTimeout, readTimeout, retries, retryPauseMillis);
         }
 
         if (username == null) {
@@ -152,7 +154,7 @@ public class OAuthAuthenticator {
             body.append("&audience=").append(urlencode(audience));
         }
 
-        return post(tokenEndpointUrl, socketFactory, hostnameVerifier, authorization, body.toString(), isJwt, principalExtractor, connectTimeout, readTimeout, metrics);
+        return post(tokenEndpointUrl, socketFactory, hostnameVerifier, authorization, body.toString(), isJwt, principalExtractor, connectTimeout, readTimeout, metrics, retries, retryPauseMillis);
     }
 
     public static TokenInfo loginWithRefreshToken(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
@@ -169,25 +171,25 @@ public class OAuthAuthenticator {
                                                   String clientId, String clientSecret, boolean isJwt,
                                                   PrincipalExtractor principalExtractor, String scope, String audience) throws IOException {
         return loginWithRefreshToken(tokenEndpointUrl, socketFactory, hostnameVerifier,
-                refreshToken, clientId, clientSecret, isJwt, principalExtractor, scope, audience, HttpUtil.DEFAULT_CONNECT_TIMEOUT, HttpUtil.DEFAULT_READ_TIMEOUT);
+                refreshToken, clientId, clientSecret, isJwt, principalExtractor, scope, audience, HttpUtil.DEFAULT_CONNECT_TIMEOUT, HttpUtil.DEFAULT_READ_TIMEOUT, 0, 0);
     }
 
     public static TokenInfo loginWithRefreshToken(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
                                                   HostnameVerifier hostnameVerifier, String refreshToken,
                                                   String clientId, String clientSecret, boolean isJwt,
                                                   PrincipalExtractor principalExtractor, String scope, String audience,
-                                                  int connectTimeout, int readTimeout) throws IOException {
-        return loginWithRefreshToken(tokenEndpointUrl, socketFactory, hostnameVerifier, refreshToken, clientId, clientSecret, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout, null);
+                                                  int connectTimeout, int readTimeout, int retries, long retryPauseMillis) throws IOException {
+        return loginWithRefreshToken(tokenEndpointUrl, socketFactory, hostnameVerifier, refreshToken, clientId, clientSecret, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout, null, retries, retryPauseMillis);
     }
 
     public static TokenInfo loginWithRefreshToken(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
                                                   HostnameVerifier hostnameVerifier, String refreshToken,
                                                   String clientId, String clientSecret, boolean isJwt,
                                                   PrincipalExtractor principalExtractor, String scope, String audience,
-                                                  int connectTimeout, int readTimeout, MetricsHandler metrics) throws IOException {
+                                                  int connectTimeout, int readTimeout, MetricsHandler metrics, int retries, long retryPauseMillis) throws IOException {
         if (log.isDebugEnabled()) {
-            log.debug("loginWithRefreshToken() - tokenEndpointUrl: {}, refreshToken: {}, clientId: {}, clientSecret: {}, scope: {}, audience: {}, connectTimeout: {}, readTimeout: {}",
-                    tokenEndpointUrl, refreshToken, clientId, mask(clientSecret), scope, audience, connectTimeout, readTimeout);
+            log.debug("loginWithRefreshToken() - tokenEndpointUrl: {}, refreshToken: {}, clientId: {}, clientSecret: {}, scope: {}, audience: {}, connectTimeout: {}, readTimeout: {}, retries: {}, retryPauseMillis: {}",
+                    tokenEndpointUrl, refreshToken, clientId, mask(clientSecret), scope, audience, connectTimeout, readTimeout, retries, retryPauseMillis);
         }
 
         if (refreshToken == null) {
@@ -209,36 +211,54 @@ public class OAuthAuthenticator {
             body.append("&audience=").append(urlencode(audience));
         }
 
-        return post(tokenEndpointUrl, socketFactory, hostnameVerifier, authorization, body.toString(), isJwt, principalExtractor, connectTimeout, readTimeout, metrics);
+        return post(tokenEndpointUrl, socketFactory, hostnameVerifier, authorization, body.toString(), isJwt, principalExtractor, connectTimeout, readTimeout, metrics, retries, retryPauseMillis);
     }
 
     private static TokenInfo post(URI tokenEndpointUri, SSLSocketFactory socketFactory, HostnameVerifier hostnameVerifier,
                                   String authorization, String body, boolean isJwt, PrincipalExtractor principalExtractor,
-                                  int connectTimeout, int readTimeout, MetricsHandler metrics) throws IOException {
+                                  int connectTimeout, int readTimeout, MetricsHandler metrics, int retries, long retryPauseMillis) throws IOException {
 
-        long now = System.currentTimeMillis();
         JsonNode result;
         try {
-            result = HttpUtil.post(tokenEndpointUri,
-                    socketFactory,
-                    hostnameVerifier,
-                    authorization,
-                    "application/x-www-form-urlencoded",
-                    body,
-                    JsonNode.class,
-                    connectTimeout,
-                    readTimeout);
+            result = HttpUtil.doWithRetries(retries, retryPauseMillis, () -> {
 
-            if (metrics != null) {
-                metrics.addSuccessRequestTime(System.currentTimeMillis() - now);
-            }
+                JsonNode r;
+                long now = System.currentTimeMillis();
+                try {
+                    r = HttpUtil.post(tokenEndpointUri,
+                            socketFactory,
+                            hostnameVerifier,
+                            authorization,
+                            "application/x-www-form-urlencoded",
+                            body,
+                            JsonNode.class,
+                            connectTimeout,
+                            readTimeout);
+
+                    if (metrics != null) {
+                        metrics.addSuccessRequestTime(System.currentTimeMillis() - now);
+                    }
+                    return r;
+
+                } catch (Throwable t) {
+                    if (metrics != null) {
+                        metrics.addErrorRequestTime(t, System.currentTimeMillis() - now);
+                    }
+                    throw t;
+                }
+            });
 
         } catch (Throwable e) {
-            if (metrics != null) {
-                metrics.addErrorRequestTime(e, System.currentTimeMillis() - now);
+            Throwable cause = e;
+            if (e instanceof ExecutionException) {
+                cause = e.getCause();
             }
-            throw e;
+            if (cause instanceof IOException) {
+                throw (IOException) cause;
+            }
+            throw new IllegalStateException("Unexpected exception while sending HTTP POST request", cause);
         }
+
         JsonNode token = result.get("access_token");
         if (token == null) {
             throw new IllegalStateException("Invalid response from authorization server: no access_token");
@@ -262,6 +282,8 @@ public class OAuthAuthenticator {
             }
         }
 
+        // If token is not a JWT token - we can't introspect it
+        long now = System.currentTimeMillis();
         return new TokenInfo(token.asText(), scope != null ? scope.asText() : null, "undefined", null, now, now + expiresIn.asLong() * 1000L);
     }
 

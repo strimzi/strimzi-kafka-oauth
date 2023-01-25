@@ -721,35 +721,31 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
      */
     private JsonNode fetchAuthorizationGrants(String token) {
 
-        JsonNode response = null;
-        Throwable t = null;
         int i = 0;
-        while (i <= httpRetries) {
+        do {
             i += 1;
 
             try {
-                if (t != null) {
-                    log.info("Failed to fetch grants. Will retry (attempt no. " + i + ")", t);
+                if (i > 1) {
+                    log.debug("Grants request attempt no. " + i);
                 }
-                response = fetchAuthorizationGrantsOnce(token);
-                break;
-            } catch (HttpException e) {
-                if (403 == e.getStatus() || 401 == e.getStatus()) {
-                    throw e;
-                }
-                if (i > httpRetries) {
-                    throw e;
-                }
-                t = e;
-            } catch (Exception e) {
-                if (i > httpRetries) {
-                    throw e;
-                }
-                t = e;
-            }
-        }
+                return fetchAuthorizationGrantsOnce(token);
 
-        return response;
+            } catch (Exception e) {
+                if (e instanceof HttpException) {
+                    int status = ((HttpException) e).getStatus();
+                    if (403 == status || 401 == status) {
+                        throw e;
+                    }
+                }
+
+                log.info("Failed to fetch grants on try no. " + i, e);
+                if (i > httpRetries) {
+                    log.debug("Failed to fetch grants after " + i + " tries");
+                    throw e;
+                }
+            }
+        } while (true);
     }
 
     private JsonNode fetchAuthorizationGrantsOnce(String token) {

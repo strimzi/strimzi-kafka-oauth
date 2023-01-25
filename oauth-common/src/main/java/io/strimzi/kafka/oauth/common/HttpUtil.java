@@ -20,6 +20,7 @@ import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.ExecutionException;
 
 import static io.strimzi.kafka.oauth.common.ConfigUtil.getConnectTimeout;
 import static io.strimzi.kafka.oauth.common.ConfigUtil.getReadTimeout;
@@ -27,14 +28,14 @@ import static io.strimzi.kafka.oauth.common.IOUtil.copy;
 
 /**
  * A helper class that performs all network calls using java.net.HttpURLConnection.
- *
+ * <p>
  * If application uses many concurrent threads initiating many Kafka sessions in parallel, consider setting
  * 'http.maxConnections' system property to value closer to the number of parallel sessions.
- *
+ * <p>
  * This value controls the size of internal connection pool per destination in JDK's java.net.HttpURLConnection implementation.
- *
+ * <p>
  * See: https://docs.oracle.com/javase/8/docs/technotes/guides/net/http-keepalive.html
- *
+ * <p>
  * By default the connect timeout and read timeout are set to 60 seconds. Use system properties <em>oauth.connect.timeout.seconds</em>
  * and <em>oauth.read.timeout.seconds</em>, or corresponding env variables to set custom timeouts in seconds.
  */
@@ -44,6 +45,44 @@ public class HttpUtil {
 
     static final int DEFAULT_CONNECT_TIMEOUT = getConnectTimeout(new Config());
     static final int DEFAULT_READ_TIMEOUT = getReadTimeout(new Config());
+
+    public static <T> T doWithRetries(int retries, long retryPauseMillis, IOTask<T> task) throws ExecutionException {
+
+        if (retries < 0) {
+            throw new IllegalArgumentException("retries can't be negative");
+        }
+
+        retryPauseMillis = retryPauseMillis < 0 ? 0 : retryPauseMillis;
+
+        Exception exception;
+        int i = 0;
+        do {
+            i++;
+
+            if (i > 1 && retryPauseMillis > 0) {
+                log.debug("Pausing before retrying failed action (for {}ms)", retryPauseMillis);
+                try {
+                    Thread.sleep(retryPauseMillis);
+                } catch (InterruptedException e) {
+                    throw new ExecutionException("Interrupted while pausing", e);
+                }
+            }
+
+            try {
+                if (i > 1) {
+                    log.debug("Request attempt no. " + i);
+                }
+                return task.run();
+            } catch (Exception e) {
+                exception = e;
+                log.info("Action failed on try no. " + i, e);
+            }
+        } while (i <= retries);
+
+        String msg = "Action failed after " + i + " tries";
+        log.debug(msg);
+        throw new ExecutionException(msg, exception);
+    }
 
     public static <T> T get(URI uri, String authorization, Class<T> responseType) throws IOException {
         return request(uri, null, null, authorization, null, null, responseType);

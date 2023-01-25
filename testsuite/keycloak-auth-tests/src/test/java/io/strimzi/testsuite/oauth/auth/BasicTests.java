@@ -56,7 +56,7 @@ public class BasicTests {
     }
 
     void oauthMetricsConfigIntegration() {
-        System.out.println("==== KeycloakAuthenticationTest :: oauthMetricsConfigIntegrationTest ====");
+        System.out.println("    ====    KeycloakAuthenticationTest :: oauthMetricsConfigIntegrationTest");
 
         // Test MetricReporter config works as expected
         // Get kafka log and make sure the TestMetricReporter was initialised exactly twice
@@ -84,7 +84,7 @@ public class BasicTests {
 
     void oauthMetricsClientAuth() throws Exception {
 
-        System.out.println("==== KeycloakAuthenticationTest :: oauthMetricsClientAuthTest ====");
+        System.out.println("    ====    KeycloakAuthenticationTest :: oauthMetricsClientAuthTest");
 
         final String authHostPort = "keycloak:8080";
         final String realm = "demo";
@@ -129,7 +129,7 @@ public class BasicTests {
 
     void clientCredentialsWithJwtECDSAValidation() throws Exception {
 
-        System.out.println("==== KeycloakAuthenticationTest :: clientCredentialsWithJwtECDSAValidationTest ====");
+        System.out.println("    ====    KeycloakAuthenticationTest :: clientCredentialsWithJwtECDSAValidationTest");
 
         final String kafkaBootstrap = "kafka:9092";
         final String authHostPort = "keycloak:8080";
@@ -199,7 +199,7 @@ public class BasicTests {
      */
     void clientCredentialsWithJwtRSAValidation() throws Exception {
 
-        System.out.println("==== KeycloakAuthenticationTest :: clientCredentialsWithJwtRSAValidation ====");
+        System.out.println("    ====    KeycloakAuthenticationTest :: clientCredentialsWithJwtRSAValidation");
 
         final String kafkaBootstrap = "kafka:9096";
         final String authHostPort = "keycloak:8080";
@@ -255,7 +255,7 @@ public class BasicTests {
     }
 
     void accessTokenWithIntrospection() throws Exception {
-        System.out.println("==== KeycloakAuthenticationTest :: accessTokenWithIntrospectionTest ====");
+        System.out.println("    ====    KeycloakAuthenticationTest :: accessTokenWithIntrospectionTest");
 
         final String kafkaBootstrap = "kafka:9093";
         final String authHostPort = "keycloak:8080";
@@ -314,7 +314,7 @@ public class BasicTests {
 
     void refreshTokenWithIntrospection() throws Exception {
 
-        System.out.println("==== KeycloakAuthenticationTest :: refreshTokenWithIntrospectionTest ====");
+        System.out.println("    ====    KeycloakAuthenticationTest :: refreshTokenWithIntrospectionTest");
 
         final String kafkaBootstrap = "kafka:9093";
         final String authHostPort = "keycloak:8080";
@@ -376,7 +376,7 @@ public class BasicTests {
 
     void passwordGrantWithJwtRSAValidation() throws Exception {
 
-        System.out.println("==== KeycloakAuthenticationTest :: passwordGrantWithJwtRSAValidationTest ====");
+        System.out.println("    ====    KeycloakAuthenticationTest :: passwordGrantWithJwtRSAValidationTest");
 
         final String kafkaBootstrap = "kafka:9096";
         final String authHostPort = "keycloak:8080";
@@ -420,7 +420,7 @@ public class BasicTests {
 
 
     void passwordGrantWithIntrospection() throws Exception {
-        System.out.println("==== KeycloakAuthenticationTest :: passwordGrantWithIntrospectionTest ====");
+        System.out.println("    ====    KeycloakAuthenticationTest :: passwordGrantWithIntrospectionTest");
 
         final String kafkaBootstrap = "kafka:9093";
         final String authHostPort = "keycloak:8080";

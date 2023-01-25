@@ -30,8 +30,10 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static io.strimzi.testsuite.oauth.server.Endpoint.FAILING_GRANTS;
+import static io.strimzi.testsuite.oauth.server.Endpoint.FAILING_TOKEN;
 import static io.strimzi.testsuite.oauth.server.Endpoint.GRANTS;
 import static io.strimzi.testsuite.oauth.server.Endpoint.INTROSPECT;
 import static io.strimzi.testsuite.oauth.server.Endpoint.JWKS;
@@ -61,7 +63,7 @@ import static io.strimzi.testsuite.oauth.server.Mode.MODE_404;
  * </ul>
  *
  * The admin server allows configuring for each of these endpoints what it should return.
- *
+ * <p>
  * Use PUT or POST to any of these endpoints prepended by '/admin' (e.g. '/admin/jwks') with <tt>?mode=MODE</tt> where MODE is one of:
  * <ul>
  *     <li>MODE_200</li>
@@ -74,7 +76,7 @@ import static io.strimzi.testsuite.oauth.server.Mode.MODE_404;
  * </ul>
  *
  * Some other modes are endpoint specific.
- *
+ * <p>
  * For 'jwks' there are two specific modes:
  * <ul>
  *     <li>MODE_JWKS_RSA_WITH_SIG_USE</li>
@@ -83,11 +85,11 @@ import static io.strimzi.testsuite.oauth.server.Mode.MODE_404;
  *
  * For example, <tt>POST /admin/jwks?mode=MODE_404</tt> will configure the authorization server to always return status 404
  * when any request is performed against <tt>/jwks</tt> endpoint.
- *
+ * <p>
  * The <tt>MODE_200</tt> mode results in the endpoint behaving as a properly functioning OAuth server. For example,
  * <tt>POST /admin/jwks?mode=MODE_200</tt> will instruct the authorization server to return public keys for signature validation.
  * Specifically, the behaviour will be the same as if setting it to MODE_JWKS_RSA_WITH_SIG_USE.
- *
+ * <p>
  * And setting <tt>/admin/token</tt> to <tt>MODE_200</tt> instructs the authorization server that the token endpoint should issue new tokens,
  * using the <tt>client_credentials</tt> grant type.
  *
@@ -108,7 +110,7 @@ import static io.strimzi.testsuite.oauth.server.Mode.MODE_404;
  * </ul>
  *
  * <tt>/admin/clients</tt> is used to add client definitions. A client has a <tt>clientId</tt> and a <tt>secret</tt>.
- *
+ * <p>
  * They can be added by posting a JSON document to <tt>/admin/clients</tt> containing the attributes, e.g.:
  * <pre>
  * {
@@ -141,10 +143,13 @@ public class MockOAuthServerMainVerticle extends AbstractVerticle {
     private final Set<String> revokedTokens = new HashSet<>();
     private RSAKey sigKey;
 
+    private Map<Endpoint, AtomicCoin> coins = new ConcurrentHashMap<>();
+
     public void start() {
 
         modes.put(JWKS, MODE_404);
         modes.put(TOKEN, MODE_400);
+        modes.put(FAILING_TOKEN, MODE_400);
         modes.put(INTROSPECT, MODE_401);
         modes.put(USERINFO, MODE_401);
         modes.put(GRANTS, MODE_200);
@@ -230,7 +235,7 @@ public class MockOAuthServerMainVerticle extends AbstractVerticle {
         if (authServer != null) {
             authServer.result().close()
                     .onSuccess(v -> {
-                        log.error("shutdownAuthServer(): AuthServer shut down successfully");
+                        log.info("shutdownAuthServer(): AuthServer shut down successfully");
                         authServer = null;
                         setServerMode(null);
                         result.complete();
@@ -304,6 +309,17 @@ public class MockOAuthServerMainVerticle extends AbstractVerticle {
     private static String getEnvVar(String name, String defaultValue) {
         String val = System.getenv(name);
         return val != null ? val : defaultValue;
+    }
+
+    boolean flipCoin(Endpoint endpoint) {
+        return coins.computeIfAbsent(endpoint, k -> new AtomicCoin()).flip();
+    }
+
+    public void resetCoin(Endpoint endpoint) {
+        AtomicCoin coin = coins.get(endpoint);
+        if (coin != null) {
+            coin.setFaceUp(false);
+        }
     }
 
     public static void main(String[] args) {

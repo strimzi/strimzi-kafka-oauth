@@ -19,6 +19,7 @@ import org.apache.kafka.common.security.auth.SecurityProtocol;
 import org.apache.kafka.server.authorizer.Action;
 import org.apache.kafka.server.authorizer.AuthorizableRequestContext;
 import org.apache.kafka.server.authorizer.AuthorizationResult;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Assert;
 
 import java.io.IOException;
@@ -35,7 +36,16 @@ import static org.mockito.Mockito.when;
 
 public class KeycloakAuthorizerTest {
 
-    public void doTest() throws IOException {
+    String clientCli = "kafka-cli";
+
+    String userAlice = "alice";
+    String userAlicePass = "alice-password";
+
+    String truststorePath = "../docker/target/kafka/certs/ca-truststore.p12";
+    String truststorePass = "changeit";
+    String tokenEndpoint = "https://mockoauth:8090/failing_token";
+
+    public void doHttpRetriesTest() throws IOException {
 
         // create a client for resource server
         String clientSrv = "kafka";
@@ -43,19 +53,13 @@ public class KeycloakAuthorizerTest {
         createOAuthClient(clientSrv, clientSrvSecret);
 
         // create a client for user's client agent
-        String clientCli = "kafka-cli";
         createOAuthClient(clientCli, "");
 
         // create a user alice
-        String userAlice = "alice";
-        String userAlicePass = "alice-password";
         createOAuthUser(userAlice, userAlicePass);
 
-        String truststorePath = "../docker/target/kafka/certs/ca-truststore.p12";
-        String truststorePass = "changeit";
-        String tokenEndpoint = "https://mockoauth:8090/token";
-
         changeAuthServerMode("token", "MODE_200");
+        changeAuthServerMode("failing_token", "MODE_400");
 
         HashMap<String, String> props = new HashMap<>();
         props.put("strimzi.authorization.ssl.truststore.location", truststorePath);
@@ -81,20 +85,18 @@ public class KeycloakAuthorizerTest {
 
 
         SecurityProtocol protocol = SecurityProtocol.SASL_PLAINTEXT;
-        TokenInfo tokenInfo = OAuthAuthenticator.loginWithPassword(
-                URI.create(tokenEndpoint),
-                SSLUtil.createSSLFactory(truststorePath, null, truststorePass, null, null),
-                null,
-                userAlice,
-                userAlicePass,
-                clientCli,
-                null,
-                true,
-                new PrincipalExtractor(),
-                "all",
-                null,
-                60,
-                60);
+
+        try {
+            login(tokenEndpoint, userAlice, userAlicePass, 0);
+
+            Assert.fail("Should have failed while logging in with password");
+
+        } catch (Exception expected) {
+            login(tokenEndpoint, userAlice, userAlicePass, 0);
+        }
+
+        // Now try again
+        TokenInfo tokenInfo = login(tokenEndpoint, userAlice, userAlicePass, 1);
 
         KafkaPrincipal principal = new OAuthKafkaPrincipal(KafkaPrincipal.USER_TYPE, "alice", new Common.MockBearerTokenWithPayload(tokenInfo));
 
@@ -117,5 +119,25 @@ public class KeycloakAuthorizerTest {
         Assert.assertNotNull("Authorizer has to return non-null", result);
         Assert.assertTrue("Authorizer has to return as many results as it received inputs", result.size() == actions.size());
         Assert.assertEquals("Authorizer should return ALLOWED", AuthorizationResult.ALLOWED, result.get(0));
+    }
+
+    @NotNull
+    private TokenInfo login(String tokenEndpoint, String user, String userPass, int retries) throws IOException {
+        return OAuthAuthenticator.loginWithPassword(
+                URI.create(tokenEndpoint),
+                SSLUtil.createSSLFactory(truststorePath, null, truststorePass, null, null),
+                null,
+                user,
+                userPass,
+                clientCli,
+                null,
+                true,
+                new PrincipalExtractor(),
+                "all",
+                null,
+                60,
+                60,
+                retries,
+                0);
     }
 }

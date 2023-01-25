@@ -16,14 +16,14 @@ public class ConfigIdHashTest {
         ValidatorKey vkey = getKey(null, null);
         ValidatorKey vkey2 = getKey(null, null);
 
-        Assert.assertEquals("Config id hash mismatch", "fe22c9db", vkey.getConfigIdHash());
+        Assert.assertEquals("Config id hash mismatch", "13092992", vkey.getConfigIdHash());
         Assert.assertEquals("Config id hash should be the same", vkey.getConfigIdHash(), vkey2.getConfigIdHash());
 
         ValidatorKey key3 = getKey("group", null);
         ValidatorKey key4 = getKey(null, "group");
 
-        Assert.assertEquals("Config id hash mismatch", "7598bb82", key3.getConfigIdHash());
-        Assert.assertEquals("Config id hash mismatch", "208f4f6d", key4.getConfigIdHash());
+        Assert.assertEquals("Config id hash mismatch", "9639c91e", key3.getConfigIdHash());
+        Assert.assertEquals("Config id hash mismatch", "b46a6291", key4.getConfigIdHash());
     }
 
     ValidatorKey getKey(String groupQuery, String groupDelimiter) {
@@ -48,6 +48,8 @@ public class ConfigIdHashTest {
                 "example-client-secret",
                 60,
                 60,
-                true);
+                true,
+                0,
+                0);
     }
 }
