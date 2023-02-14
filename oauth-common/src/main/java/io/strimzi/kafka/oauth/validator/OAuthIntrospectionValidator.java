@@ -265,7 +265,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         return ",";
     }
 
-    @SuppressWarnings("checkstyle:NPathComplexity")
+    @SuppressWarnings({"checkstyle:NPathComplexity", "checkstyle:CyclomaticComplexity"})
     public TokenInfo validate(String token) {
 
         String authorization = clientSecret != null ?

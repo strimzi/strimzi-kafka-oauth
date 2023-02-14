@@ -73,7 +73,7 @@ if [ "${MAIN_BUILD}" == "TRUE" ] ; then
     set +e
 
     clearDockerEnv
-    mvn -e -V -B clean install -f testsuite -Pkafka-3_3_1
+    mvn -e -V -B clean install -f testsuite -Pkafka-3_3_2
     EXIT=$?
     exitIfError
 
