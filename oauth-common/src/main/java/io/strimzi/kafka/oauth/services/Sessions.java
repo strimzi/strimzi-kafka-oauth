@@ -31,14 +31,33 @@ public class Sessions {
      */
     private final Map<BearerTokenWithPayload, Object> activeSessions = Collections.synchronizedMap(new WeakHashMap<>());
 
+    /**
+     * Put a new token object into sessions cache
+     *
+     * @param token A token to add
+     */
     public void put(BearerTokenWithPayload token) {
         activeSessions.put(token, NONE);
     }
 
+    /**
+     * Remove a token from sessions cache
+     *
+     * @param token A token to remove
+     */
     public void remove(BearerTokenWithPayload token) {
         activeSessions.remove(token);
     }
 
+    /**
+     * Iterate over all active sessions (represented by stored token objects) applying a filter and submit a task to the passed executor for each passing token.
+     * Return a list of {@link SessionFuture} instances.
+     *
+     * @param executor An Executor to use for submitting tasks
+     * @param filter A filter to decide if the task should be submitted for specific token
+     * @param task Logic to run on the token
+     * @return A list of SessionFuture instances
+     */
     public List<SessionFuture<?>> executeTask(ExecutorService executor, Predicate<BearerTokenWithPayload> filter,
                                            Consumer<BearerTokenWithPayload> task) {
         cleanupExpired();
@@ -58,6 +77,9 @@ public class Sessions {
         return results;
     }
 
+    /**
+     * Cleanup the sessions whose lifetime has expired
+     */
     public void cleanupExpired() {
         // In order to prevent the possible ConcurrentModificationException in the middle of using an iterator
         // we first make a local copy, then iterate over the copy

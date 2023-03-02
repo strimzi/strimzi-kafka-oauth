@@ -11,6 +11,9 @@ import io.strimzi.kafka.oauth.validator.TokenValidator;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
+/**
+ * A singleton holding the configured token validators
+ */
 public class Validators {
 
     /**
@@ -18,6 +21,14 @@ public class Validators {
      */
     private final ConcurrentHashMap<ConfigurationKey, ValidatorEntry> registry = new ConcurrentHashMap<>();
 
+    /**
+     * Get a {@link TokenValidator} for the given {@link ConfigurationKey}. If one has not been register yet,
+     * use the passed <code>factory</code> to create and register one.
+     *
+     * @param key A key representing a TokenValidator configured with particular configuration options
+     * @param factory A TokenValidator supplier
+     * @return An existing or new token validator
+     */
     @SuppressFBWarnings("JLM_JSR166_UTILCONCURRENT_MONITOR")
     public TokenValidator get(ConfigurationKey key, Supplier<TokenValidator> factory) {
         synchronized (registry) {

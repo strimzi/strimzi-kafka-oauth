@@ -194,6 +194,10 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
     private SensorKeyProducer authzSensorKeyProducer;
     private SensorKeyProducer grantsSensorKeyProducer;
     private final Semaphores<JsonNode> semaphores = new Semaphores<>();
+
+    /**
+     * Create a new instance
+     */
     public KeycloakRBACAuthorizer() {
         super();
     }

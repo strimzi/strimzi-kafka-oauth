@@ -109,74 +109,313 @@ public class HttpUtil {
         throw new ExecutionException(msg, exception);
     }
 
+    /**
+     * Perform HTTP GET request and return the response in the specified type.
+     *
+     * @param uri The target url
+     * @param authorization The Authorization header value
+     * @param responseType The type to which to convert the response (String or one of the Jackson Mapper types)
+     * @return The response as specified by the <code>responseType</code>.
+     * @param <T> Generic type of the <code>responseType</code>
+     * @throws IOException A connection, timeout, or network exception that occurs while performing the request
+     * @throws HttpException A runtime exception when an HTTP response status signals a failed request
+     */
     public static <T> T get(URI uri, String authorization, Class<T> responseType) throws IOException {
         return request(uri, null, null, authorization, null, null, responseType);
     }
 
+    /**
+     * Perform HTTP GET request and return the response in the specified type.
+     *
+     * @param uri The target url
+     * @param socketFactory Socket factory to use with https:// url
+     * @param authorization The Authorization header value
+     * @param responseType The type to which to convert the response (String or one of the Jackson Mapper types)
+     * @return The response as specified by the <code>responseType</code>.
+     * @param <T> Generic type of the <code>responseType</code>
+     * @throws IOException A connection, timeout, or network exception that occurs while performing the request
+     * @throws HttpException A runtime exception when an HTTP response status signals a failed request
+     */
     public static <T> T get(URI uri, SSLSocketFactory socketFactory, String authorization, Class<T> responseType) throws IOException {
         return request(uri, socketFactory, null, authorization, null, null, responseType);
     }
 
+    /**
+     * Perform HTTP GET request and return the response in the specified type.
+     *
+     * @param uri The target url
+     * @param socketFactory Socket factory to use with https:// url
+     * @param hostnameVerifier HostnameVerifier to use with https:// url
+     * @param authorization The Authorization header value
+     * @param responseType The type to which to convert the response (String or one of the Jackson Mapper types)
+     * @return The response as specified by the <code>responseType</code>.
+     * @param <T> Generic type of the <code>responseType</code>
+     * @throws IOException A connection, timeout, or network exception that occurs while performing the request
+     * @throws HttpException A runtime exception when an HTTP response status signals a failed request
+     */
     public static <T> T get(URI uri, SSLSocketFactory socketFactory, HostnameVerifier hostnameVerifier, String authorization, Class<T> responseType) throws IOException {
         return request(uri, socketFactory, hostnameVerifier, authorization, null, null, responseType);
     }
 
+    /**
+     * Perform HTTP GET request and return the response in the specified type.
+     *
+     * @param uri The target url
+     * @param socketFactory Socket factory to use with https:// url
+     * @param hostnameVerifier HostnameVerifier to use with https:// url
+     * @param authorization The Authorization header value
+     * @param responseType The type to which to convert the response (String or one of the Jackson Mapper types)
+     * @param connectTimeout Connect timeout in seconds
+     * @param readTimeout Read timeout in seconds
+     * @return The response as specified by the <code>responseType</code>.
+     * @param <T> Generic type of the <code>responseType</code>
+     * @throws IOException A connection, timeout, or network exception that occurs while performing the request
+     * @throws HttpException A runtime exception when an HTTP response status signals a failed request
+     */
     public static <T> T get(URI uri, SSLSocketFactory socketFactory, HostnameVerifier hostnameVerifier, String authorization, Class<T> responseType, int connectTimeout, int readTimeout) throws IOException {
         return request(uri, "GET", socketFactory, hostnameVerifier, authorization, null, null, responseType, connectTimeout, readTimeout);
     }
 
+    /**
+     * Perform HTTP POST request and return the response in the specified type.
+     *
+     * @param uri The target url
+     * @param authorization The Authorization header value
+     * @param contentType MIME type of the request body
+     * @param body The request body
+     * @param responseType The type to which to convert the response (String or one of the Jackson Mapper types)
+     * @return The response as specified by the <code>responseType</code>.
+     * @param <T> Generic type of the <code>responseType</code>
+     * @throws IOException A connection, timeout, or network exception that occurs while performing the request
+     * @throws HttpException A runtime exception when an HTTP response status signals a failed request
+     */
     public static <T> T post(URI uri, String authorization, String contentType, String body, Class<T> responseType) throws IOException {
         return request(uri, null, null, authorization, contentType, body, responseType);
     }
 
+    /**
+     * Perform HTTP POST request and return the response in the specified type.
+     *
+     * @param uri The target url
+     * @param socketFactory Socket factory to use with https:// url
+     * @param authorization The Authorization header value
+     * @param contentType MIME type of the request body
+     * @param body The request body
+     * @param responseType The type to which to convert the response (String or one of the Jackson Mapper types)
+     * @return The response as specified by the <code>responseType</code>.
+     * @param <T> Generic type of the <code>responseType</code>
+     * @throws IOException A connection, timeout, or network exception that occurs while performing the request
+     * @throws HttpException A runtime exception when an HTTP response status signals a failed request
+     */
     public static <T> T post(URI uri, SSLSocketFactory socketFactory, String authorization, String contentType, String body, Class<T> responseType) throws IOException {
         return request(uri, socketFactory, null, authorization, contentType, body, responseType);
     }
 
+    /**
+     * Perform HTTP POST request and return the response in the specified type.
+     *
+     * @param uri The target url
+     * @param socketFactory Socket factory to use with https:// url
+     * @param verifier HostnameVerifier to use with https:// url
+     * @param authorization The Authorization header value
+     * @param contentType MIME type of the request body
+     * @param body The request body
+     * @param responseType The type to which to convert the response (String or one of the Jackson Mapper types)
+     * @return The response as specified by the <code>responseType</code>.
+     * @param <T> Generic type of the <code>responseType</code>
+     * @throws IOException A connection, timeout, or network exception that occurs while performing the request
+     * @throws HttpException A runtime exception when an HTTP response status signals a failed request
+     */
     public static <T> T post(URI uri, SSLSocketFactory socketFactory, HostnameVerifier verifier, String authorization, String contentType, String body, Class<T> responseType) throws IOException {
         return request(uri, socketFactory, verifier, authorization, contentType, body, responseType);
     }
 
+    /**
+     * Perform HTTP POST request and return the response in the specified type.
+     *
+     * @param uri The target url
+     * @param socketFactory Socket factory to use with https:// url
+     * @param verifier HostnameVerifier to use with https:// url
+     * @param authorization The Authorization header value
+     * @param contentType MIME type of the request body
+     * @param body The request body
+     * @param responseType The type to which to convert the response (String or one of the Jackson Mapper types)
+     * @param connectTimeout Connect timeout in seconds
+     * @param readTimeout Read timeout in seconds
+     * @return The response as specified by the <code>responseType</code>.
+     * @param <T> Generic type of the <code>responseType</code>
+     * @throws IOException A connection, timeout, or network exception that occurs while performing the request
+     * @throws HttpException A runtime exception when an HTTP response status signals a failed request
+     */
     public static <T> T post(URI uri, SSLSocketFactory socketFactory, HostnameVerifier verifier, String authorization, String contentType, String body, Class<T> responseType, int connectTimeout, int readTimeout) throws IOException {
         return request(uri, "POST", socketFactory, verifier, authorization, contentType, body, responseType, connectTimeout, readTimeout);
     }
 
+    /**
+     * Perform HTTP PUT request
+     *
+     * @param uri The target url
+     * @param authorization The Authorization header value
+     * @param contentType MIME type of the request body
+     * @param body The request body
+     * @throws IOException A connection, timeout, or network exception that occurs while performing the request
+     * @throws HttpException A runtime exception when an HTTP response status signals a failed request
+     */
     public static void put(URI uri, String authorization, String contentType, String body) throws IOException {
         request(uri, null, null, authorization, contentType, body, null);
     }
 
+    /**
+     * Perform HTTP PUT request
+     *
+     * @param uri The target url
+     * @param socketFactory Socket factory to use with https:// url
+     * @param authorization The Authorization header value
+     * @param contentType MIME type of the request body
+     * @param body The request body
+     * @throws IOException A connection, timeout, or network exception that occurs while performing the request
+     * @throws HttpException A runtime exception when an HTTP response status signals a failed request
+     */
     public static void put(URI uri, SSLSocketFactory socketFactory, String authorization, String contentType, String body) throws IOException {
         request(uri, socketFactory, null, authorization, contentType, body, null);
     }
 
+    /**
+     * Perform HTTP PUT request
+     *
+     * @param uri The target url
+     * @param socketFactory Socket factory to use with https:// url
+     * @param verifier HostnameVerifier to use with https:// url
+     * @param authorization The Authorization header value
+     * @param contentType MIME type of the request body
+     * @param body The request body
+     * @throws IOException A connection, timeout, or network exception that occurs while performing the request
+     * @throws HttpException A runtime exception when an HTTP response status signals a failed request
+     */
     public static void put(URI uri, SSLSocketFactory socketFactory, HostnameVerifier verifier, String authorization, String contentType, String body) throws IOException {
         request(uri, socketFactory, verifier, authorization, contentType, body, null);
     }
 
+    /**
+     * Perform HTTP PUT request
+     *
+     * @param uri The target url
+     * @param socketFactory Socket factory to use with https:// url
+     * @param verifier HostnameVerifier to use with https:// url
+     * @param authorization The Authorization header value
+     * @param contentType MIME type of the request body
+     * @param body The request body
+     * @param connectTimeout Connect timeout in seconds
+     * @param readTimeout Read timeout in seconds
+     * @throws IOException A connection, timeout, or network exception that occurs while performing the request
+     * @throws HttpException A runtime exception when an HTTP response status signals a failed request
+     */
     public static void put(URI uri, SSLSocketFactory socketFactory, HostnameVerifier verifier, String authorization, String contentType, String body, int connectTimeout, int readTimeout) throws IOException {
         request(uri, "PUT", socketFactory, verifier, authorization, contentType, body, null, connectTimeout, readTimeout);
     }
 
+    /**
+     * Perform HTTP DELETE request using the default connect and read timeouts (60 seconds).
+     *
+     * @param uri The target url
+     * @param authorization The Authorization header value
+     * @throws IOException A connection, timeout, or network exception that occurs while performing the request
+     * @throws HttpException A runtime exception when an HTTP response status signals a failed request
+     */
     public static void delete(URI uri, String authorization) throws IOException {
         request(uri, "DELETE", null, null, authorization, null, null, null, DEFAULT_CONNECT_TIMEOUT, DEFAULT_READ_TIMEOUT);
     }
 
+    /**
+     * Perform HTTP DELETE request using the default connect and read timeouts (60 seconds).
+     *
+     * @param uri The target url
+     * @param socketFactory Socket factory to use with https:// url
+     * @param verifier HostnameVerifier to use with https:// url
+     * @param authorization The Authorization header value
+     * @throws IOException A connection, timeout, or network exception that occurs while performing the request
+     * @throws HttpException A runtime exception when an HTTP response status signals a failed request
+     */
     public static void delete(URI uri, SSLSocketFactory socketFactory, HostnameVerifier verifier, String authorization) throws IOException {
         request(uri, "DELETE", socketFactory, verifier, authorization, null, null, null, DEFAULT_CONNECT_TIMEOUT, DEFAULT_READ_TIMEOUT);
     }
 
+    /**
+     * Perform HTTP DELETE request
+     *
+     * @param uri The target url
+     * @param socketFactory Socket factory to use with https:// url
+     * @param verifier HostnameVerifier to use with https:// url
+     * @param authorization The Authorization header value
+     * @param connectTimeout Connect timeout in seconds
+     * @param readTimeout Read timeout in seconds
+     * @throws IOException A connection, timeout, or network exception that occurs while performing the request
+     * @throws HttpException A runtime exception when an HTTP response status signals a failed request
+     */
     public static void delete(URI uri, SSLSocketFactory socketFactory, HostnameVerifier verifier, String authorization, int connectTimeout, int readTimeout) throws IOException {
         request(uri, "DELETE", socketFactory, verifier, authorization, null, null, null, connectTimeout, readTimeout);
     }
 
+    /**
+     * Perform an HTTP request, auto-detecting a method, and using the default connect and read timeouts (60 seconds)..
+     * If body is null the HTTP method GET is used.
+     * If responseType is null the HTTP method PUT is used.
+     * Otherwise, the HTTP method POST is used.
+     *
+     * @param uri The target url
+     * @param socketFactory Socket factory to use with https:// url
+     * @param hostnameVerifier HostnameVerifier to use with https:// url
+     * @param authorization The Authorization header value
+     * @param contentType MIME type of the request body
+     * @param body The request body
+     * @param responseType The type to which to convert the response (String or one of the Jackson Mapper types)
+     * @return The response as specified by the <code>responseType</code>.
+     * @param <T> Generic type of the <code>responseType</code>
+     * @throws IOException A connection, timeout, or network exception that occurs while performing the request
+     * @throws HttpException A runtime exception when an HTTP response status signals a failed request
+     */
     public static <T> T request(URI uri, SSLSocketFactory socketFactory, HostnameVerifier hostnameVerifier, String authorization, String contentType, String body, Class<T> responseType) throws IOException {
         return request(uri, null, socketFactory, hostnameVerifier, authorization, contentType, body, responseType, DEFAULT_CONNECT_TIMEOUT, DEFAULT_READ_TIMEOUT);
     }
 
+    /**
+     * Perform an HTTP request using the default connect and read timeouts (60 seconds).
+     *
+     * @param uri The target url
+     * @param method The HTTP request method
+     * @param socketFactory Socket factory to use with https:// url
+     * @param hostnameVerifier HostnameVerifier to use with https:// url
+     * @param authorization The Authorization header value
+     * @param contentType MIME type of the request body
+     * @param body The request body
+     * @param responseType The type to which to convert the response (String or one of the Jackson Mapper types)
+     * @return The response as specified by the <code>responseType</code>.
+     * @param <T> Generic type of the <code>responseType</code>
+     * @throws IOException A connection, timeout, or network exception that occurs while performing the request
+     * @throws HttpException A runtime exception when an HTTP response status signals a failed request
+     */
     public static <T> T request(URI uri, String method, SSLSocketFactory socketFactory, HostnameVerifier hostnameVerifier, String authorization, String contentType, String body, Class<T> responseType) throws IOException {
         return request(uri, method, socketFactory, hostnameVerifier, authorization, contentType, body, responseType, DEFAULT_CONNECT_TIMEOUT, DEFAULT_READ_TIMEOUT);
     }
 
+    /**
+     * Perform an HTTP request using the default connect and read timeouts (60 seconds).
+     *
+     * @param uri The target url
+     * @param method The HTTP request method
+     * @param socketFactory Socket factory to use with https:// url
+     * @param hostnameVerifier HostnameVerifier to use with https:// url
+     * @param authorization The Authorization header value
+     * @param contentType MIME type of the request body
+     * @param body The request body
+     * @param responseType The type to which to convert the response (String or one of the Jackson Mapper types)
+     * @param connectTimeout Connect timeout in seconds
+     * @param readTimeout Read timeout in seconds
+     * @return The response as specified by the <code>responseType</code>.
+     * @param <T> Generic type of the <code>responseType</code>
+     * @throws IOException A connection, timeout, or network exception that occurs while performing the request
+     * @throws HttpException A runtime exception when an HTTP response status signals a failed request
+     */
     // Suppressed because of Spotbugs Java 11 bug - https://github.com/spotbugs/spotbugs/issues/756
     @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
     public static <T> T request(URI uri, String method, SSLSocketFactory socketFactory, HostnameVerifier hostnameVerifier, String authorization,

@@ -21,11 +21,24 @@ import java.util.concurrent.ExecutionException;
 import static io.strimzi.kafka.oauth.common.LogUtil.mask;
 import static io.strimzi.kafka.oauth.common.TokenIntrospection.introspectAccessToken;
 
+/**
+ * A class with methods to authenticate a user or a client to the authorization server's token endpoint,
+ * and obtain an access token in the form of a <code>TokenInfo</code> object.
+ */
 @SuppressWarnings("checkstyle:parameternumber")
 public class OAuthAuthenticator {
 
     private static final Logger log = LoggerFactory.getLogger(OAuthAuthenticator.class);
 
+    /**
+     * Wrap an access token into TokenInfo extracting information from the token if it is a JWT token.
+     * If not a JWT token the principal is set to 'undefined', token creation time to current time, and expiry to 1 year.
+     *
+     * @param token A raw access token
+     * @param isJwt If the access token is a JWT token
+     * @param principalExtractor A <code>PrincipalExtractor</code> used to extract the principal (user id)
+     * @return A TokenInfo with access token and information extracted from it or set to default values
+     */
     public static TokenInfo loginWithAccessToken(String token, boolean isJwt, PrincipalExtractor principalExtractor) {
         if (log.isDebugEnabled()) {
             log.debug("loginWithAccessToken() - pass-through access_token: {}", mask(token));
@@ -47,6 +60,22 @@ public class OAuthAuthenticator {
         return new TokenInfo(token, "undefined", "undefined", null, System.currentTimeMillis(), System.currentTimeMillis() + 365 * 24 * 3600000L);
     }
 
+    /**
+     * Obtain an access token wrapped into TokenInfo by authenticating to the authorization server's token endpoint
+     * using client_credentials grant (clientId + secret), and connect and read timeouts of 60 seconds.
+     *
+     * @param tokenEndpointUrl A token endpoint url
+     * @param socketFactory A socket factory to use with 'https'
+     * @param hostnameVerifier A hostname verifier to use with 'https'
+     * @param clientId A client id
+     * @param clientSecret A client secret
+     * @param isJwt If the returned token is expected to be a JWT token
+     * @param principalExtractor A PrincipalExtractor to use to determine the principal (user id)
+     * @param scope A scope to request when authenticating
+     * @return A TokenInfo with access token and information extracted from it
+     * @throws IOException If the request to the authorization server has failed
+     * @throws IllegalStateException If the response from the authorization server could not be handled
+     */
     public static TokenInfo loginWithClientSecret(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
                                                   HostnameVerifier hostnameVerifier,
                                                   String clientId, String clientSecret, boolean isJwt,
@@ -56,6 +85,23 @@ public class OAuthAuthenticator {
                 clientId, clientSecret, isJwt, principalExtractor, scope, null, HttpUtil.DEFAULT_CONNECT_TIMEOUT, HttpUtil.DEFAULT_READ_TIMEOUT, null, 0, 0);
     }
 
+    /**
+     * Obtain an access token wrapped into TokenInfo by authenticating to the authorization server's token endpoint
+     * using client_credentials grant (clientId + secret), and connect and read timeouts of 60 seconds.
+     *
+     * @param tokenEndpointUrl A token endpoint url
+     * @param socketFactory A socket factory to use with 'https'
+     * @param hostnameVerifier A hostname verifier to use with 'https'
+     * @param clientId A client id
+     * @param clientSecret A client secret
+     * @param isJwt If the returned token is expected to be a JWT token
+     * @param principalExtractor A PrincipalExtractor to use to determine the principal (user id)
+     * @param scope A scope to request when authenticating
+     * @param audience An 'audience' attribute to set on the request when authenticating
+     * @return A TokenInfo with access token and information extracted from it
+     * @throws IOException If the request to the authorization server has failed
+     * @throws IllegalStateException If the response from the authorization server could not be handled
+     */
     public static TokenInfo loginWithClientSecret(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
                                                   HostnameVerifier hostnameVerifier,
                                                   String clientId, String clientSecret, boolean isJwt,
@@ -65,6 +111,28 @@ public class OAuthAuthenticator {
                 clientId, clientSecret, isJwt, principalExtractor, scope, audience, HttpUtil.DEFAULT_CONNECT_TIMEOUT, HttpUtil.DEFAULT_READ_TIMEOUT, null, 0, 0);
     }
 
+    /**
+     * Obtain an access token wrapped into TokenInfo by authenticating to the authorization server's token endpoint
+     * using client_credentials grant (clientId + secret).
+     *
+     * @param tokenEndpointUrl A token endpoint url
+     * @param socketFactory A socket factory to use with 'https'
+     * @param hostnameVerifier A hostname verifier to use with 'https'
+     * @param clientId A client id
+     * @param clientSecret A client secret
+     * @param isJwt If the returned token is expected to be a JWT token
+     * @param principalExtractor A PrincipalExtractor to use to determine the principal (user id)
+     * @param scope A scope to request when authenticating
+     * @param audience An 'audience' attribute to set on the request when authenticating
+     * @param connectTimeout A connect timeout in seconds
+     * @param readTimeout A read timeout in seconds
+     * @param metrics A MetricsHandler object to receive metrics collection callbacks
+     * @param retries A maximum number of retries if the request fails due to network, or unexpected response status
+     * @param retryPauseMillis A pause between consecutive requests
+     * @return A TokenInfo with access token and information extracted from it
+     * @throws IOException If the request to the authorization server has failed
+     * @throws IllegalStateException If the response from the authorization server could not be handled
+     */
     @SuppressWarnings("checkstyle:ParameterNumber")
     public static TokenInfo loginWithClientSecret(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
                                                   HostnameVerifier hostnameVerifier,
@@ -96,6 +164,25 @@ public class OAuthAuthenticator {
         return post(tokenEndpointUrl, socketFactory, hostnameVerifier, authorization, body.toString(), isJwt, principalExtractor, connectTimeout, readTimeout, metrics, retries, retryPauseMillis);
     }
 
+    /**
+     * Obtain an access token wrapped into TokenInfo by authenticating to the authorization server's token endpoint
+     * using password grant (username + password), and connect and read timeouts of 60 seconds.
+     *
+     * @param tokenEndpointUrl A token endpoint url
+     * @param socketFactory A socket factory to use with 'https'
+     * @param hostnameVerifier A hostname verifier to use with 'https'
+     * @param username A username
+     * @param password A password
+     * @param clientId A client id
+     * @param clientSecret A (optional) client secret
+     * @param isJwt If the returned token is expected to be a JWT token
+     * @param principalExtractor A PrincipalExtractor to use to determine the principal (user id)
+     * @param scope A scope to request when authenticating
+     * @param audience An 'audience' attribute to set on the request when authenticating
+     * @return A TokenInfo with access token and information extracted from it
+     * @throws IOException If the request to the authorization server has failed
+     * @throws IllegalStateException If the response from the authorization server could not be handled
+     */
     public static TokenInfo loginWithPassword(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
                                               HostnameVerifier hostnameVerifier,
                                               String username, String password,
@@ -106,7 +193,29 @@ public class OAuthAuthenticator {
                 username, password, clientId, clientSecret, isJwt, principalExtractor, scope, audience, HttpUtil.DEFAULT_CONNECT_TIMEOUT, HttpUtil.DEFAULT_READ_TIMEOUT, null, 0, 0);
     }
 
-
+    /**
+     * Obtain an access token wrapped into TokenInfo by authenticating to the authorization server's token endpoint
+     * using password grant (username + password).
+     *
+     * @param tokenEndpointUrl A token endpoint url
+     * @param socketFactory A socket factory to use with 'https'
+     * @param hostnameVerifier A hostname verifier to use with 'https'
+     * @param username A username
+     * @param password A password
+     * @param clientId A client id
+     * @param clientSecret A (optional) client secret
+     * @param isJwt If the returned token is expected to be a JWT token
+     * @param principalExtractor A PrincipalExtractor to use to determine the principal (user id)
+     * @param scope A scope to request when authenticating
+     * @param audience An 'audience' attribute to set on the request when authenticating
+     * @param connectTimeout A connect timeout in seconds
+     * @param readTimeout A read timeout in seconds
+     * @param retries A maximum number of retries if the request fails due to network, or unexpected response status
+     * @param retryPauseMillis A pause between consecutive requests
+     * @return A TokenInfo with access token and information extracted from it
+     * @throws IOException If the request to the authorization server has failed
+     * @throws IllegalStateException If the response from the authorization server could not be handled
+     */
     public static TokenInfo loginWithPassword(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
                                               HostnameVerifier hostnameVerifier,
                                               String username, String password,
@@ -117,6 +226,30 @@ public class OAuthAuthenticator {
                 username, password, clientId, clientSecret, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout, null, retries, retryPauseMillis);
     }
 
+    /**
+     * Obtain an access token wrapped into TokenInfo by authenticating to the authorization server's token endpoint
+     * using password grant (username + password).
+     *
+     * @param tokenEndpointUrl A token endpoint url
+     * @param socketFactory A socket factory to use with 'https'
+     * @param hostnameVerifier A hostname verifier to use with 'https'
+     * @param username A username
+     * @param password A password
+     * @param clientId A client id
+     * @param clientSecret A (optional) client secret
+     * @param isJwt If the returned token is expected to be a JWT token
+     * @param principalExtractor A PrincipalExtractor to use to determine the principal (user id)
+     * @param scope A scope to request when authenticating
+     * @param audience An 'audience' attribute to set on the request when authenticating
+     * @param connectTimeout A connect timeout in seconds
+     * @param readTimeout A read timeout in seconds
+     * @param metrics A MetricsHandler object to receive metrics collection callbacks
+     * @param retries A maximum number of retries if the request fails due to network, or unexpected response status
+     * @param retryPauseMillis A pause between consecutive requests
+     * @return A TokenInfo with access token and information extracted from it
+     * @throws IOException If the request to the authorization server has failed
+     * @throws IllegalStateException If the response from the authorization server could not be handled
+     */
     @SuppressWarnings("checkstyle:ParameterNumber")
     public static TokenInfo loginWithPassword(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
                                                   HostnameVerifier hostnameVerifier,
@@ -157,6 +290,23 @@ public class OAuthAuthenticator {
         return post(tokenEndpointUrl, socketFactory, hostnameVerifier, authorization, body.toString(), isJwt, principalExtractor, connectTimeout, readTimeout, metrics, retries, retryPauseMillis);
     }
 
+    /**
+     * Obtain an access token wrapped into TokenInfo by authenticating to the authorization server's token endpoint
+     * using a refresh token, and connect and read timeouts of 60 seconds.
+     *
+     * @param tokenEndpointUrl A token endpoint url
+     * @param socketFactory A socket factory to use with 'https'
+     * @param hostnameVerifier A hostname verifier to use with 'https'
+     * @param refreshToken A refresh token
+     * @param clientId A client id
+     * @param clientSecret A client secret
+     * @param isJwt If the returned token is expected to be a JWT token
+     * @param principalExtractor A PrincipalExtractor to use to determine the principal (user id)
+     * @param scope A scope to request when authenticating
+     * @return A TokenInfo with access token and information extracted from it
+     * @throws IOException If the request to the authorization server has failed
+     * @throws IllegalStateException If the response from the authorization server could not be handled
+     */
     public static TokenInfo loginWithRefreshToken(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
                                                   HostnameVerifier hostnameVerifier, String refreshToken,
                                                   String clientId, String clientSecret, boolean isJwt,
@@ -166,6 +316,24 @@ public class OAuthAuthenticator {
                 refreshToken, clientId, clientSecret, isJwt, principalExtractor, scope, null);
     }
 
+    /**
+     * Obtain an access token wrapped into TokenInfo by authenticating to the authorization server's token endpoint
+     * using a refresh token, and connect and read timeouts of 60 seconds.
+     *
+     * @param tokenEndpointUrl A token endpoint url
+     * @param socketFactory A socket factory to use with 'https'
+     * @param hostnameVerifier A hostname verifier to use with 'https'
+     * @param refreshToken A refresh token
+     * @param clientId A client id
+     * @param clientSecret A client secret
+     * @param isJwt If the returned token is expected to be a JWT token
+     * @param principalExtractor A PrincipalExtractor to use to determine the principal (user id)
+     * @param scope A scope to request when authenticating
+     * @param audience  An 'audience' attribute to set on the request when authenticating
+     * @return A TokenInfo with access token and information extracted from it
+     * @throws IOException If the request to the authorization server has failed
+     * @throws IllegalStateException If the response from the authorization server could not be handled
+     */
     public static TokenInfo loginWithRefreshToken(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
                                                   HostnameVerifier hostnameVerifier, String refreshToken,
                                                   String clientId, String clientSecret, boolean isJwt,
@@ -174,6 +342,26 @@ public class OAuthAuthenticator {
                 refreshToken, clientId, clientSecret, isJwt, principalExtractor, scope, audience, HttpUtil.DEFAULT_CONNECT_TIMEOUT, HttpUtil.DEFAULT_READ_TIMEOUT, 0, 0);
     }
 
+    /**
+     *
+     * @param tokenEndpointUrl A token endpoint url
+     * @param socketFactory A socket factory to use with 'https'
+     * @param hostnameVerifier A hostname verifier to use with 'https'
+     * @param refreshToken A refresh token
+     * @param clientId A client id
+     * @param clientSecret A client secret
+     * @param isJwt If the returned token is expected to be a JWT token
+     * @param principalExtractor A PrincipalExtractor to use to determine the principal (user id)
+     * @param scope A scope to request when authenticating
+     * @param audience  An 'audience' attribute to set on the request when authenticating
+     * @param connectTimeout A connect timeout in seconds
+     * @param readTimeout A read timeout in seconds
+     * @param retries A maximum number of retries if the request fails due to network, or unexpected response status
+     * @param retryPauseMillis A pause between consecutive requests
+     * @return A TokenInfo with access token and information extracted from it
+     * @throws IOException If the request to the authorization server has failed
+     * @throws IllegalStateException If the response from the authorization server could not be handled
+     */
     public static TokenInfo loginWithRefreshToken(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
                                                   HostnameVerifier hostnameVerifier, String refreshToken,
                                                   String clientId, String clientSecret, boolean isJwt,
@@ -182,6 +370,27 @@ public class OAuthAuthenticator {
         return loginWithRefreshToken(tokenEndpointUrl, socketFactory, hostnameVerifier, refreshToken, clientId, clientSecret, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout, null, retries, retryPauseMillis);
     }
 
+    /**
+     *
+     * @param tokenEndpointUrl A token endpoint url
+     * @param socketFactory A socket factory to use with 'https'
+     * @param hostnameVerifier A hostname verifier to use with 'https'
+     * @param refreshToken A refresh token
+     * @param clientId A client id
+     * @param clientSecret A client secret
+     * @param isJwt If the returned token is expected to be a JWT token
+     * @param principalExtractor A PrincipalExtractor to use to determine the principal (user id)
+     * @param scope A scope to request when authenticating
+     * @param audience  An 'audience' attribute to set on the request when authenticating
+     * @param connectTimeout A connect timeout in seconds
+     * @param readTimeout A read timeout in seconds
+     * @param metrics A MetricsHandler object to receive metrics collection callbacks
+     * @param retries A maximum number of retries if the request fails due to network, or unexpected response status
+     * @param retryPauseMillis A pause between consecutive requests
+     * @return A TokenInfo with access token and information extracted from it
+     * @throws IOException If the request to the authorization server has failed
+     * @throws IllegalStateException If the response from the authorization server could not be handled
+     */
     public static TokenInfo loginWithRefreshToken(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
                                                   HostnameVerifier hostnameVerifier, String refreshToken,
                                                   String clientId, String clientSecret, boolean isJwt,
@@ -271,14 +480,32 @@ public class OAuthAuthenticator {
         return new TokenInfo(token.asText(), scope != null ? scope.asText() : null, "undefined", null, now, now + expiresIn.asLong() * 1000L);
     }
 
+    /**
+     * A helper method to base64 encode a given string
+     *
+     * @param value A string to encode as base64
+     * @return Base64 encoded string
+     */
     public static String base64encode(String value) {
         return Base64.getUrlEncoder().encodeToString(value.getBytes(StandardCharsets.UTF_8));
     }
 
+    /**
+     * A helper method to decode a base64 encoded string
+     *
+     * @param value A string to decode from base64
+     * @return A decoded string
+     */
     public static String base64decode(String value) {
         return new String(Base64.getUrlDecoder().decode(value), StandardCharsets.UTF_8);
     }
 
+    /**
+     * A helper method to urlencode a given value
+     *
+     * @param value A string to urlencode
+     * @return Urlencoded string
+     */
     public static String urlencode(String value) {
         try {
             return URLEncoder.encode(value, "utf-8");

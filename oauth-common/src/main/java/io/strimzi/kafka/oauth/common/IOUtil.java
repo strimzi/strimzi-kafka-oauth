@@ -12,10 +12,20 @@ import java.nio.charset.StandardCharsets;
 import java.util.Random;
 import java.util.zip.CRC32;
 
+/**
+ * A helper class that contains commonly used methods for I/O operations
+ */
 public class IOUtil {
 
     private static final Random RANDOM = new Random();
 
+    /**
+     * Copy the content of specified InputStream into the specified OutputStream
+     *
+     * @param input The input stream to read from
+     * @param output The output stream to write to
+     * @throws IOException an exception if the copy operation fails
+     */
     public static void copy(InputStream input, OutputStream output) throws IOException {
         byte[] buf = new byte[4096];
 
@@ -31,10 +41,21 @@ public class IOUtil {
         }
     }
 
+    /**
+     * Generate a random 8 character string of hexadecimal digits
+     *
+     * @return a hexadecimal String of length 8
+     */
     public static String randomHexString() {
         return randomHexString(8);
     }
 
+    /**
+     * Generate a random string of hexadecimal digits of the specified length
+     *
+     * @param length The length of the resulting string
+     * @return a hexadecimal String of the specified length
+     */
     public static String randomHexString(int length) {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < length; i++) {
@@ -43,6 +64,12 @@ public class IOUtil {
         return sb.toString();
     }
 
+    /**
+     * Convert a byte array into a hexadecimal string
+     *
+     * @param bytes A byte array
+     * @return a hexadecimal string
+     */
     public static String asHexString(byte[] bytes) {
         StringBuilder sb = new StringBuilder(2 * bytes.length);
         for (byte b : bytes) {
@@ -55,6 +82,12 @@ public class IOUtil {
         return sb.toString();
     }
 
+    /**
+     * Generate a predictable (deterministic) hash string of length 8 for an array of objects
+     *
+     * @param args The objects to take as input for the calculation
+     * @return a hash string of length 8
+     */
     public static String hashForObjects(Object... args) {
         StringBuilder sb = new StringBuilder();
         for (Object o: args) {
@@ -70,9 +103,16 @@ public class IOUtil {
         }
     }
 
+    /**
+     * Calculate a CRC32 for the specified String
+     *
+     * @param content The input string
+     * @return CRC32 as long value
+     */
     public static long crc32(String content) {
         CRC32 crc = new CRC32();
-        crc.update(content.getBytes(StandardCharsets.UTF_8));
+        byte[] bytes = content.getBytes(StandardCharsets.UTF_8);
+        crc.update(bytes, 0, bytes.length);
         return crc.getValue();
     }
 }

@@ -12,29 +12,73 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
+/**
+ * Configuration handling class
+ */
 public class Config {
 
+    /** The name of 'oauth.client.id' config option  */
     public static final String OAUTH_CLIENT_ID = "oauth.client.id";
+
+    /** The name of 'oauth.client.secret' config option  */
     public static final String OAUTH_CLIENT_SECRET = "oauth.client.secret";
+
+    /** The name of 'oauth.scope' config option  */
     public static final String OAUTH_SCOPE = "oauth.scope";
+
+    /** The name of 'oauth.audience' config option  */
     public static final String OAUTH_AUDIENCE = "oauth.audience";
+
+    /** The name of 'oauth.username.claim' config option  */
     public static final String OAUTH_USERNAME_CLAIM = "oauth.username.claim";
+
+    /** The name of 'oauth.fallback.username.claim' config option  */
     public static final String OAUTH_FALLBACK_USERNAME_CLAIM = "oauth.fallback.username.claim";
+
+    /** The name of 'oauth.fallback.username.prefix' config option  */
     public static final String OAUTH_FALLBACK_USERNAME_PREFIX = "oauth.fallback.username.prefix";
+
+    /** The name of 'oauth.ssl.truststore.location' config option  */
     public static final String OAUTH_SSL_TRUSTSTORE_LOCATION = "oauth.ssl.truststore.location";
+
+    /** The name of 'oauth.ssl.truststore.certificates' config option  */
     public static final String OAUTH_SSL_TRUSTSTORE_CERTIFICATES = "oauth.ssl.truststore.certificates";
+
+    /** The name of 'oauth.ssl.truststore.password' config option  */
+
     public static final String OAUTH_SSL_TRUSTSTORE_PASSWORD = "oauth.ssl.truststore.password";
+
+    /** The name of 'oauth.ssl.truststore.type' config option  */
     public static final String OAUTH_SSL_TRUSTSTORE_TYPE = "oauth.ssl.truststore.type";
+
+    /** The name of 'oauth.ssl.secure.random.implementation' config option  */
     public static final String OAUTH_SSL_SECURE_RANDOM_IMPLEMENTATION = "oauth.ssl.secure.random.implementation";
+
+    /** The name of 'oauth.ssl.endpoint.identification.algorithm' config option  */
     public static final String OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM = "oauth.ssl.endpoint.identification.algorithm";
+
+    /** The name of 'oauth.access.token.is.jwt' config option */
     public static final String OAUTH_ACCESS_TOKEN_IS_JWT = "oauth.access.token.is.jwt";
+
+    /** The name of 'oauth.connect.timeout.seconds' config option  */
     public static final String OAUTH_CONNECT_TIMEOUT_SECONDS = "oauth.connect.timeout.seconds";
+
+    /** The name of 'oauth.read.timeout.seconds' config option  */
     public static final String OAUTH_READ_TIMEOUT_SECONDS = "oauth.read.timeout.seconds";
+
+    /** The name of 'oauth.http.retries' config option  */
     public static final String OAUTH_HTTP_RETRIES = "oauth.http.retries";
+
+    /** The name of 'oauth.http.retry.pause.millis' config option  */
     public static final String OAUTH_HTTP_RETRY_PAUSE_MILLIS = "oauth.http.retry.pause.millis";
+
+    /** The name of 'oauth.config.id' config option  */
     public static final String OAUTH_CONFIG_ID = "oauth.config.id";
+
+    /** The name of 'oauth.enable.metrics' config option  */
     public static final String OAUTH_ENABLE_METRICS = "oauth.enable.metrics";
 
+    /** The name of 'oauth.tokens.not.jwt' config option  */
     @Deprecated
     public static final String OAUTH_TOKENS_NOT_JWT = "oauth.tokens.not.jwt";
 
@@ -191,6 +235,12 @@ public class Config {
         }
     }
 
+    /**
+     * Helper method the test if some boolean config option is set to 'true' or 'false'
+     *
+     * @param result The configured value of the option as String
+     * @return The boolean value of the option
+     */
     public static boolean isTrue(String result) {
         String val = result.toLowerCase(Locale.ENGLISH);
         if (val.equals("true") || val.equals("yes") || val.equals("y") || val.equals("1")) {
@@ -209,7 +259,7 @@ public class Config {
      *
      * @param key   A key of a property which should be converted to environment variable name
      *
-     * @return  A name whihc should be used for environment variable
+     * @return  A name which should be used for environment variable
      */
     public static String toEnvName(String key) {
         return key.toUpperCase(Locale.ENGLISH).replace('-', '_').replace('.', '_');

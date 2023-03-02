@@ -18,14 +18,34 @@ import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+/**
+ * Helper methods to work with JSON
+ */
 public class JSONUtil {
 
+    /**
+     * A Jackson Databind <code>ObjectMapper</code> singleton
+     */
     public static final ObjectMapper MAPPER = new ObjectMapper();
 
+    /**
+     * Create a new ObjectNode
+     *
+     * @return A new ObjectNode
+     */
     public static ObjectNode newObjectNode() {
         return new ObjectNode(MAPPER.getNodeFactory());
     }
 
+    /**
+     * Parse JSON from <code>InputStream</code> into a specified type
+     *
+     * @param is An <code>InputStream</code> to read JSON from
+     * @param clazz A class representing the type to return (e.g. <code>JsonNode</code>, <code>ObjectNode</code>, <code>ArrayNode</code>, <code>String</code>)
+     * @return Parsed JSON as an object
+     * @param <T> Generic type representing a return type
+     * @throws IOException If an error occurs while reading or parsing the input
+     */
     public static <T> T readJSON(InputStream is, Class<T> clazz) throws IOException {
         if (clazz == String.class) {
             // just read and convert to UTF-8 String
@@ -36,12 +56,21 @@ public class JSONUtil {
         return MAPPER.readValue(is, clazz);
     }
 
+    /**
+     * Parse JSON from String into a specified type
+     *
+     * @param jsonString JSON as a String
+     * @param clazz A class representing the type to return (e.g. <code>JsonNode</code>, <code>ObjectNode</code>, <code>ArrayNode</code>, <code>String</code>)
+     * @return Parsed JSON as an object
+     * @param <T> Generic type representing a return type
+     * @throws IOException If an error occurs while reading or parsing the input
+     */
     public static <T> T readJSON(String jsonString, Class<T> clazz) throws IOException {
         return MAPPER.readValue(jsonString, clazz);
     }
 
     /**
-     * Convert object to JsonNode
+     * Convert object to <code>JsonNode</code>
      *
      * @param value Json-serializable object
      * @return Object as JsonNode
@@ -90,10 +119,10 @@ public class JSONUtil {
 
     /**
      * This method takes a JsonNode representing an array, or a string, and converts it into a List of String items.
-     *
+     * <p>
      * If the passed node is a TextNode, the text is parsed into a list of items by using ' ' (space) as a delimiter.
      * The resulting list can contain empty strings if two delimiters are present next to one another.
-     *
+     * <p>
      * If the JsonNode is neither an ArrayNode, nor a TextNode an IllegalArgumentException is thrown.
      *
      * @param arrayOrString A JsonNode to convert into a list of String
@@ -105,10 +134,10 @@ public class JSONUtil {
 
     /**
      * This method takes a JsonNode representing an array, or a string, and converts it into a List of String items.
-     *
+     * <p>
      * The {@code delimiter} parameter is only used if the passed node is a TextNode. It is used to parse the node content
      * as a list of strings. The resulting list can contain empty strings if two delimiters are present next to one another.
-     *
+     * <p>
      * If the JsonNode is neither an ArrayNode, nor a TextNode an IllegalArgumentException is thrown.
      *
      * @param arrayOrString A JsonNode to convert into a list of String

@@ -7,15 +7,37 @@ package io.strimzi.kafka.oauth.server.authorizer;
 import java.util.Locale;
 
 /**
- * ResourceSpec is used to parse resource matching pattern and to perform matching to specific resource.
+ * ResourceSpec is used to parse a resource matching pattern and to perform matching to a specific resource.
  */
 public class ResourceSpec {
 
+    /**
+     * Kafka resource types
+     */
     public enum ResourceType {
+        /**
+         * TOPIC
+         */
         TOPIC,
+
+        /**
+         * GROUP
+         */
         GROUP,
+
+        /**
+         * CLUSTER
+         */
         CLUSTER,
+
+        /**
+         * TRANSACTIONAL_ID
+         */
         TRANSACTIONAL_ID,
+
+        /**
+         * DELEGATION_TOKEN
+         */
         DELEGATION_TOKEN
     }
 
@@ -27,22 +49,48 @@ public class ResourceSpec {
     private boolean resourceStartsWith;
 
 
+    /**
+     * Get a 'kafka-cluster' value (not the same as Kafka <code>Cluster</code> resource type).
+     * For example: <code>kafka-cluster:my-cluster,Cluster:kafka-cluster</code>
+     *
+     * @return Cluster name
+     */
     public String getClusterName() {
         return clusterName;
     }
 
+    /**
+     * See if 'kafka-cluster' specification uses an asterisk as in <code>kafka-cluster:*,Topic:orders</code>
+     *
+     * @return True if value ends with an asterisk
+     */
     public boolean isClusterStartsWith() {
         return clusterStartsWith;
     }
 
+    /**
+     * Get a resource type
+     *
+     * @return ResourceType enum value
+     */
     public ResourceType getResourceType() {
         return resourceType;
     }
 
+    /**
+     * Get resource name
+     *
+     * @return A resource name
+     */
     public String getResourceName() {
         return resourceName;
     }
 
+    /**
+     * See if a resource specification uses an asterisk as in <code>Topic:orders_*</code>
+     *
+     * @return True if value ends with an asterisk
+     */
     public boolean isResourceStartsWith() {
         return resourceStartsWith;
     }
@@ -89,6 +137,12 @@ public class ResourceSpec {
         }
     }
 
+    /**
+     * A factory method to parse a ResourceSpec from a string
+     *
+     * @param name Resource spec as a string
+     * @return A ResourceSpec instance
+     */
     public static ResourceSpec of(String name) {
         ResourceSpec spec = new ResourceSpec();
 

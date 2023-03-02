@@ -16,10 +16,20 @@ import java.time.format.DateTimeFormatter;
 import static io.strimzi.kafka.oauth.common.LogUtil.mask;
 import static io.strimzi.kafka.oauth.common.TokenInfo.EXP;
 
+/**
+ * A class with methods for introspecting a JWT token
+ */
 public class TokenIntrospection {
 
     private static final NimbusPayloadTransformer TRANSFORMER = new NimbusPayloadTransformer();
 
+    /**
+     * Parse a raw access token, and extract the basic information from it, including user id by using a given {@link PrincipalExtractor}.
+     *
+     * @param token A raw token
+     * @param principalExtractor PrincipalExtractor instance
+     * @return Extracted token information as TokenInfo object
+     */
     public static TokenInfo introspectAccessToken(String token, PrincipalExtractor principalExtractor) {
         JWSObject jws;
         try {
@@ -46,6 +56,12 @@ public class TokenIntrospection {
         }
     }
 
+    /**
+     * Debug log the given raw token by parsing it as JWT and logging its payload section
+     *
+     * @param log Logger to use
+     * @param token A raw token
+     */
     public static void debugLogJWT(Logger log, String token) {
         JWSObject jws;
         try {

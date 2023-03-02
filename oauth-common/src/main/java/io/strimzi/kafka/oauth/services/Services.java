@@ -28,12 +28,22 @@ public class Services {
 
     private volatile OAuthMetrics metrics;
 
+    /**
+     * Configure a new <code>Services</code> instance. A new instance will only be created if one has not been configured before.
+     *
+     * @param configs Global configuration
+     */
     public static synchronized void configure(Map<String, ?> configs) {
         if (services == null) {
             services = new Services(configs);
         }
     }
 
+    /**
+     * Get a configured singleton instance
+     *
+     * @return Services object
+     */
     public static Services getInstance() {
         if (services == null) {
             throw new IllegalStateException("Services object has not been properly initialised");
@@ -45,26 +55,56 @@ public class Services {
         this.configs = configs;
     }
 
+    /**
+     * Get {@link Validators} singleton
+     *
+     * @return Validators instance
+     */
     public Validators getValidators() {
         return validators;
     }
 
+    /**
+     * Check if Services singleton has been configured
+     *
+     * @return True if configured
+     */
     public static boolean isAvailable() {
         return services != null;
     }
 
+    /**
+     * Get {@link Sessions} singleton
+     *
+     * @return Sessions instance
+     */
     public Sessions getSessions() {
         return sessions;
     }
 
+    /**
+     * Get {@link Principals} singleton
+     *
+     * @return Principals instance
+     */
     public Principals getPrincipals() {
         return principals;
     }
 
+    /**
+     * Get {@link Credentials} singleton
+     *
+     * @return Credentials instance
+     */
     public Credentials getCredentials() {
         return credentials;
     }
 
+    /**
+     * Get {@link OAuthMetrics} singleton
+     *
+     * @return OAuthMetrics instance
+     */
     public OAuthMetrics getMetrics() {
         if (metrics == null) {
             synchronized (Services.class) {

@@ -44,6 +44,9 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithClientSe
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithPassword;
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithRefreshToken;
 
+/**
+ * A login callback handler class for use with the KafkaProducer, KafkaConsumer, KafkaAdmin clients.
+ */
 public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallbackHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(JaasClientOauthLoginCallbackHandler.class);

@@ -5,10 +5,16 @@
 package io.strimzi.kafka.oauth.jsonpath;
 
 /**
- * The exception signalling a syntactic or semantic error during JsonPathQuery or JsonPathFilterQuery parsing
+ * A runtime exception signalling a syntactic or semantic error during JsonPathQuery or JsonPathFilterQuery parsing
  */
 public class JsonPathQueryException extends RuntimeException {
 
+    /**
+     * Create a new instance
+     *
+     * @param message Error message
+     * @param cause The original exception
+     */
     public JsonPathQueryException(String message, Throwable cause) {
         super(message, cause);
     }

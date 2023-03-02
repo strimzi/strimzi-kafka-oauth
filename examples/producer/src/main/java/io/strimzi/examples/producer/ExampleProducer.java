@@ -19,9 +19,17 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 
+/**
+ * An example synchronous (single-threaded) producer implementation
+ */
 @SuppressFBWarnings("THROWS_METHOD_THROWS_RUNTIMEEXCEPTION")
 public class ExampleProducer {
 
+    /**
+     * A main method
+     *
+     * @param args No arguments expected
+     */
     public static void main(String[] args) {
 
         String topic = "a_Topic1";
