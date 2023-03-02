@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.BooleanNode;
 import io.strimzi.kafka.oauth.common.HttpUtil;
 import io.strimzi.kafka.oauth.common.JSONUtil;
+import io.strimzi.kafka.oauth.common.MetricsHandler;
 import io.strimzi.kafka.oauth.common.PrincipalExtractor;
 import io.strimzi.kafka.oauth.common.TimeUtil;
 import io.strimzi.kafka.oauth.common.TokenInfo;
@@ -73,6 +74,8 @@ public class OAuthIntrospectionValidator implements TokenValidator {
 
     private final boolean enableMetrics;
     private final OAuthMetrics metrics;
+    private final MetricsHandler introspectMetricsHandler;
+    private final MetricsHandler userInfoMetricsHandler;
     private final SensorKeyProducer introspectHttpSensorKeyProducer;
     private final SensorKeyProducer userInfoHttpSensorKeyProducer;
 
@@ -150,6 +153,8 @@ public class OAuthIntrospectionValidator implements TokenValidator {
 
         this.enableMetrics = enableMetrics;
         metrics = enableMetrics ? Services.getInstance().getMetrics() : null;
+        introspectMetricsHandler = new IntrospectMetricsHandler();
+        userInfoMetricsHandler = new UserInfoMetricsHandler();
 
         introspectHttpSensorKeyProducer = new IntrospectHttpSensorKeyProducer(validatorId, introspectionURI);
         userInfoHttpSensorKeyProducer = userInfoURI != null ? new UserInfoHttpSensorKeyProducer(validatorId, userInfoURI) : null;
@@ -276,11 +281,8 @@ public class OAuthIntrospectionValidator implements TokenValidator {
 
         JsonNode response;
         try {
-            response = HttpUtil.doWithRetries(retries, retryPauseMillis, () -> {
-                JsonNode r;
-                long requestStartTime = System.currentTimeMillis();
-                try {
-                    r = post(introspectionURI,
+            response = HttpUtil.doWithRetries(retries, retryPauseMillis, introspectMetricsHandler, () ->
+                    post(introspectionURI,
                             socketFactory,
                             hostnameVerifier,
                             authorization,
@@ -288,15 +290,8 @@ public class OAuthIntrospectionValidator implements TokenValidator {
                             body.toString(),
                             JsonNode.class,
                             connectTimeoutSeconds,
-                            readTimeoutSeconds);
-
-                    addIntrospectHttpMetricSuccessTime(requestStartTime);
-                    return r;
-                } catch (Throwable t) {
-                    addIntrospectHttpMetricErrorTime(t, requestStartTime);
-                    throw t;
-                }
-            });
+                            readTimeoutSeconds)
+            );
         } catch (Throwable e) {
             Throwable cause = e;
             if (e instanceof ExecutionException) {
@@ -378,26 +373,15 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         JsonNode response;
 
         try {
-            response = HttpUtil.doWithRetries(retries, retryPauseMillis, () -> {
-
-                JsonNode r;
-                long requestStartTime = System.currentTimeMillis();
-                try {
-                    r = get(userInfoURI,
+            response = HttpUtil.doWithRetries(retries, retryPauseMillis, userInfoMetricsHandler, () ->
+                    get(userInfoURI,
                             socketFactory,
                             hostnameVerifier,
                             authorization,
                             JsonNode.class,
                             connectTimeoutSeconds,
-                            readTimeoutSeconds);
-                    addUserInfoHttpMetricSuccessTime(requestStartTime);
-
-                    return r;
-                } catch (Throwable t) {
-                    addUserInfoHttpMetricErrorTime(t, requestStartTime);
-                    throw t;
-                }
-            });
+                            readTimeoutSeconds)
+            );
 
         } catch (Throwable e) {
             Throwable cause = e;
@@ -464,27 +448,36 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         return validatorId;
     }
 
-    private void addIntrospectHttpMetricSuccessTime(long startTime) {
-        if (enableMetrics) {
-            metrics.addTime(introspectHttpSensorKeyProducer.successKey(), System.currentTimeMillis() - startTime);
+    class IntrospectMetricsHandler implements MetricsHandler {
+
+        @Override
+        public void addSuccessRequestTime(long millis) {
+            if (enableMetrics) {
+                metrics.addTime(introspectHttpSensorKeyProducer.successKey(), millis);
+            }
+        }
+
+        @Override
+        public void addErrorRequestTime(Throwable e, long millis) {
+            if (enableMetrics) {
+                metrics.addTime(introspectHttpSensorKeyProducer.errorKey(e), millis);
+            }
         }
     }
 
-    private void addIntrospectHttpMetricErrorTime(Throwable e, long startTime) {
-        if (enableMetrics) {
-            metrics.addTime(introspectHttpSensorKeyProducer.errorKey(e), System.currentTimeMillis() - startTime);
+    class UserInfoMetricsHandler implements MetricsHandler {
+        @Override
+        public void addSuccessRequestTime(long millis) {
+            if (enableMetrics) {
+                metrics.addTime(userInfoHttpSensorKeyProducer.successKey(), millis);
+            }
         }
-    }
 
-    private void addUserInfoHttpMetricSuccessTime(long startTime) {
-        if (enableMetrics) {
-            metrics.addTime(userInfoHttpSensorKeyProducer.successKey(), System.currentTimeMillis() - startTime);
-        }
-    }
-
-    private void addUserInfoHttpMetricErrorTime(Throwable e, long startTime) {
-        if (enableMetrics) {
-            metrics.addTime(userInfoHttpSensorKeyProducer.errorKey(e), System.currentTimeMillis() - startTime);
+        @Override
+        public void addErrorRequestTime(Throwable e, long millis) {
+            if (enableMetrics) {
+                metrics.addTime(userInfoHttpSensorKeyProducer.errorKey(e), millis);
+            }
         }
     }
 }

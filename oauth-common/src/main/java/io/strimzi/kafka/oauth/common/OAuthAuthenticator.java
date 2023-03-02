@@ -220,12 +220,8 @@ public class OAuthAuthenticator {
 
         JsonNode result;
         try {
-            result = HttpUtil.doWithRetries(retries, retryPauseMillis, () -> {
-
-                JsonNode r;
-                long now = System.currentTimeMillis();
-                try {
-                    r = HttpUtil.post(tokenEndpointUri,
+            result = HttpUtil.doWithRetries(retries, retryPauseMillis, metrics, () ->
+                    HttpUtil.post(tokenEndpointUri,
                             socketFactory,
                             hostnameVerifier,
                             authorization,
@@ -233,20 +229,8 @@ public class OAuthAuthenticator {
                             body,
                             JsonNode.class,
                             connectTimeout,
-                            readTimeout);
-
-                    if (metrics != null) {
-                        metrics.addSuccessRequestTime(System.currentTimeMillis() - now);
-                    }
-                    return r;
-
-                } catch (Throwable t) {
-                    if (metrics != null) {
-                        metrics.addErrorRequestTime(t, System.currentTimeMillis() - now);
-                    }
-                    throw t;
-                }
-            });
+                            readTimeout)
+            );
 
         } catch (Throwable e) {
             Throwable cause = e;

@@ -46,7 +46,19 @@ public class HttpUtil {
     static final int DEFAULT_CONNECT_TIMEOUT = getConnectTimeout(new Config());
     static final int DEFAULT_READ_TIMEOUT = getReadTimeout(new Config());
 
-    public static <T> T doWithRetries(int retries, long retryPauseMillis, IOTask<T> task) throws ExecutionException {
+    /**
+     * A helper method that implements logic for retrying unsuccessful HTTP requests
+     *
+     * @param retries a maximum number of retries to attempt
+     * @param retryPauseMillis a pause between two consecutive retries in millis
+     * @param metricsHandler a metrics handler to track request times and failures
+     * @param task the task to run with retries
+     * @return The result of the successfully completed task
+     *
+     * @param <T> Generic type of the result type of the HttpTask
+     * @throws ExecutionException The exception thrown if the last retry still failed, wrapping the cause exception
+     */
+    public static <T> T doWithRetries(int retries, long retryPauseMillis, MetricsHandler metricsHandler, HttpTask<T> task) throws ExecutionException {
 
         if (retries < 0) {
             throw new IllegalArgumentException("retries can't be negative");
@@ -72,7 +84,20 @@ public class HttpUtil {
                 if (i > 1) {
                     log.debug("Request attempt no. " + i);
                 }
-                return task.run();
+                long requestStartTime = System.currentTimeMillis();
+                try {
+                    T result = task.run();
+
+                    if (metricsHandler != null) {
+                        metricsHandler.addSuccessRequestTime(System.currentTimeMillis() - requestStartTime);
+                    }
+                    return result;
+                } catch (Throwable t) {
+                    if (metricsHandler != null) {
+                        metricsHandler.addErrorRequestTime(t, System.currentTimeMillis() - requestStartTime);
+                    }
+                    throw t;
+                }
             } catch (Exception e) {
                 exception = e;
                 log.info("Action failed on try no. " + i, e);
