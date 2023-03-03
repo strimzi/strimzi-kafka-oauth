@@ -99,6 +99,7 @@ public class AdminServerRequestHandler implements Handler<HttpServerRequest> {
                 }
             } else {
                 verticle.setMode(endpoint, m);
+                verticle.resetCoin(endpoint);
             }
 
             if (result != null) {

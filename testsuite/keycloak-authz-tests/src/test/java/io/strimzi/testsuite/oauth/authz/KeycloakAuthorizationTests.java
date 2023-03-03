@@ -100,9 +100,7 @@ public class KeycloakAuthorizationTests {
 
     private void logStart(String msg) {
         System.out.println();
-        System.out.println();
         System.out.println("========    "  + msg);
-        System.out.println();
         System.out.println();
     }
 }

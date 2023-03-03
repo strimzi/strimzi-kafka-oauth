@@ -69,6 +69,8 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
 
     private int connectTimeout;
     private int readTimeout;
+    private int retries;
+    private long retryPauseMillis;
 
     private boolean enableMetrics;
     private OAuthMetrics metrics;
@@ -117,7 +119,8 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
         hostnameVerifier = ConfigUtil.createHostnameVerifier(config);
         connectTimeout = getConnectTimeout(config);
         readTimeout = getReadTimeout(config);
-
+        retries = getHttpRetries(config);
+        retryPauseMillis = getHttpRetryPauseMillis(config, retries);
         checkConfiguration();
 
         principalExtractor = new PrincipalExtractor(
@@ -155,8 +158,32 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
                     + "\n    principalExtractor: " + principalExtractor
                     + "\n    connectTimeout: " + connectTimeout
                     + "\n    readTimeout: " + readTimeout
+                    + "\n    retries: " + retries
+                    + "\n    retryPauseMillis: " + retryPauseMillis
                     + "\n    enableMetrics: " + enableMetrics);
         }
+    }
+
+    private int getHttpRetries(ClientConfig config) {
+        int retries = config.getValueAsInt(Config.OAUTH_HTTP_RETRIES, 0);
+        if (retries < 0) {
+            throw new ConfigException("The configured value of 'oauth.http.retries' has to be greater or equal to zero");
+        }
+        return retries;
+    }
+
+    private long getHttpRetryPauseMillis(ClientConfig config, int retries) {
+        long retryPauseMillis = config.getValueAsLong(Config.OAUTH_HTTP_RETRY_PAUSE_MILLIS, 0);
+        if (retries > 0) {
+            if (retryPauseMillis < 0) {
+                retryPauseMillis = 0;
+                LOG.warn("The configured value of 'oauth.http.retry.pause.millis' is less than zero and will be ignored");
+            }
+            if (retryPauseMillis <= 0) {
+                LOG.warn("No pause between http retries configured. Consider setting 'oauth.http.retry.pause.millis' to greater than zero to avoid flooding the authorization server with requests.");
+            }
+        }
+        return retryPauseMillis;
     }
 
     private void checkConfiguration() {
@@ -243,11 +270,11 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
                 // we could check if it's a JWT - in that case we could check if it's expired
                 result = loginWithAccessToken(token, isJwt, principalExtractor);
             } else if (refreshToken != null) {
-                result = loginWithRefreshToken(tokenEndpoint, socketFactory, hostnameVerifier, refreshToken, clientId, clientSecret, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout, authenticatorMetrics);
+                result = loginWithRefreshToken(tokenEndpoint, socketFactory, hostnameVerifier, refreshToken, clientId, clientSecret, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout, authenticatorMetrics, retries, retryPauseMillis);
             } else if (username != null) {
-                result = loginWithPassword(tokenEndpoint, socketFactory, hostnameVerifier, username, password, clientId, clientSecret, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout, authenticatorMetrics);
+                result = loginWithPassword(tokenEndpoint, socketFactory, hostnameVerifier, username, password, clientId, clientSecret, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout, authenticatorMetrics, retries, retryPauseMillis);
             } else if (clientSecret != null) {
-                result = loginWithClientSecret(tokenEndpoint, socketFactory, hostnameVerifier, clientId, clientSecret, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout, authenticatorMetrics);
+                result = loginWithClientSecret(tokenEndpoint, socketFactory, hostnameVerifier, clientId, clientSecret, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout, authenticatorMetrics, retries, retryPauseMillis);
             } else {
                 throw new IllegalStateException("Invalid oauth client configuration - no credentials");
             }

@@ -247,6 +247,8 @@ public class ValidatorKey {
         private final String validTokenType;
         private final String clientId;
         private final String clientSecret;
+        private final int retries;
+        private final long retryPauseMillis;
         private final String configIdHash;
 
         @SuppressWarnings("checkstyle:parameternumber")
@@ -271,7 +273,9 @@ public class ValidatorKey {
                                   String clientSecret,
                                   int connectTimeout,
                                   int readTimeout,
-                                  boolean enableMetrics) {
+                                  boolean enableMetrics,
+                                  int retries,
+                                  long retryPauseMillis) {
 
             super(validIssuerUri,
                     audience,
@@ -294,13 +298,17 @@ public class ValidatorKey {
             this.validTokenType = validTokenType;
             this.clientId = clientId;
             this.clientSecret = clientSecret;
+            this.retries = retries;
+            this.retryPauseMillis = retryPauseMillis;
 
             this.configIdHash = IOUtil.hashForObjects(super.getConfigIdHash(),
                     introspectionEndpoint,
                     userInfoEndpoint,
                     validTokenType,
                     clientId,
-                    clientSecret);
+                    clientSecret,
+                    retries,
+                    retryPauseMillis);
         }
 
         @Override
@@ -313,7 +321,9 @@ public class ValidatorKey {
                     Objects.equals(userInfoEndpoint, that.userInfoEndpoint) &&
                     Objects.equals(validTokenType, that.validTokenType) &&
                     Objects.equals(clientId, that.clientId) &&
-                    Objects.equals(clientSecret, that.clientSecret);
+                    Objects.equals(clientSecret, that.clientSecret) &&
+                    Objects.equals(retries, that.retries) &&
+                    Objects.equals(retryPauseMillis, that.retryPauseMillis);
         }
 
         @Override
@@ -323,7 +333,9 @@ public class ValidatorKey {
                     userInfoEndpoint,
                     validTokenType,
                     clientId,
-                    clientSecret);
+                    clientSecret,
+                    retries,
+                    retryPauseMillis);
         }
 
         @Override

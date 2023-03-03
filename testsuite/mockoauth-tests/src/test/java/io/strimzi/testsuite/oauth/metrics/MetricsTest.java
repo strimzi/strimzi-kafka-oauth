@@ -4,108 +4,36 @@
  */
 package io.strimzi.testsuite.oauth.metrics;
 
-import io.strimzi.kafka.oauth.common.OAuthAuthenticator;
-import io.strimzi.kafka.oauth.common.PrincipalExtractor;
-import io.strimzi.kafka.oauth.common.SSLUtil;
-import io.strimzi.kafka.oauth.common.TokenInfo;
-import io.strimzi.kafka.oauth.common.TokenIntrospection;
-import io.strimzi.kafka.oauth.services.Services;
-import io.strimzi.kafka.oauth.validator.JWTSignatureValidator;
-import io.strimzi.kafka.oauth.validator.TokenValidationException;
 import org.junit.Assert;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URI;
-import java.util.Collections;
 
 import static io.strimzi.testsuite.oauth.mockoauth.Common.changeAuthServerMode;
-import static io.strimzi.testsuite.oauth.mockoauth.Common.createOAuthClient;
-import static io.strimzi.testsuite.oauth.mockoauth.Common.getProjectRoot;
 import static io.strimzi.testsuite.oauth.mockoauth.Common.getPrometheusMetrics;
 import static io.strimzi.testsuite.oauth.mockoauth.Common.reloadMetrics;
 
-/**
- * Tests for OAuth authentication using Keycloak
- *
- * This test assumes there are multiple listeners configured with SASL OAUTHBEARER mechanism, but each configured differently
- * - configured with different options, or different realms. For OAuth over PLAIN tests the listeners are configured with SASL PLAIN mechanism.
- *
- * There is no authorization configured on the Kafka broker.
- */
+
 public class MetricsTest {
 
-    static final Logger log = LoggerFactory.getLogger(MetricsTest.class);
+    private final static int PAUSE_MILLIS = 15_000;
 
     public void doTest() throws Exception {
-        try {
-            zeroCheck();
 
-            postInitCheck();
+        logStart("Check there are no Prometheus metrics errors before the tests are run");
+        zeroCheck();
 
-            testNetworkErrors();
+        logStart("Check initial JWKS endpoint errors show in Prometheus metrics");
+        postInitCheck();
 
-            testExpiredCert();
+        logStart("Check network errors show in Prometheus metrics");
+        testNetworkErrors();
 
-            testInternalServerErrors();
+        logStart("Check TLS errors show in Prometheus metrics");
+        testExpiredCert();
 
-            testJwksIgnoreKeyUse();
-
-        } catch (Throwable e) {
-            log.error("Keycloak Authentication Test failed: ", e);
-            throw e;
-        }
-    }
-
-    private void testJwksIgnoreKeyUse() throws IOException {
-
-        Services.configure(Collections.emptyMap());
-
-        changeAuthServerMode("jwks", "MODE_JWKS_RSA_WITHOUT_SIG_USE");
-        changeAuthServerMode("token", "MODE_200");
-
-        String testClient = "testclient";
-        String testSecret = "testsecret";
-        createOAuthClient(testClient, testSecret);
-
-        String projectRoot = getProjectRoot();
-        SSLSocketFactory sslFactory = SSLUtil.createSSLFactory(
-                projectRoot + "/../docker/certificates/ca-truststore.p12", null, "changeit", null, null);
-
-        JWTSignatureValidator validator = createTokenValidator("enforceKeyUse", sslFactory, false);
-
-        // Now get a new token
-        TokenInfo tokenInfo = OAuthAuthenticator.loginWithClientSecret(
-                URI.create("https://mockoauth:8090/token"),
-                sslFactory,
-                null,
-                testClient,
-                testSecret,
-                true,
-                null,
-                null,
-                null);
-
-        TokenIntrospection.debugLogJWT(log, tokenInfo.token());
-
-        // and try to validate it
-        // It should fail
-        try {
-            validator.validate(tokenInfo.token());
-            Assert.fail("Token validation should fail");
-
-        } catch (TokenValidationException ignored) {
-        }
-
-        // Repeat the test with `ignoreKeyUse: true`
-        JWTSignatureValidator validatorIgnoreKeyUse = createTokenValidator("ignoreKeyUse", sslFactory, true);
-
-        // Try to validate the token
-        // It should pass
-        validatorIgnoreKeyUse.validate(tokenInfo.token());
+        logStart("Check 5xx errors show in Prometheus metrics");
+        testInternalServerErrors();
     }
 
     private void testInternalServerErrors() throws IOException, InterruptedException {
@@ -115,7 +43,7 @@ public class MetricsTest {
         // Turn mockoauth auth server back on with cert no. 2
         changeAuthServerMode("server", "mode_cert_two_on");
 
-        Thread.sleep(20000);
+        Thread.sleep(PAUSE_MILLIS);
         Metrics metrics = reloadMetrics();
 
 
@@ -125,7 +53,7 @@ public class MetricsTest {
         // Switch mockoauth auth server back to using cert no. 1
         changeAuthServerMode("server", "mode_cert_one_on");
 
-        Thread.sleep(20000);
+        Thread.sleep(PAUSE_MILLIS);
         metrics = reloadMetrics();
 
 
@@ -144,7 +72,7 @@ public class MetricsTest {
         // Turn mockoauth auth server back on, and make JWT produce SSL errors
         changeAuthServerMode("server", "mode_expired_cert_on");
 
-        Thread.sleep(20000);
+        Thread.sleep(PAUSE_MILLIS);
         Metrics metrics = reloadMetrics();
 
 
@@ -163,7 +91,7 @@ public class MetricsTest {
         // Turn off mockoauth auth server to cause network errors
         changeAuthServerMode("server", "mode_off");
 
-        Thread.sleep(30000);
+        Thread.sleep(PAUSE_MILLIS * 2);
         Metrics metrics = reloadMetrics();
 
 
@@ -227,26 +155,7 @@ public class MetricsTest {
         Assert.assertNull(value);
     }
 
-
-    private static JWTSignatureValidator createTokenValidator(String validatorId, SSLSocketFactory sslFactory, boolean ignoreKeyUse) {
-        return new JWTSignatureValidator(validatorId,
-                "https://mockoauth:8090/jwks",
-                sslFactory,
-                null,
-                new PrincipalExtractor(),
-                null,
-                null,
-                "https://mockoauth:8090",
-                30,
-                0,
-                300,
-                ignoreKeyUse,
-                false,
-                null,
-                null,
-                60,
-                60,
-                true,
-                true);
+    private void logStart(String msg) {
+        System.out.println("    ====    "  + msg);
     }
 }

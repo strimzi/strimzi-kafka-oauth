@@ -7,10 +7,13 @@ package io.strimzi.testsuite.oauth;
 import io.strimzi.testsuite.oauth.common.TestContainersLogCollector;
 import io.strimzi.testsuite.oauth.common.TestContainersWatcher;
 import io.strimzi.testsuite.oauth.metrics.MetricsTest;
+import io.strimzi.testsuite.oauth.mockoauth.ConnectTimeoutTests;
+import io.strimzi.testsuite.oauth.mockoauth.JWKSKeyUseTest;
 import io.strimzi.testsuite.oauth.mockoauth.JaasClientConfigTest;
 import io.strimzi.testsuite.oauth.mockoauth.KeycloakAuthorizerTest;
 import io.strimzi.testsuite.oauth.mockoauth.PasswordAuthTest;
 
+import io.strimzi.testsuite.oauth.mockoauth.RetriesTests;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -41,13 +44,13 @@ public class MockOAuthTests {
     @Test
     public void runTests() throws Exception {
         try {
-            System.setProperty("oauth.read.timeout.seconds", "600");
-
-            logStart("KeycloakAuthorizerTest :: Grants Retries Tests");
-            new KeycloakAuthorizerTest().doTest();
+            String kafkaContainer = environment.getContainerByServiceName("kafka_1").get().getContainerInfo().getName().substring(1);
 
             logStart("MetricsTest :: Basic Metrics Tests");
             new MetricsTest().doTest();
+
+            logStart("JWKSKeyUseTest :: JWKS KeyUse Test");
+            new JWKSKeyUseTest().doTest();
 
             logStart("JaasClientConfigTest :: Client Configuration Tests");
             new JaasClientConfigTest().doTest();
@@ -55,8 +58,17 @@ public class MockOAuthTests {
             logStart("PasswordAuthTest :: Password Grant Tests");
             new PasswordAuthTest().doTest();
 
+            logStart("ConnectTimeoutTests :: HTTP Timeout Tests");
+            new ConnectTimeoutTests(kafkaContainer).doTest();
+
+            logStart("RetriesTests :: Authentication HTTP Retries Tests");
+            new RetriesTests(kafkaContainer).doTests();
+
+            logStart("KeycloakAuthorizerTest :: Grants HTTP Retries Tests");
+            new KeycloakAuthorizerTest().doHttpRetriesTest();
+
         } catch (Throwable e) {
-            log.error("Exception has occured: ", e);
+            log.error("Exception has occurred: ", e);
             throw e;
         }
     }
@@ -64,9 +76,7 @@ public class MockOAuthTests {
 
     private void logStart(String msg) {
         System.out.println();
-        System.out.println();
         System.out.println("========    "  + msg);
-        System.out.println();
         System.out.println();
     }
 }

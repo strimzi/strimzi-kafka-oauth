@@ -6,7 +6,9 @@ package io.strimzi.kafka.oauth.validator;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.BooleanNode;
+import io.strimzi.kafka.oauth.common.HttpUtil;
 import io.strimzi.kafka.oauth.common.JSONUtil;
+import io.strimzi.kafka.oauth.common.MetricsHandler;
 import io.strimzi.kafka.oauth.common.PrincipalExtractor;
 import io.strimzi.kafka.oauth.common.TimeUtil;
 import io.strimzi.kafka.oauth.common.TokenInfo;
@@ -29,6 +31,7 @@ import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import static io.strimzi.kafka.oauth.common.HttpUtil.post;
@@ -66,9 +69,13 @@ public class OAuthIntrospectionValidator implements TokenValidator {
 
     private final int connectTimeoutSeconds;
     private final int readTimeoutSeconds;
+    private final int retries;
+    private final long retryPauseMillis;
 
     private final boolean enableMetrics;
     private final OAuthMetrics metrics;
+    private final MetricsHandler introspectMetricsHandler;
+    private final MetricsHandler userInfoMetricsHandler;
     private final SensorKeyProducer introspectHttpSensorKeyProducer;
     private final SensorKeyProducer userInfoHttpSensorKeyProducer;
 
@@ -92,6 +99,8 @@ public class OAuthIntrospectionValidator implements TokenValidator {
      * @param connectTimeoutSeconds The maximum time to wait for connection to authorization server to be established (in seconds)
      * @param readTimeoutSeconds The maximum time to wait for response from authorization server after connection has been established and request sent (in seconds)
      * @param enableMetrics The switch that enables metrics collection
+     * @param retries Maximum number of retries if request to the authorization server fails (0 means no retries)
+     * @param retryPauseMillis Time to pause before retrying the request to the authorization server
      */
     @SuppressWarnings("checkstyle:ParameterNumber")
     public OAuthIntrospectionValidator(String id,
@@ -110,7 +119,9 @@ public class OAuthIntrospectionValidator implements TokenValidator {
                                        String customClaimCheck,
                                        int connectTimeoutSeconds,
                                        int readTimeoutSeconds,
-                                       boolean enableMetrics) {
+                                       boolean enableMetrics,
+                                       int retries,
+                                       long retryPauseMillis) {
 
         this.validatorId = checkValidatorId(id);
 
@@ -137,9 +148,13 @@ public class OAuthIntrospectionValidator implements TokenValidator {
 
         this.connectTimeoutSeconds = connectTimeoutSeconds;
         this.readTimeoutSeconds = readTimeoutSeconds;
+        this.retries = retries;
+        this.retryPauseMillis = retryPauseMillis;
 
         this.enableMetrics = enableMetrics;
         metrics = enableMetrics ? Services.getInstance().getMetrics() : null;
+        introspectMetricsHandler = new IntrospectMetricsHandler();
+        userInfoMetricsHandler = new UserInfoMetricsHandler();
 
         introspectHttpSensorKeyProducer = new IntrospectHttpSensorKeyProducer(validatorId, introspectionURI);
         userInfoHttpSensorKeyProducer = userInfoURI != null ? new UserInfoHttpSensorKeyProducer(validatorId, userInfoURI) : null;
@@ -163,6 +178,8 @@ public class OAuthIntrospectionValidator implements TokenValidator {
                     + "\n    connectTimeoutSeconds: " + connectTimeoutSeconds
                     + "\n    readTimeoutSeconds: " + readTimeoutSeconds
                     + "\n    enableMetrics: " + enableMetrics
+                    + "\n    retries: " + retries
+                    + "\n    retryPauseMillis: " + retryPauseMillis
             );
         }
     }
@@ -253,10 +270,8 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         return ",";
     }
 
-    @SuppressWarnings("checkstyle:NPathComplexity")
+    @SuppressWarnings({"checkstyle:NPathComplexity", "checkstyle:CyclomaticComplexity"})
     public TokenInfo validate(String token) {
-
-        long requestStartTime = System.currentTimeMillis();
 
         String authorization = clientSecret != null ?
                 "Basic " + base64encode(clientId + ':' + clientSecret) :
@@ -266,14 +281,26 @@ public class OAuthIntrospectionValidator implements TokenValidator {
 
         JsonNode response;
         try {
-            response = post(introspectionURI, socketFactory, hostnameVerifier, authorization,
-                    "application/x-www-form-urlencoded", body.toString(), JsonNode.class, connectTimeoutSeconds, readTimeoutSeconds);
-
-            addIntrospectHttpMetricSuccessTime(requestStartTime);
-
-        } catch (IOException e) {
-            addIntrospectHttpMetricErrorTime(e, requestStartTime);
-            throw new ValidationException("Failed to introspect token - send, fetch or parse failed: ", e);
+            response = HttpUtil.doWithRetries(retries, retryPauseMillis, introspectMetricsHandler, () ->
+                    post(introspectionURI,
+                            socketFactory,
+                            hostnameVerifier,
+                            authorization,
+                            "application/x-www-form-urlencoded",
+                            body.toString(),
+                            JsonNode.class,
+                            connectTimeoutSeconds,
+                            readTimeoutSeconds)
+            );
+        } catch (Throwable e) {
+            Throwable cause = e;
+            if (e instanceof ExecutionException) {
+                cause = e.getCause();
+            }
+            if (cause instanceof IOException) {
+                throw new ValidationException("Failed to introspect token - send, fetch or parse failed: ", cause);
+            }
+            throw new ValidationException("Unexpected exception while calling the Introspection endpoint: ", cause);
         }
 
         JsonNode activeAttr = response.get("active");
@@ -345,15 +372,26 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         String authorization = "Bearer " + token;
         JsonNode response;
 
-        long requestStartTime = System.currentTimeMillis();
         try {
-            response = get(userInfoURI, socketFactory, hostnameVerifier, authorization, JsonNode.class, connectTimeoutSeconds, readTimeoutSeconds);
+            response = HttpUtil.doWithRetries(retries, retryPauseMillis, userInfoMetricsHandler, () ->
+                    get(userInfoURI,
+                            socketFactory,
+                            hostnameVerifier,
+                            authorization,
+                            JsonNode.class,
+                            connectTimeoutSeconds,
+                            readTimeoutSeconds)
+            );
 
-            addUserInfoHttpMetricSuccessTime(requestStartTime);
-
-        } catch (IOException e) {
-            addUserInfoHttpMetricErrorTime(e, requestStartTime);
-            throw new ValidationException("Request to User Info Endpoint failed: ", e);
+        } catch (Throwable e) {
+            Throwable cause = e;
+            if (cause instanceof ExecutionException) {
+                cause = cause.getCause();
+            }
+            if (cause instanceof IOException) {
+                throw new ValidationException("Request to User Info Endpoint failed: ", cause);
+            }
+            throw new ValidationException("Unexpected exception while calling the User Info endpoint: ", cause);
         }
 
         return response;
@@ -410,27 +448,36 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         return validatorId;
     }
 
-    private void addIntrospectHttpMetricSuccessTime(long startTime) {
-        if (enableMetrics) {
-            metrics.addTime(introspectHttpSensorKeyProducer.successKey(), System.currentTimeMillis() - startTime);
+    class IntrospectMetricsHandler implements MetricsHandler {
+
+        @Override
+        public void addSuccessRequestTime(long millis) {
+            if (enableMetrics) {
+                metrics.addTime(introspectHttpSensorKeyProducer.successKey(), millis);
+            }
+        }
+
+        @Override
+        public void addErrorRequestTime(Throwable e, long millis) {
+            if (enableMetrics) {
+                metrics.addTime(introspectHttpSensorKeyProducer.errorKey(e), millis);
+            }
         }
     }
 
-    private void addIntrospectHttpMetricErrorTime(Throwable e, long startTime) {
-        if (enableMetrics) {
-            metrics.addTime(introspectHttpSensorKeyProducer.errorKey(e), System.currentTimeMillis() - startTime);
+    class UserInfoMetricsHandler implements MetricsHandler {
+        @Override
+        public void addSuccessRequestTime(long millis) {
+            if (enableMetrics) {
+                metrics.addTime(userInfoHttpSensorKeyProducer.successKey(), millis);
+            }
         }
-    }
 
-    private void addUserInfoHttpMetricSuccessTime(long startTime) {
-        if (enableMetrics) {
-            metrics.addTime(userInfoHttpSensorKeyProducer.successKey(), System.currentTimeMillis() - startTime);
-        }
-    }
-
-    private void addUserInfoHttpMetricErrorTime(Throwable e, long startTime) {
-        if (enableMetrics) {
-            metrics.addTime(userInfoHttpSensorKeyProducer.errorKey(e), System.currentTimeMillis() - startTime);
+        @Override
+        public void addErrorRequestTime(Throwable e, long millis) {
+            if (enableMetrics) {
+                metrics.addTime(userInfoHttpSensorKeyProducer.errorKey(e), millis);
+            }
         }
     }
 }

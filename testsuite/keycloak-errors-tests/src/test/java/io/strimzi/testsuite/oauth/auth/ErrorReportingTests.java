@@ -63,7 +63,7 @@ public class ErrorReportingTests {
     private void unparseableJwtToken() throws Exception {
         String token = "unparseable";
 
-        System.out.println("==== KeycloakErrorsTest :: unparseableJwtToken ====");
+        System.out.println("    ====    KeycloakErrorsTest :: unparseableJwtToken");
 
         final String kafkaBootstrap = getKafkaBootstrap(9203);
 
@@ -94,7 +94,7 @@ public class ErrorReportingTests {
     private void corruptTokenIntrospect() throws Exception {
         String token = "corrupt";
 
-        System.out.println("==== KeycloakErrorsTest :: corruptTokenIntrospect ====");
+        System.out.println("    ====    KeycloakErrorsTest :: corruptTokenIntrospect");
 
         final String kafkaBootstrap = getKafkaBootstrap(9202);
 
@@ -123,7 +123,7 @@ public class ErrorReportingTests {
     }
 
     private void invalidJwtTokenKid() throws Exception {
-        System.out.println("==== KeycloakErrorsTest :: invalidJwtTokenKid ====");
+        System.out.println("    ====    KeycloakErrorsTest :: invalidJwtTokenKid");
 
         // We authenticate against 'demo' realm, but use it with listener configured with 'kafka-authz' realm
         final String kafkaBootstrap = getKafkaBootstrap(9203);
@@ -158,7 +158,7 @@ public class ErrorReportingTests {
     }
 
     private void forgedJwtSig() throws Exception {
-        System.out.println("==== KeycloakErrorsTest :: forgedJwtSig ====");
+        System.out.println("    ====    KeycloakErrorsTest :: forgedJwtSig");
 
         final String kafkaBootstrap = getKafkaBootstrap(9201);
         final String hostPort = "keycloak:8080";
@@ -199,7 +199,7 @@ public class ErrorReportingTests {
     }
 
     private void forgedJwtSigIntrospect() throws Exception {
-        System.out.println("==== KeycloakErrorsTest :: forgedJwtSigIntrospect ====");
+        System.out.println("    ====    KeycloakErrorsTest :: forgedJwtSigIntrospect");
 
         final String kafkaBootstrap = getKafkaBootstrap(9202);
         final String hostPort = "keycloak:8080";
@@ -240,7 +240,7 @@ public class ErrorReportingTests {
     }
 
     private void expiredJwtToken() throws Exception {
-        System.out.println("==== KeycloakErrorsTest :: expiredJwtToken ====");
+        System.out.println("    ====    KeycloakErrorsTest :: expiredJwtToken");
 
         final String kafkaBootstrap = getKafkaBootstrap(9205);
         final String hostPort = "keycloak:8080";
@@ -282,7 +282,7 @@ public class ErrorReportingTests {
     }
 
     private void badClientIdOAuthOverPlain() throws Exception {
-        System.out.println("==== KeycloakErrorsTest :: badClientIdOAuthOverPlain ====");
+        System.out.println("    ====    KeycloakErrorsTest :: badClientIdOAuthOverPlain");
 
         final String kafkaBootstrap = getKafkaBootstrap(9204);
 
@@ -311,7 +311,7 @@ public class ErrorReportingTests {
     }
 
     private void badSecretOAuthOverPlain() throws Exception {
-        System.out.println("==== KeycloakErrorsTest :: badSecretOAuthOverPlain ====");
+        System.out.println("    ====    KeycloakErrorsTest :: badSecretOAuthOverPlain");
 
         final String kafkaBootstrap = getKafkaBootstrap(9204);
 
@@ -340,7 +340,7 @@ public class ErrorReportingTests {
     }
 
     private void cantConnectPlainWithClientCredentials() throws Exception {
-        System.out.println("==== KeycloakErrorsTest :: cantConnectPlainWithClientCredentials ====");
+        System.out.println("    ====    KeycloakErrorsTest :: cantConnectPlainWithClientCredentials");
 
         final String kafkaBootstrap = getKafkaBootstrap(9206);
 
@@ -369,19 +369,14 @@ public class ErrorReportingTests {
     }
 
     private void cantConnectIntrospect() throws Exception {
-        System.out.println("==== KeycloakErrorsTest :: cantConnectIntrospect ====");
+        System.out.println("    ====    KeycloakErrorsTest :: cantConnectIntrospect");
 
         final String kafkaBootstrap = getKafkaBootstrap(9207);
         final String hostPort = "keycloak:8080";
         final String realm = "kafka-authz";
 
-        final String tokenEndpointUri = "http://" + hostPort + "/auth/realms/" + realm + "/protocol/openid-connect/token";
-
         Map<String, String> oauthConfig = new HashMap<>();
-        oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, tokenEndpointUri);
-        oauthConfig.put(ClientConfig.OAUTH_CLIENT_ID, "team-a-client");
-        oauthConfig.put(ClientConfig.OAUTH_CLIENT_SECRET, "team-a-client-secret");
-        oauthConfig.put(ClientConfig.OAUTH_USERNAME_CLAIM, "preferred_username");
+        oauthConfig.put(ClientConfig.OAUTH_ACCESS_TOKEN, "mock.access.token");
 
         Properties producerProps = buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
         Producer<String, String> producer = new KafkaProducer<>(producerProps);
@@ -404,19 +399,14 @@ public class ErrorReportingTests {
     }
 
     private void cantConnectIntrospectWithTimeout() throws Exception {
-        System.out.println("==== KeycloakErrorsTest :: cantConnectIntrospectWithTimeout ====");
+        System.out.println("    ====    KeycloakErrorsTest :: cantConnectIntrospectWithTimeout");
 
         final String kafkaBootstrap = getKafkaBootstrap(9208);
         final String hostPort = "keycloak:8080";
         final String realm = "kafka-authz";
 
-        final String tokenEndpointUri = "http://" + hostPort + "/auth/realms/" + realm + "/protocol/openid-connect/token";
-
         Map<String, String> oauthConfig = new HashMap<>();
-        oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, tokenEndpointUri);
-        oauthConfig.put(ClientConfig.OAUTH_CLIENT_ID, "team-a-client");
-        oauthConfig.put(ClientConfig.OAUTH_CLIENT_SECRET, "team-a-client-secret");
-        oauthConfig.put(ClientConfig.OAUTH_USERNAME_CLAIM, "preferred_username");
+        oauthConfig.put(ClientConfig.OAUTH_ACCESS_TOKEN, "mock.access.token");
 
         Properties producerProps = buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
         Producer<String, String> producer = new KafkaProducer<>(producerProps);
@@ -438,15 +428,21 @@ public class ErrorReportingTests {
     private void checkKafkaLogConnectTimedOut(String message) {
         String errId = message.substring(message.length() - 16, message.length() - 1);
         List<String> log = getContainerLogsForString(kafkaContainer, errId);
-        long matchedCount = log.stream().filter(s -> s.startsWith("Caused by:") && s.contains("connect timed out")).count();
-        Assert.assertTrue("Found connect timed out cause of the error?", matchedCount > 0);
+        // For JDK 17 the ConnectionTimeoutException error message was fixed to start with upper case
+        long matchedCount = log.stream().filter(s -> s.startsWith("Caused by:") && s.contains("onnect timed out")).count();
+        if (matchedCount == 0) {
+            System.out.println("");
+            matchedCount = log.stream().filter(s -> s.startsWith("Caused by:") && s.contains("Connection refused")).count();
+            Assert.assertTrue("Found 'connect timed out' or 'Connection refused' cause of the error? (" + errId + ") " + log, matchedCount > 0);
+            System.out.println("WARN: Found 'Connection refused' rather than 'Connect timed out'");
+        }
     }
 
     private void cantConnectKeycloakWithTimeout() {
-        System.out.println("==== KeycloakErrorsTest :: cantConnectKeycloakWithTimeout ====");
+        System.out.println("    ====    KeycloakErrorsTest :: cantConnectKeycloakWithTimeout");
 
         final String kafkaBootstrap = getKafkaBootstrap(9208);
-        final String hostPort = "172.0.0.13:8080";
+        final String hostPort = "172.0.0.221:8080";
         final String realm = "kafka-authz";
 
         final String tokenEndpointUri = "http://" + hostPort + "/auth/realms/" + realm + "/protocol/openid-connect/token";

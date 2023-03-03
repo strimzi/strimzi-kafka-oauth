@@ -51,7 +51,7 @@ import static io.strimzi.kafka.oauth.common.TokenIntrospection.debugLogJWT;
 
 /**
  * This <em>CallbackHandler</em> implements the OAuth2 support.
- *
+ * <p>
  * It is designed for use with the <em>org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule</em> which provides
  * SASL/OAUTHBEARER authentication support to Kafka brokers. With this CallbackHandler installed, the client authenticates
  * with SASL/OAUTHBEARER mechanism, authenticating with an access token which this <em>CallbackHandler</em> validates, and either
@@ -214,6 +214,9 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
     private int readTimeout;
 
+    private int retries;
+    private long retryPauseMillis;
+
     private boolean enableMetrics;
 
     private OAuthMetrics metrics;
@@ -278,6 +281,8 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         connectTimeout = ConfigUtil.getConnectTimeout(config);
         readTimeout = ConfigUtil.getReadTimeout(config);
 
+        configureHttpRetries(config);
+
         String configId = config.getValue(Config.OAUTH_CONFIG_ID);
 
         configureMetrics(configs);
@@ -341,7 +346,9 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                 clientSecret,
                 connectTimeout,
                 readTimeout,
-                enableMetrics);
+                enableMetrics,
+                retries,
+                retryPauseMillis);
 
         String effectiveConfigId = configId != null ? configId : vkey.getConfigIdHash();
 
@@ -362,7 +369,9 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                 customClaimCheck,
                 connectTimeout,
                 readTimeout,
-                enableMetrics);
+                enableMetrics,
+                retries,
+                retryPauseMillis);
 
         ConfigurationKey confKey = configId != null ? new ConfigurationKey(configId, vkey) : new ConfigurationKey(vkey.getConfigIdHash(), vkey);
         validator = Services.getInstance().getValidators().get(confKey, factory);
@@ -512,6 +521,24 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         if (fallbackUsernamePrefix != null && fallbackUsernameClaim == null) {
             throw new ConfigException("OAuth validator configuration error: '" + ServerConfig.OAUTH_FALLBACK_USERNAME_CLAIM
                     + "' must be set when '" + ServerConfig.OAUTH_FALLBACK_USERNAME_PREFIX + "' is set");
+        }
+    }
+
+    private void configureHttpRetries(ServerConfig config) {
+        retries = config.getValueAsInt(Config.OAUTH_HTTP_RETRIES, 0);
+        if (retries < 0) {
+            throw new ConfigException("The configured value of 'oauth.http.retries' has to be greater or equal to zero");
+        }
+
+        retryPauseMillis = config.getValueAsLong(Config.OAUTH_HTTP_RETRY_PAUSE_MILLIS, 0);
+        if (retries > 0) {
+            if (retryPauseMillis < 0) {
+                retryPauseMillis = 0;
+                log.warn("The configured value of 'oauth.http.retry.pause.millis' is less than zero and will be ignored");
+            }
+            if (retryPauseMillis <= 0) {
+                log.warn("No pause between http retries configured. Consider setting 'oauth.http.retry.pause.millis' to greater than zero to avoid flooding the authorization server with requests.");
+            }
         }
     }
 
@@ -738,6 +765,13 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         return validator.getValidatorId();
     }
 
+    protected int getRetries() {
+        return retries;
+    }
+
+    protected long getRetryPauseMillis() {
+        return retryPauseMillis;
+    }
 
     private void addValidationMetricSuccessTime(long startTimeMs) {
         if (enableMetrics) {

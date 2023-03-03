@@ -65,6 +65,7 @@ public class HydraAuthenticationTest {
 
     @Test
     public void doTest() throws Exception {
+        System.out.println("========    Hydra Authentication Tests");
         Properties defaults = new Properties();
         defaults.setProperty(ClientConfig.OAUTH_SSL_TRUSTSTORE_LOCATION, "../docker/target/kafka/certs/ca-truststore.p12");
         defaults.setProperty(ClientConfig.OAUTH_SSL_TRUSTSTORE_PASSWORD, "changeit");
@@ -114,7 +115,7 @@ public class HydraAuthenticationTest {
     }
 
     public void opaqueAccessTokenWithIntrospectValidationTest(String topic) throws Exception {
-        System.out.println("==== " + topic + " ====");
+        System.out.println("    ====    " + topic);
 
         final String kafkaBootstrap = "kafka:9092";
         final String hostPort = "hydra:4444";
@@ -138,7 +139,7 @@ public class HydraAuthenticationTest {
         Producer<String, String> producer = new KafkaProducer<>(producerProps);
 
         producer.send(new ProducerRecord<>(topic, "The Message")).get();
-        System.out.println("Produced The Message");
+
 
         producer.close();
 
@@ -162,7 +163,7 @@ public class HydraAuthenticationTest {
     }
 
     public void clientCredentialsWithJwtValidationTest(String topic) throws Exception {
-        System.out.println("==== " + topic + " ====");
+        System.out.println("    ====    " + topic);
 
         final String kafkaBootstrap = "kafka:9093";
         final String hostPort = "hydra-jwt:4454";

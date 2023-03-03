@@ -27,7 +27,7 @@ public class AudienceTests {
     }
 
     static void clientCredentialsWithJwtAudience() throws Exception {
-        System.out.println("==== KeycloakAuthenticationTest :: clientCredentialsWithJwtAudienceTest ====");
+        System.out.println("    ====    KeycloakAuthenticationTest :: clientCredentialsWithJwtAudienceTest");
 
         final String kafkaBootstrap = "kafka:9094";
         final String hostPort = "keycloak:8080";
@@ -71,7 +71,7 @@ public class AudienceTests {
     }
 
     static void clientCredentialsWithIntrospectionAudienceTest() throws Exception {
-        System.out.println("==== KeycloakAuthenticationTest :: clientCredentialsWithIntrospectionAudienceTest ====");
+        System.out.println("    ====    KeycloakAuthenticationTest :: clientCredentialsWithIntrospectionAudienceTest");
 
         final String kafkaBootstrap = "kafka:9095";
         final String hostPort = "keycloak:8080";

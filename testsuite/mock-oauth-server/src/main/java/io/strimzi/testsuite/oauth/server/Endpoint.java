@@ -9,8 +9,11 @@ import java.util.Locale;
 public enum Endpoint {
     JWKS,
     INTROSPECT,
+    FAILING_INTROSPECT,
     USERINFO,
+    FAILING_USERINFO,
     TOKEN,
+    FAILING_TOKEN,
     SERVER,
     CLIENTS,
     USERS,

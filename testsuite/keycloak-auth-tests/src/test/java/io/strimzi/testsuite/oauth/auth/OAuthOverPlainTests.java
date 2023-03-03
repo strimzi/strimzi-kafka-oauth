@@ -47,7 +47,7 @@ public class OAuthOverPlainTests {
 
     static void accessTokenOverPlainWithClientCredentialsDisabled() throws Exception {
 
-        System.out.println("==== KeycloakAuthenticationTest :: accessTokenOverPlainWithClientCredentialsDisabled ====");
+        System.out.println("    ====    KeycloakAuthenticationTest :: accessTokenOverPlainWithClientCredentialsDisabled");
 
         final String kafkaBootstrap = "kafka:9103";
         final String hostPort = "keycloak:8080";
@@ -115,7 +115,7 @@ public class OAuthOverPlainTests {
 
     static void clientCredentialsOverPlainWithClientCredentialsDisabled() throws Exception {
 
-        System.out.println("==== KeycloakAuthenticationTest :: clientCredentialsOverPlainWithClientCredentialsDisabled ====");
+        System.out.println("    ====    KeycloakAuthenticationTest :: clientCredentialsOverPlainWithClientCredentialsDisabled");
 
         final String kafkaBootstrap = "kafka:9103";
 
@@ -140,7 +140,7 @@ public class OAuthOverPlainTests {
 
     static void clientCredentialsOverPlainWithIntrospection() throws Exception {
 
-        System.out.println("==== KeycloakAuthenticationTest :: clientCredentialsOverPlainWithIntrospection ====");
+        System.out.println("    ====    KeycloakAuthenticationTest :: clientCredentialsOverPlainWithIntrospection");
 
         final String kafkaBootstrap = "kafka:9097";
 
@@ -201,7 +201,7 @@ public class OAuthOverPlainTests {
 
     static void accessTokenOverPlainWithIntrospection() throws Exception {
 
-        System.out.println("==== KeycloakAuthenticationTest :: accessTokenOverPlainWithIntrospection ====");
+        System.out.println("    ====    KeycloakAuthenticationTest :: accessTokenOverPlainWithIntrospection");
 
         final String kafkaBootstrap = "kafka:9097";
         final String hostPort = "keycloak:8080";
@@ -271,7 +271,7 @@ public class OAuthOverPlainTests {
      */
     static void clientCredentialsOverPlainWithJwt() throws Exception {
 
-        System.out.println("==== KeycloakAuthenticationTest :: clientCredentialsOverPlainWithJwt ====");
+        System.out.println("    ====    KeycloakAuthenticationTest :: clientCredentialsOverPlainWithJwt");
 
         final String kafkaBootstrap = "kafka:9096";
         final String hostPort = "keycloak:8080";
@@ -336,7 +336,7 @@ public class OAuthOverPlainTests {
      */
     static void clientCredentialsOverPlainWithFloodTest() {
 
-        System.out.println("==== KeycloakAuthenticationTest :: clientCredentialsOverPlainWithFloodTest ====");
+        System.out.println("    ====    KeycloakAuthenticationTest :: clientCredentialsOverPlainWithFloodTest");
 
         final String kafkaBootstrap = "kafka:9102";
 

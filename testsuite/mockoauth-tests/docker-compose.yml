@@ -30,6 +30,9 @@ services:
       - "9093:9093"
       - "9094:9094"
       - "9095:9095"
+      - "9096:9096"
+      - "9097:9097"
+      - "9098:9098"
       - "9404:9404"
       - "5006:5006"
     volumes:
@@ -48,8 +51,8 @@ services:
 
       - KAFKA_BROKER_ID=1
       - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
-      - KAFKA_LISTENERS=INTERBROKER://kafka:9091,JWT://kafka:9092,INTROSPECT://kafka:9093,JWTPLAIN://kafka:9094,PLAIN://kafka:9095
-      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=INTERBROKER:PLAINTEXT,JWT:SASL_PLAINTEXT,INTROSPECT:SASL_PLAINTEXT,JWTPLAIN:SASL_PLAINTEXT,PLAIN:SASL_PLAINTEXT
+      - KAFKA_LISTENERS=INTERBROKER://kafka:9091,JWT://kafka:9092,INTROSPECT://kafka:9093,JWTPLAIN://kafka:9094,PLAIN://kafka:9095,INTROSPECTTIMEOUT://kafka:9096,FAILINGINTROSPECT://kafka:9097,FAILINGJWT://kafka:9098
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=INTERBROKER:PLAINTEXT,JWT:SASL_PLAINTEXT,INTROSPECT:SASL_PLAINTEXT,JWTPLAIN:SASL_PLAINTEXT,PLAIN:SASL_PLAINTEXT,INTROSPECTTIMEOUT:SASL_PLAINTEXT,FAILINGINTROSPECT:SASL_PLAINTEXT,FAILINGJWT:SASL_PLAINTEXT
       - KAFKA_SASL_ENABLED_MECHANISMS=OAUTHBEARER
       - KAFKA_INTER_BROKER_LISTENER_NAME=INTERBROKER
 
@@ -59,7 +62,7 @@ services:
       - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
 
       # Configuration of individual listeners
-      - KAFKA_LISTENER_NAME_INTROSPECT_OAUTHBEARER_SASL_JAAS_CONFIG=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required    oauth.config.id=\"INTROSPECT\"    oauth.introspection.endpoint.uri=\"https://mockoauth:8090/introspect\"    oauth.client.id=\"kafka-broker\"    oauth.client.secret=\"kafka-broker-secret\"    oauth.valid.issuer.uri=\"https://mockoauth:8090\"    unsecuredLoginStringClaim_sub=\"admin\" ;
+      - KAFKA_LISTENER_NAME_INTROSPECT_OAUTHBEARER_SASL_JAAS_CONFIG=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required    oauth.config.id=\"INTROSPECT\"    oauth.introspection.endpoint.uri=\"https://mockoauth:8090/introspect\"    oauth.client.id=\"unused\"    oauth.client.secret=\"unused-secret\"    oauth.valid.issuer.uri=\"https://mockoauth:8090\"    unsecuredLoginStringClaim_sub=\"admin\" ;
       - KAFKA_LISTENER_NAME_INTROSPECT_OAUTHBEARER_SASL_SERVER_CALLBACK_HANDLER_CLASS=io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
       #- KAFKA_LISTENER_NAME_INTROSPECT_OAUTHBEARER_SASL_LOGIN_CALLBACK_HANDLER_CLASS=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
 
@@ -76,11 +79,31 @@ services:
       - KAFKA_LISTENER_NAME_PLAIN_SASL_ENABLED_MECHANISMS=PLAIN
       - KAFKA_LISTENER_NAME_PLAIN_PLAIN_SASL_JAAS_CONFIG=org.apache.kafka.common.security.plain.PlainLoginModule required    username=\"admin\"    password=\"admin-password\"    user_admin=\"admin-password\" ;
 
+      # The 'oauth.connect.timeout.seconds' should be overridden by env var OAUTH_CONNECT_TIMEOUT_SECONDS, so it should be 10 seconds
+      - KAFKA_LISTENER_NAME_INTROSPECTTIMEOUT_OAUTHBEARER_SASL_JAAS_CONFIG=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required    oauth.config.id=\"INTROSPECTTIMEOUT\"    oauth.connect.timeout.seconds=\"5\"    oauth.introspection.endpoint.uri=\"https://mockoauth:8090/introspect\"    oauth.client.id=\"kafka\"    oauth.client.secret=\"kafka-secret\"    oauth.valid.issuer.uri=\"https://mockoauth:8090\"    unsecuredLoginStringClaim_sub=\"admin\" ;
+      - KAFKA_LISTENER_NAME_INTROSPECTTIMEOUT_OAUTHBEARER_SASL_SERVER_CALLBACK_HANDLER_CLASS=io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
+
+      - KAFKA_LISTENER_NAME_FAILINGINTROSPECT_SASL_ENABLED_MECHANISMS=OAUTHBEARER,PLAIN
+      - KAFKA_LISTENER_NAME_FAILINGINTROSPECT_OAUTHBEARER_SASL_JAAS_CONFIG=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required    oauth.config.id=\"FAILINGINTROSPECT\"    oauth.introspection.endpoint.uri=\"https://mockoauth:8090/failing_introspect\"    oauth.userinfo.endpoint.uri=\"https://mockoauth:8090/failing_userinfo\"    oauth.username.claim=\"uid\"    oauth.client.id=\"kafka\"    oauth.client.secret=\"kafka-secret\"    oauth.valid.issuer.uri=\"https://mockoauth:8090\"    oauth.http.retries=\"1\"    oauth.http.retry.pause.millis=\"3000\"    unsecuredLoginStringClaim_sub=\"admin\" ;
+      - KAFKA_LISTENER_NAME_FAILINGINTROSPECT_OAUTHBEARER_SASL_SERVER_CALLBACK_HANDLER_CLASS=io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
+
+      - KAFKA_LISTENER_NAME_FAILINGINTROSPECT_PLAIN_SASL_JAAS_CONFIG=org.apache.kafka.common.security.plain.PlainLoginModule required    oauth.config.id=\"FAILINGINTROSPECT\"    oauth.token.endpoint.uri=\"https://mockoauth:8090/failing_token\"    oauth.introspection.endpoint.uri=\"https://mockoauth:8090/failing_introspect\"    oauth.userinfo.endpoint.uri=\"https://mockoauth:8090/failing_userinfo\"    oauth.username.claim=\"uid\"    oauth.client.id=\"kafka\"    oauth.client.secret=\"kafka-secret\"    oauth.valid.issuer.uri=\"https://mockoauth:8090\"    oauth.http.retries=\"1\"    oauth.http.retry.pause.millis=\"3000\"    unsecuredLoginStringClaim_sub=\"admin\" ;
+      - KAFKA_LISTENER_NAME_FAILINGINTROSPECT_PLAIN_SASL_SERVER_CALLBACK_HANDLER_CLASS=io.strimzi.kafka.oauth.server.plain.JaasServerOauthOverPlainValidatorCallbackHandler
+
+      - KAFKA_LISTENER_NAME_FAILINGJWT_SASL_ENABLED_MECHANISMS=OAUTHBEARER,PLAIN
+      - KAFKA_LISTENER_NAME_FAILINGJWT_OAUTHBEARER_SASL_JAAS_CONFIG=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required    oauth.config.id=\"FAILINGJWT\"    oauth.fail.fast=\"false\"    oauth.check.access.token.type=\"false\"    oauth.jwks.endpoint.uri=\"https://mockoauth:8090/jwks\"    oauth.jwks.refresh.seconds=\"10\"    oauth.valid.issuer.uri=\"https://mockoauth:8090\"    unsecuredLoginStringClaim_sub=\"admin\" ;
+      - KAFKA_LISTENER_NAME_FAILINGJWT_OAUTHBEARER_SASL_SERVER_CALLBACK_HANDLER_CLASS=io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
+
+      - KAFKA_LISTENER_NAME_FAILINGJWT_PLAIN_SASL_JAAS_CONFIG=org.apache.kafka.common.security.plain.PlainLoginModule required    oauth.config.id=\"FAILINGJWT\"    oauth.fail.fast=\"false\"    oauth.check.access.token.type=\"false\"    oauth.jwks.endpoint.uri=\"https://mockoauth:8090/jwks\"    oauth.jwks.refresh.seconds=\"10\"    oauth.valid.issuer.uri=\"https://mockoauth:8090\"    oauth.token.endpoint.uri=\"https://mockoauth:8090/failing_token\"    oauth.client.id=\"kafka\"    oauth.client.secret=\"kafka-secret\"    oauth.http.retries=\"1\"    oauth.http.retry.pause.millis=\"3000\"    unsecuredLoginStringClaim_sub=\"admin\" ;
+      - KAFKA_LISTENER_NAME_FAILINGJWT_PLAIN_SASL_SERVER_CALLBACK_HANDLER_CLASS=io.strimzi.kafka.oauth.server.plain.JaasServerOauthOverPlainValidatorCallbackHandler
+
+
       # Truststore config for connecting to secured authorization server
       - OAUTH_SSL_TRUSTSTORE_LOCATION=/opt/kafka/config/strimzi/certs/ca-truststore.p12
       - OAUTH_SSL_TRUSTSTORE_PASSWORD=changeit
       - OAUTH_SSL_TRUSTSTORE_TYPE=pkcs12
       - OAUTH_CONNECT_TIMEOUT_SECONDS=10
+      - OAUTH_READ_TIMEOUT_SECONDS=10
       - OAUTH_ENABLE_METRICS=true
 
   zookeeper:

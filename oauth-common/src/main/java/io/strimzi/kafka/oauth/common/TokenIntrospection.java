@@ -25,7 +25,7 @@ public class TokenIntrospection {
         try {
             jws = JWSObject.parse(token);
         } catch (Exception e) {
-            throw new ValidationException("Failed to parse JWT token", e);
+            throw new ValidationException("Failed to parse JWT token: " + mask(token));
         }
 
         try {
@@ -52,7 +52,7 @@ public class TokenIntrospection {
             jws = JWSObject.parse(token);
             log.debug("Token: {}", jws.getPayload());
         } catch (Exception e) {
-            log.debug("[IGNORED] Token doesn't seem to be JWT token: " + mask(token), e);
+            log.debug("[IGNORED] Token doesn't seem to be JWT token: " + mask(token));
             return;
         }
 
@@ -65,7 +65,6 @@ public class TokenIntrospection {
                 log.debug("Access token expires at (UTC): " + (expires.isNumber() ? (LocalDateTime.ofEpochSecond(expires.asInt(), 0, ZoneOffset.UTC).format(DateTimeFormatter.ISO_DATE_TIME)) : ("invalid value: [" + expires.asText() + "]")));
             }
         } catch (Exception e) {
-            // Try parse as refresh token:
             log.debug("[IGNORED] Failed to parse JWT token's payload", e);
         }
     }

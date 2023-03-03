@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import java.security.NoSuchAlgorithmException;
 import java.util.Date;
+import java.util.function.Consumer;
 
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
@@ -45,10 +46,15 @@ import static io.strimzi.testsuite.oauth.server.Commons.isOneOf;
 import static io.strimzi.testsuite.oauth.server.Commons.sendResponse;
 import static io.strimzi.testsuite.oauth.server.Commons.setContextLog;
 import static io.strimzi.testsuite.oauth.server.Endpoint.FAILING_GRANTS;
+import static io.strimzi.testsuite.oauth.server.Endpoint.FAILING_INTROSPECT;
+import static io.strimzi.testsuite.oauth.server.Endpoint.FAILING_TOKEN;
+import static io.strimzi.testsuite.oauth.server.Endpoint.FAILING_USERINFO;
 import static io.strimzi.testsuite.oauth.server.Endpoint.GRANTS;
 import static io.strimzi.testsuite.oauth.server.Endpoint.INTROSPECT;
 import static io.strimzi.testsuite.oauth.server.Endpoint.TOKEN;
+import static io.strimzi.testsuite.oauth.server.Endpoint.USERINFO;
 import static io.strimzi.testsuite.oauth.server.Mode.MODE_200;
+import static io.strimzi.testsuite.oauth.server.Mode.MODE_FAILING_500;
 import static io.strimzi.testsuite.oauth.server.Mode.MODE_JWKS_RSA_WITHOUT_SIG_USE;
 import static io.strimzi.testsuite.oauth.server.Mode.MODE_JWKS_RSA_WITH_SIG_USE;
 import static io.vertx.core.http.HttpMethod.GET;
@@ -59,7 +65,7 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
     private static final Logger log = LoggerFactory.getLogger("oauth");
     private static final NimbusPayloadTransformer TRANSFORMER = new NimbusPayloadTransformer();
 
-    private static final int EXPIRES_IN_SECONDS = 60;
+    private static final int EXPIRES_IN_SECONDS = 600;
 
     private final MockOAuthServerMainVerticle verticle;
 
@@ -93,43 +99,34 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
                     isOneOf(mode, MODE_200, MODE_JWKS_RSA_WITH_SIG_USE, MODE_JWKS_RSA_WITHOUT_SIG_USE)) {
                 processJwksRequest(req, mode);
                 return;
-
             } else if (endpoint == TOKEN && mode == MODE_200) {
                 processTokenRequest(req);
                 return;
+            } else if (endpoint == FAILING_TOKEN) {
+                processFailingRequest(req, endpoint, mode, this::processTokenRequest);
+                return;
             } else if (endpoint == INTROSPECT && mode == MODE_200) {
                 processIntrospectRequest(req);
+                return;
+            } else if (endpoint == FAILING_INTROSPECT) {
+                processFailingRequest(req, endpoint, mode, this::processIntrospectRequest);
+                return;
+            } else if (endpoint == USERINFO && mode == MODE_200) {
+                processUserInfoRequest(req);
+                return;
+            } else if (endpoint == FAILING_USERINFO) {
+                processFailingRequest(req, endpoint, mode, this::processUserInfoRequest);
                 return;
             } else if (endpoint == GRANTS && mode == MODE_200) {
                 processGrantsRequest(req);
                 return;
             } else if (endpoint == FAILING_GRANTS) {
-                processFailingGrantsRequest(req, mode);
+                processFailingRequest(req, endpoint, mode, this::processGrantsRequest);
                 return;
             }
 
-            switch (mode) {
-                case MODE_400:
-                    sendResponse(req, BAD_REQUEST);
-                    break;
-                case MODE_401:
-                    sendResponse(req, UNAUTHORIZED);
-                    break;
-                case MODE_403:
-                    sendResponse(req, FORBIDDEN);
-                    break;
-                case MODE_404:
-                    sendResponse(req, NOT_FOUND);
-                    break;
-                case MODE_500:
-                    sendResponse(req, INTERNAL_SERVER_ERROR);
-                    break;
-                case MODE_503:
-                    sendResponse(req, SERVICE_UNAVAILABLE);
-                    break;
-                default:
-                    log.error("Unexpected mode: " + mode);
-                    sendResponse(req, OK, "" + verticle.getMode(endpoint));
+            if (!generateResponse(req, mode)) {
+                sendResponse(req, OK, "" + verticle.getMode(endpoint));
             }
 
         } catch (Throwable t) {
@@ -137,36 +134,39 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
         }
     }
 
-    AtomicCoin coin = new AtomicCoin();
-
-    private void processFailingGrantsRequest(HttpServerRequest req, Mode mode) {
-        // make every other request fail with the error indicated by mode
-        if (coin.flip()) {
-            // fail
-            switch (mode) {
-                case MODE_400:
-                    sendResponse(req, BAD_REQUEST);
-                    return;
-                case MODE_401:
-                    sendResponse(req, UNAUTHORIZED);
-                    return;
-                case MODE_403:
-                    sendResponse(req, FORBIDDEN);
-                    return;
-                case MODE_404:
-                    sendResponse(req, NOT_FOUND);
-                    return;
-                case MODE_500:
-                    sendResponse(req, INTERNAL_SERVER_ERROR);
-                    return;
-                case MODE_503:
-                    sendResponse(req, SERVICE_UNAVAILABLE);
-                    return;
-                default:
-                    log.error("Unexpected mode: " + mode);
-            }
+    private static boolean generateResponse(HttpServerRequest req, Mode mode) {
+        boolean result = true;
+        switch (mode) {
+            case MODE_STALL:
+                // don't send response
+                // client will timeout on their side
+                break;
+            case MODE_400:
+                sendResponse(req, BAD_REQUEST);
+                break;
+            case MODE_401:
+                sendResponse(req, UNAUTHORIZED);
+                break;
+            case MODE_403:
+                sendResponse(req, FORBIDDEN);
+                break;
+            case MODE_404:
+                sendResponse(req, NOT_FOUND);
+                break;
+            case MODE_500:
+                sendResponse(req, INTERNAL_SERVER_ERROR);
+                break;
+            case MODE_503:
+                sendResponse(req, SERVICE_UNAVAILABLE);
+                break;
+            default:
+                result = false;
+                log.error("Unexpected mode: " + mode);
         }
-        processGrantsRequest(req);
+        if (result) {
+            log.info("Returned mode status: " + mode);
+        }
+        return result;
     }
 
     private void processGrantsRequest(HttpServerRequest req) {
@@ -203,9 +203,8 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
             String token = authorization.substring(7);
 
             // Let's take the info from the token itself
-            JWSObject jws;
             try {
-                jws = JWSObject.parse(token);
+                JWSObject.parse(token);
             } catch (Exception e) {
                 log.error("Failed to parse the token: ", e);
                 sendResponse(req, UNAUTHORIZED);
@@ -330,11 +329,16 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
                 // Create JSON response
                 JsonObject result = new JsonObject();
 
-                // token is active if not in the revokation list, if issued by us and if current date is less than expiry
+                // token is active if not in the revocation list, if issued by us and if current date is less than expiry
                 JsonNode node = parsed.get(ISS);
                 JsonNode expNode = parsed.get(EXP);
+
                 result.put("active", node != null && "https://mockoauth:8090".equals(node.asText())
                         && expNode != null && !isExpired(expNode.asInt()) && !isRevoked(token));
+
+                if (node != null) {
+                    result.put(ISS, node.asText());
+                }
                 result.put("scope", "all");
 
                 node = parsed.get("clientId");
@@ -346,7 +350,7 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
                 }
 
                 if (expNode != null) {
-                    result.put("exp", expNode.asInt());
+                    result.put(EXP, expNode.asInt());
                 }
 
                 String jsonString = result.encode();
@@ -356,6 +360,77 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
                 handleFailure(req, t, log);
             }
         });
+    }
+
+    private void processFailingRequest(HttpServerRequest req, Endpoint endpoint, Mode mode, Consumer<HttpServerRequest> requestCompletingFunction) {
+
+        // Always fail without a coinflip if this mode is used
+        if (mode == MODE_FAILING_500) {
+            sendResponse(req, INTERNAL_SERVER_ERROR);
+            return;
+        }
+
+        // make every other request fail with the error indicated by mode
+        if (verticle.flipCoin(endpoint)) {
+            // fail
+            if (generateResponse(req, mode)) return;
+        }
+        requestCompletingFunction.accept(req);
+    }
+
+    private void processUserInfoRequest(HttpServerRequest req) {
+        if (req.method() != GET) {
+            sendResponse(req, METHOD_NOT_ALLOWED);
+            return;
+        }
+
+        String authorization = req.headers().get("Authorization");
+        if (authorization == null || !authorization.startsWith("Bearer ")) {
+            sendResponse(req, BAD_REQUEST);
+            return;
+        }
+
+        String token = authorization.substring(7);
+        if (token.length() == 0) {
+            sendResponse(req, BAD_REQUEST);
+            return;
+        }
+
+        // Let's take the info from the token itself
+        JWSObject jws;
+        try {
+            jws = JWSObject.parse(token);
+        } catch (Exception e) {
+            log.error("Failed to parse the token: ", e);
+            sendResponse(req, OK, new JsonObject().put("active", false).encode());
+            return;
+        }
+
+        try {
+            JsonNode parsed = jws.getPayload().toType(TRANSFORMER);
+
+            // Create JSON response
+            JsonObject result = new JsonObject();
+
+            JsonNode node = parsed.get("clientId");
+            String uid = node.asText();
+
+            node = parsed.get("username");
+            if (node != null) {
+                uid = node.asText();
+                result.put("username", uid);
+            }
+
+            if (uid != null) {
+                result.put("uid", uid);
+            }
+
+            String jsonString = result.encode();
+            sendResponse(req, OK, jsonString);
+
+        } catch (Throwable t) {
+            handleFailure(req, t, log);
+        }
     }
 
     private boolean isRevoked(String token) {
@@ -408,7 +483,11 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
         String clientId = decoded.substring(0, pos);
         String secret = decoded.substring(pos + 1);
 
-        if (!secret.equals(verticle.getClients().get(clientId))) {
+        String existingClientSecret = verticle.getClients().get(clientId);
+        if (existingClientSecret == null) {
+            log.info("Unknown clientId: " + clientId);
+        }
+        if (!secret.equals(existingClientSecret)) {
             return null;
         }
         return clientId;
