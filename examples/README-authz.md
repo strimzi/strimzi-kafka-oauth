@@ -18,7 +18,7 @@ First change the current directory to `examples/docker`:
 
 Now build the project, and prepare resources:
 
-    mvn clean install -f ../..
+    mvn clean install -DskipTests -f ../..
     mvn clean install
 
 We are now ready to start up the containers and see `Keycloak Authorization Services` in action.
@@ -42,9 +42,9 @@ When everything starts up without errors we should have one instance of `keycloa
  
 You can login to the Admin Console by opening `http://localhost:8080/auth/admin` and using `admin` as both username, and a password.
 
-For this example we are interested in the `kafka-authz` realm. Selecting the realm will open its `Realm Settings`.
+For this example we are interested in the `kafka-authz` realm. Selecting the realm in the upper left drop-down list will open the realm.
 
-Next to `Realm Settings` there are other sections we are interested in - `Groups`, `Roles`, `Clients` and `Users`.
+In the left menu bar there are other sections we are interested in - `Groups`, `Realm roles`, `Clients` and `Users`.
 
 Under `Groups` we can see several groups that can be used to mark users as having some permissions.
 Groups are sets of users with name assigned. Typically they are used to geographically or organisationally compartmentalize users into organisations, organisational units, departments etc.
@@ -52,10 +52,10 @@ Groups are sets of users with name assigned. Typically they are used to geograph
 In Keycloak the groups can be stored in an LDAP identity provider.
 That makes it possible to make some user a member of some group - through a custom LDAP server admin UI for example, which grants them some permissions on Kafka resources.
 
-Under `Users`, click on the `View all users` button and you will see two users defined - `alice` and `bob`. `alice` is a member of the `ClusterManager Group`, and `bob` is a member of `ClusterManager-my-cluster Group`. 
+Under `Users` you will see two users defined - `alice` and `bob`. `alice` is a member of the `ClusterManager Group`, and `bob` is a member of `ClusterManager-my-cluster Group`. 
 In Keycloak the users can be stored in an LDAP identity provider.
 
-Under `Roles` we can see several realm roles which can be used to mark users or clients as having some permissions.
+Under `Realm roles` we can see several realm roles which can be used to mark users or clients as having some permissions.
 Roles are a concept analogous to groups. They are usually used to 'tag' users as playing organisational roles and having permissions that pertain to it. 
 In Keycloak the roles can not be stored in an LDAP identity provider - if that is your requirement then you should use groups instead.
 
@@ -69,7 +69,7 @@ The client with client id `kafka-cli` is a public client that can be used by the
 Clients `team-a-client`, and `team-b-client` are confidential clients representing services with partial access to certain Kafka topics.
 
 The authorization configuration is defined in the `kafka` client under `Authorization` tab.
-This tab becomes visible when `Authorization Enabled` is turned on under the `Settings` tab.
+This tab becomes visible when `Authorization` is turned in the `Capability config` section of the `Settings` tab.
 
 
 ## Authorization Services - Resources, Authorization Scopes, Policies and Permissions
@@ -95,19 +95,19 @@ If `kafka-cluster:XXX` segment is not present, the specifier targets any cluster
 
 The possible resource types mirror the [Kafka authorization model](https://kafka.apache.org/documentation/#security_authz_primitives) (Topic, Group, Cluster, ...).
 
-Under `Authorization Scopes` we can see a list of all the possible actions (Kafka permissions) that can be granted on resources of different types.
+Under `Scopes` we can see a list of all the possible actions (Kafka permissions) that can be granted on resources of different types.
 It requires some understanding of [Kafka's permissions model](https://kafka.apache.org/documentation/#resources_in_kafka) to know which of these make sense with which resource type (Topic, Group, Cluster, ...).
 This list mirrors Kafka permissions and should be the same for any deployment.
 
 There is an [authorization-scopes.json](../oauth-keycloak-authorizer/etc/authorization-scopes.json) file containing the authorization scopes that can be imported, so that they don't have to be manually entered for every new `Authorization Services` enabled client.
-In order to import `authorization-scopes.json` into a new client, first make sure the new client is `Authorization Enabled` and saved. Then, click on the `Authorization` tab and use the `Import` to import the file. Afterwards, if you select the `Authorization Scopes` you will see the loaded scopes.
+In order to import `authorization-scopes.json` into a new client, first make sure the new client has `Authorization` enabled and saved. Then, click on the `Authorization` tab and use the `Import` to import the file. Afterwards, if you select `Scopes` you will see the loaded scopes.
 For this example the authorization scopes have already been imported as part of the realm import.
 
 Under the `Policies` sub-tab there are filters that match sets of users.
 Users can be explicitly listed, or they can be matched based on the Roles, or Groups they are assigned.
 Policies can even be programmatically defined using JavaScript where logic can take into account the context of the client session - e.g. client ip (that is client ip of the Kafka client).
 
-Then, finally, there is the `Permissions` sub-tab, which defines 'role bindings' where `resources`, `authorization scopes` and `policies` are tied together to apply a set of permissions on specific resources for certain users.
+Then, finally, there is the `Permissions` sub-tab, which defines 'role bindings' where `resources`, `scopes` and `policies` are tied together to apply a set of permissions on specific resources for certain users.
 
 Each `permission` definition can have a nice descriptive name which can make it very clear what kind of access is granted to which users.
 For example:
@@ -143,7 +143,8 @@ In this case the access token represents the specific user, rather than the clie
 
 ## Authorization in Action Using CLI Clients
 
-Before continuing, there is one setting we need to check.
+**NOTE**
+Before continuing, there is one setting we need to check if your Keycloak is older than version 9.0.2:
 Due to [a little bug in Keycloak](https://issues.redhat.com/browse/KEYCLOAK-12640) the realm is at this point misconfigured, and we have to fix the configuration manually.
 Under `Clients` / `kafka` / `Authorization` / `Settings` make sure the `Decision Strategy` is set to `Affirmative`, and NOT to `Unanimous`. Click `Save` after fixing it.
   
