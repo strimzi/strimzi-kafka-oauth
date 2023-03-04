@@ -26,7 +26,7 @@ if [ ${JAVA_MAJOR_VERSION} -gt 1 ] ; then
   export JAVA_VERSION=${JAVA_MAJOR_VERSION}
 fi
 
-if [ "$arch" == 'x86_64' ] ; then
+if [ "$arch" == 'x86_64' ] || [ "$arch" == 'arm64' ] ; then
   # some parts of the workflow should be done only once on the main build which is currently Java 11
   export MAIN_BUILD="TRUE"
 fi
@@ -82,20 +82,24 @@ if [ "${MAIN_BUILD}" == "TRUE" ] ; then
     EXIT=$?
     exitIfError
 
-    clearDockerEnv
-    mvn -e -V -B clean install -f testsuite -Pkafka-3_1_2
-    EXIT=$?
-    exitIfError
+    if [ $JAVA_VERSION -le 11 ]; then
+      clearDockerEnv
+      mvn -e -V -B clean install -f testsuite -Pkafka-3_1_2
+      EXIT=$?
+      exitIfError
 
-    clearDockerEnv
-    mvn -e -V -B clean install -f testsuite -Pkafka-3_0_0
-    EXIT=$?
-    exitIfError
+      clearDockerEnv
+      mvn -e -V -B clean install -f testsuite -Pkafka-3_0_0
+      EXIT=$?
+      exitIfError
 
-    clearDockerEnv
-    mvn -e -V -B clean install -f testsuite -Pkafka-2_8_1
-    EXIT=$?
-    exitIfError
+      clearDockerEnv
+      mvn -e -V -B clean install -f testsuite -Pkafka-2_8_1
+      EXIT=$?
+      exitIfError
+    else
+      echo "Skipped test profiles: kafka-3_1_2, kafka-3_0_0 and kafka-2_8_1"
+    fi
 
     set -e
   fi

@@ -1,4 +1,4 @@
-FROM adoptopenjdk:11-jre-hotspot
+FROM eclipse-temurin:17-jre-centos7
 
 ENV APP_DIR /application
 ENV APP_FILE container-uber-jar.jar
