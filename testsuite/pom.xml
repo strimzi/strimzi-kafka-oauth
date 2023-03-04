@@ -30,8 +30,8 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
         <maven.compiler.version>3.8.1</maven.compiler.version>
         <maven.resources.version>3.1.0</maven.resources.version>
         <maven.dependency.version>3.1.1</maven.dependency.version>
@@ -284,96 +284,112 @@
         <profile>
             <id>kafka-2_3_1</id>
             <properties>
+                <!-- Uses JDK 1.8.0 -->
                 <kafka.docker.image>quay.io/strimzi/kafka:0.17.0-kafka-2.3.1</kafka.docker.image>
             </properties>
         </profile>
         <profile>
             <id>kafka-2_4_0</id>
             <properties>
+                <!-- Uses JDK 11.0.x -->
                 <kafka.docker.image>quay.io/strimzi/kafka:0.19.0-kafka-2.4.0</kafka.docker.image>
             </properties>
         </profile>
         <profile>
             <id>kafka-2_4_1</id>
             <properties>
+                <!-- Uses JDK 11.0.x -->
                 <kafka.docker.image>quay.io/strimzi/kafka:0.19.0-kafka-2.4.1</kafka.docker.image>
             </properties>
         </profile>
         <profile>
             <id>kafka-2_5_0</id>
             <properties>
+                <!-- Uses JDK 11.0.x -->
                 <kafka.docker.image>quay.io/strimzi/kafka:0.22.1-kafka-2.5.0</kafka.docker.image>
             </properties>
         </profile>
         <profile>
             <id>kafka-2_5_1</id>
             <properties>
+                <!-- Uses JDK 11.0.x -->
                 <kafka.docker.image>quay.io/strimzi/kafka:0.22.1-kafka-2.5.1</kafka.docker.image>
             </properties>
         </profile>
         <profile>
             <id>kafka-2_6_0</id>
             <properties>
+                <!-- Uses JDK 11.0.x -->
                 <kafka.docker.image>quay.io/strimzi/kafka:0.23.0-kafka-2.6.0</kafka.docker.image>
             </properties>
         </profile>
         <profile>
             <id>kafka-2_6_2</id>
             <properties>
+                <!-- Uses JDK 11.0.x -->
                 <kafka.docker.image>quay.io/strimzi/kafka:0.23.0-kafka-2.6.2</kafka.docker.image>
             </properties>
         </profile>
         <profile>
             <id>kafka-2_7_0</id>
             <properties>
+                <!-- Uses JDK 11.0.x -->
                 <kafka.docker.image>quay.io/strimzi/kafka:0.25.0-kafka-2.7.0</kafka.docker.image>
             </properties>
         </profile>
         <profile>
             <id>kafka-2_7_1</id>
             <properties>
+                <!-- Uses JDK 11.0.x -->
                 <kafka.docker.image>quay.io/strimzi/kafka:0.25.0-kafka-2.7.1</kafka.docker.image>
             </properties>
         </profile>
         <profile>
             <id>kafka-2_8_0</id>
             <properties>
+                <!-- Uses JDK 11.0.x -->
                 <kafka.docker.image>quay.io/strimzi/kafka:0.27.1-kafka-2.8.0</kafka.docker.image>
             </properties>
         </profile>
         <profile>
             <id>kafka-2_8_1</id>
             <properties>
+                <!-- Uses JDK 11.0.x -->
                 <kafka.docker.image>quay.io/strimzi/kafka:0.27.1-kafka-2.8.1</kafka.docker.image>
             </properties>
         </profile>
         <profile>
             <id>kafka-3_0_0</id>
             <properties>
+                <!-- Uses JDK 11.0.x -->
                 <kafka.docker.image>quay.io/strimzi/kafka:0.28.0-kafka-3.0.0</kafka.docker.image>
             </properties>
         </profile>
         <profile>
             <id>kafka-3_1_2</id>
             <properties>
+                <!-- Uses JDK 11.0.x -->
                 <kafka.docker.image>quay.io/strimzi/kafka:0.31.1-kafka-3.1.2</kafka.docker.image>
             </properties>
         </profile>
         <profile>
             <id>kafka-3_2_3</id>
             <properties>
+                <!-- Uses JDK 17.0.x -->
                 <kafka.docker.image>quay.io/strimzi/kafka:0.33.0-kafka-3.2.3</kafka.docker.image>
             </properties>
         </profile>
         <profile>
             <id>kafka-3_3_1</id>
             <properties>
+                <!-- Uses JDK 17.0.x -->
                 <kafka.docker.image>quay.io/strimzi/kafka:0.33.0-kafka-3.3.1</kafka.docker.image>
             </properties>
         </profile>
         <profile>
             <id>kafka-3_3_2</id>
             <properties>
+                <!-- Uses JDK 17.0.x -->
                 <kafka.docker.image>quay.io/strimzi/kafka:0.33.1-kafka-3.3.2</kafka.docker.image>
             </properties>
         </profile>
@@ -383,5 +399,38 @@
             -->
             <id>custom</id>
         </profile>
+        <profile>
+            <id>java-8</id>
+            <activation>
+                <jdk>1.8</jdk>
+            </activation>
+            <properties>
+                <maven.compiler.source>1.8</maven.compiler.source>
+                <maven.compiler.target>1.8</maven.compiler.target>
+            </properties>
+        </profile>
+        <profile>
+            <id>java-11</id>
+            <activation>
+                <jdk>[11,17)</jdk>
+            </activation>
+            <properties>
+                <maven.compiler.source>11</maven.compiler.source>
+                <maven.compiler.target>11</maven.compiler.target>
+                <maven.compiler.release>11</maven.compiler.release>
+            </properties>
+        </profile>
+        <profile>
+            <id>java-17</id>
+            <activation>
+                <jdk>[17,</jdk>
+            </activation>
+            <properties>
+                <maven.compiler.source>11</maven.compiler.source>
+                <maven.compiler.target>17</maven.compiler.target>
+                <maven.compiler.release>17</maven.compiler.release>
+            </properties>
+        </profile>
+
     </profiles>
 </project>
