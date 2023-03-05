@@ -31,11 +31,13 @@ import org.apache.kafka.common.acl.AclBinding;
 import org.apache.kafka.common.acl.AclBindingFilter;
 import org.apache.kafka.common.resource.ResourcePattern;
 import org.apache.kafka.common.security.auth.KafkaPrincipal;
+import org.apache.kafka.metadata.authorizer.StandardAuthorizer;
 import org.apache.kafka.server.authorizer.AclCreateResult;
 import org.apache.kafka.server.authorizer.AclDeleteResult;
 import org.apache.kafka.server.authorizer.Action;
 import org.apache.kafka.server.authorizer.AuthorizableRequestContext;
 import org.apache.kafka.server.authorizer.AuthorizationResult;
+import org.apache.kafka.server.authorizer.Authorizer;
 import org.apache.kafka.server.authorizer.AuthorizerServerInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -160,8 +162,8 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
  * This authorizer honors the <em>super.users</em> configuration. Super users are automatically granted any authorization request.
  * </p>
  */
-@SuppressWarnings("deprecation")
-public class KeycloakRBACAuthorizer extends AclAuthorizer {
+@SuppressWarnings({"deprecation", "checkstyle:ClassFanOutComplexity"})
+public class KeycloakRBACAuthorizer implements Authorizer {
 
     private static final String PRINCIPAL_BUILDER_CLASS = OAuthKafkaPrincipalBuilder.class.getName();
     private static final String DEPRECATED_PRINCIPAL_BUILDER_CLASS = JwtKafkaPrincipalBuilder.class.getName();
@@ -195,12 +197,8 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
     private SensorKeyProducer grantsSensorKeyProducer;
     private final Semaphores<JsonNode> semaphores = new Semaphores<>();
 
-    /**
-     * Create a new instance
-     */
-    public KeycloakRBACAuthorizer() {
-        super();
-    }
+    private Authorizer delegate;
+
 
     @Override
     public void configure(Map<String, ?> configs) {
@@ -234,6 +232,9 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
         }
 
         delegateToKafkaACL = config.getValueAsBoolean(AuthzConfig.STRIMZI_AUTHORIZATION_DELEGATE_TO_KAFKA_ACL, false);
+        if (delegateToKafkaACL) {
+            setupDelegateAuthorizer(configs);
+        }
 
         configureSuperUsers(configs);
 
@@ -260,8 +261,8 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
         authzSensorKeyProducer = new KeycloakAuthorizationSensorKeyProducer("keycloak-authorizer", tokenEndpointUrl);
         grantsSensorKeyProducer = new GrantsHttpSensorKeyProducer("keycloak-authorizer", tokenEndpointUrl);
 
-        if (delegateToKafkaACL) {
-            super.configure(configs);
+        if (delegate != null) {
+            delegate.configure(configs);
         }
 
         if (log.isDebugEnabled()) {
@@ -280,6 +281,25 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
                     + "\n    readTimeoutSeconds: " + readTimeoutSeconds
                     + "\n    enableMetrics: " + enableMetrics
             );
+        }
+    }
+
+    private void setupDelegateAuthorizer(Map<String, ?> configs) {
+        // auto-detect KRAFT mode
+        Object prop = configs.get("process.roles");
+        String processRoles = prop != null ? String.valueOf(prop) : null;
+        if (processRoles != null && processRoles.length() > 0) {
+            try {
+                log.debug("Detected Kraft mode ('process.roles' configured)");
+                delegate = new StandardAuthorizer();
+                log.debug("Using StandardAuthorizer (Kraft based) as a delegate");
+            } catch (Exception e) {
+                throw new ConfigException("Kraft mode detected ('process.roles' configured), but failed to instantiate org.apache.kafka.metadata.authorizer.StandardAuthorizer", e);
+            }
+        }
+        if (delegate == null) {
+            log.debug("Using AclAuthorizer (ZooKeeper based) as a delegate");
+            delegate = new AclAuthorizer();
         }
     }
 
@@ -655,8 +675,8 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
 
     private List<AuthorizationResult> delegateIfRequested(AuthorizableRequestContext context, List<Action> actions, JsonNode authz) {
         String nonAuthMessageFragment = context.principal() instanceof OAuthKafkaPrincipal ? "" : " non-oauth";
-        if (delegateToKafkaACL) {
-            List<AuthorizationResult> results = super.authorize(context, actions);
+        if (delegate != null) {
+            List<AuthorizationResult> results = delegate.authorize(context, actions);
 
             int i = 0;
             for (AuthorizationResult result: results) {
@@ -907,40 +927,46 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
         } catch (Exception e) {
             log.error("Failed to shutdown the worker pool", e);
         }
-        super.close();
+        if (delegate != null) {
+            try {
+                delegate.close();
+            } catch (Exception e) {
+                log.error("Failed to close the delegate authorizer", e);
+            }
+        }
     }
 
     @Override
     public java.util.Map<Endpoint, ? extends CompletionStage<Void>> start(AuthorizerServerInfo serverInfo) {
         CompletableFuture<Void> future = CompletableFuture.completedFuture(null);
-        if (!delegateToKafkaACL) {
+        if (delegate == null) {
             return serverInfo.endpoints().stream().collect(Collectors.toMap(Function.identity(), e -> future));
         }
-        return super.start(serverInfo);
+        return delegate.start(serverInfo);
     }
 
     @Override
     public List<? extends CompletionStage<AclCreateResult>> createAcls(AuthorizableRequestContext requestContext, List<AclBinding> aclBindings) {
-        if (!delegateToKafkaACL) {
+        if (delegate == null) {
             throw new UnsupportedOperationException("Simple ACL delegation not enabled");
         }
-        return super.createAcls(requestContext, aclBindings);
+        return delegate.createAcls(requestContext, aclBindings);
     }
 
     @Override
     public List<? extends CompletionStage<AclDeleteResult>> deleteAcls(AuthorizableRequestContext requestContext, List<AclBindingFilter> aclBindingFilters) {
-        if (!delegateToKafkaACL) {
+        if (delegate == null) {
             throw new UnsupportedOperationException("Simple ACL delegation not enabled");
         }
-        return super.deleteAcls(requestContext, aclBindingFilters);
+        return delegate.deleteAcls(requestContext, aclBindingFilters);
     }
 
     @Override
     public Iterable<AclBinding> acls(AclBindingFilter filter) {
-        if (!delegateToKafkaACL) {
+        if (delegate == null) {
             throw new UnsupportedOperationException("Simple ACL delegation not enabled");
         }
-        return super.acls(filter);
+        return delegate.acls(filter);
     }
 
     private void addAuthzMetricSuccessTime(long startTimeMs) {
