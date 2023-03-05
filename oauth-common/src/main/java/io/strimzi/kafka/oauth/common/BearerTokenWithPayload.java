@@ -4,6 +4,7 @@
  */
 package io.strimzi.kafka.oauth.common;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerToken;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.Set;
@@ -24,18 +25,18 @@ import java.util.Set;
 public interface BearerTokenWithPayload extends OAuthBearerToken {
 
     /**
-     * Get the usage dependent object previously associated with this instance by calling {@link BearerTokenWithPayload#setPayload(Object)}
+     * Get the usage dependent object previously associated with this instance by calling {@link BearerTokenWithPayload#setPayload(com.fasterxml.jackson.databind.JsonNode)}
      *
      * @return The associated object
      */
-    Object getPayload();
+    JsonNode getPayload();
 
     /**
      * Associate a usage dependent object with this instance
      *
      * @param payload The object to associate with this instance
      */
-    void setPayload(Object payload);
+    void setPayload(JsonNode payload);
 
     /**
      * Get groups associated with this token (principal).

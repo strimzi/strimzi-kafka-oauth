@@ -22,7 +22,7 @@ public class OAuthKafkaPrincipalTest {
     public void testEquals() {
 
         BearerTokenWithPayload token = new MockBearerTokenWithPayload("service-account-my-client", new HashSet<>(Arrays.asList("group1", "group2")),
-                System.currentTimeMillis(), System.currentTimeMillis() + 60000, null, "BEARER-TOKEN-9823eh982u", "Whatever");
+                System.currentTimeMillis(), System.currentTimeMillis() + 60000, null, "BEARER-TOKEN-9823eh982u", JSONUtil.asJson("{}"));
         OAuthKafkaPrincipal principal = new OAuthKafkaPrincipal("User", "service-account-my-client", token);
 
 
@@ -72,7 +72,7 @@ public class OAuthKafkaPrincipalTest {
 
         JsonNode parsed = JSONUtil.readJSON(json, JsonNode.class);
         TokenInfo tki = new TokenInfo(parsed, rawToken, "bob");
-        BearerTokenWithPayload jwt = new JaasServerOauthValidatorCallbackHandler.BearerTokenWithPayloadImpl(tki);
+        BearerTokenWithPayload jwt = new BearerTokenWithGrants(tki);
         OAuthKafkaPrincipal principalJwt = new OAuthKafkaPrincipal("User", "bob", jwt);
 
         Assert.assertEquals("Can access parsed JWT", parsed, principalJwt.getJwt().getJSON());

@@ -9,6 +9,11 @@ import io.strimzi.kafka.oauth.services.Principals;
 import io.strimzi.kafka.oauth.services.Services;
 import org.apache.kafka.common.Configurable;
 import org.apache.kafka.common.config.internals.BrokerSecurityConfigs;
+import org.apache.kafka.common.errors.SerializationException;
+import org.apache.kafka.common.message.DefaultPrincipalData;
+import org.apache.kafka.common.protocol.ByteBufferAccessor;
+import org.apache.kafka.common.protocol.MessageUtil;
+import org.apache.kafka.common.protocol.types.RawTaggedField;
 import org.apache.kafka.common.security.auth.AuthenticationContext;
 import org.apache.kafka.common.security.auth.KafkaPrincipal;
 import org.apache.kafka.common.security.auth.SaslAuthenticationContext;
@@ -18,9 +23,11 @@ import org.apache.kafka.common.security.oauthbearer.internals.OAuthBearerSaslSer
 import org.apache.kafka.common.security.plain.internals.PlainSaslServer;
 
 import javax.security.sasl.SaslServer;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.nio.ByteBuffer;
 import java.security.PrivilegedAction;
 import java.util.Collections;
 import java.util.List;
@@ -156,5 +163,52 @@ public class OAuthKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder imp
         }
 
         return super.build(context);
+    }
+
+
+    @Override
+    public byte[] serialize(KafkaPrincipal principal) {
+        if (principal instanceof OAuthKafkaPrincipal) {
+            DefaultPrincipalData data = new DefaultPrincipalData()
+                    .setType(principal.getPrincipalType())
+                    .setName(principal.getName())
+                    .setTokenAuthenticated(principal.tokenAuthenticated());
+            BearerTokenWithPayload token = ((OAuthKafkaPrincipal) principal).getJwt();
+            if (token instanceof BearerTokenWithGrants) {
+                try {
+                    data.unknownTaggedFields().add(new RawTaggedField(575, new BearerTokenWithGrants.Serde().serialize((BearerTokenWithGrants) token)));
+                } catch (IOException e) {
+                    throw new SerializationException("Failed to serialize OAuthKafkaPrincipal", e);
+                }
+            }
+
+            return MessageUtil.toVersionPrefixedBytes(DefaultPrincipalData.HIGHEST_SUPPORTED_VERSION, data);
+        }
+        return super.serialize(principal);
+    }
+
+    @Override
+    public KafkaPrincipal deserialize(byte[] bytes) {
+        ByteBuffer buffer = ByteBuffer.wrap(bytes);
+        short version = buffer.getShort();
+        if (version < DefaultPrincipalData.LOWEST_SUPPORTED_VERSION || version > DefaultPrincipalData.HIGHEST_SUPPORTED_VERSION) {
+            throw new SerializationException("Invalid principal data version " + version);
+        }
+
+        DefaultPrincipalData data = new DefaultPrincipalData(new ByteBufferAccessor(buffer), version);
+        List<RawTaggedField> unknownFields = data.unknownTaggedFields();
+        if (unknownFields.size() > 0) {
+            RawTaggedField field = unknownFields.get(0);
+            if (field.tag() == 575) {
+                try {
+                    OAuthKafkaPrincipal result = new OAuthKafkaPrincipal(data.type(), data.name(), new BearerTokenWithGrants.Serde().deserialize(field.data()));
+                    result.tokenAuthenticated(data.tokenAuthenticated());
+                    return result;
+                } catch (IOException e) {
+                    throw new SerializationException("Failed to de-serialize OAuthKafkaPrincipal", e);
+                }
+            }
+        }
+        return new KafkaPrincipal(data.type(), data.name(), data.tokenAuthenticated());
     }
 }

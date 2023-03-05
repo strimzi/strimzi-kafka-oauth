@@ -68,24 +68,24 @@ elif [[ "$arch" != 'ppc64le' ]]; then
   exitIfError
 
   clearDockerEnv
-  mvn -e -V -B clean install -f testsuite -Pkafka-3_2_3
+  mvn -e -V -B clean install -f testsuite -Pkafka-3_2_3 -DfailIfNoTests=false -Dtest=\!KeycloakRaftAuthorizationTests
   EXIT=$?
   exitIfError
 
   # Excluded by default to not exceed Travis job timeout
   if [ "SKIP_DISABLED" == "false" ]; then
     clearDockerEnv
-    mvn -e -V -B clean install -f testsuite -Pkafka-3_1_2
+    mvn -e -V -B clean install -f testsuite -Pkafka-3_1_2 -DfailIfNoTests=false -Dtest=\!KeycloakRaftAuthorizationTests
     EXIT=$?
     exitIfError
 
     clearDockerEnv
-    mvn -e -V -B clean install -f testsuite -Pkafka-3_0_0
+    mvn -e -V -B clean install -f testsuite -Pkafka-3_0_0 -DfailIfNoTests=false -Dtest=\!KeycloakRaftAuthorizationTests
     EXIT=$?
     exitIfError
 
     clearDockerEnv
-    mvn -e -V -B clean install -f testsuite -Pkafka-2_8_1
+    mvn -e -V -B clean install -f testsuite -Pkafka-2_8_1 -DfailIfNoTests=false -Dtest=\!KeycloakRaftAuthorizationTests
     EXIT=$?
     exitIfError
   fi

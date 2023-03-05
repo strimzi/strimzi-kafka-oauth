@@ -111,4 +111,8 @@ public class AuthzConfig extends Config {
     AuthzConfig(Properties p) {
         super(p);
     }
+
+    AuthzConfig(Config config) {
+        super(config);
+    }
 }

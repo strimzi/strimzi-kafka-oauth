@@ -105,14 +105,38 @@ public class TokenInfo {
      * @param expiresAtMs The token's `expires at` time in millis
      */
     public TokenInfo(String token, String scope, String principal, Set<String> groups, long issuedAtMs, long expiresAtMs) {
+        this(token,
+                Collections.unmodifiableSet(new HashSet<>(Arrays.asList(scope != null ? scope.split(" ") : new String[0]))),
+                principal,
+                groups,
+                issuedAtMs,
+                expiresAtMs,
+                null);
+    }
+
+    /**
+     *
+     * @param token The raw access token
+     * @param scopes The list of scopes
+     * @param principal The extracted user ID
+     * @param groups A set of groups extracted from JWT token or authorization server's inspect endpoint response
+     * @param issuedAtMs The token's `issued at` time in millis
+     * @param expiresAtMs The token's `expires at` time in millis
+     * @param payload The body of the JWT token or composed from authorization server's introspection endpoint response
+     */
+    @SuppressFBWarnings("EI_EXPOSE_REP2")
+    // See: https://spotbugs.readthedocs.io/en/stable/bugDescriptions.html#ei2-may-expose-internal-representation-by-incorporating-reference-to-mutable-object-ei-expose-rep2
+    public TokenInfo(String token, Set<String> scopes, String principal, Set<String> groups, long issuedAtMs, long expiresAtMs, JsonNode payload) {
         this.token = token;
         this.principal = principal;
         this.groups = groups != null ? Collections.unmodifiableSet(groups) : null;
         this.issuedAt = issuedAtMs;
         this.expiresAt = expiresAtMs;
-
-        String[] parsedScopes = scope != null ? scope.split(" ") : new String[0];
-        scopes = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(parsedScopes)));
+        this.scopes = scopes;
+        if (payload != null && !(payload instanceof ObjectNode)) {
+            throw new IllegalArgumentException("Unexpected JSON Node type (not ObjectNode): " + payload.getClass());
+        }
+        this.payload = (ObjectNode) payload;
     }
 
     /**

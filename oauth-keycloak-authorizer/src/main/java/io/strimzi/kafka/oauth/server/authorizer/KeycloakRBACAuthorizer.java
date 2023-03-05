@@ -31,7 +31,6 @@ import org.apache.kafka.common.acl.AclBinding;
 import org.apache.kafka.common.acl.AclBindingFilter;
 import org.apache.kafka.common.resource.ResourcePattern;
 import org.apache.kafka.common.security.auth.KafkaPrincipal;
-import org.apache.kafka.metadata.authorizer.StandardAuthorizer;
 import org.apache.kafka.server.authorizer.AclCreateResult;
 import org.apache.kafka.server.authorizer.AclDeleteResult;
 import org.apache.kafka.server.authorizer.Action;
@@ -203,7 +202,7 @@ public class KeycloakRBACAuthorizer implements Authorizer {
     @Override
     public void configure(Map<String, ?> configs) {
 
-        AuthzConfig config = convertToCommonConfig(configs);
+        AuthzConfig config = convertToAuthzConfig(configs);
 
         String pbclass = (String) configs.get("principal.builder.class");
         if (!PRINCIPAL_BUILDER_CLASS.equals(pbclass) && !DEPRECATED_PRINCIPAL_BUILDER_CLASS.equals(pbclass)) {
@@ -284,23 +283,37 @@ public class KeycloakRBACAuthorizer implements Authorizer {
         }
     }
 
-    private void setupDelegateAuthorizer(Map<String, ?> configs) {
-        // auto-detect KRAFT mode
-        Object prop = configs.get("process.roles");
-        String processRoles = prop != null ? String.valueOf(prop) : null;
-        if (processRoles != null && processRoles.length() > 0) {
-            try {
-                log.debug("Detected Kraft mode ('process.roles' configured)");
-                delegate = new StandardAuthorizer();
-                log.debug("Using StandardAuthorizer (Kraft based) as a delegate");
-            } catch (Exception e) {
-                throw new ConfigException("Kraft mode detected ('process.roles' configured), but failed to instantiate org.apache.kafka.metadata.authorizer.StandardAuthorizer", e);
-            }
-        }
+    /**
+     * The subclass can override this method to provide configuration overrides
+     *
+     * @param configs Original configuration map passed in by Kafka broker
+     * @return AuthzConfig instance
+     */
+    AuthzConfig convertToAuthzConfig(Map<String, ?> configs) {
+        return convertToCommonConfig(configs);
+    }
+
+    /**
+     * This method is only called if <code>delegateToKafkaACL</code> is enabled.
+     * It is responsible for instantiating the Authorizer delegate instance.
+     *
+     * @param configs The configuration that may be used to decide which delegate class to instantiate
+     */
+    void setupDelegateAuthorizer(Map<String, ?> configs) {
         if (delegate == null) {
             log.debug("Using AclAuthorizer (ZooKeeper based) as a delegate");
             delegate = new AclAuthorizer();
         }
+    }
+
+
+    /**
+     * Allows setting the delegate by a subclass overriding {@link #setupDelegateAuthorizer(Map)} method.
+     *
+     * @param delegate An authorizer instantiated as a delegate
+     */
+    void setDelegate(Authorizer delegate) {
+        this.delegate = delegate;
     }
 
     private void configureHttpTimeouts(AuthzConfig config) {
@@ -475,6 +488,7 @@ public class KeycloakRBACAuthorizer implements Authorizer {
             if (!(principal instanceof OAuthKafkaPrincipal)) {
                 // If user wasn't authenticated over OAuth, and simple ACL delegation is enabled
                 // we delegate to simple ACL
+
                 result = delegateIfRequested(requestContext, actions, null);
 
                 addAuthzMetricSuccessTime(startTime);
@@ -486,16 +500,14 @@ public class KeycloakRBACAuthorizer implements Authorizer {
             // If not, fetch authorization grants and store them in the token
             //
 
-            OAuthKafkaPrincipal jwtPrincipal = (OAuthKafkaPrincipal) principal;
-
-            BearerTokenWithPayload token = jwtPrincipal.getJwt();
+            BearerTokenWithPayload token = ((OAuthKafkaPrincipal) principal).getJwt();
 
             if (denyIfTokenInvalid(token)) {
                 addAuthzMetricSuccessTime(startTime);
                 return Collections.nCopies(actions.size(), AuthorizationResult.DENIED);
             }
 
-            grants = (JsonNode) token.getPayload();
+            grants = token.getPayload();
 
             if (grants == null) {
                 log.debug("No grants yet for user: {}", principal);
@@ -658,7 +670,7 @@ public class KeycloakRBACAuthorizer implements Authorizer {
         BearerTokenWithPayload existing = sessions.findFirst(t ->
             t.value().equals(token.value()) && t.getPayload() != null
         );
-        return existing != null ? (JsonNode) existing.getPayload() : null;
+        return existing != null ? existing.getPayload() : null;
     }
 
     static List<ScopesSpec.AuthzScope> validateScopes(List<String> scopes) {
@@ -866,8 +878,8 @@ public class KeycloakRBACAuthorizer implements Authorizer {
                         refreshed = t;
                         continue;
                     }
-                    Object oldGrants = t.getPayload();
-                    Object newGrants = refreshed.getPayload();
+                    JsonNode oldGrants = t.getPayload();
+                    JsonNode newGrants = refreshed.getPayload();
                     if (newGrants == null) {
                         newGrants = JSONUtil.newObjectNode();
                     }
@@ -992,5 +1004,4 @@ public class KeycloakRBACAuthorizer implements Authorizer {
             metrics.addTime(grantsSensorKeyProducer.errorKey(e), System.currentTimeMillis() - startTimeMs);
         }
     }
-
 }

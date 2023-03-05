@@ -106,7 +106,7 @@ public class OAuthSessionAuthorizerTest {
         TokenInfo tokenInfo = new TokenInfo("accesstoken123", null, "User:bob", new HashSet<>(Arrays.asList("group1", "group2")),
                 System.currentTimeMillis() - 100000,
                 System.currentTimeMillis() + 100000);
-        BearerTokenWithPayload token = new JaasServerOauthValidatorCallbackHandler.BearerTokenWithPayloadImpl(tokenInfo);
+        BearerTokenWithPayload token = new BearerTokenWithGrants(tokenInfo);
 
         AuthorizableRequestContext ctx = requestContext(new OAuthKafkaPrincipal("User", "bob", token));
 
@@ -136,7 +136,7 @@ public class OAuthSessionAuthorizerTest {
         TokenInfo tokenInfo = new TokenInfo("accesstoken234", null, "User:bob", null,
                 System.currentTimeMillis() - 200000,
                 System.currentTimeMillis() - 100000);
-        BearerTokenWithPayload token = new JaasServerOauthValidatorCallbackHandler.BearerTokenWithPayloadImpl(tokenInfo);
+        BearerTokenWithPayload token = new BearerTokenWithGrants(tokenInfo);
 
         AuthorizableRequestContext ctx = requestContext(new OAuthKafkaPrincipal("User", "bob", token));
 
@@ -229,7 +229,7 @@ public class OAuthSessionAuthorizerTest {
         TokenInfo tokenInfo = new TokenInfo("accesstoken123", null, "User:bob", null,
                 System.currentTimeMillis() - 100000,
                 System.currentTimeMillis() + 100000);
-        BearerTokenWithPayload token = new JaasServerOauthValidatorCallbackHandler.BearerTokenWithPayloadImpl(tokenInfo);
+        BearerTokenWithPayload token = new BearerTokenWithGrants(tokenInfo);
 
         AuthorizableRequestContext ctx = requestContext(new OAuthKafkaPrincipal("User", "bob", token));
 
@@ -253,7 +253,7 @@ public class OAuthSessionAuthorizerTest {
         TokenInfo tokenInfo = new TokenInfo("accesstoken234", null, "User:bob", null,
                 System.currentTimeMillis() - 200000,
                 System.currentTimeMillis() - 100000);
-        BearerTokenWithPayload token = new JaasServerOauthValidatorCallbackHandler.BearerTokenWithPayloadImpl(tokenInfo);
+        BearerTokenWithPayload token = new BearerTokenWithGrants(tokenInfo);
         OAuthKafkaPrincipal principal = new OAuthKafkaPrincipal("User", "bob", token);
 
         List<Action> actions = Collections.singletonList(

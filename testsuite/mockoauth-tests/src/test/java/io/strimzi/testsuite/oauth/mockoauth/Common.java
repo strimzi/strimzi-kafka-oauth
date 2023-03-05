@@ -284,7 +284,7 @@ public class Common {
     static class MockBearerTokenWithPayload implements BearerTokenWithPayload {
 
         private final TokenInfo ti;
-        private Object payload;
+        private JsonNode payload;
 
         MockBearerTokenWithPayload(TokenInfo ti) {
             if (ti == null) {
@@ -294,12 +294,12 @@ public class Common {
         }
 
         @Override
-        public Object getPayload() {
+        public JsonNode getPayload() {
             return payload;
         }
 
         @Override
-        public void setPayload(Object value) {
+        public void setPayload(JsonNode value) {
             payload = value;
         }
 

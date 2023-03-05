@@ -11,6 +11,8 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 public class TestUtil {
@@ -54,5 +56,20 @@ public class TestUtil {
         } catch (Throwable e) {
             throw new RuntimeException("Failed to get '" + containerName + "' log", e);
         }
+    }
+
+    public static void waitForCondition(Supplier<Boolean> condition, int loopPauseMs, int timeoutSeconds) throws TimeoutException, InterruptedException {
+        long startTime = System.currentTimeMillis();
+        boolean done;
+        do {
+            done = condition.get();
+            if (!done) {
+                // Condition not met
+                if (System.currentTimeMillis() + loopPauseMs - startTime >= timeoutSeconds * 1000L) {
+                    throw new TimeoutException("Condition not met in " + timeoutSeconds + " seconds");
+                }
+                Thread.sleep(loopPauseMs);
+            }
+        } while (!done);
     }
 }

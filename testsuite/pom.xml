@@ -17,6 +17,7 @@
         <module>mockoauth-tests</module>
         <module>keycloak-auth-tests</module>
         <module>keycloak-authz-tests</module>
+        <module>keycloak-authz-kraft-tests</module>
         <module>keycloak-errors-tests</module>
         <module>hydra-test</module>
     </modules>
@@ -46,7 +47,7 @@
         <strimzi-oauth.version>1.0.0-SNAPSHOT</strimzi-oauth.version>
         <checkstyle.dir>..</checkstyle.dir>
 
-        <kafka.docker.image>quay.io/strimzi/kafka:0.33.2-kafka-3.4.0</kafka.docker.image>
+        <kafka.docker.image>quay.io/strimzi/kafka:0.34.0-kafka-3.4.0</kafka.docker.image>
     </properties>
 
     <dependencyManagement>
@@ -397,7 +398,7 @@
             <id>kafka-3_4_0</id>
             <properties>
                 <!-- Uses JDK 17.0.x -->
-                <kafka.docker.image>quay.io/strimzi/kafka:0.33.2-kafka-3.4.0</kafka.docker.image>
+                <kafka.docker.image>quay.io/strimzi/kafka:0.34.0-kafka-3.4.0</kafka.docker.image>
             </properties>
         </profile>
         <profile>

@@ -530,6 +530,9 @@
             "uris": [],
             "scopes": [
               {
+                "name": "Create"
+              },
+              {
                 "name": "DescribeConfigs"
               },
               {
@@ -612,6 +615,9 @@
             "attributes" : { },
             "uris" : [ ],
             "scopes": [
+              {
+                "name": "Create"
+              },
               {
                 "name": "DescribeConfigs"
               },

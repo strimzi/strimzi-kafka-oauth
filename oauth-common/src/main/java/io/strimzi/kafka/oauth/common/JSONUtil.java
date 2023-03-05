@@ -6,6 +6,7 @@ package io.strimzi.kafka.oauth.common;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.io.ByteArrayOutputStream;
@@ -14,6 +15,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -165,5 +167,28 @@ public class JSONUtil {
         }
 
         return result;
+    }
+
+    /**
+     * Set an array attribute on a JSON object to a collection of Strings
+     *
+     * @param object The target JSON object
+     * @param attrName An attribute name
+     * @param elements The collection of strings
+     * @return Newly create ArrayNode
+     */
+    public static ArrayNode setArrayOfStringsIfNotNull(JsonNode object, String attrName, Collection<String> elements) {
+        if (elements == null) {
+            return null;
+        }
+        if (!(object instanceof ObjectNode)) {
+            throw new IllegalArgumentException("Unexpected JSON Node type (not ObjectNode): " + object.getClass());
+        }
+
+        ArrayNode list = ((ObjectNode) object).putArray(attrName);
+        for (String g: elements) {
+            list.add(g);
+        }
+        return list;
     }
 }

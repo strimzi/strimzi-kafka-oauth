@@ -12,14 +12,35 @@ wait_for_url $URI "Waiting for Keycloak to start"
 
 wait_for_url "$URI/realms/${REALM:-demo}" "Waiting for realm '${REALM}' to be available"
 
-./simple_kafka_config.sh | tee /tmp/strimzi.properties
+[ "$KAFKA_ZOOKEEPER_CONNECT" == "" ] && KAFKA_ZOOKEEPER_CONNECT=localhost:2181
+[ "$KAFKA_ZOOKEEPER_CONNECTION_TIMEOUT_MS" == "" ] && KAFKA_ZOOKEEPER_CONNECTION_TIMEOUT_MS=6000
 
 
-# Add 'admin' user
-KAFKA_DEBUG= /opt/kafka/bin/kafka-configs.sh --zookeeper zookeeper:2181 --alter --add-config 'SCRAM-SHA-512=[password=admin-secret]' --entity-type users --entity-name admin
+./simple_kafka_config.sh $1 | tee /tmp/strimzi.properties
 
-# Add 'alice' user
-KAFKA_DEBUG= /opt/kafka/bin/kafka-configs.sh --zookeeper zookeeper:2181 --alter --add-config 'SCRAM-SHA-512=[password=alice-secret]' --entity-type users --entity-name alice
+echo "Config created"
+
+KAFKA_DEBUG_PASSED=$KAFKA_DEBUG
+unset KAFKA_DEBUG
+
+# add extra jars to classpath
+export CLASSPATH="/opt/kafka/libs/strimzi/*:$CLASSPATH"
+echo "CLASSPATH=$CLASSPATH"
+
+if [[ "$1" == "--kraft" ]]; then
+  KAFKA_CLUSTER_ID="$(/opt/kafka/bin/kafka-storage.sh random-uuid)"
+  /opt/kafka/bin/kafka-storage.sh format -t $KAFKA_CLUSTER_ID -c /tmp/strimzi.properties
+  echo "Initialised kafka storage for KRaft"
+else
+  # Add 'admin' user
+  /opt/kafka/bin/kafka-configs.sh --zookeeper zookeeper:2181 --alter --add-config 'SCRAM-SHA-512=[password=admin-secret]' --entity-type users --entity-name admin
+  # Add 'alice' user
+  /opt/kafka/bin/kafka-configs.sh --zookeeper zookeeper:2181 --alter --add-config 'SCRAM-SHA-512=[password=alice-secret]' --entity-type users --entity-name alice
+
+  echo "Added user secrets for SCRAM"
+fi
+
+export KAFKA_DEBUG=$KAFKA_DEBUG_PASSED
 
 
 # set log dir to writable directory
@@ -32,10 +53,6 @@ if [ "$KAFKA_LOG4J_OPTS" == "" ]; then
   export KAFKA_LOG4J_OPTS="-Dlog4j.configuration=file:/opt/kafka/config/strimzi/log4j.properties"
 fi
 echo "KAFKA_LOG4J_OPTS=$KAFKA_LOG4J_OPTS"
-
-# add extra jars to classpath
-export CLASSPATH="/opt/kafka/libs/strimzi/*:$CLASSPATH"
-echo "CLASSPATH=$CLASSPATH"
 
 # Prometheus JMX agent config
 if [ "$PROMETHEUS_AGENT_CONFIG" == "" ]; then
