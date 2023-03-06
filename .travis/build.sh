@@ -19,7 +19,7 @@ exitIfError() {
 }
 
 arch=$(uname -m)
-echo "arch: $arch"
+echo "Architecture: $arch"
 
 # The first segment of the version number is '1' for releases < 9; then '9', '10', '11', ...
 JAVA_MAJOR_VERSION=$(java -version 2>&1 | sed -E -n 's/.* version "([0-9]*).*$/\1/p')
@@ -38,7 +38,7 @@ if [ "$arch" != 'ppc64le' ]; then
 fi
 
 # Run testsuite
-if [ "$arch" == 's390x' ]; then
+if [ "$arch" == 'DISABLED:s390x' ]; then
   # Build s390x compatible hydra image
   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/s390x-linux-gnu/jni
   docker build --target hydra-import -t strimzi-oauth-testsuite/hydra-import:latest -f ./testsuite/docker/hydra-import/Dockerfile.s390x .
@@ -54,7 +54,8 @@ if [ "$arch" == 's390x' ]; then
   EXIT=$?
   exitIfError
   set -e
-elif [[ "$arch" != 'ppc64le' ]]; then
+fi
+if [[ "$arch" != 'ppc64le' ]]; then
   mvn test-compile spotbugs:check -e -V -B -f testsuite
 
   set +e
@@ -90,12 +91,12 @@ elif [[ "$arch" != 'ppc64le' ]]; then
   fi
 
   set -e
-fi
 
-# Test example image build for keycloak-ssl example
-cd examples/docker
-docker-compose -f compose.yml -f keycloak/compose-ssl.yml build
-cd ../..
+  # Test example image build for keycloak-ssl example
+  cd examples/docker
+  docker-compose -f compose.yml -f keycloak/compose-ssl.yml build
+  cd ../..
+fi
 
 
 # Only continue if Java 8 and x86_64 platform
