@@ -7,6 +7,8 @@ package io.strimzi.testsuite.oauth.auth;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,6 +24,8 @@ import static io.strimzi.testsuite.oauth.auth.Common.buildProducerConfigPlain;
  * messages as quickly as possible.
  */
 public class FloodProducer extends Thread {
+
+    private static final Logger log = LoggerFactory.getLogger(FloodProducer.class);
 
     private static ArrayList<Thread> threads = new ArrayList<>();
 
@@ -114,7 +118,7 @@ public class FloodProducer extends Thread {
                 producer.send(new ProducerRecord<>(topic, "Message " + i))
                         .get();
 
-                System.out.println("[" + clientId + "] Produced message to '" + topic + "': Message " + i);
+                log.debug("[" + clientId + "] Produced message to '" + topic + "': Message " + i);
 
                 if (i < sendLimit - 1) {
                     Thread.sleep(2000);

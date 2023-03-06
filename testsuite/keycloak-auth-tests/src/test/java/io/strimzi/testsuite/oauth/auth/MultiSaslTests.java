@@ -9,6 +9,8 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.junit.Assert;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.util.HashMap;
@@ -20,6 +22,8 @@ import static io.strimzi.testsuite.oauth.auth.Common.buildProducerConfigPlain;
 import static io.strimzi.testsuite.oauth.auth.Common.buildProducerConfigScram;
 
 public class MultiSaslTests {
+
+    private static final Logger log = LoggerFactory.getLogger(MultiSaslTests.class);
 
     private static final String KAFKA_PLAIN_LISTENER = "kafka:9100";
     private static final String KAFKA_SCRAM_LISTENER = "kafka:9101";
@@ -139,6 +143,6 @@ public class MultiSaslTests {
         Producer<String, String> producer = new KafkaProducer<>(config);
 
         producer.send(new ProducerRecord<>(topic, "The Message")).get();
-        System.out.println("Produced The Message");
+        log.debug("Produced The Message");
     }
 }

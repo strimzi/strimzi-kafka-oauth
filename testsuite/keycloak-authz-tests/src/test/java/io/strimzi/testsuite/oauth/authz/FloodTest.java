@@ -268,7 +268,7 @@ public class FloodTest extends Common {
                     for (int triesLeft = 300; triesLeft > 0; triesLeft--) {
                         try {
                             consume(consumer, topic);
-                            System.out.println("[" + clientId + "] Consumed message from '" + topic + "': Message " + i);
+                            log.debug("[" + clientId + "] Consumed message from '" + topic + "': Message " + i);
                             break;
                         } catch (Throwable t) {
                             if (triesLeft <= 1) {
@@ -326,7 +326,7 @@ public class FloodTest extends Common {
                     producer.send(new ProducerRecord<>(topic, "Message " + i))
                             .get();
 
-                    System.out.println("[" + clientId + "] Produced message to '" + topic + "': Message " + i);
+                    log.debug("[" + clientId + "] Produced message to '" + topic + "': Message " + i);
 
                     if (i < sendLimit - 1) {
                         Thread.sleep(2000);

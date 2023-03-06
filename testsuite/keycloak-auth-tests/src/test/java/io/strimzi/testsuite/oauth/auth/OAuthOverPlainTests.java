@@ -15,6 +15,8 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.SaslAuthenticationException;
 import org.junit.Assert;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.net.URI;
@@ -32,6 +34,8 @@ import static io.strimzi.testsuite.oauth.common.TestMetrics.getPrometheusMetrics
 import static java.util.Collections.singletonList;
 
 public class OAuthOverPlainTests {
+
+    private static final Logger log = LoggerFactory.getLogger(OAuthOverPlainTests.class);
 
     static void doTests() throws Exception {
         clientCredentialsOverPlainWithJwt();
@@ -74,7 +78,7 @@ public class OAuthOverPlainTests {
 
 
         producer.send(new ProducerRecord<>(topic, "The Message")).get();
-        System.out.println("Produced The Message");
+        log.debug("Produced The Message");
 
         Properties consumerProps = buildConsumerConfigPlain(kafkaBootstrap, plainConfig);
         Consumer<String, String> consumer = new KafkaConsumer<>(consumerProps);
@@ -161,7 +165,7 @@ public class OAuthOverPlainTests {
 
 
         producer.send(new ProducerRecord<>(topic, "The Message")).get();
-        System.out.println("Produced The Message");
+        log.debug("Produced The Message");
 
         Properties consumerProps = buildConsumerConfigPlain(kafkaBootstrap, plainConfig);
         Consumer<String, String> consumer = new KafkaConsumer<>(consumerProps);
@@ -227,7 +231,7 @@ public class OAuthOverPlainTests {
 
 
         producer.send(new ProducerRecord<>(topic, "The Message")).get();
-        System.out.println("Produced The Message");
+        log.debug("Produced The Message");
 
         Properties consumerProps = buildConsumerConfigPlain(kafkaBootstrap, plainConfig);
         Consumer<String, String> consumer = new KafkaConsumer<>(consumerProps);
@@ -291,7 +295,7 @@ public class OAuthOverPlainTests {
 
 
         producer.send(new ProducerRecord<>(topic, "The Message")).get();
-        System.out.println("Produced The Message");
+        log.debug("Produced The Message");
 
         Properties consumerProps = buildConsumerConfigPlain(kafkaBootstrap, plainConfig);
         Consumer<String, String> consumer = new KafkaConsumer<>(consumerProps);

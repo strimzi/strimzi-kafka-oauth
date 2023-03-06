@@ -179,7 +179,7 @@ public class HydraAuthenticationTest {
         Producer<String, String> producer = new KafkaProducer<>(producerProps);
 
         producer.send(new ProducerRecord<>(topic, "The Message")).get();
-        System.out.println("Produced The Message");
+        log.debug("Produced The Message");
 
         producer.close();
 

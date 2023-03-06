@@ -16,6 +16,8 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.Assert;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.net.URI;
@@ -37,6 +39,8 @@ import static io.strimzi.testsuite.oauth.common.TestUtil.getContainerLogsForStri
 import static java.util.Collections.singletonList;
 
 public class BasicTests {
+
+    private static final Logger log = LoggerFactory.getLogger(BasicTests.class);
 
     private final String kafkaContainer;
 
@@ -154,7 +158,7 @@ public class BasicTests {
 
 
         producer.send(new ProducerRecord<>(topic, "The Message")).get();
-        System.out.println("Produced The Message");
+        log.debug("Produced The Message");
 
         Properties consumerProps = buildConsumerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
         Consumer<String, String> consumer = new KafkaConsumer<>(consumerProps);
@@ -224,7 +228,7 @@ public class BasicTests {
 
 
         producer.send(new ProducerRecord<>(topic, "The Message")).get();
-        System.out.println("Produced The Message");
+        log.debug("Produced The Message");
 
         Properties consumerProps = buildConsumerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
         Consumer<String, String> consumer = new KafkaConsumer<>(consumerProps);
@@ -283,7 +287,7 @@ public class BasicTests {
         final String topic = "KeycloakAuthenticationTest-accessTokenWithIntrospectionTest";
 
         producer.send(new ProducerRecord<>(topic, "The Message")).get();
-        System.out.println("Produced The Message");
+        log.debug("Produced The Message");
 
         Properties consumerProps = buildConsumerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
         Consumer<String, String> consumer = new KafkaConsumer<>(consumerProps);
@@ -346,7 +350,7 @@ public class BasicTests {
         final String topic = "KeycloakAuthenticationTest-refreshTokenWithIntrospectionTest";
 
         producer.send(new ProducerRecord<>(topic, "The Message")).get();
-        System.out.println("Produced The Message");
+        log.debug("Produced The Message");
 
         Properties consumerProps = buildConsumerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
         Consumer<String, String> consumer = new KafkaConsumer<>(consumerProps);
@@ -399,7 +403,7 @@ public class BasicTests {
 
 
         producer.send(new ProducerRecord<>(topic, "The Message")).get();
-        System.out.println("Produced The Message");
+        log.debug("Produced The Message");
 
         Properties consumerProps = buildConsumerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
         Consumer<String, String> consumer = new KafkaConsumer<>(consumerProps);
@@ -456,7 +460,7 @@ public class BasicTests {
         final String topic = "KeycloakAuthenticationTest-passwordGrantWithIntrospectionTest";
 
         producer.send(new ProducerRecord<>(topic, "The Message")).get();
-        System.out.println("Produced The Message");
+        log.debug("Produced The Message");
 
 
 
