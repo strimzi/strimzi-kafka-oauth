@@ -19,7 +19,7 @@ exitIfError() {
 }
 
 arch=$(uname -m)
-echo "'uname -m' returned: $arch"
+echo "arch: $arch"
 
 # The first segment of the version number is '1' for releases < 9; then '9', '10', '11', ...
 JAVA_MAJOR_VERSION=$(java -version 2>&1 | sed -E -n 's/.* version "([0-9]*).*$/\1/p')
