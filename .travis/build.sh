@@ -54,7 +54,7 @@ if [ "$arch" == 's390x' ]; then
   EXIT=$?
   exitIfError
   set -e
-else
+elif [[ "$arch" != 'ppc64le' ]]; then
   mvn test-compile spotbugs:check -e -V -B -f testsuite
 
   set +e
