@@ -19,6 +19,8 @@ jobs:
         - maven
 jdk:
 - openjdk11
+- openjdk17
+- openjdk8
 cache:
   directories:
   - "$HOME/.m2"
