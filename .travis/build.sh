@@ -80,10 +80,11 @@ else
     EXIT=$?
     exitIfError
 
-    clearDockerEnv
-    mvn -e -V -B clean install -f testsuite -Pkafka-2_8_1
-    EXIT=$?
-    exitIfError
+    # Removed to not exceed Travis job timeout
+    #clearDockerEnv
+    #mvn -e -V -B clean install -f testsuite -Pkafka-2_8_1
+    #EXIT=$?
+    #exitIfError
   else
     echo "Skipped test profiles: kafka-3_1_2, kafka-3_0_0 and kafka-2_8_1"
   fi
