@@ -29,7 +29,7 @@ export PULL_REQUEST=${PULL_REQUEST:-true}
 export BRANCH=${BRANCH:-main}
 export TAG=${TAG:-latest}
 
-mvn -e -V -B install
+mvn -e -V -B clean install
 mvn spotbugs:check
 
 # Also test examples build on different architectures (exclude ppc64le until fixed)
