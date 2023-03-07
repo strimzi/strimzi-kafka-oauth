@@ -7,6 +7,12 @@ jobs:
     arch: s390x
     jdk: openjdk11
     addons:
+      hosts:
+        - kafka
+        - keycloak
+        - hydra
+        - hydra-jwt
+        - mockoauth
       apt:
         packages:
         - maven
@@ -14,6 +20,12 @@ jobs:
     arch: ppc64le
     jdk: openjdk11
     addons:
+      hosts:
+        - kafka
+        - keycloak
+        - hydra
+        - hydra-jwt
+        - mockoauth
       apt:
         packages:
         - maven
