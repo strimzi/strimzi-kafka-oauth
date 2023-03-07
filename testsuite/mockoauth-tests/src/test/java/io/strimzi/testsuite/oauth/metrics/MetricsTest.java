@@ -106,7 +106,7 @@ public class MetricsTest {
     }
 
     private void postInitCheck() throws IOException {
-        Metrics metrics = getPrometheusMetrics(URI.create("http://kafka:9404/metrics"));
+        Metrics metrics = getPrometheusMetrics(URI.create("http://localhost:9404/metrics"));
 
         // mockoauth has JWKS endpoint configured to return 404
         // error counter for 404 for JWT should not be zero as at least one JWKS request should fail
@@ -121,7 +121,7 @@ public class MetricsTest {
     }
 
     private void zeroCheck() throws IOException {
-        Metrics metrics = getPrometheusMetrics(URI.create("http://kafka:9404/metrics"));
+        Metrics metrics = getPrometheusMetrics(URI.create("http://localhost:9404/metrics"));
 
         // assumption check
         // JWT listener config (on port 9404 in docker-compose.yml) has no token endpoint so the next metric should not exist

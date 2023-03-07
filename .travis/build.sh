@@ -25,6 +25,12 @@ echo "Architecture: $arch"
 JAVA_MAJOR_VERSION=$(java -version 2>&1 | sed -E -n 's/.* version "([0-9]*).*$/\1/p')
 echo "JAVA_MAJOR_VERSION: $JAVA_MAJOR_VERSION"
 
+if [ "$SKIP_DISABLED" == "" ]; then
+  # TODO: change to "true"
+  SKIP_DISABLED="false"
+fi
+echo "SKIP_DISABLED: $SKIP_DISABLED"
+
 export PULL_REQUEST=${PULL_REQUEST:-true}
 export BRANCH=${BRANCH:-main}
 export TAG=${TAG:-latest}
@@ -38,24 +44,25 @@ if [ "$arch" != 'ppc64le' ]; then
 fi
 
 # Run testsuite
-if [ "$arch" == 'DISABLEDs390x' ]; then
+if [ "$arch" == 's390x' ]; then
   # Excluded due to hostname aliases not working from inside the test (but working between docker instances)
   # Build s390x compatible hydra image
-  export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/s390x-linux-gnu/jni
-  docker build --target hydra-import -t strimzi-oauth-testsuite/hydra-import:latest -f ./testsuite/docker/hydra-import/Dockerfile.s390x .
-  git clone -b 19.0.3 https://github.com/keycloak/keycloak-containers.git
-  cd keycloak-containers/server/
-  docker build -t quay.io/keycloak/keycloak:19.0.3-legacy .
-  cd ../../ && rm -rf keycloak-containers
-  docker build --target oryd-hydra -t oryd/hydra:v1.8.5 -f ./testsuite/docker/hydra-import/Dockerfile.s390x .
-  mvn test-compile spotbugs:check -e -V -B -f testsuite
-  set +e
-  clearDockerEnv
-  mvn -e -V -B clean install -f testsuite -Pcustom -Dkafka.docker.image=quay.io/strimzi/kafka:0.31.1-kafka-3.2.3
-  EXIT=$?
-  exitIfError
-  set -e
-
+  if [ "SKIP_DISABLED" == "false" ]; then
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/s390x-linux-gnu/jni
+    docker build --target hydra-import -t strimzi-oauth-testsuite/hydra-import:latest -f ./testsuite/docker/hydra-import/Dockerfile.s390x .
+    git clone -b 19.0.3 https://github.com/keycloak/keycloak-containers.git
+    cd keycloak-containers/server/
+    docker build -t quay.io/keycloak/keycloak:19.0.3-legacy .
+    cd ../../ && rm -rf keycloak-containers
+    docker build --target oryd-hydra -t oryd/hydra:v1.8.5 -f ./testsuite/docker/hydra-import/Dockerfile.s390x .
+    mvn test-compile spotbugs:check -e -V -B -f testsuite
+    set +e
+    clearDockerEnv
+    mvn -e -V -B clean install -f testsuite -Pcustom -Dkafka.docker.image=quay.io/strimzi/kafka:0.31.1-kafka-3.2.3
+    EXIT=$?
+    exitIfError
+    set -e
+  fi
 elif [[ "$arch" != 'ppc64le' ]]; then
   mvn test-compile spotbugs:check -e -V -B -f testsuite
 
@@ -82,11 +89,13 @@ elif [[ "$arch" != 'ppc64le' ]]; then
     EXIT=$?
     exitIfError
 
-    # Removed to not exceed Travis job timeout
-    #clearDockerEnv
-    #mvn -e -V -B clean install -f testsuite -Pkafka-2_8_1
-    #EXIT=$?
-    #exitIfError
+    # Excluded by default to not exceed Travis job timeout
+    if [ "SKIP_DISABLED" == "false" ]; then
+      clearDockerEnv
+      mvn -e -V -B clean install -f testsuite -Pkafka-2_8_1
+      EXIT=$?
+      exitIfError
+    fi
   else
     echo "Skipped test profiles: kafka-3_1_2, kafka-3_0_0 and kafka-2_8_1"
   fi
