@@ -11,6 +11,8 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.errors.AuthenticationException;
 import org.junit.Assert;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -20,6 +22,8 @@ import java.util.concurrent.ExecutionException;
 import static io.strimzi.testsuite.oauth.auth.Common.buildProducerConfigOAuthBearer;
 
 public class AudienceTests {
+
+    private static final Logger log = LoggerFactory.getLogger(AudienceTests.class);
 
     static void doTests() throws Exception {
         clientCredentialsWithJwtAudience();
@@ -51,7 +55,7 @@ public class AudienceTests {
         Assert.assertTrue("Has offset", result.hasOffset());
         producer.close();
 
-        System.out.println("Produced The Message");
+        log.debug("Produced The Message");
 
 
         oauthConfig.put(ClientConfig.OAUTH_CLIENT_ID, "team-a-client");
@@ -95,7 +99,7 @@ public class AudienceTests {
         Assert.assertTrue("Has offset", result.hasOffset());
         producer.close();
 
-        System.out.println("Produced The Message");
+        log.debug("Produced The Message");
 
 
         oauthConfig.put(ClientConfig.OAUTH_CLIENT_ID, "team-a-client");

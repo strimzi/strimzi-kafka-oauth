@@ -22,9 +22,17 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Properties;
 
+/**
+ * An example consumer implementation
+ */
 @SuppressFBWarnings("THROWS_METHOD_THROWS_RUNTIMEEXCEPTION")
 public class ExampleConsumer {
 
+    /**
+     * A main method
+     *
+     * @param args No arguments expected
+     */
     public static void main(String[] args) {
 
         String topic = "a_Topic1";

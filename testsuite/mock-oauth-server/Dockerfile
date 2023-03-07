@@ -1,4 +1,4 @@
-FROM adoptopenjdk:11-jre-hotspot
+FROM registry.access.redhat.com/ubi8/openjdk-17
 
 ENV APP_DIR /application
 ENV APP_FILE container-uber-jar.jar

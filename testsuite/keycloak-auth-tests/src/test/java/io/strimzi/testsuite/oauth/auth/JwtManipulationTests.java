@@ -22,6 +22,8 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.junit.Assert;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -40,6 +42,8 @@ import static io.strimzi.testsuite.oauth.auth.Common.buildProducerConfigOAuthBea
 import static io.strimzi.testsuite.oauth.auth.Common.loginWithUsernamePassword;
 
 public class JwtManipulationTests {
+
+    private static final Logger log = LoggerFactory.getLogger(JwtManipulationTests.class);
 
     final String kafkaBootstrap = "kafka:9104";
     final String hostPort = "keycloak:8080";
@@ -248,6 +252,6 @@ public class JwtManipulationTests {
             }
         } while (!success);
 
-        System.out.println("Produced The Message");
+        log.debug("Produced The Message");
     }
 }

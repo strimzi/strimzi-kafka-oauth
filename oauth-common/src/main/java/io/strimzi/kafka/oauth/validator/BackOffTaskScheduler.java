@@ -35,7 +35,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * <p>
  * If the scheduled task fails during its run, it will be rescheduled using the so called 'exponential backoff' delay.
  * Rather than being attempted again immediately, it will pause for an ever increasing time delay until some cutoff delay
- * is reached ({@link #cutoffIntervalSeconds}) when no further attempts are schedule, and another {@link #scheduleTask()}
+ * is reached ({@link #cutoffIntervalSeconds}) when no further attempts are scheduled, and another {@link #scheduleTask()}
  * call can again trigger a new refresh.
  * </p>
  */
@@ -76,10 +76,21 @@ public class BackOffTaskScheduler {
         }
     }
 
+    /**
+     * Get the minimum pause in seconds between two consecutive scheduled runs,
+     * so that the next run does not start immediately after the previous run completes.
+     *
+     * @return The minimum pause in seconds
+     */
     public int getMinPauseSeconds() {
         return minPauseSeconds;
     }
 
+    /**
+     * Get the cutoff interval in seconds for exponential backoff
+     *
+     * @return The cutoff interval in seconds
+     */
     public int getCutoffIntervalSeconds() {
         return cutoffIntervalSeconds;
     }

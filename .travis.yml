@@ -7,6 +7,12 @@ jobs:
     arch: s390x
     jdk: openjdk11
     addons:
+      hosts:
+        - kafka
+        - keycloak
+        - hydra
+        - hydra-jwt
+        - mockoauth
       apt:
         packages:
         - maven
@@ -14,12 +20,19 @@ jobs:
     arch: ppc64le
     jdk: openjdk11
     addons:
+      hosts:
+        - kafka
+        - keycloak
+        - hydra
+        - hydra-jwt
+        - mockoauth
       apt:
         packages:
         - maven
 jdk:
-- openjdk8
 - openjdk11
+- openjdk17
+- openjdk8
 cache:
   directories:
   - "$HOME/.m2"

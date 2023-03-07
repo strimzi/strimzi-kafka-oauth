@@ -10,6 +10,8 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.junit.Assert;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -26,6 +28,8 @@ import static io.strimzi.testsuite.oauth.common.TestMetrics.getPrometheusMetrics
 import static io.strimzi.testsuite.oauth.common.TestUtil.getContainerLogsForString;
 
 public class MultiSaslTest {
+
+    private static final Logger log = LoggerFactory.getLogger(MultiSaslTest.class);
 
     private static final String PLAIN_LISTENER = "kafka:9100";
     private static final String SCRAM_LISTENER = "kafka:9101";
@@ -233,6 +237,6 @@ public class MultiSaslTest {
         Producer<String, String> producer = new KafkaProducer<>(config);
 
         producer.send(new ProducerRecord<>(topic, "The Message")).get();
-        System.out.println("Produced The Message");
+        log.debug("Produced The Message");
     }
 }

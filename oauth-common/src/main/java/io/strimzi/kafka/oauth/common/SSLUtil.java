@@ -27,8 +27,21 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.Locale;
 
+/**
+ * A class containing helper methods that deal with SSL / TLS
+ */
 public class SSLUtil {
 
+    /**
+     * Create a new SSL Factory from given configuration arguments
+     *
+     * @param truststore A path to truststore file (used by default)
+     * @param truststoreData A PEM string containing a chain of X.509 certificates. Used if <code>type</code> is set to <code>pem</code>
+     * @param password A password for the truststore file (optional)
+     * @param type A truststore type (e.g. PKCS12, JKS, or PEM) (optional)
+     * @param rnd A random number generator to use (optional)
+     * @return A new SSLSocketFactory instance
+     */
     @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION",
             justification = "Avoid enumerating all checked exceptions in try-with-resources")
     public static SSLSocketFactory createSSLFactory(String truststore, String truststoreData, String password, String type, String rnd) {
@@ -100,6 +113,11 @@ public class SSLUtil {
         throw new IllegalStateException("No X509TrustManager on default factory");
     }
 
+    /**
+     * Create a new instance of HostnameVerifier that accepts any hostname
+     *
+     * @return A new HostnameVerifier instance
+     */
     public static HostnameVerifier createAnyHostHostnameVerifier() {
         return (hostname, session) -> true;
     }

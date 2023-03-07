@@ -26,10 +26,23 @@ public final class OAuthKafkaPrincipal extends KafkaPrincipal {
     private final BearerTokenWithPayload jwt;
     private final Set<String> groups;
 
+    /**
+     * Create a new instance
+     *
+     * @param principalType Principal type (e.g. USER)
+     * @param name A name
+     */
     public OAuthKafkaPrincipal(String principalType, String name) {
         this(principalType, name, (Set<String>) null);
     }
 
+    /**
+     * Create a new instance
+     *
+     * @param principalType Principal type (e.g. USER)
+     * @param name A name
+     * @param groups A set of groups for the user
+     */
     public OAuthKafkaPrincipal(String principalType, String name, Set<String> groups) {
         super(principalType, name);
         this.jwt = null;
@@ -37,6 +50,13 @@ public final class OAuthKafkaPrincipal extends KafkaPrincipal {
         this.groups = groups == null ? null : Collections.unmodifiableSet(groups);
     }
 
+    /**
+     * Create a new instance, and extract groups info from the passed {@link BearerTokenWithPayload}
+     *
+     * @param principalType Principal type (e.g. USER)
+     * @param name A name
+     * @param jwt <code>BearerTokenWithPayload</code> object with token info
+     */
     @SuppressFBWarnings("EI_EXPOSE_REP2")
     public OAuthKafkaPrincipal(String principalType, String name, BearerTokenWithPayload jwt) {
         super(principalType, name);
@@ -46,11 +66,21 @@ public final class OAuthKafkaPrincipal extends KafkaPrincipal {
         this.groups = parsedGroups == null ? null : Collections.unmodifiableSet(parsedGroups);
     }
 
+    /**
+     * Get the token info
+     *
+     * @return <code>BearerTokenWithPayload</code> instance
+     */
     @SuppressFBWarnings("EI_EXPOSE_REP")
     public BearerTokenWithPayload getJwt() {
         return jwt;
     }
 
+    /**
+     * Get the initialised groups associated with this principal
+     *
+     * @return Set of groups
+     */
     @SuppressFBWarnings("EI_EXPOSE_REP")
     public Set<String> getGroups() {
         return groups;

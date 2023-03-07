@@ -21,7 +21,6 @@ import javax.security.sasl.SaslServer;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Collections;
 import java.util.List;
@@ -43,6 +42,7 @@ import java.util.Map;
  * property definition in server.properties to install it.
  * </p>
  */
+@SuppressWarnings({"deprecation", "removal"})
 public class OAuthKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder implements Configurable {
 
     private static final SetAccessibleAction SET_PRINCIPAL_MAPPER = SetAccessibleAction.newInstance();
@@ -62,7 +62,7 @@ public class OAuthKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder imp
         }
 
         void invoke(DefaultKafkaPrincipalBuilder target, Object value) throws IllegalAccessException {
-            AccessController.doPrivileged(this);
+            java.security.AccessController.doPrivileged(this);
             field.set(target, value);
         }
 
@@ -76,6 +76,9 @@ public class OAuthKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder imp
     }
 
 
+    /**
+     * Create a new instance
+     */
     public OAuthKafkaPrincipalBuilder() {
         super(null, null);
     }

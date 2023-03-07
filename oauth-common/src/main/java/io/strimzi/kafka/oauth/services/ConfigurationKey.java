@@ -43,10 +43,20 @@ public class ConfigurationKey {
         this.validatorKey = validatorKey;
     }
 
+    /**
+     * Get the config id
+     *
+     * @return The config id
+     */
     public String getConfigId() {
         return configId;
     }
 
+    /**
+     * Get the validator key
+     *
+     * @return The validator key
+     */
     public ValidatorKey getValidatorKey() {
         return validatorKey;
     }

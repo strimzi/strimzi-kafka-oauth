@@ -9,8 +9,10 @@ import io.strimzi.kafka.oauth.common.IOUtil;
 import java.util.Objects;
 
 /**
- * The class that holds the validator configuration and is used two compare different configurations for equality.
+ * The class that holds the validator configuration and is used to compare different configurations for equality.
  * It also calculates a unique identifier based on the configuration that is stable across application restarts.
+ *
+ * This mechanism allows sharing a single validator across multiple listeners, as long as they are configured with same config parameter values
  */
 public class ValidatorKey {
 
@@ -131,10 +133,18 @@ public class ValidatorKey {
                 enableMetrics);
     }
 
+    /**
+     * Get the calculated configuration hash for this instance
+     *
+     * @return a hash string used to determine equality of two different configurations
+     */
     public String getConfigIdHash() {
         return configIdHash;
     }
 
+    /**
+     * A <code>ValidatorKey</code> for {@link io.strimzi.kafka.oauth.validator.JWTSignatureValidator}
+     */
     public static class JwtValidatorKey extends ValidatorKey {
 
         private final String jwksEndpointUri;
@@ -147,6 +157,33 @@ public class ValidatorKey {
 
         private final String configIdHash;
 
+        /**
+         * Create a new instance. Arguments have to include all validator config options.
+         *
+         * @param validIssuerUri validIssuerUri
+         * @param audience audience
+         * @param customClaimCheck customClaimCheck
+         * @param usernameClaim usernameClaim
+         * @param fallbackUsernameClaim fallbackUsernameClaim
+         * @param fallbackUsernamePrefix fallbackUsernamePrefix
+         * @param groupQuery groupQuery
+         * @param groupDelimiter groupDelimiter
+         * @param sslTruststore sslTruststore
+         * @param sslStorePassword sslStorePassword
+         * @param sslStoreType sslStoreType
+         * @param sslRandom sslRandom
+         * @param hasHostnameVerifier hasHostnameVerifier
+         * @param jwksEndpointUri jwksEndpointUri
+         * @param jwksRefreshSeconds jwksRefreshSeconds
+         * @param jwksExpirySeconds jwksExpirySeconds
+         * @param jwksRefreshMinPauseSeconds jwksRefreshMinPauseSeconds
+         * @param jwksIgnoreKeyUse jwksIgnoreKeyUse
+         * @param checkAccessTokenType checkAccessTokenType
+         * @param connectTimeout connectTimeout
+         * @param readTimeout readTimeout
+         * @param enableMetrics enableMetrics
+         * @param failFast failFast
+         */
         @SuppressWarnings("checkstyle:parameternumber")
         public JwtValidatorKey(String validIssuerUri,
                                String audience,
@@ -240,6 +277,9 @@ public class ValidatorKey {
         }
     }
 
+    /**
+     * A <code>ValidatorKey</code> for {@link io.strimzi.kafka.oauth.validator.OAuthIntrospectionValidator}
+     */
     public static class IntrospectionValidatorKey extends ValidatorKey {
 
         private final String introspectionEndpoint;
@@ -251,6 +291,33 @@ public class ValidatorKey {
         private final long retryPauseMillis;
         private final String configIdHash;
 
+        /**
+         * Create a new instance. Arguments have to include all validator config options.
+         *
+         * @param validIssuerUri validIssuerUri
+         * @param audience audience
+         * @param customClaimCheck customClaimCheck
+         * @param usernameClaim usernameClaim
+         * @param fallbackUsernameClaim fallbackUsernameClaim
+         * @param fallbackUsernamePrefix fallbackUsernamePrefix
+         * @param groupQuery groupQuery
+         * @param groupDelimiter groupDelimiter
+         * @param sslTruststore sslTruststore
+         * @param sslStorePassword sslStorePassword
+         * @param sslStoreType sslStoreType
+         * @param sslRandom sslRandom
+         * @param hasHostnameVerifier hasHostnameVerifier
+         * @param introspectionEndpoint introspectionEndpoint
+         * @param userInfoEndpoint userInfoEndpoint
+         * @param validTokenType validTokenType
+         * @param clientId clientId
+         * @param clientSecret clientSecret
+         * @param connectTimeout connectTimeout
+         * @param readTimeout readTimeout
+         * @param enableMetrics enableMetrics
+         * @param retries retries
+         * @param retryPauseMillis retryPauseMillis
+         */
         @SuppressWarnings("checkstyle:parameternumber")
         public IntrospectionValidatorKey(String validIssuerUri,
                                   String audience,

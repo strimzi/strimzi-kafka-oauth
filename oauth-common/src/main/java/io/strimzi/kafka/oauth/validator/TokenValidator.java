@@ -6,9 +6,23 @@ package io.strimzi.kafka.oauth.validator;
 
 import io.strimzi.kafka.oauth.common.TokenInfo;
 
+/**
+ * An interface specifying a TokenValidator contract
+ */
 public interface TokenValidator {
 
+    /**
+     * Validate the passed access token return it wrapped in TokenInfo with
+     *
+     * @param token An access token to validate
+     * @return TokenInfo wrapping a valid token
+     */
     TokenInfo validate(String token);
 
+    /**
+     * Return the id of this validator
+     *
+     * @return A validator id
+     */
     String getValidatorId();
 }

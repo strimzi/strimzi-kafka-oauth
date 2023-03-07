@@ -9,6 +9,8 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.junit.Assert;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.List;
@@ -19,6 +21,8 @@ import static io.strimzi.testsuite.oauth.auth.Common.buildProducerConfigOAuthBea
 import static io.strimzi.testsuite.oauth.common.TestUtil.getContainerLogsForString;
 
 public class GroupsExtractionTests {
+
+    private static final Logger log = LoggerFactory.getLogger(GroupsExtractionTests.class);
 
     private final String kafkaContainer;
 
@@ -63,7 +67,7 @@ public class GroupsExtractionTests {
 
 
         producer.send(new ProducerRecord<>(topic, "The Message")).get();
-        System.out.println("Produced The Message");
+        log.debug("Produced The Message");
 
         // get kafka log and make sure groups were extracted during authentication
         List<String> lines = getContainerLogsForString(kafkaContainer, logFilter);

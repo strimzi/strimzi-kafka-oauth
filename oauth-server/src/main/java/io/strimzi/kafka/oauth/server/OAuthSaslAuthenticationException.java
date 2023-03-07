@@ -18,22 +18,48 @@ import org.apache.kafka.common.errors.SaslAuthenticationException;
  */
 public class OAuthSaslAuthenticationException extends SaslAuthenticationException {
 
+    /**
+     * An error id
+     */
     private final String errId;
 
+    /**
+     * Create a new instance
+     *
+     * @param message An error message
+     * @param errId An error id that is logged to facilitate debugging
+     */
     public OAuthSaslAuthenticationException(String message, String errId) {
         super(message);
         this.errId = errId;
     }
 
+    /**
+     * Create a new instance
+     *
+     * @param message An error message
+     * @param errId An error id that is logged to facilitate debugging
+     * @param cause A triggering cause of this exception
+     */
     public OAuthSaslAuthenticationException(String message, String errId, Throwable cause) {
         super(message, cause);
         this.errId = errId;
     }
 
+    /**
+     * Get the error id
+     *
+     * @return An error id
+     */
     public String getErrId() {
         return errId;
     }
 
+    /**
+     * Get the error message with error id attached
+     *
+     * @return An error message
+     */
     @Override
     public String getMessage() {
         return super.getMessage() + " (ErrId: " + errId + ")";

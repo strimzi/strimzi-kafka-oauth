@@ -7,12 +7,26 @@ package io.strimzi.kafka.oauth.metrics;
 import java.net.URI;
 import java.util.Map;
 
+/**
+ * A {@link SensorKeyProducer} used for JWKS endpoint HTTP metrics
+ */
 public class JwksHttpSensorKeyProducer extends AbstractSensorKeyProducer {
 
+    /**
+     * Create a new instance
+     *
+     * @param contextId Context id (e.g. a config id or a label)
+     * @param uri A JWKS endpoint url
+     */
     public JwksHttpSensorKeyProducer(String contextId, URI uri) {
         super(contextId, uri);
     }
 
+    /**
+     * Generate a <code>SensorKey</code> for metrics about successful HTTP requests
+     *
+     * @return A sensor key
+     */
     @Override
     public SensorKey successKey() {
         Map<String, String> attrs = MetricsUtil.getSensorKeyAttrs(contextId, uri, "jwks");
@@ -20,6 +34,12 @@ public class JwksHttpSensorKeyProducer extends AbstractSensorKeyProducer {
         return SensorKey.of("http_requests", attrs);
     }
 
+    /**
+     * Generate a <code>SensorKey</code> for metrics about failed HTTP requests
+     *
+     * @param e The Throwable object to go with the failure
+     * @return A sensor key
+     */
     @Override
     public SensorKey errorKey(Throwable e) {
         Map<String, String> attrs = MetricsUtil.getSensorKeyAttrs(contextId, uri, "jwks");

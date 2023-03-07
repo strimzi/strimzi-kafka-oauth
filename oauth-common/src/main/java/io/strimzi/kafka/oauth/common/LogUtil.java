@@ -4,6 +4,9 @@
  */
 package io.strimzi.kafka.oauth.common;
 
+/**
+ * The helper class with logging helper methods used in multiple places
+ */
 public class LogUtil {
 
     /**

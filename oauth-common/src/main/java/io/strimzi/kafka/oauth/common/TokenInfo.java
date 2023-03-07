@@ -21,12 +21,33 @@ import java.util.Set;
  */
 public class TokenInfo {
 
+    /**
+     * "scope"
+     */
     public static final String SCOPE = "scope";
+    /**
+     * "iat"
+     */
     public static final String IAT = "iat";
+    /**
+     * "exp"
+     */
     public static final String EXP = "exp";
+    /**
+     * "iss"
+     */
     public static final String ISS = "iss";
+    /**
+     * "typ"
+     */
     public static final String TYP = "typ";
+    /**
+     * "token_type"
+     */
     public static final String TOKEN_TYPE = "token_type";
+    /**
+     * "aud"
+     */
     public static final String AUD = "aud";
 
     private final String token;
@@ -94,10 +115,20 @@ public class TokenInfo {
         scopes = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(parsedScopes)));
     }
 
+    /**
+     * Get raw access token
+     *
+     * @return Access token as String
+     */
     public String token() {
         return token;
     }
 
+    /**
+     * Get scopes for this token
+     *
+     * @return A Set of scopes as strings
+     */
     @SuppressFBWarnings("EI_EXPOSE_REP")
     // See https://spotbugs.readthedocs.io/en/stable/bugDescriptions.html#ei-may-expose-internal-representation-by-returning-reference-to-mutable-object-ei-expose-rep
     public Set<String> scope() {
@@ -105,14 +136,29 @@ public class TokenInfo {
         return scopes;
     }
 
+    /**
+     * Get token expiry time in ISO millis time
+     *
+     * @return Long value representing time
+     */
     public long expiresAtMs() {
         return expiresAt;
     }
 
+    /**
+     * Get a principal (user id) for this token
+     *
+     * @return User id as String
+     */
     public String principal() {
         return principal;
     }
 
+    /**
+     * Get groups for this token
+     *
+     * @return Set of groups as strings
+     */
     @SuppressFBWarnings("EI_EXPOSE_REP")
     // See https://spotbugs.readthedocs.io/en/stable/bugDescriptions.html#ei-may-expose-internal-representation-by-returning-reference-to-mutable-object-ei-expose-rep
     public Set<String> groups() {
@@ -120,6 +166,11 @@ public class TokenInfo {
         return groups;
     }
 
+    /**
+     * Get token creation time ISO millis
+     *
+     * @return Long value representing time
+     */
     public long issuedAtMs() {
         return issuedAt;
     }

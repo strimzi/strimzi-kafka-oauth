@@ -232,6 +232,14 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         delegatedConfigure(configs, saslMechanism, jaasConfigEntries);
     }
 
+    /**
+     * Part of configuration that can be directly invoked by an overriding class.
+     * Parameters are the same as for {@link #configure(Map, String, List)}
+     *
+     * @param configs Map of config properties
+     * @param saslMechanism The mechanism used by the connection
+     * @param jaasConfigEntries JAAS config parameters
+     */
     public void delegatedConfigure(Map<String, ?> configs, String saslMechanism, List<AppConfigurationEntry> jaasConfigEntries) {
 
         parseJaasConfig(jaasConfigEntries);
@@ -455,6 +463,12 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         }
     }
 
+    /**
+     * Parse the JAAS config into ServerConfig
+     *
+     * @param jaasConfigEntries JAAS config parameters
+     * @return ServerConfig instance
+     */
     protected ServerConfig parseJaasConfig(List<AppConfigurationEntry> jaasConfigEntries) {
         if (config != null) {
             return config;
@@ -564,6 +578,12 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         }
     }
 
+    /**
+     * Handle the callbacks. It can be invoked from a subclass.
+     *
+     * @param callbacks The callbacks passed to {@link #handle(Callback[])}
+     * @throws UnsupportedCallbackException If a callback type is not supported (due to misconfiguration)
+     */
     public void delegatedHandle(Callback[] callbacks) throws UnsupportedCallbackException {
         for (Callback callback : callbacks) {
             if (callback instanceof OAuthBearerValidatorCallback) {
@@ -656,26 +676,58 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         debugLogJWT(log, token);
     }
 
+    /**
+     * Get <code>oauth.access.token.is.jwt</code> configuration
+     *
+     * @return True if tokens are expected to be JWT tokens
+     */
     public boolean isJwt() {
         return isJwt;
     }
 
+    /**
+     * Get the <code>SSLSocketFactory</code> if configured.
+     * It is configured from <code>oauth.ssl.*</code> config options.
+     *
+     * @return A configured <code>SSLSocketFactory</code> or null
+     */
     public SSLSocketFactory getSocketFactory() {
         return socketFactory;
     }
 
+    /**
+     * Get the <code>HostnameVerifier</code> if configured.
+     * It is configured from <code>oauth.ssl.endpoint.identification.algorithm</code>
+     *
+     * @return A configured <code>HostnameVerifier</code>
+     */
     public HostnameVerifier getVerifier() {
         return verifier;
     }
 
+    /**
+     * Get the configured <code>PrincipalExtractor</code>
+     *
+     * @return a configured <code>PrincipalExtractor</code>
+     */
     public PrincipalExtractor getPrincipalExtractor() {
         return principalExtractor;
     }
 
+    /**
+     * Get the configured connect timeout (<code>oauth.connect.timeout.seconds</code>)
+     *
+     * @return Connect timeout in seconds
+     */
     public int getConnectTimeout() {
         return connectTimeout;
     }
 
+    /**
+     * Get the configured read timeout (<code>oauth.read.timeout.seconds</code>)
+     *
+     * @return Read timeout in seconds
+     */
     public int getReadTimeout() {
         return readTimeout;
     }

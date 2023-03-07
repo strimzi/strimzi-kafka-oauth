@@ -25,11 +25,19 @@ import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
+/**
+ * An example asynchronous (multi-threaded) producer implementation where multiple execution threads are managed by KafkaProducer
+ */
 @SuppressFBWarnings("THROWS_METHOD_THROWS_RUNTIMEEXCEPTION")
 public class ExampleConcurrentProducer {
 
     private static Logger log = LoggerFactory.getLogger(ExampleConcurrentProducer.class);
 
+    /**
+     * A main method
+     *
+     * @param args No arguments expected
+     */
     public static void main(String[] args) {
 
         String topic = "a_Topic1";

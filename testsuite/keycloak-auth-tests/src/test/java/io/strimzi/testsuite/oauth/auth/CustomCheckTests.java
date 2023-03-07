@@ -10,6 +10,8 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.errors.AuthenticationException;
 import org.junit.Assert;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.util.HashMap;
@@ -21,6 +23,8 @@ import static io.strimzi.testsuite.oauth.auth.Common.buildProducerConfigOAuthBea
 import static io.strimzi.testsuite.oauth.auth.Common.loginWithUsernamePassword;
 
 public class CustomCheckTests {
+
+    private static final Logger log = LoggerFactory.getLogger(CustomCheckTests.class);
 
     static void doTests() throws Exception {
         customClaimCheckWithJwtTest();
@@ -59,7 +63,7 @@ public class CustomCheckTests {
 
 
         producer.send(new ProducerRecord<>(topic, "The Message")).get();
-        System.out.println("Produced The Message");
+        log.debug("Produced The Message");
 
 
         // logging in as 'bob' should fail - clientId check, aud check and resource_access check would all fail
