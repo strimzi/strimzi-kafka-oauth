@@ -47,7 +47,7 @@ fi
 if [ "$arch" == 's390x' ]; then
   # Excluded due to hostname aliases not working from inside the test (but working between docker instances)
   # Build s390x compatible hydra image
-  if [ "SKIP_DISABLED" == "false" ]; then
+  if [ "$SKIP_DISABLED" == "false" ]; then
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/s390x-linux-gnu/jni
     docker build --target hydra-import -t strimzi-oauth-testsuite/hydra-import:latest -f ./testsuite/docker/hydra-import/Dockerfile.s390x .
     git clone -b 19.0.3 https://github.com/keycloak/keycloak-containers.git
