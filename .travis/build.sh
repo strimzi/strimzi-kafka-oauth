@@ -38,7 +38,8 @@ if [ "$arch" != 'ppc64le' ]; then
 fi
 
 # Run testsuite
-if [ "$arch" == 'DISABLED:s390x' ]; then
+if [ "$arch" == 'DISABLEDs390x' ]; then
+  # Excluded due to hostname aliases not working from inside the test (but working between docker instances)
   # Build s390x compatible hydra image
   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/s390x-linux-gnu/jni
   docker build --target hydra-import -t strimzi-oauth-testsuite/hydra-import:latest -f ./testsuite/docker/hydra-import/Dockerfile.s390x .
@@ -54,8 +55,8 @@ if [ "$arch" == 'DISABLED:s390x' ]; then
   EXIT=$?
   exitIfError
   set -e
-fi
-if [[ "$arch" != 'ppc64le' ]]; then
+
+elif [[ "$arch" != 'ppc64le' ]]; then
   mvn test-compile spotbugs:check -e -V -B -f testsuite
 
   set +e
