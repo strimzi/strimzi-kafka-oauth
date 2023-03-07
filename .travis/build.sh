@@ -48,7 +48,7 @@ if [ "$arch" == 's390x' ]; then
     mvn test-compile spotbugs:check -e -V -B -f testsuite
     set +e
     clearDockerEnv
-    mvn -e -V -B clean install -f testsuite -Pcustom -Dkafka.docker.image=quay.io/strimzi/kafka:0.31.1-kafka-3.2.3
+    mvn -e -V -B clean install -f testsuite -Pcustom -Dkafka.docker.image=quay.io/strimzi/kafka:0.33.2-kafka-3.4.0
     EXIT=$?
     exitIfError
     set -e
@@ -56,6 +56,11 @@ elif [[ "$arch" != 'ppc64le' ]]; then
   mvn test-compile spotbugs:check -e -V -B -f testsuite
 
   set +e
+
+  clearDockerEnv
+  mvn -e -V -B clean install -f testsuite -Pkafka-3_4_0
+  EXIT=$?
+  exitIfError
 
   clearDockerEnv
   mvn -e -V -B clean install -f testsuite -Pkafka-3_3_2
@@ -67,14 +72,12 @@ elif [[ "$arch" != 'ppc64le' ]]; then
   EXIT=$?
   exitIfError
 
-  clearDockerEnv
-  mvn -e -V -B clean install -f testsuite -Pkafka-3_1_2
-  EXIT=$?
-  exitIfError
-
-
   # Excluded by default to not exceed Travis job timeout
   if [ "SKIP_DISABLED" == "false" ]; then
+    clearDockerEnv
+    mvn -e -V -B clean install -f testsuite -Pkafka-3_1_2
+    EXIT=$?
+    exitIfError
 
     clearDockerEnv
     mvn -e -V -B clean install -f testsuite -Pkafka-3_0_0

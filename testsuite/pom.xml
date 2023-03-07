@@ -46,7 +46,7 @@
         <strimzi-oauth.version>1.0.0-SNAPSHOT</strimzi-oauth.version>
         <checkstyle.dir>..</checkstyle.dir>
 
-        <kafka.docker.image>quay.io/strimzi/kafka:0.33.1-kafka-3.3.2</kafka.docker.image>
+        <kafka.docker.image>quay.io/strimzi/kafka:0.33.2-kafka-3.4.0</kafka.docker.image>
     </properties>
 
     <dependencyManagement>
@@ -391,6 +391,13 @@
             <properties>
                 <!-- Uses JDK 17.0.x -->
                 <kafka.docker.image>quay.io/strimzi/kafka:0.33.1-kafka-3.3.2</kafka.docker.image>
+            </properties>
+        </profile>
+        <profile>
+            <id>kafka-3_4_0</id>
+            <properties>
+                <!-- Uses JDK 17.0.x -->
+                <kafka.docker.image>quay.io/strimzi/kafka:0.33.2-kafka-3.4.0</kafka.docker.image>
             </properties>
         </profile>
         <profile>

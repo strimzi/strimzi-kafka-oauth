@@ -440,6 +440,11 @@ in the pool of worker threads to become exhausted, and broker possibly unavailab
 The default value is '0', meaning 'no pause'. Provide the value greater than '0' to set the pause time between attempts in milliseconds: 
 - `oauth.http.retry.pause.millis` (e.g.: "500" - if a retry is attempted, there will first be a half-a-second pause)
 
+When using `oauth.http.retries` and `oauth.http.retry.pause.millis` options also keep in mind that the worker thread can 
+get blocked on unresponsive connection, and you will want to set `oauth.connect.timeout.seconds` and `oauth.read.timeout.seconds` 
+to smaller values as well, as explained in [the chapter on timeouts](#configuring-the-network-timeouts-for-communication-with-authorization-server). 
+
+
 ###### Custom claim checking
 
 You may want to place additional constraints on who can authenticate to your Kafka broker based on the content of JWT access token.
@@ -714,6 +719,9 @@ since they are not yet available. The following option enables reattempting the 
 receive the `AuthorizationException`. The default value is '0', meaning 'no retries'. Provide the value greater than '0' to set the number of repeated attempts:
 - `strimzi.authorization.http.retries` (e.g.: "1" - if initial fetching of grants for the session fails, immediately retry one more time)
 
+Keep in mind that the worker thread of the request can get blocked on unresponsive connection, and you will want to set `strimzi.authorization.connect.timeout.seconds`
+and `strimzi.authorization.read.timeout.seconds` to smaller values as well, as explained in [the chapter on timeouts](#configuring-the-network-timeouts-for-communication-with-authorization-server).
+
 A single client typically uses a single unique access token for the concurrent sessions to the Kafka broker.
 As a result, the number of active tokens on the broker is generally less than the number of active sessions (connections).
 However, keep in mind that this is replicated across all Kafka brokers in the cluster, as clients maintain active sessions to multiple brokers.
@@ -728,7 +736,7 @@ Keycloak for up to `strimzi.authorization.grants.refresh.period.seconds`.
 You may also want to configure some other things. You may want to set a logical cluster name so you can target it with authorization rules:
 - `strimzi.authorization.kafka.cluster.name` (e.g.: "dev-cluster" - a logical name of the cluster which can be targeted with authorization services resource definitions, and permission policies)
 
-You can integrate KeycloakRBACAuthorizer with SimpleAclAuthorizer:
+You can integrate KeycloakRBACAuthorizer with AclAuthorizer or StandardAuthorizer (in KRaft mode):
 - `strimzi.authorization.delegate.to.kafka.acl` (e.g.: "true" - if enabled, then when action is not granted based on Keycloak Authorization Services grant it is delegated to SimpleACLAuthorizer which can still grant it.)
 
 If you turn on authorization support in Kafka brokers, you need to properly set `super.users` property. 
