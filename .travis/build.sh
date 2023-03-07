@@ -1,13 +1,6 @@
 #!/usr/bin/env bash
 set -e
 
-#
-# If current Java version is 8 the script will perform a full run including Spotbugs checks, documentation build,
-#   and multiple testsuite runs using different versions of Kafka images.
-#
-# Set environment variable MAIN_BUILD=TRUE to force a full run when current Java version is not 8.
-#
-
 clearDockerEnv() {
   docker rm -f kafka zookeeper keycloak keycloak-import hydra hydra-import hydra-jwt hydra-jwt-import || true
   DOCKER_TEST_NETWORKS=$(docker network ls | grep test | awk '{print $1}')
@@ -74,26 +67,22 @@ elif [[ "$arch" != 'ppc64le' ]]; then
   EXIT=$?
   exitIfError
 
-  if [ $JAVA_MAJOR_VERSION -le 11 ]; then
+  clearDockerEnv
+  mvn -e -V -B clean install -f testsuite -Pkafka-3_1_2
+  EXIT=$?
+  exitIfError
+
+  clearDockerEnv
+  mvn -e -V -B clean install -f testsuite -Pkafka-3_0_0
+  EXIT=$?
+  exitIfError
+
+  # Excluded by default to not exceed Travis job timeout
+  if [ "SKIP_DISABLED" == "false" ]; then
     clearDockerEnv
-    mvn -e -V -B clean install -f testsuite -Pkafka-3_1_2
+    mvn -e -V -B clean install -f testsuite -Pkafka-2_8_1
     EXIT=$?
     exitIfError
-
-    clearDockerEnv
-    mvn -e -V -B clean install -f testsuite -Pkafka-3_0_0
-    EXIT=$?
-    exitIfError
-
-    # Excluded by default to not exceed Travis job timeout
-    if [ "SKIP_DISABLED" == "false" ]; then
-      clearDockerEnv
-      mvn -e -V -B clean install -f testsuite -Pkafka-2_8_1
-      EXIT=$?
-      exitIfError
-    fi
-  else
-    echo "Skipped test profiles: kafka-3_1_2, kafka-3_0_0 and kafka-2_8_1"
   fi
 
   set -e
