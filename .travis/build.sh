@@ -26,8 +26,7 @@ JAVA_MAJOR_VERSION=$(java -version 2>&1 | sed -E -n 's/.* version "([0-9]*).*$/\
 echo "JAVA_MAJOR_VERSION: $JAVA_MAJOR_VERSION"
 
 if [ "$SKIP_DISABLED" == "" ]; then
-  # TODO: change to "true"
-  SKIP_DISABLED="false"
+  SKIP_DISABLED="true"
 fi
 echo "SKIP_DISABLED: $SKIP_DISABLED"
 
@@ -45,9 +44,7 @@ fi
 
 # Run testsuite
 if [ "$arch" == 's390x' ]; then
-  # Excluded due to hostname aliases not working from inside the test (but working between docker instances)
-  # Build s390x compatible hydra image
-  if [ "$SKIP_DISABLED" == "false" ]; then
+    # Build s390x compatible hydra image
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/s390x-linux-gnu/jni
     docker build --target hydra-import -t strimzi-oauth-testsuite/hydra-import:latest -f ./testsuite/docker/hydra-import/Dockerfile.s390x .
     git clone -b 19.0.3 https://github.com/keycloak/keycloak-containers.git
@@ -62,7 +59,6 @@ if [ "$arch" == 's390x' ]; then
     EXIT=$?
     exitIfError
     set -e
-  fi
 elif [[ "$arch" != 'ppc64le' ]]; then
   mvn test-compile spotbugs:check -e -V -B -f testsuite
 
