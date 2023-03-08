@@ -1,6 +1,30 @@
 Release Notes
 =============
 
+0.12.0
+------
+
+### Java 17 support
+
+Project can now be compiled and tests performed by Java 8, Java 11, and Java 17.
+
+### Fixed handling of `strimzi.authorization.enable.metrics`
+
+The option was ignored due to a bug.
+
+### Multiple improvements in KeycloakRBACAuthorizer
+
+Some optimization have been done to reduce the number of grants requests to the Keycloak.
+
+A retry mechanism for unexpected failures was added. A configuration option `strimzi.authorization.http.retries` was introduced, that if set to anvalue greater than zero,
+results in the initial grants request for the session be immediately repeated upon failure for up to the specified number of times.
+
+### Added support for automatic retries during authentication and token validation
+
+Introduced new configuration options `oauth.http.retries` and `oauth.http.retry.pause.millis` that can be used to enable 
+automatically retrying failed requests to the authorization server during authentication (to the `token` endpoint), and 
+during token validation (to the `introspection` and `userinfo` endpoints).
+
 0.11.0
 ------
 
