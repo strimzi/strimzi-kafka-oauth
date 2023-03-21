@@ -34,6 +34,8 @@ services:
       - "9097:9097"
       - "9098:9098"
       - "9404:9404"
+
+      # Debug port
       - "5006:5006"
     volumes:
       - ${PWD}/../docker/target/kafka/libs:/opt/kafka/libs/strimzi
@@ -104,7 +106,18 @@ services:
       - OAUTH_SSL_TRUSTSTORE_TYPE=pkcs12
       - OAUTH_CONNECT_TIMEOUT_SECONDS=10
       - OAUTH_READ_TIMEOUT_SECONDS=10
+
+
+      # OAuth metrics configuration
+
       - OAUTH_ENABLE_METRICS=true
+      #   When enabling metrics we also have to explicitly configure JmxReporter to have metrics available in JMX
+      #   The following value will be available as env var STRIMZI_METRIC_REPORTERS
+      - STRIMZI_METRIC_REPORTERS=org.apache.kafka.common.metrics.JmxReporter
+
+      #   The following value will turn to 'strimzi.metric.reporters=...' in 'strimzi.properties' file
+      #   However, that won't work as the value may be filtered to the component that happens to initialise OAuthMetrics
+      #- KAFKA_STRIMZI_METRIC_REPORTERS=org.apache.kafka.common.metrics.JmxReporter
 
   zookeeper:
     image: ${KAFKA_DOCKER_IMAGE}

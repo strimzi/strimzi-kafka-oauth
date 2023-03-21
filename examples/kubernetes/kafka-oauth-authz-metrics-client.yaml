@@ -46,6 +46,8 @@ spec:
       env:
         - name: OAUTH_ENABLE_METRICS
           value: "true"
+        - name: STRIMZI_METRIC_REPORTERS
+          value: org.apache.kafka.common.metrics.JmxReporter
         - name: SECRET
           valueFrom:
             secretKeyRef:

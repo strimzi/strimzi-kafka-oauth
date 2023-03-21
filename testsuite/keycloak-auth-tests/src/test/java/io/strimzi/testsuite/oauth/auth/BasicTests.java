@@ -62,12 +62,11 @@ public class BasicTests {
     void oauthMetricsConfigIntegration() {
         System.out.println("    ====    KeycloakAuthenticationTest :: oauthMetricsConfigIntegrationTest");
 
-        // Test MetricReporter config works as expected
+        // Test that MetricReporter config works as expected
         // Get kafka log and make sure the TestMetricReporter was initialised exactly twice
         List<String> lines = getContainerLogsForString(kafkaContainer, "TestMetricsReporter no. ");
-        Assert.assertEquals("Kafka log should contain: \"TestMetricsReporter no. \" exactly twice", 2, lines.size());
+        Assert.assertEquals("Kafka log should contain: \"TestMetricsReporter no. \" exactly once", 1, lines.size());
         Assert.assertTrue("Contains \"TestMetricsReporter no. 1\"", lines.get(0).contains("TestMetricsReporter no. 1 "));
-        Assert.assertTrue("Contains \"TestMetricsReporter no. 2\"", lines.get(1).contains("TestMetricsReporter no. 2 "));
 
         // Ensure the configuration was applied as expected
         lines = getContainerLogsForString(kafkaContainer, "Creating Metrics:");
@@ -82,7 +81,7 @@ public class BasicTests {
         Assert.assertTrue("kafka.broker.id=1", line.contains("kafka.broker.id=1"));
 
         line = lines.get(3);
-        Assert.assertTrue("io.strimzi.testsuite.oauth.auth.metrics.TestMetricsReporter", line.contains("io.strimzi.testsuite.oauth.auth.metrics.TestMetricsReporter"));
+        Assert.assertTrue("io.strimzi.testsuite.oauth.common.metrics.TestMetricsReporter", line.contains("io.strimzi.testsuite.oauth.common.metrics.TestMetricsReporter"));
         Assert.assertTrue("org.apache.kafka.common.metrics.JmxReporter", line.contains("org.apache.kafka.common.metrics.JmxReporter"));
     }
 

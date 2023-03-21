@@ -2,7 +2,7 @@
  * Copyright 2017-2022, Strimzi authors.
  * License: Apache License 2.0 (see the file LICENSE or http://apache.org/licenses/LICENSE-2.0.html).
  */
-package io.strimzi.testsuite.oauth.auth.metrics;
+package io.strimzi.testsuite.oauth.common.metrics;
 
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.slf4j.Logger;

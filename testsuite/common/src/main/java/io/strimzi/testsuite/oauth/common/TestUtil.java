@@ -93,4 +93,32 @@ public class TestUtil {
         System.out.println("========    "  + msg);
         System.out.println();
     }
+
+    public static int findFirstMatchingInLog(List<String> log, String regex) {
+        int lineNum = 0;
+        Pattern pattern = Pattern.compile(prepareRegex(regex));
+        for (String line: log) {
+            if (pattern.matcher(line).matches()) {
+                return lineNum;
+            }
+            lineNum++;
+        }
+        return -1;
+    }
+
+    public static String prepareRegex(String regex) {
+        String prefix = regex.startsWith("^") ? "" : ".*";
+        String suffix = regex.endsWith("$") ? "" : ".*";
+        return prefix + regex + suffix;
+    }
+
+    public static boolean checkLogForRegex(List<String> log, String regex) {
+        Pattern pattern = Pattern.compile(prepareRegex(regex));
+        for (String line: log) {
+            if (pattern.matcher(line).matches()) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

@@ -13,7 +13,7 @@ import io.strimzi.kafka.oauth.common.PrincipalExtractor;
 import io.strimzi.kafka.oauth.common.SSLUtil;
 import io.strimzi.kafka.oauth.common.TimeUtil;
 import io.strimzi.kafka.oauth.common.TokenInfo;
-import io.strimzi.testsuite.oauth.metrics.Metrics;
+import io.strimzi.testsuite.oauth.mockoauth.metrics.Metrics;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.junit.Assert;
@@ -35,6 +35,7 @@ import java.util.Set;
 public class Common {
 
     static final String WWW_FORM_CONTENT_TYPE = "application/x-www-form-urlencoded";
+    public static final String LOG_PATH = "target/test.log";
 
     static String getJaasConfigOptionsString(Map<String, String> options) {
         StringBuilder sb = new StringBuilder();

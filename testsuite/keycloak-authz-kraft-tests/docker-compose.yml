@@ -74,8 +74,6 @@ services:
       - OAUTH_USERNAME_CLAIM=preferred_username
       - OAUTH_CONNECT_TIMEOUT_SECONDS=20
 
-      - OAUTH_ENABLE_METRICS=true
-
       # Configuration of individual listeners
       - KAFKA_LISTENER_NAME_CONTROLLER_SASL_ENABLED_MECHANISMS=PLAIN
       - KAFKA_LISTENER_NAME_CONTROLLER_PLAIN_SASL_JAAS_CONFIG=org.apache.kafka.common.security.plain.PlainLoginModule required    username=\"admin\"    password=\"admin-password\"    user_admin=\"admin-password\"    user_bobby=\"bobby-secret\" ;
@@ -133,6 +131,19 @@ services:
       - KAFKA_STRIMZI_AUTHORIZATION_ENABLE_METRICS=true
 
       - KAFKA_SUPER_USERS=User:admin;User:service-account-kafka
+
+
+      # OAuth metrics configuration
+
+      - OAUTH_ENABLE_METRICS=true
+      #   When enabling metrics we also have to explicitly configure JmxReporter to have metrics available in JMX
+      #   The following value will be available as env var STRIMZI_METRIC_REPORTERS
+      - STRIMZI_METRIC_REPORTERS=org.apache.kafka.common.metrics.JmxReporter
+
+      #   The following value will turn to 'strimzi.metric.reporters=...' in 'strimzi.properties' file
+      #   However, that won't work as the value may be filtered to the component that happens to initialise OAuthMetrics
+      #- KAFKA_STRIMZI_METRIC_REPORTERS=org.apache.kafka.common.metrics.JmxReporter
+
 
       # Other configuration
       - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1

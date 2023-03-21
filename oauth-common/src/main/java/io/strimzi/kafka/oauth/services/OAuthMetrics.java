@@ -10,7 +10,6 @@ import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
-import org.apache.kafka.common.metrics.JmxReporter;
 import org.apache.kafka.common.metrics.KafkaMetricsContext;
 import org.apache.kafka.common.metrics.MetricConfig;
 import org.apache.kafka.common.metrics.Metrics;
@@ -24,13 +23,17 @@ import org.apache.kafka.common.metrics.stats.Min;
 import org.apache.kafka.common.utils.Time;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
+import static io.strimzi.kafka.oauth.metrics.GlobalConfig.STRIMZI_METRIC_REPORTERS;
 import static org.apache.kafka.clients.CommonClientConfigs.CLIENT_ID_CONFIG;
 import static org.apache.kafka.clients.CommonClientConfigs.METRICS_NUM_SAMPLES_CONFIG;
 import static org.apache.kafka.clients.CommonClientConfigs.METRICS_RECORDING_LEVEL_CONFIG;
@@ -38,9 +41,22 @@ import static org.apache.kafka.clients.CommonClientConfigs.METRICS_SAMPLE_WINDOW
 
 /**
  * The singleton for handling a cache of all the Sensors to prevent unnecessary redundant re-registrations.
- * There is a one-to-one mapping between a SensorKey and a Sensor, and one-to-one mapping between a Sensor and an MBean name.
- *
- * MBeans are registered as requested by JmxReporter attached to the Metrics object.
+ * There is a one-to-one mapping between a <code>SensorKey</code> and a <code>Sensor</code>, and one-to-one mapping between a <code>Sensor</code> and an <code>MBean</code> name.
+ * <p>
+ * MBeans are registered as requested by <code>JmxReporter</code> attached to the <code>Metrics</code> object.
+ * The <code>JmxReporter</code> has to be explicitly configured using a config option <code>strimzi.metric.reporters</code>, which is
+ * analogous to the Kafka <code>metric.reporters</code> configuration option. It is not configured by default.
+ * <p>
+ * Since OAuth instantiates its own <code>Metrics</code> object it also has to instantiate reporters to attach them to this <code>Metrics</code> object.
+ * To prevent double instantiation of <code>MetricReporter</code> objects that require to be singleton, all <code>MetricReporter</code> objects
+ * to be integrated with <code>OAuthMetrics</code> have to be separately instantiated.
+ * <p>
+ * Example:
+ * <pre>
+ *    strimzi.metric.reporters=org.apache.kafka.common.metrics.JmxReporter
+ * </pre>
+ * Note: On the Kafka broker it is best to use <code>STRIMZI_METRIC_REPORTERS</code> env variable or <code>strimzi.metric.reporters</code> system property,
+ * rather than a `server.properties` global configuration option.
  */
 public class OAuthMetrics {
 
@@ -57,9 +73,14 @@ public class OAuthMetrics {
      *
      * @param configMap Configuration properties
      */
+    @SuppressWarnings("unchecked")
     OAuthMetrics(Map<String, ?> configMap) {
-        this.configMap = configMap;
         this.config = new Config(configMap);
+
+        // Make sure to add the resolved 'strimzi.metric.reporters' configuration to the config map
+        ((Map<String, Object>) configMap).put(STRIMZI_METRIC_REPORTERS, config.getValue(STRIMZI_METRIC_REPORTERS));
+        this.configMap = configMap;
+
         this.metrics = initKafkaMetrics();
     }
 
@@ -90,26 +111,48 @@ public class OAuthMetrics {
 
     private List<MetricsReporter> initReporters() {
         AbstractConfig kafkaConfig = initKafkaConfig();
-        List<MetricsReporter> reporters = kafkaConfig.getConfiguredInstances(CommonClientConfigs.METRIC_REPORTER_CLASSES_CONFIG,
-                MetricsReporter.class);
-
-        JmxReporter reporter = new JmxReporter();
-        reporter.configure(configMap);
-
-        reporters.add(reporter);
+        List<MetricsReporter> reporters = new ArrayList<>(3);
+        if (configMap.get(STRIMZI_METRIC_REPORTERS) != null) {
+            reporters = kafkaConfig.getConfiguredInstances(STRIMZI_METRIC_REPORTERS, MetricsReporter.class);
+        } else {
+            log.warn("Configuration option '{}' is not set, OAuth metrics will not be exported to JMX", STRIMZI_METRIC_REPORTERS);
+        }
         return reporters;
     }
 
     private AbstractConfig initKafkaConfig() {
-        ConfigDef configDef = new ConfigDef()
-                .define(CommonClientConfigs.METRIC_REPORTER_CLASSES_CONFIG,
-                        ConfigDef.Type.LIST,
-                        Collections.emptyList(),
-                        new ConfigDef.NonNullValidator(),
-                        ConfigDef.Importance.LOW,
-                        CommonClientConfigs.METRIC_REPORTER_CLASSES_DOC);
+        ConfigDef configDef = addMetricReporterToConfigDef(new ConfigDef(), STRIMZI_METRIC_REPORTERS);
+        return new AbstractConfig(configDef, toMapOfStringValues(configMap));
+    }
 
-        return new AbstractConfig(configDef, configMap);
+    private ConfigDef addMetricReporterToConfigDef(ConfigDef configDef, String name) {
+        return configDef.define(name,
+                ConfigDef.Type.LIST,
+                Collections.emptyList(),
+                new ConfigDef.NonNullValidator(),
+                ConfigDef.Importance.LOW,
+                CommonClientConfigs.METRIC_REPORTER_CLASSES_DOC);
+    }
+
+    private Map<String, String> toMapOfStringValues(Map<String, ?> configMap) {
+        HashMap<String, String> result = new HashMap<>();
+        for (Map.Entry<String, ?> ent: configMap.entrySet()) {
+            Object val = ent.getValue();
+            if (val == null) {
+                continue;
+            }
+            if (val instanceof Class) {
+                result.put(ent.getKey(), ((Class<?>) val).getCanonicalName());
+            } else if (val instanceof List) {
+                String stringVal = ((List<?>) val).stream().map(String::valueOf).collect(Collectors.joining(","));
+                if (!"".equals(stringVal)) {
+                    result.put(ent.getKey(), stringVal);
+                }
+            } else {
+                result.put(ent.getKey(), String.valueOf(ent.getValue()));
+            }
+        }
+        return result;
     }
 
     private KafkaMetricsContext createKafkaMetricsContext() {
