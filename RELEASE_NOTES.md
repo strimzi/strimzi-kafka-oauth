@@ -1,6 +1,24 @@
 Release Notes
 =============
 
+0.13.0
+------
+
+### Fixed json-path handling of null
+
+This change introduces a backwards incompatible change in how queries using `equals` or `not equals` comparison to `null` are handled.
+
+Previously the query `"@.missing == null"` where JWT token claim called `missing` was not present in the token would evaluate to `false`.
+Similarly the query `"@.missing != null"` would evaluate to `true`.
+
+Such behavior is clearly non-intuitive, and was recognised as a bug and fixed in the [json-path](https://github.com/json-path/jsonpath) library.
+
+By bumping the version of `json-path` to `2.8.0` the behaviour is now fixed. The query `"@.missing == null"` evaluates to `true`, and
+`"@.missing != null"` evaluates to `false`.
+
+The documentation in [README.md](README.md#custom-claim-checking) has always contained a note that one should not use `null` comparison in the queries.
+Those who followed that rule will not be affected.
+
 0.12.0
 ------
 
