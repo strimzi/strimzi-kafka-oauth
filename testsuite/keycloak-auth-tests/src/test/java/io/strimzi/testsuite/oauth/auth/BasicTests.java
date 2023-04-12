@@ -196,7 +196,7 @@ public class BasicTests {
     /**
      * This test uses the Kafka listener configured with both OAUTHBEARER and PLAIN, and the Keycloak realm
      * that uses the default RSA cryptography to sign tokens.
-     *
+     * <p>
      * It connects to the Kafka using the OAUTHBEARER mechanism
      *
      * @throws Exception Any unhandled error

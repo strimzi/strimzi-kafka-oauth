@@ -15,7 +15,7 @@ import java.util.Set;
 
 /**
  * TokenInfo encapsulates the information about the access token.
- *
+ * <p>
  * It can also be used for storing extra application information associated with the access token by directly
  * accessing the payload JSON object.
  */
@@ -61,7 +61,7 @@ public class TokenInfo {
     /**
      * Create a new instance
      *
-     * @param payload The body of the JWT token or composed from authorization server's introspection endpoint response
+     * @param payload The body of the JWT token or composed of authorization server's introspection endpoint response
      * @param token The raw access token
      * @param principal The extracted user ID
      */
@@ -72,7 +72,7 @@ public class TokenInfo {
     /**
      * Create a new instance
      *
-     * @param payload The body of the JWT token or composed from authorization server's introspection endpoint response
+     * @param payload The body of the JWT token or composed of authorization server's introspection endpoint response
      * @param token The raw access token
      * @param principal The extracted user ID
      * @param groups A set of groups extracted from JWT token or authorization server's inspect endpoint response
@@ -122,7 +122,7 @@ public class TokenInfo {
      * @param groups A set of groups extracted from JWT token or authorization server's inspect endpoint response
      * @param issuedAtMs The token's `issued at` time in millis
      * @param expiresAtMs The token's `expires at` time in millis
-     * @param payload The body of the JWT token or composed from authorization server's introspection endpoint response
+     * @param payload The body of the JWT token or composed of authorization server's introspection endpoint response
      */
     @SuppressFBWarnings("EI_EXPOSE_REP2")
     // See: https://spotbugs.readthedocs.io/en/stable/bugDescriptions.html#ei2-may-expose-internal-representation-by-incorporating-reference-to-mutable-object-ei-expose-rep2
@@ -201,7 +201,7 @@ public class TokenInfo {
 
     /**
      * Get the payload object passed during construction.
-     *
+     * <p>
      * The same instance, passed to the TokenInfo constructor is returned which makes it possible to add custom attributes
      * or make modifications during request processing.
      *

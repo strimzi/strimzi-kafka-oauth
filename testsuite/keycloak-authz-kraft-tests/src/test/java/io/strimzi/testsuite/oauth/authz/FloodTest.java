@@ -20,13 +20,11 @@ import java.io.InterruptedIOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithClientSecret;
-import static io.strimzi.testsuite.oauth.common.TestUtil.getContainerLogsForString;
 
 public class FloodTest extends Common {
 
@@ -38,11 +36,8 @@ public class FloodTest extends Common {
 
     static int sendLimit = 1;
 
-    private final String kafkaContainer;
-
-    FloodTest(String kafkaContainer, String kafkaBootstrap, boolean oauthOverPlain) {
+    FloodTest(String kafkaBootstrap, boolean oauthOverPlain) {
         super(kafkaBootstrap, oauthOverPlain);
-        this.kafkaContainer = kafkaContainer;
     }
 
     public void doTest() throws IOException {
@@ -52,7 +47,7 @@ public class FloodTest extends Common {
 
     /**
      * This test uses the Kafka listener configured with both OAUTHBEARER and PLAIN.
-     *
+     * <p>
      * It connects concurrently with multiple producers with different client IDs using the PLAIN mechanism, testing the OAuth over PLAIN functionality.
      * With KeycloakRBACAuthorizer configured, any mixup of the credentials between different clients will be caught as
      * AuthorizationException would be thrown trying to write to the topic if the user context was mismatched.
@@ -135,16 +130,6 @@ public class FloodTest extends Common {
             // Prepare for the next run
             clearThreads();
         }
-    }
-
-    private int currentFoundExistingGrantsLogCount() {
-        List<String> lines = getContainerLogsForString(kafkaContainer, "Found existing grants for the token on another session");
-        return lines.size();
-    }
-
-    private int currentSemaphoreBlockLogCount() {
-        List<String> lines = getContainerLogsForString(kafkaContainer, "Waiting on another thread to get grants");
-        return lines.size();
     }
 
     private void sendSingleMessage(String clientId, String secret, String topic) throws ExecutionException, InterruptedException {

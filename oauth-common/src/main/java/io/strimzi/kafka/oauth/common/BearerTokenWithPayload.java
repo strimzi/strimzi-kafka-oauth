@@ -12,13 +12,13 @@ import java.util.Set;
 /**
  * This extension of OAuthBearerToken provides a way to associate any additional information with the token
  * at run time, that is cached for the duration of the client session.
- *
+ * <p>
  * This class is the only notion of client session that we can get. Kafka code holds on to it for as long as the session is alive,
  * and then the object can be garbage collected.
- *
+ * <p>
  * Successful re-authentication starts a new session without disconnecting the current connection, avoiding the need to re-establish
  * any existing TLS connection for example.
- *
+ * <p>
  * Token is instantiated during authentication, but the 'payload' methods can be accessed later by custom extensions.
  * For example, it can be used by a custom authorizer to cache a parsed JWT token payload or to cache authorization grants for current session.
  */

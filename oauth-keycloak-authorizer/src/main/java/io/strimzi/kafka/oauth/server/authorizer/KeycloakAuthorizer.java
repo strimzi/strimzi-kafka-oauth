@@ -52,14 +52,14 @@ public class KeycloakAuthorizer extends KeycloakRBACAuthorizer implements Cluste
         AuthzConfig superConfig = super.convertToAuthzConfig(configs);
         isKRaft = detectKRaft(configs);
         if (isKRaft) {
-            log.debug("Detected Kraft mode ('process.roles' configured)");
+            log.debug("Detected KRaft mode ('process.roles' configured)");
             return new AuthzConfigWithForcedReuseGrants(superConfig);
         }
         return superConfig;
     }
 
     boolean detectKRaft(Map<String, ?> configs) {
-        // auto-detect KRAFT mode
+        // auto-detect KRaft mode
         Object prop = configs.get("process.roles");
         String processRoles = prop != null ? String.valueOf(prop) : null;
         return processRoles != null && processRoles.length() > 0;
@@ -71,9 +71,9 @@ public class KeycloakAuthorizer extends KeycloakRBACAuthorizer implements Cluste
             try {
                 kraftAuthorizer = new StandardAuthorizer();
                 setDelegate(kraftAuthorizer);
-                log.debug("Using StandardAuthorizer (Kraft based) as a delegate");
+                log.debug("Using StandardAuthorizer (KRaft based) as a delegate");
             } catch (Exception e) {
-                throw new ConfigException("Kraft mode detected ('process.roles' configured), but failed to instantiate org.apache.kafka.metadata.authorizer.StandardAuthorizer", e);
+                throw new ConfigException("KRaft mode detected ('process.roles' configured), but failed to instantiate org.apache.kafka.metadata.authorizer.StandardAuthorizer", e);
             }
         }
         super.setupDelegateAuthorizer(configs);

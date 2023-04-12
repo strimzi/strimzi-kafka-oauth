@@ -28,10 +28,10 @@ import java.util.Collection;
 
 /**
  * Tests for OAuth authentication using Keycloak + Keycloak Authorization Services based authorization when Kafka runs in KRaft mode
- *
+ * <p>
  * This test assumes there are multiple listeners configured with OAUTHBEARER or PLAIN support, but each configured differently
  * - configured with different options, or different realm.
- *
+ * <p>
  * There is KeycloakAuthorizer configured on the Kafka broker.
  */
 public class KeycloakRaftAuthorizationTests {
@@ -90,6 +90,9 @@ public class KeycloakRaftAuthorizationTests {
             logStart("KeycloakRaftAuthorizationTest :: IntrospectionValidationAuthzTest");
             new BasicTest(INTROSPECT_LISTENER, false).doTest();
 
+            logStart("KeycloakRaftAuthorizationTest :: MetricsTest (part 2)");
+            MetricsTest.doTest2();
+
             logStart("KeycloakRaftAuthorizationTest :: OAuthOverPlain + JwtValidationAuthzTest");
             new OAuthOverPlainTest(JWTPLAIN_LISTENER, true).doTest();
 
@@ -97,13 +100,13 @@ public class KeycloakRaftAuthorizationTests {
             new OAuthOverPlainTest(INTROSPECTPLAIN_LISTENER, true).doTest();
 
             logStart("KeycloakRaftAuthorizationTest :: OAuthOverPLain + FloodTest");
-            new FloodTest(kafkaContainer, JWTPLAIN_LISTENER, true).doTest();
+            new FloodTest(JWTPLAIN_LISTENER, true).doTest();
 
             logStart("KeycloakRaftAuthorizationTest :: JWT FloodTest");
-            new FloodTest(kafkaContainer, JWT_LISTENER, false).doTest();
+            new FloodTest(JWT_LISTENER, false).doTest();
 
             logStart("KeycloakRaftAuthorizationTest :: Introspection FloodTest");
-            new FloodTest(kafkaContainer, INTROSPECT_LISTENER, false).doTest();
+            new FloodTest(INTROSPECT_LISTENER, false).doTest();
 
             // This test has to be the last one - it changes the team-a-client, and team-b-client permissions in Keycloak
             logStart("KeycloakRaftAuthorizationTest :: JwtValidationAuthzTest + RefreshGrants");

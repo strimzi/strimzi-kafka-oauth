@@ -58,6 +58,15 @@ public class TestUtil {
         }
     }
 
+    /**
+     * Helper method to wait for a condition by periodically testing the condition until it is satisfied or until timeout.
+     *
+     * @param condition The condition to test
+     * @param loopPauseMs A pause between two repeats in millis
+     * @param timeoutSeconds A timeout in seconds
+     * @throws TimeoutException An exception thrown if condition not satisfied within a timeout
+     * @throws InterruptedException An exception thrown if interrupted
+     */
     public static void waitForCondition(Supplier<Boolean> condition, int loopPauseMs, int timeoutSeconds) throws TimeoutException, InterruptedException {
         long startTime = System.currentTimeMillis();
         boolean done;

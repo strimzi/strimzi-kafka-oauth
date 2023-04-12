@@ -35,8 +35,8 @@ Strimzi Kafka OAuth modules provide support for OAuth2 as authentication mechani
     - [Enabling the re-authentication](#enabling-the-re-authentication)
     - [Enforcing the session timeout](#enforcing-the-session-timeout)  
   - [Configuring the Kafka Broker authorization](#configuring-the-kafka-broker-authorization)
-    - [Enabling the KeycloakRBACAuthorizer](#enabling-the-keycloakrbacauthorizer)
-    - [Configuring the KeycloakRBACAuthorizer](#configuring-the-keycloakrbacauthorizer)
+    - [Enabling the KeycloakAuthorizer](#enabling-the-keycloakauthorizer)
+    - [Configuring the KeycloakAuthorizer](#configuring-the-keycloakauthorizer)
     - [Configuring the RBAC rules through Keycloak Authorization Services](#configuring-the-rbac-rules-through-keycloak-authorization-services)
 - [Configuring the Kafka client with SASL/OAUTHBEARER](#configuring-the-kafka-client-with-sasloauthbearer)
   - [Enabling SASL/OAUTHBEARER mechanism](#enabling-sasloauthbearer-mechanism)
@@ -100,7 +100,7 @@ Authorization in Kafka is implemented completely separately and independently of
 Thus, it is possible to configure Kafka brokers to use OAuth2 based authentication, and at the same time the default ACL authorization. 
 
 Since version 0.3.0 Strimzi Kafka OAuth provides token-based authorization using Keycloak as authorization server, and taking advantage of [Keycloak Authorization Services](https://www.keycloak.org/docs/latest/authorization_services/).
-See [examples authorization README](examples/README-authz.md) for a demonstration on how to install, and use [KeycloakRBACAuthorizer](oauth-keycloak-authorizer/src/main/java/io/strimzi/kafka/oauth/server/authorizer/KeycloakRBACAuthorizer.java) which implements this functionality.
+See [examples authorization README](examples/README-authz.md) for a demonstration on how to install, and use [KeycloakAuthorizer](oauth-keycloak-authorizer/src/main/java/io/strimzi/kafka/oauth/server/authorizer/KeycloakAuthorizer.java) which implements this functionality.
 
 Building
 --------
@@ -135,7 +135,7 @@ Also, you may want each developer to have a user account in order to configure u
 Configuring users, clients, and authorizing clients, obtaining access tokens, and refresh tokens are steps that are specific to the authorization server that you use.
 Consult your authorization server's documentation.
 
-If you use the KeycloakRBACAuthorizer for authorization, then you have to use Keycloak or Keycloak based authorization server to configure security policies and permissions for users and service accounts.
+If you use the KeycloakAuthorizer for authorization, then you have to use Keycloak or Keycloak based authorization server to configure security policies and permissions for users and service accounts.
  
 Configuring the Kafka Broker 
 ----------------------------
@@ -145,7 +145,7 @@ Strimzi Kafka OAuth therefore needs to use JAAS configuration to activate SASL/O
 This is true for configuring the server side of the Kafka Broker, as well as for the Kafka client side - when using OAuth 2 for inter-broker communication.
 
 The authentication configuration specific to the Strimzi Kafka OAuth can be specified as part of JAAS configuration in the form of JAAS parameter values. 
-The authorization configuration for KeycloakRBACAuthorizer is specified as `server.properties` key-value pairs.
+The authorization configuration for KeycloakAuthorizer is specified as `server.properties` key-value pairs.
 Both authentication and authorization configuration specific to Strimzi Kafka OAuth can also be set as ENV vars, or as Java system properties.
 The limitation here is that authentication configuration specified in this manner can not be listener-scoped. 
 
@@ -647,7 +647,7 @@ The option can be specified per-listener. For example if you have a listener cal
 If re-authentication is enabled, the session timeout is enforced as the expiry time of the access token. 
 By using re-authentication the multiple 'lightweight' sessions can follow one another over the same network connection for as long as the connection isn't closed or interrupted due to processes restarting or due to network issues. 
 
-If for some reason you can't enable re-authentication or don't want to use it, and if you want to invalidate the session when access token expires, but aren't using `KeycloakRBACAuthorizer`, which does this automatically (since version 0.6.0 of this library), you can use the `OAuthSessionAuthorizer` to enforce token expiry mid-session.
+If for some reason you can't enable re-authentication or don't want to use it, and if you want to invalidate the session when access token expires, but aren't using `KeycloakAuthorizer`, which does this automatically (since version 0.6.0 of this library), you can use the `OAuthSessionAuthorizer` to enforce token expiry mid-session.
 
 `OAuthSessionAuthorizer` works by checking the access token expiry on every operation performed, and denies all access after the token has expired.
 As long as the token has not yet expired (it may have been recently invalidated at authorization server but the Kafka broker may not yet know about it) the authorization is delegated to the delegate authorizer.
@@ -661,7 +661,7 @@ You configure the `SimpleAclAuthorizer` by specifying the same properties as if 
 
 It's the same for any other authorizer you may use - instead of using `authorizer.class.name` you install it by using `strimzi.authorizer.delegate.class.name`.
 
-Do not use `OAuthSessionAuthorizer` together with `KeycloakRBACAuthorizer` as that would be redundant.
+Do not use `OAuthSessionAuthorizer` together with `KeycloakAuthorizer` as that would be redundant.
 
 If you don't use any authorizer at all, and don't use re-authentication, but still want to enforce access token expiry mid-session, don't specify the `strimzi.authorizer.delegate.class.name` at all.
 Instead, specify the following configuration:
@@ -671,7 +671,7 @@ Instead, specify the following configuration:
 In this case, unless the access token has expired, all the actions will be granted. The broker will behave as if no authorizer was installed, effectively turning every user into a 'super user'.
 The unauthenticated users, or users authenticated with a mechanism other than OAuth will also automatically have all the actions granted.
 
-Note: When using SASL/PLAIN authentication in combination with `KeycloakRBACAuthorizer` or `OAuthSessionAuthorizer` the Kafka client session will expire when the access token expires.
+Note: When using SASL/PLAIN authentication in combination with `KeycloakAuthorizer` or `OAuthSessionAuthorizer` the Kafka client session will expire when the access token expires.
 This will result in sudden appearance of the authorization failures.
 Since there is no way to pass a new access token mid-session (re-authenticate), the client will have to start a new session by establishing a new connection. 
 
@@ -681,26 +681,28 @@ Strimzi Kafka OAuth provides support to centrally manage not only users and clie
 
 Support for this works specifically with Keycloak Authorization Services.
 
-By default, authorization is not enabled on Kafka Broker. There is `kafka.security.auth.SimpleAclAuthorizer` that comes with Kafka out-of-the-box, and is well documented in [Kafka Documentation](https://kafka.apache.org/documentation/). 
+By default, authorization is not enabled on Kafka Broker. There is `kafka.security.authorizer.AclAuthorizer` that comes with Kafka out-of-the-box and works with Zookeeper, and `org.apache.kafka.metadata.authorizer.StandardAuthorizer` that works in KRaft mode.
+They behave the same and handle the standard Kafka ACL based permissions as documented in [Kafka Documentation](https://kafka.apache.org/documentation/). 
 
-Strimzi Kafka OAuth provides an alternative authorizer - `io.strimzi.kafka.oauth.server.authorizer.KeycloakRBACAuthorizer`.
-`KeycloakRBACAuthorizer` uses the access token and the Token Endpoint of the same Keycloak realm used for OAuth2 authentication as a source of permission grants for the authenticated session.
+Strimzi Kafka OAuth provides an alternative authorizer - `io.strimzi.kafka.oauth.server.authorizer.KeycloakAuthorizer`.
+`KeycloakAuthorizer` uses the access token and the Token Endpoint of the same Keycloak realm used for OAuth2 authentication as a source of permission grants for the authenticated session.
 
-#### Enabling the KeycloakRBACAuthorizer
+Note: Do not use `KeycloakRBACAuthorizer` directly as it only works in Zookeeper mode when standard ACL delegation is enabled. 
+Use `KeycloakAuthorizer` instead, as it detects the runtime environment, and delegates to `ACLAuthorizer` when in Zookeeper mode, and to `StandardAuthorizer` when in KRaft mode (as detected based on the presence of `process.roles` config property). 
+
+#### Enabling the KeycloakAuthorizer
 
 Add the following to `server.properties` file:
 
-    authorizer.class.name=io.strimzi.kafka.oauth.server.authorizer.KeycloakRBACAuthorizer
-
-Note: Since version 0.6.0 the `io.strimzi.kafka.oauth.server.authorizer.JwtKafkaPrincipalBuilder` has been deprecated. Use the above configuration instead.
+    authorizer.class.name=io.strimzi.kafka.oauth.server.authorizer.KeycloakAuthorizer
 
 You also need a properly configured OAuth authentication support, as described in [Configuring the Kafka broker authentication](#configuring-the-kafka-broker-authentication).
 
-#### Configuring the KeycloakRBACAuthorizer
+#### Configuring the KeycloakAuthorizer
 
-All the configuration properties for KeycloakRBACAuthorizer begin with a `strimzi.authorization.` prefix.
+All the configuration properties for KeycloakAuthorizer begin with a `strimzi.authorization.` prefix.
 
-The token endpoint used by KeycloakRBACAuthorizer has to be the same as the one used for OAuth authentication:
+The token endpoint used by KeycloakAuthorizer has to be the same as the one used for OAuth authentication:
 - `strimzi.authorization.token.endpoint.uri` (e.g.: "https://localhost:8443/auth/realms/demo/protocol/openid-connect/token" - the endpoint used to exchange the access token for a list of grants)
 - `strimzi.authorization.client.id` (e.g.: "kafka" - the client representing a Kafka Broker which has Authorization Services enabled)
 
@@ -730,14 +732,14 @@ New sessions will, by default, request the latest grants from the Keycloak in or
 You can change this, and reuse the grants for the token, if they have previously been fetched due to the same token already having been used
 for another session on the broker. This can noticeably reduce the load from brokers to the Keycloak and can also help alleviate 'glitchiness' issues
 addressed by `strimzi.authorization.http.retries`. However, as a result, the grants initially used for the new session may be out-of-sync with
-Keycloak for up to `strimzi.authorization.grants.refresh.period.seconds`.
+Keycloak for up to `strimzi.authorization.grants.refresh.period.seconds`. This option is automatically enabled in KRaft more if delegation to Kafka ACL is enabled.
 - `strimzi.authorization.reuse.grants` (e.g.: "true" - if enabled, then grants fetched for another session may be used)
 
 You may also want to configure some other things. You may want to set a logical cluster name so you can target it with authorization rules:
 - `strimzi.authorization.kafka.cluster.name` (e.g.: "dev-cluster" - a logical name of the cluster which can be targeted with authorization services resource definitions, and permission policies)
 
-You can integrate KeycloakRBACAuthorizer with AclAuthorizer or StandardAuthorizer (in KRaft mode):
-- `strimzi.authorization.delegate.to.kafka.acl` (e.g.: "true" - if enabled, then when action is not granted based on Keycloak Authorization Services grant it is delegated to SimpleACLAuthorizer which can still grant it.)
+You can integrate KeycloakAuthorizer with AclAuthorizer (in Zookeeper mode) or StandardAuthorizer (in KRaft mode):
+- `strimzi.authorization.delegate.to.kafka.acl` (e.g.: "true" - if enabled, then when action is not granted based on Keycloak Authorization Services grant it is delegated to ACLAuthorizer / StandardAuthorizer which can still grant it.)
 
 If you turn on authorization support in Kafka brokers, you need to properly set `super.users` property. 
 By default, access token's `sub` claim is used as user id.
@@ -762,17 +764,17 @@ For a more in-depth guide to using Keycloak Authorization Services see [the tuto
 In order to grant Kafka permissions to users or service accounts you have to use the Keycloak Authorization Services rules on the OAuth client that represents the Kafka Broker - typically this client has `kafka` as its client ID.
 The rules exist within the scope of this client, which means that if you have different Kafka clusters configured with different OAuth client IDs they would each have a separate set of permissions even though using the same set of users, and client accounts. 
 
-When the Kafka client authenticates using SASL/OAUTHEARER or SASL/PLAIN configured as 'OAuth over PLAIN' the KeycloakRBACAuthorizer retrieves the list of grants for the current session from the Keycloak server using the access token of the current session.
+When the Kafka client authenticates using SASL/OAUTHEARER or SASL/PLAIN configured as 'OAuth over PLAIN' the KeycloakAuthorizer retrieves the list of grants for the current session from the Keycloak server using the access token of the current session.
 This list of grants is the result of evaluating the Keycloak Authorization Services policies and permissions. 
 
 There are four concepts used to grant permissions: `resources`, `authorization scopes`, `policies`, and `permissions`.
 
 ##### Authorization scopes
 
-Typically the initial configuration involves uploading the authorization scopes which creates a list of all the possible actions that can be performed on all the types of a Kafka resources.
+Typically, the initial configuration involves uploading the authorization scopes which creates a list of all the possible actions that can be performed on all the types of a Kafka resources.
 This step is performed only once, before defining any permissions. Alternatively, the authorization scopes can be added manually, but make sure to not introduce typos.
 
-The following authorization scopes can be used, mirroring the Kafka security model: `Create`, `Write`, `Read`, `Delete`, `Describe`, `Alter`, `DescribeConfig`, `AlterConfig`, `ClusterAction`.
+The following authorization scopes can be used, mirroring the Kafka security model: `Create`, `Write`, `Read`, `Delete`, `Describe`, `Alter`, `DescribeConfigs`, `AlterConfigs`, `ClusterAction`, `IdempotentWrite`.
 
 ##### Resources
   
@@ -790,7 +792,7 @@ A few examples:
     Group:orders-*
     Cluster:*
 
-In addition, the general pattern can be prefixed by another one of the format `kafka-cluster`:CLUSTER_NAME, followed by comma, where cluster name is the name configured to `KeycloakRBACAuthorizer` using `strimzi.authorization.kafka.cluster.name`.
+In addition, the general pattern can be prefixed by another one of the format `kafka-cluster`:CLUSTER_NAME, followed by comma, where cluster name is the name configured to `KeycloakAuthorizer` using `strimzi.authorization.kafka.cluster.name`.
 
 For example:
 
@@ -800,7 +802,7 @@ For example:
 When the `kafka-cluster` prefix is not present it is assumed to be `kafka-cluster:*`.
 
 When the resource is defined a list of possible authorization scopes relevant to the resource should be added to the list of scopes.
-Currently this needs to be added for each resource definition based on whatever actions make sense for the targeted resource type.
+Currently, this needs to be added for each resource definition based on whatever actions make sense for the targeted resource type.
 
 The Kafka security model understands the following actions on different resource types.
 
@@ -1177,9 +1179,9 @@ You may want to explicitly set the random number implementation provider to use 
 If you need to turn off certificate hostname verification set the following property to empty string:
 - `oauth.ssl.endpoint.identification.algorithm` (e.g. "") 
 
-These configuration properties can be used to configure truststore for `KeycloakRBACAuthorizer` as well, but they should be prefixed with `strimzi.authorization.` instead of `oauth.` when specifically targeting this authorizer (e.g.: `strimzi.authorization.ssl.truststore.location`).  
+These configuration properties can be used to configure truststore for `KeycloakAuthorizer` as well, but they should be prefixed with `strimzi.authorization.` instead of `oauth.` when specifically targeting this authorizer (e.g.: `strimzi.authorization.ssl.truststore.location`).  
 
-You may want to set these options globally as system properties or env vars to apply for all the listeners and the `KeycoakRBACAuthorizer` in which case you would use `oauth.` prefix. But when configured specifically for `KeycloakRBACAuthorizer` in `server.properties` you have to use `strimzi.authorization.` prefix.
+You may want to set these options globally as system properties or env vars to apply for all the listeners and the `KeycloakAuthorizer` in which case you would use `oauth.` prefix. But when configured specifically for `KeycloakAuthorizer` in `server.properties` you have to use `strimzi.authorization.` prefix.
 
 
 Configuring the network timeouts for communication with authorization server
@@ -1194,26 +1196,26 @@ Use the following configuration options to customize the connect and read timeou
 
 These options can be set as system properties, as env variables or as jaas properties as described in [Configuring the OAuth2](#configuring-the-oauth2).
 
-These configuration properties can be used to configure timeouts for `KeycloakRBACAuthorizer` as well, but they should be prefixed with `strimzi.authorization.` instead of `oauth.` when specifically targeting this authorizer (e.g.: `strimzi.authorization.connect.timeout.seconds`).
+These configuration properties can be used to configure timeouts for `KeycloakAuthorizer` as well, but they should be prefixed with `strimzi.authorization.` instead of `oauth.` when specifically targeting this authorizer (e.g.: `strimzi.authorization.connect.timeout.seconds`).
 
-You may want to set these options globally as system properties or env vars to apply for all the listeners and the `KeycoakRBACAuthorizer` in which case you would use `oauth.` prefix. But when configured specifically for `KeycloakRBACAuthorizer` in `server.properties` you have to use `strimzi.authorization.` prefix.
+You may want to set these options globally as system properties or env vars to apply for all the listeners and the `KeycloakAuthorizer` in which case you would use `oauth.` prefix. But when configured specifically for `KeycloakAuthorizer` in `server.properties` you have to use `strimzi.authorization.` prefix.
 
 NOTE: These options are available since version 0.10.0. Before, one could only apply JDK network options `sun.net.client.defaultConnectTimeout`, and `sun.net.client.defaultReadTimeout` as described [here](https://docs.oracle.com/javase/8/docs/technotes/guides/net/properties.html), and the default was `no timeout`.
 
 Configuring the metrics
 -----------------------
 
-By default, the gathering and exporting of metrics is disabled. Metrics are available to get an insight into the performance and failures during token validation, authorization operations and client authentication to the authorization server. You can also monitor the authorization server requests by background services such as refreshing of JWKS keys and refreshing of grants when `KeycloakRBACAuthorizer` is used.
+By default, the gathering and exporting of metrics is disabled. Metrics are available to get an insight into the performance and failures during token validation, authorization operations and client authentication to the authorization server. You can also monitor the authorization server requests by background services such as refreshing of JWKS keys and refreshing of grants when `KeycloakAuthorizer` is used.
 
 You can enable metrics for token validation on the Kafka broker or for client authentication on the client by setting the following JAAS option to `true`:
 - `oauth.enable.metrics` (e.g.: "true")
 
-You can enable metrics for `KeycloakRBACAuthorizer` by setting an analogous option in Kafka broker's `server.properties` file:
+You can enable metrics for `KeycloakAuthorizer` by setting an analogous option in Kafka broker's `server.properties` file:
 - `strimzi.authorization.enable.metrics` (e.g.: "true")
 
-If `OAUTH_ENABLE_METRICS` env variable is set or if `oauth.enable.metrics` system property is set, that will both also enable the metrics for `KeycloakRBACAuthorizer`.
+If `OAUTH_ENABLE_METRICS` env variable is set or if `oauth.enable.metrics` system property is set, that will both also enable the metrics for `KeycloakAuthorizer`.
 
-If `oauth.config.id` is specified in JAAS configuration of the listener or the client, it will be available in MBean / metric name as `contextId` attribute. If not specified, it will be calculated from JAAS configuration for the validator or default to `client` in client JAAS config, or `keycloak-authorizer` for KeycloakRBACAuthorizer metrics.
+If `oauth.config.id` is specified in JAAS configuration of the listener or the client, it will be available in MBean / metric name as `contextId` attribute. If not specified, it will be calculated from JAAS configuration for the validator or default to `client` in client JAAS config, or `keycloak-authorizer` for KeycloakAuthorizer metrics.
 
 Metrics are exposed through JMX managed beans. They can also be exposed as Prometheus metrics by using the Prometheus JMX Exporter agent, and mapping the JMX metrics names to prometheus metrics names.
 
@@ -1288,7 +1290,7 @@ For client-side authentication there are:
 The meaning of the variables used in the above names is as follows.
 
 - `$CONFIG_ID`
-  The value specified as `oauth.config.id` configuration option. If not specified it is set to `client` for Kafka client, `kafka-authorizer` for `KeycloakRBACAuthorizer`, or calculated from other configuration parameters for the validation on Kafka broker.
+  The value specified as `oauth.config.id` configuration option. If not specified it is set to `client` for Kafka client, `kafka-authorizer` for `KeycloakAuthorizer`, or calculated from other configuration parameters for the validation on Kafka broker.
 - `$HOST:$PORT`
   The hostname and port used to connect to authorization server. Extracted from the configured value for `oauth.token.endpoint.uri`, `oauth.introspect.endpoint.uri`, `oauth.userinfo.endpoint.uri`, `oauth.jwks.endpoint.uri` or `strimzi.authorization.token.endpoint.uri` (depending on the context). If the port is not part of the uri it is defaulted to `80` for `http`, and to `443` for `https`.
 - `$PATH`

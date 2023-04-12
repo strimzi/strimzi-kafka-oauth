@@ -23,7 +23,6 @@ import java.util.Properties;
 
 import static io.strimzi.testsuite.oauth.authz.Common.buildProducerConfigOAuthBearer;
 import static io.strimzi.testsuite.oauth.authz.Common.buildProducerConfigPlain;
-//import static io.strimzi.testsuite.oauth.authz.Common.buildProducerConfigScram;
 import static io.strimzi.testsuite.oauth.common.TestMetrics.getPrometheusMetrics;
 import static io.strimzi.testsuite.oauth.common.TestUtil.getContainerLogsForString;
 
@@ -33,7 +32,7 @@ public class MultiSaslTest {
 
     private static final String PLAIN_LISTENER = "kafka:9100";
 
-    // No support for SCRAM in KRaft mode
+    // No support for SCRAM in KRaft mode yet
     //private static final String SCRAM_LISTENER = "kafka:9101";
 
     private static final String JWT_LISTENER = "kafka:9092";
@@ -67,7 +66,7 @@ public class MultiSaslTest {
         } catch (Exception ignored) {
         }
 
-        // No support for SCRAM in KRaft mode
+        // No support for SCRAM in KRaft mode yet
         // Producing to SCRAM listener using SASL_SCRAM-SHA-512 should fail.
         //producerProps = producerConfigScram(SCRAM_LISTENER, username, password);
         //try {
@@ -77,7 +76,7 @@ public class MultiSaslTest {
         //}
 
 
-        // No support for SCRAM in KRaft mode
+        // No support for SCRAM in KRaft mode yet
         // alice:alice-secret (User 'alice' was configured for SASL SCRAM in 'docker/kafka/scripts/start.sh')
         //username = "alice";
         //password = "alice-secret";
@@ -91,7 +90,7 @@ public class MultiSaslTest {
         //} catch (Exception ignored) {
         //}
 
-        // No support for SCRAM in KRaft mode
+        // No support for SCRAM in KRaft mode yet
         // Producing to SCRAM listener using SASL_SCRAM-SHA-512 should succeed.
         // The necessary ACLs have been added by 'docker/kafka-acls/scripts/add-acls.sh'
         //producerProps = producerConfigScram(SCRAM_LISTENER, username, password);
@@ -126,7 +125,7 @@ public class MultiSaslTest {
         } catch (Exception ignored) {
         }
 
-        // No support for SCRAM in KRaft mode
+        // No support for SCRAM in KRaft mode yet
         // Producing to SCRAM listener using SASL_SCRAM-SHA-512 should fail.
         // User 'alice' was configured for SASL in 'docker/kafka/scripts/start.sh' but with a different password
         //producerProps = producerConfigScram(SCRAM_LISTENER, username, password);
@@ -150,16 +149,6 @@ public class MultiSaslTest {
         // Test the grants reuse feature
         checkAuthorizationGrantsReuse(2);
         checkGrantsFetchCountDiff(fetchGrantsCount);
-
-        //TODO: Remove these
-        // alice:alice-password
-        //Properties producerProps;
-        //String username = "alice";
-        //String password = "alice-password";
-        //String accessToken = Common.loginWithUsernamePassword(
-        //        URI.create("http://keycloak:8080/auth/realms/kafka-authz/protocol/openid-connect/token"),
-        //        username, password, "kafka-cli");
-
 
         // producing to JWTPLAIN listener using SASL/PLAIN using $accessToken should succeed
         producerProps = producerConfigPlain(JWTPLAIN_LISTENER, username, "$accessToken:" + accessToken);
@@ -201,8 +190,9 @@ public class MultiSaslTest {
         value = metrics.getValueSum("strimzi_oauth_http_requests_totaltimems", "kind", "keycloak-authorization", "host", authHostPort, "path", tokenPath, "outcome", "success");
         Assert.assertTrue("strimzi_oauth_http_requests_totaltimems for keycloak-authorization > 0", value.doubleValue() > 0.0);
 
-        // TODO: Why this fails in KRaft? Why there are 403 responses in Zookeeper mode, but not in KRaft mode
+        // There are 403 responses in Zookeeper mode, but not in KRaft mode
         // Apparently the inter-broker session to JWT listener is not attempted in KRaft mode
+
         //value = metrics.getValueSum("strimzi_oauth_http_requests_count", "kind", "keycloak-authorization", "host", authHostPort, "path", tokenPath, "outcome", "error", "status", "403");
         //Assert.assertTrue("strimzi_oauth_http_requests_count with no-grants for keycloak-authorization > 0", value.intValue() > 0);
 
@@ -226,7 +216,7 @@ public class MultiSaslTest {
         Assert.assertEquals("strimzi_oauth_authorization_requests_totaltimems for failed keycloak-authorization == 0", 0.0, value.doubleValue(), 0.0);
     }
 
-    // No support for SCRAM in KRaft mode
+    // No support for SCRAM in KRaft mode yet
     //private static Properties producerConfigScram(String kafkaBootstrap, String username, String password) {
     //    Map<String, String> scramConfig = new HashMap<>();
     //    scramConfig.put("username", username);

@@ -126,7 +126,7 @@ public class Config {
 
     /**
      * Validate configuration by checking for unknown or missing properties.
-     *
+     * <p>
      * Override this method to provide custom validation.
      *
      * @throws RuntimeException if validation fails
@@ -135,15 +135,15 @@ public class Config {
 
     /**
      * Get value for property key, returning fallback value if configuration for key is not found.
-     *
+     * <p>
      * This method first checks if system property exists for the key.
      * If not, it checks if env variable exists with the name derived from the key:
-     *
+     * <pre>
      *   key.toUpperCase().replace('-', '_').replace('.', '_');
-     *
+     * </pre>
      * If not, it checks if env variable with name equal to key exists.
      * Ultimately, it checks the defaults passed at Config object construction time.
-     *
+     * <p>
      * If no configuration is found for key, it returns the fallback value.
      *
      * @param key Config key
@@ -218,7 +218,7 @@ public class Config {
 
     /**
      * Get value for property key as boolean or fallback value if not found
-     *
+     * <p>
      * Valid values are: "true", "false", "yes", "no", "y", "n", "1", "0"
      *
      * @param key Config key
@@ -268,7 +268,7 @@ public class Config {
 
     /**
      * Convert property key to env key.
-     *
+     * <p>
      * Property key is converted to all uppercase, then all '.' and '-' characters are converted to '_'
      *
      * @param key   A key of a property which should be converted to environment variable name

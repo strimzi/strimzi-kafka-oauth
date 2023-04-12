@@ -177,7 +177,6 @@ public class KeycloakRBACAuthorizer implements Authorizer {
     private SSLSocketFactory socketFactory;
     private HostnameVerifier hostnameVerifier;
     private List<UserSpec> superUsers = Collections.emptyList();
-    private boolean delegateToKafkaACL = false;
     private int connectTimeoutSeconds;
     private int readTimeoutSeconds;
 
@@ -230,7 +229,7 @@ public class KeycloakRBACAuthorizer implements Authorizer {
             clusterName = "kafka-cluster";
         }
 
-        delegateToKafkaACL = config.getValueAsBoolean(AuthzConfig.STRIMZI_AUTHORIZATION_DELEGATE_TO_KAFKA_ACL, false);
+        boolean delegateToKafkaACL = config.getValueAsBoolean(AuthzConfig.STRIMZI_AUTHORIZATION_DELEGATE_TO_KAFKA_ACL, false);
         if (delegateToKafkaACL) {
             setupDelegateAuthorizer(configs);
         }

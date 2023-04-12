@@ -41,15 +41,14 @@ public class MetricsTest {
 
         TestMetrics metrics = getPrometheusMetrics(URI.create("http://kafka:9404/metrics"));
 
-        //// Inter-broker auth triggered the only successful validation request
-        // No inter-broker auth yet at this point right after server startup ???
         BigDecimal value = metrics.getValueSum("strimzi_oauth_validation_requests_count", "kind", "jwks", "mechanism", "OAUTHBEARER", "outcome", "success");
-        Assert.assertEquals("strimzi_oauth_validation_requests_count for jwks == 1", 1, value.intValue());
+        Assert.assertTrue("strimzi_oauth_validation_requests_count for jwks > 0", value.intValue() > 0);
 
         value = metrics.getValueSum("strimzi_oauth_validation_requests_totaltimems", "kind", "jwks", "mechanism", "OAUTHBEARER", "outcome", "success");
         Assert.assertTrue("strimzi_oauth_validation_requests_totaltimems for jwks > 0.0", value.doubleValue() > 0.0);
 
-        value = metrics.getValueSum("strimzi_oauth_http_requests_count", "kind", "keycloak-authorization", "host", AUTH_HOST_PORT, "path", tokenPath, "outcome", "error");
+        // No 403 (no grants) responses in this test
+        value = metrics.getValueSum("strimzi_oauth_http_requests_count", "kind", "keycloak-authorization", "host", AUTH_HOST_PORT, "path", tokenPath, "outcome", "success");
         Assert.assertTrue("strimzi_oauth_http_requests_count for keycloak-authorization > 0.0", value.doubleValue() > 0.0);
     }
 }

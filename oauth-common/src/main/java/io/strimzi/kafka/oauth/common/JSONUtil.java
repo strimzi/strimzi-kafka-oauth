@@ -175,7 +175,7 @@ public class JSONUtil {
      * @param object The target JSON object
      * @param attrName An attribute name
      * @param elements The collection of strings
-     * @return Newly create ArrayNode
+     * @return Newly created ArrayNode
      */
     public static ArrayNode setArrayOfStringsIfNotNull(JsonNode object, String attrName, Collection<String> elements) {
         if (elements == null) {

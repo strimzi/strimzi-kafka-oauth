@@ -319,12 +319,6 @@ public class Common {
         return p;
     }
 
-    static Properties buildProducerConfigScram(String kafkaBootstrap, Map<String, String> scramConfig) {
-        Properties p = buildCommonConfigScram(scramConfig);
-        setCommonProducerProperties(kafkaBootstrap, p);
-        return p;
-    }
-
     static Properties buildConsumerConfigPlain(String kafkaBootstrap, Map<String, String> plainConfig) {
         Properties p = buildCommonConfigPlain(plainConfig);
         setCommonConsumerProperties(kafkaBootstrap, p);

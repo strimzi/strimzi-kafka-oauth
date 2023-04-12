@@ -54,6 +54,8 @@ public class OAuthKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder imp
 
     private static final SetAccessibleAction SET_PRINCIPAL_MAPPER = SetAccessibleAction.newInstance();
 
+    private static final int OAUTH_DATA_TAG = 575;
+
     private static class SetAccessibleAction implements PrivilegedAction<Void> {
 
         private final Field field;
@@ -176,7 +178,7 @@ public class OAuthKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder imp
             BearerTokenWithPayload token = ((OAuthKafkaPrincipal) principal).getJwt();
             if (token instanceof BearerTokenWithGrants) {
                 try {
-                    data.unknownTaggedFields().add(new RawTaggedField(575, new BearerTokenWithGrants.Serde().serialize((BearerTokenWithGrants) token)));
+                    data.unknownTaggedFields().add(new RawTaggedField(OAUTH_DATA_TAG, new BearerTokenWithGrants.Serde().serialize((BearerTokenWithGrants) token)));
                 } catch (IOException e) {
                     throw new SerializationException("Failed to serialize OAuthKafkaPrincipal", e);
                 }
@@ -199,7 +201,7 @@ public class OAuthKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder imp
         List<RawTaggedField> unknownFields = data.unknownTaggedFields();
         if (unknownFields.size() > 0) {
             RawTaggedField field = unknownFields.get(0);
-            if (field.tag() == 575) {
+            if (field.tag() == OAUTH_DATA_TAG) {
                 try {
                     OAuthKafkaPrincipal result = new OAuthKafkaPrincipal(data.type(), data.name(), new BearerTokenWithGrants.Serde().deserialize(field.data()));
                     result.tokenAuthenticated(data.tokenAuthenticated());
