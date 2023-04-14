@@ -7,7 +7,7 @@ package io.strimzi.kafka.oauth.server.authorizer;
 import io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder;
 
 /**
- * @deprecated Use <em>io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder</em> class instead.
+ * @deprecated Use {@link io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder} class instead.
  */
 @Deprecated
 public class JwtKafkaPrincipalBuilder extends OAuthKafkaPrincipalBuilder {

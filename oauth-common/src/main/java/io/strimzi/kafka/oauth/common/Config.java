@@ -107,7 +107,9 @@ public class Config {
     }
 
     /**
-     * Use this constructor if you want to wrap another Config object and override some functionality that way
+     * Use this constructor if you want to wrap another Config object and override some functionality
+     * <p>
+     * You only need to override {@link #getValue(String, String)} in your extending class.
      *
      * @param delegate The Config object to delegate to
      */

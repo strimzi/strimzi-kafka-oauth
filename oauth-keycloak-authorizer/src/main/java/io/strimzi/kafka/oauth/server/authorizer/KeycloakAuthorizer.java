@@ -4,172 +4,219 @@
  */
 package io.strimzi.kafka.oauth.server.authorizer;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.strimzi.kafka.oauth.common.Config;
 import io.strimzi.kafka.oauth.common.ConfigException;
-import io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder;
+import org.apache.kafka.common.Endpoint;
 import org.apache.kafka.common.Uuid;
+import org.apache.kafka.common.acl.AclBinding;
+import org.apache.kafka.common.acl.AclBindingFilter;
+import org.apache.kafka.common.acl.AclOperation;
+import org.apache.kafka.common.resource.ResourceType;
 import org.apache.kafka.metadata.authorizer.AclMutator;
 import org.apache.kafka.metadata.authorizer.ClusterMetadataAuthorizer;
 import org.apache.kafka.metadata.authorizer.StandardAcl;
 import org.apache.kafka.metadata.authorizer.StandardAuthorizer;
+import org.apache.kafka.server.authorizer.AclCreateResult;
+import org.apache.kafka.server.authorizer.AclDeleteResult;
+import org.apache.kafka.server.authorizer.Action;
+import org.apache.kafka.server.authorizer.AuthorizableRequestContext;
+import org.apache.kafka.server.authorizer.AuthorizationResult;
+import org.apache.kafka.server.authorizer.AuthorizerServerInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.atomic.AtomicInteger;
+
 
 /**
- * The Keycloak authorizer implementation that supports KRaft mode and delegates to
- * <code>org.apache.kafka.metadata.authorizer.StandardAuthorizer</code> if <code>strimzi.authorization.delegate.to.kafka.acl</code>
- * is set to <code>true</code>.
- * <p>
- * This authorizer auto-detects whether the broker runs in KRaft mode or not based on the presence and value of <code>process.roles</code> config option.
- * When in KRaft mode the authorizer relies on <code>strimzi.authorization.reuse.grants</code> behaviour, and automatically enables this mode.
- * <p>
- * KeycloakAuthorizer works in conjunction with JaasServerOauthValidatorCallbackHandler, and requires
- * {@link OAuthKafkaPrincipalBuilder} to be configured as 'principal.builder.class' in 'server.properties' file.
- * <p>
- * To install this authorizer in Kafka, specify the following in your 'server.properties':
- * </p>
- * <pre>
- *     authorizer.class.name=io.strimzi.kafka.oauth.server.authorizer.KeycloakAuthorizer
- *     principal.builder.class=io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder
- * </pre>
- * The functionality of this authorizer is mostly inherited from <code>KeycloakRBACAuthorizer</code>.
- * For more configuration options see README.md and {@link io.strimzi.kafka.oauth.server.authorizer.KeycloakRBACAuthorizer}.
+ * An authorizer that ensures a single stateful instance is used for authorization callbacks.
  */
-public class KeycloakAuthorizer extends KeycloakRBACAuthorizer implements ClusterMetadataAuthorizer {
+public class KeycloakAuthorizer implements ClusterMetadataAuthorizer {
 
-    static final Logger log = LoggerFactory.getLogger(KeycloakAuthorizer.class);
+    private static final Logger log = LoggerFactory.getLogger(KeycloakAuthorizer.class);
 
-    private ClusterMetadataAuthorizer kraftAuthorizer;
-
-    private boolean isKRaft;
-    private AclMutator mutator;
-
-    @Override
-    AuthzConfig convertToAuthzConfig(Map<String, ?> configs) {
-        AuthzConfig superConfig = super.convertToAuthzConfig(configs);
-        isKRaft = detectKRaft(configs);
-        if (isKRaft) {
-            log.debug("Detected KRaft mode ('process.roles' configured)");
-            return new AuthzConfigWithForcedReuseGrants(superConfig);
-        }
-        return superConfig;
-    }
-
-    boolean detectKRaft(Map<String, ?> configs) {
-        // auto-detect KRaft mode
-        Object prop = configs.get("process.roles");
-        String processRoles = prop != null ? String.valueOf(prop) : null;
-        return processRoles != null && processRoles.length() > 0;
-    }
+    private final static AtomicInteger VERSION_COUNTER = new AtomicInteger(1);
+    private final int version = VERSION_COUNTER.getAndIncrement();
+    private StandardAuthorizer delegate;
+    private KeycloakRBACAuthorizer singleton;
 
     @Override
-    void setupDelegateAuthorizer(Map<String, ?> configs) {
-        if (isKRaft) {
-            try {
-                kraftAuthorizer = new StandardAuthorizer();
-                setDelegate(kraftAuthorizer);
-                log.debug("Using StandardAuthorizer (KRaft based) as a delegate");
-            } catch (Exception e) {
-                throw new ConfigException("KRaft mode detected ('process.roles' configured), but failed to instantiate org.apache.kafka.metadata.authorizer.StandardAuthorizer", e);
-            }
+    public void configure(Map<String, ?> configs) {
+        Configuration configuration = new Configuration(configs);
+
+        // There is one singleton to which authorize() calls are delegated
+        singleton = KeycloakAuthorizerService.getInstance();
+        if (singleton == null) {
+            singleton = new KeycloakRBACAuthorizer();
+            singleton.configure(configs);
+            KeycloakAuthorizerService.setInstance(singleton);
+        } else if (!configuration.equals(singleton.getConfiguration())) {
+            throw new ConfigException("Only one authorizer configuration per JVM is supported");
         }
-        super.setupDelegateAuthorizer(configs);
+
+        if (configuration.isDelegateToKafkaACL() && configuration.isKRaft()) {
+            delegate = instantiateStandardAuthorizer();
+            delegate.configure(configs);
+        }
+
+        if (log.isDebugEnabled()) {
+            log.debug("Configured " + this + " using " + singleton);
+        }
     }
 
-    /**
-     * Set the mutator object which should be used for creating and deleting ACLs.
-     */
-    @SuppressFBWarnings("EI_EXPOSE_REP2")
-    // See https://spotbugs.readthedocs.io/en/stable/bugDescriptions.html#ei2-may-expose-internal-representation-by-incorporating-reference-to-mutable-object-ei-expose-rep2
+    private StandardAuthorizer instantiateStandardAuthorizer() {
+        try {
+            log.debug("Using StandardAuthorizer (KRaft based) as a delegate");
+            return new StandardAuthorizer();
+        } catch (Exception e) {
+            throw new ConfigException("KRaft mode detected ('process.roles' configured), but failed to instantiate org.apache.kafka.metadata.authorizer.StandardAuthorizer", e);
+        }
+    }
+
+    @Override
+    public Map<Endpoint, ? extends CompletionStage<Void>> start(AuthorizerServerInfo serverInfo) {
+        if (delegate != null) {
+            return delegate.start(serverInfo);
+        }
+        return singleton.start(serverInfo);
+    }
+
+    @Override
     public void setAclMutator(AclMutator aclMutator) {
-        if (kraftAuthorizer != null) {
-            kraftAuthorizer.setAclMutator(aclMutator);
+        if (delegate != null) {
+            delegate.setAclMutator(aclMutator);
         }
-        this.mutator = aclMutator;
     }
 
-    /**
-     * Get the mutator object which should be used for creating and deleting ACLs.
-     *
-     * @throws org.apache.kafka.common.errors.NotControllerException
-     *              If the aclMutator was not set.
-     */
-    @SuppressFBWarnings("EI_EXPOSE_REP")
-    // See https://spotbugs.readthedocs.io/en/stable/bugDescriptions.html#ei-may-expose-internal-representation-by-returning-reference-to-mutable-object-ei-expose-rep
+    @Override
     public AclMutator aclMutatorOrException() {
-        if (kraftAuthorizer != null) {
-            return kraftAuthorizer.aclMutatorOrException();
+        if (delegate != null) {
+            return delegate.aclMutatorOrException();
         }
-        return mutator;
+        throw new IllegalStateException("KeycloakAuthorizer has not been properly configured");
     }
 
-    /**
-     * Complete the initial load of the cluster metadata authorizer, so that all
-     * principals can use it.
-     */
+    @Override
     public void completeInitialLoad() {
-        if (kraftAuthorizer != null) {
-            kraftAuthorizer.completeInitialLoad();
+        if (delegate != null) {
+            delegate.completeInitialLoad();
         }
     }
 
-    /**
-     * Complete the initial load of the cluster metadata authorizer with an exception,
-     * indicating that the loading process has failed.
-     */
+    @Override
     public void completeInitialLoad(Exception e) {
-        if (kraftAuthorizer != null) {
-            kraftAuthorizer.completeInitialLoad(e);
+        if (e != null) {
+            e.printStackTrace();
         }
-        log.error("Failed to load authorizer cluster metadata", e);
+        if (delegate != null) {
+            delegate.completeInitialLoad(e);
+        }
     }
 
-    /**
-     * Load the ACLs in the given map. Anything not in the map will be removed.
-     * The authorizer will also wait for this initial snapshot load to complete when
-     * coming up.
-     */
+    @Override
     public void loadSnapshot(Map<Uuid, StandardAcl> acls) {
-        if (kraftAuthorizer != null) {
-            kraftAuthorizer.loadSnapshot(acls);
+        if (delegate != null) {
+            delegate.loadSnapshot(acls);
         }
     }
 
-    /**
-     * Add a new ACL. Any ACL with the same ID will be replaced.
-     */
+    @Override
     public void addAcl(Uuid id, StandardAcl acl) {
-        if (kraftAuthorizer == null) {
-            throw new UnsupportedOperationException("StandardAuthorizer ACL delegation not enabled");
+        if (delegate != null) {
+            delegate.addAcl(id, acl);
+        } else {
+            throw new UnsupportedOperationException("ACL delegation not enabled");
         }
-        kraftAuthorizer.addAcl(id, acl);
     }
 
-    /**
-     * Remove the ACL with the given ID.
-     */
+    @Override
     public void removeAcl(Uuid id) {
-        if (kraftAuthorizer == null) {
-            throw new UnsupportedOperationException("StandardAuthorizer ACL delegation not enabled");
+        if (delegate != null) {
+            delegate.removeAcl(id);
+        } else {
+            throw new UnsupportedOperationException("ACL delegation not enabled");
         }
-        kraftAuthorizer.removeAcl(id);
     }
 
-    private static class AuthzConfigWithForcedReuseGrants extends AuthzConfig {
-        AuthzConfigWithForcedReuseGrants(Config superConfig) {
-            super(superConfig);
+    @Override
+    public Iterable<AclBinding> acls(AclBindingFilter filter) {
+        if (delegate != null) {
+            return delegate.acls(filter);
+        } else if (singleton != null) {
+            return singleton.acls(filter);
+        } else {
+            throw new UnsupportedOperationException("ACL delegation not enabled");
         }
+    }
 
-        @Override
-        public String getValue(String key, String fallback) {
-            if (AuthzConfig.STRIMZI_AUTHORIZATION_REUSE_GRANTS.equals(key)) {
-                log.debug("Configuration option '" + AuthzConfig.STRIMZI_AUTHORIZATION_REUSE_GRANTS + "' forced to 'true'");
-                return "true";
-            }
-            return super.getValue(key, fallback);
+    @Override
+    public List<? extends CompletionStage<AclCreateResult>> createAcls(AuthorizableRequestContext requestContext, List<AclBinding> aclBindings) {
+        if (delegate != null) {
+            return delegate.createAcls(requestContext, aclBindings);
+        } else if (singleton != null) {
+            return singleton.createAcls(requestContext, aclBindings);
+        } else {
+            throw new UnsupportedOperationException("ACL delegation not enabled");
         }
+    }
+
+
+    @Override
+    public List<? extends CompletionStage<AclDeleteResult>> deleteAcls(AuthorizableRequestContext requestContext, List<AclBindingFilter> aclBindingFilters) {
+        if (delegate != null) {
+            return delegate.deleteAcls(requestContext, aclBindingFilters);
+        } else if (singleton != null) {
+            return singleton.deleteAcls(requestContext, aclBindingFilters);
+        } else {
+            throw new UnsupportedOperationException("ACL delegation not enabled");
+        }
+    }
+
+    @Override
+    public int aclCount() {
+        if (delegate != null) {
+            return delegate.aclCount();
+        } else if (singleton != null) {
+            return singleton.aclCount();
+        } else {
+            throw new UnsupportedOperationException("ACL delegation not enabled");
+        }
+    }
+
+    public AuthorizationResult authorizeByResourceType(AuthorizableRequestContext requestContext, AclOperation op, ResourceType resourceType) {
+        if (delegate != null) {
+            return delegate.authorizeByResourceType(requestContext, op, resourceType);
+        } else if (singleton != null) {
+            return singleton.authorizeByResourceType(requestContext, op, resourceType);
+        } else {
+            throw new UnsupportedOperationException("ACL delegation not enabled");
+        }
+    }
+
+    @Override
+    public List<AuthorizationResult> authorize(AuthorizableRequestContext requestContext, List<Action> actions) {
+        if (delegate != null) {
+            return singleton.authorize(delegate, requestContext, actions);
+        } else {
+            return singleton.authorize(requestContext, actions);
+        }
+    }
+
+    @Override
+    public void close() throws IOException {
+        if (singleton != null) {
+            singleton.close();
+        }
+        if (delegate != null) {
+            delegate.close();
+        }
+    }
+
+    @Override
+    public String toString() {
+        return KeycloakAuthorizer.class.getSimpleName() + "@" + version;
     }
 }

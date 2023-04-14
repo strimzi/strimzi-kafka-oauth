@@ -12,6 +12,7 @@ import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.net.JksOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -139,11 +140,14 @@ public class MockOAuthServerMainVerticle extends AbstractVerticle {
     private String keystoreExpiredPass;
 
     private final Map<String, String> clients = new HashMap<>();
-    private final Map<String, String> users = new HashMap<>();
+    private final Map<String, UserInfo> users = new HashMap<>();
     private final Set<String> revokedTokens = new HashSet<>();
+
+    private final Map<String, JsonArray> grants = new HashMap<>();
+
     private RSAKey sigKey;
 
-    private Map<Endpoint, AtomicCoin> coins = new ConcurrentHashMap<>();
+    private final Map<Endpoint, AtomicCoin> coins = new ConcurrentHashMap<>();
 
     public void start() {
 
@@ -290,11 +294,11 @@ public class MockOAuthServerMainVerticle extends AbstractVerticle {
         return Collections.unmodifiableMap(clients);
     }
 
-    void createOrUpdateUser(String username, String password) {
-        users.put(username, password);
+    void createOrUpdateUser(String username, UserInfo userInfo) {
+        users.put(username, userInfo);
     }
 
-    Map<String, String> getUsers() {
+    Map<String, UserInfo> getUsers() {
         return Collections.unmodifiableMap(users);
     }
 
@@ -304,6 +308,14 @@ public class MockOAuthServerMainVerticle extends AbstractVerticle {
 
     Set<String> getRevokedTokens() {
         return Collections.unmodifiableSet(revokedTokens);
+    }
+
+    void createOrUpdateGrants(String accessToken, JsonArray value) {
+        grants.put(accessToken, value);
+    }
+
+    Map<String, JsonArray> getGrants() {
+        return Collections.unmodifiableMap(grants);
     }
 
     private static String getEnvVar(String name, String defaultValue) {

@@ -19,6 +19,7 @@ public enum Endpoint {
     USERS,
     REVOCATIONS,
     GRANTS,
+    GRANTS_MAP,
     FAILING_GRANTS;
 
     public static Endpoint fromString(String value) {

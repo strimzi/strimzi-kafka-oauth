@@ -4,6 +4,8 @@
  */
 package io.strimzi.kafka.oauth.server.authorizer;
 
+import java.util.Objects;
+
 /**
  * A class used to hold parsed superusers specs
  */
@@ -54,6 +56,19 @@ public class UserSpec {
             throw new IllegalArgumentException("Invalid user specification: " + principal);
         }
         return new UserSpec(principal.substring(0, pos), principal.substring(pos + 1));
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        UserSpec userSpec = (UserSpec) o;
+        return type.equals(userSpec.type) && name.equals(userSpec.name);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(type, name);
     }
 
     public String toString() {

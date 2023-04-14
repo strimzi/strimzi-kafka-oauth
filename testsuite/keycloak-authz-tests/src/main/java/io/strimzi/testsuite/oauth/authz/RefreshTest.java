@@ -5,6 +5,7 @@
 package io.strimzi.testsuite.oauth.authz;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.strimzi.kafka.oauth.common.HttpUtil;
 import org.apache.kafka.clients.producer.Producer;
 import org.junit.Assert;
@@ -15,15 +16,17 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+@SuppressFBWarnings("THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION")
 public class RefreshTest extends BasicTest {
 
-    RefreshTest(String kafkaBootstrap, boolean oauthOverPlain) {
-        super(kafkaBootstrap, oauthOverPlain);
+    public RefreshTest(String kafkaContainer, String kafkaBootstrap, boolean oauthOverPlain) {
+        super(kafkaContainer, kafkaBootstrap, oauthOverPlain);
     }
 
+    @Override
     public void doTest() throws Exception {
 
-        tokens = authenticateAllActors();
+        authenticateAllActors();
 
         testTeamAClientPart1();
 

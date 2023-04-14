@@ -22,7 +22,7 @@ import java.util.Optional;
 
 public class TestContainersWatcher implements TestRule {
 
-    private DockerComposeContainer<?> environment;
+    private final DockerComposeContainer<?> environment;
 
     private boolean collectLogs;
 

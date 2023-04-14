@@ -14,9 +14,7 @@ import io.strimzi.kafka.oauth.common.SSLUtil;
 import io.strimzi.kafka.oauth.common.TimeUtil;
 import io.strimzi.kafka.oauth.common.TokenInfo;
 import io.strimzi.testsuite.oauth.metrics.Metrics;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.junit.Assert;
 
@@ -33,8 +31,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
-
-import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
 
 public class Common {
 
@@ -63,12 +59,6 @@ public class Common {
         p.setProperty(ProducerConfig.RETRIES_CONFIG, "0");
     }
 
-    public static Properties buildConsumerConfigOAuthBearer(String kafkaBootstrap, Map<String, String> oauthConfig) {
-        Properties p = buildCommonConfigOAuthBearer(oauthConfig);
-        setCommonConsumerProperties(kafkaBootstrap, p);
-        return p;
-    }
-
     static Properties buildCommonConfigOAuthBearer(Map<String, String> oauthConfig) {
         String configOptions = getJaasConfigOptionsString(oauthConfig);
 
@@ -87,27 +77,6 @@ public class Common {
         return p;
     }
 
-    public static Properties buildProducerConfigScram(String kafkaBootstrap, Map<String, String> scramConfig) {
-        Properties p = buildCommonConfigScram(scramConfig);
-        setCommonProducerProperties(kafkaBootstrap, p);
-        return p;
-    }
-
-    public static Properties buildConsumerConfigPlain(String kafkaBootstrap, Map<String, String> plainConfig) {
-        Properties p = buildCommonConfigPlain(plainConfig);
-        setCommonConsumerProperties(kafkaBootstrap, p);
-        return p;
-    }
-
-    static void setCommonConsumerProperties(String kafkaBootstrap, Properties p) {
-        p.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBootstrap);
-        p.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-        p.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-        p.setProperty(ConsumerConfig.GROUP_ID_CONFIG, "consumer-group");
-        p.setProperty(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "10");
-        p.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
-    }
-
     static Properties buildCommonConfigPlain(Map<String, String> plainConfig) {
         String configOptions = getJaasConfigOptionsString(plainConfig);
 
@@ -116,53 +85,6 @@ public class Common {
         p.setProperty("sasl.mechanism", "PLAIN");
         p.setProperty("sasl.jaas.config", "org.apache.kafka.common.security.plain.PlainLoginModule required " + configOptions + " ;");
         return p;
-    }
-
-    static Properties buildCommonConfigScram(Map<String, String> scramConfig) {
-        String configOptions = getJaasConfigOptionsString(scramConfig);
-
-        Properties p = new Properties();
-        p.setProperty("security.protocol", "SASL_PLAINTEXT");
-        p.setProperty("sasl.mechanism", "SCRAM-SHA-512");
-        p.setProperty("sasl.jaas.config", "org.apache.kafka.common.security.scram.ScramLoginModule required " + configOptions + " ;");
-        return p;
-    }
-
-    static String loginWithUsernameForRefreshToken(URI tokenEndpointUri, String username, String password, String clientId) throws IOException {
-
-        JsonNode result = HttpUtil.post(tokenEndpointUri,
-                null,
-                null,
-                null,
-                WWW_FORM_CONTENT_TYPE,
-                "grant_type=password&username=" + username + "&password=" + password + "&client_id=" + clientId,
-                JsonNode.class);
-
-        JsonNode token = result.get("refresh_token");
-        if (token == null) {
-            throw new IllegalStateException("Invalid response from authorization server: no refresh_token");
-        }
-        return token.asText();
-    }
-
-    static String loginWithUsernamePassword(URI tokenEndpointUri, String username, String password, String clientId) throws IOException {
-
-        String body = "grant_type=password&username=" + urlencode(username) +
-                "&password=" + urlencode(password) + "&client_id=" + urlencode(clientId);
-
-        JsonNode result = HttpUtil.post(tokenEndpointUri,
-                null,
-                null,
-                null,
-                WWW_FORM_CONTENT_TYPE,
-                body,
-                JsonNode.class);
-
-        JsonNode token = result.get("access_token");
-        if (token == null) {
-            throw new IllegalStateException("Invalid response from authorization server: no access_token");
-        }
-        return token.asText();
     }
 
     static String loginWithClientSecret(String tokenEndpoint, String clientId, String secret, String truststorePath, String truststorePass) throws IOException {
@@ -259,11 +181,25 @@ public class Common {
                 "{\"username\": \"" + username + "\", \"password\": \"" + password + "\"}", String.class);
     }
 
+    public static void createOAuthUser(String username, String password, long expiresInSeconds) throws IOException {
+        HttpUtil.post(URI.create("http://mockoauth:8091/admin/users"),
+                null,
+                "application/json",
+                "{\"username\": \"" + username + "\", \"password\": \"" + password + "\", \"expires_in\": " + expiresInSeconds + "}", String.class);
+    }
+
     public static void revokeToken(String token) throws IOException {
         HttpUtil.post(URI.create("http://mockoauth:8091/admin/revocations"),
                 null,
                 "application/json",
                 "{\"token\": \"" + token + "\"}", String.class);
+    }
+
+    public static void addGrantsForToken(String token, String grants) throws IOException {
+        HttpUtil.post(URI.create("http://mockoauth:8091/admin/grants_map"),
+                null,
+                "application/json",
+                "{\"token\": \"" + token + "\", \"grants\": " + grants + "}", String.class);
     }
 
     public static Metrics reloadMetrics() throws IOException {
@@ -309,7 +245,7 @@ public class Common {
         }
 
         @Override
-        public ObjectNode getJSON() {
+        public ObjectNode getClaimsJSON() {
             return ti.payload();
         }
 

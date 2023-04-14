@@ -51,7 +51,7 @@ public interface BearerTokenWithPayload extends OAuthBearerToken {
      *
      * @return Token content / details as a JSON object
      */
-    ObjectNode getJSON();
+    ObjectNode getClaimsJSON();
 
     /**
      * This method returns an id of the current instance of this object.

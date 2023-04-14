@@ -27,11 +27,11 @@ public class TestUtil {
      * Get Kafka log by executing 'docker logs kafka', then extract only the entries
      * (possibly multi-line when there's a stacktrace) that contain the passed filter.
      *
-     * @param filter The string to look for (not a regex) in the log
+     * @param filters Strings to look for (not a regex) in the log - they all must be present in a line for the line to match
      * @return A list of lines from the log that match the filter (logging entries that contain the filter string)
      */
     @SuppressFBWarnings("THROWS_METHOD_THROWS_RUNTIMEEXCEPTION")
-    public static List<String> getContainerLogsForString(String containerName, String filter) {
+    public static List<String> getContainerLogsForString(String containerName, String... filters) {
         try {
             boolean inmatch = false;
             ArrayList<String> result = new ArrayList<>();
@@ -44,7 +44,13 @@ public class TestUtil {
                     // is new logging entry?
                     if (pat.matcher(line).matches()) {
                         // contains the err string?
-                        inmatch = line.contains(filter);
+                        // all filters have to match
+                        for (String filter: filters) {
+                            inmatch = line.contains(filter);
+                            if (!inmatch) {
+                                break;
+                            }
+                        }
                     }
                     if (inmatch) {
                         result.add(line);
@@ -80,5 +86,11 @@ public class TestUtil {
                 Thread.sleep(loopPauseMs);
             }
         } while (!done);
+    }
+
+    public static void logStart(String msg) {
+        System.out.println();
+        System.out.println("========    "  + msg);
+        System.out.println();
     }
 }

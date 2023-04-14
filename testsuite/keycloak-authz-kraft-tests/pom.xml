@@ -38,6 +38,10 @@
             <groupId>io.strimzi.oauth.testsuite</groupId>
             <artifactId>common</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.strimzi.oauth.testsuite</groupId>
+            <artifactId>keycloak-authz-tests</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>io.strimzi</groupId>

@@ -5,9 +5,11 @@
 package io.strimzi.kafka.oauth.server;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
 import io.strimzi.kafka.oauth.common.JSONUtil;
 import io.strimzi.kafka.oauth.common.TokenInfo;
+import org.apache.kafka.common.security.auth.KafkaPrincipal;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -31,9 +33,9 @@ public class OAuthKafkaPrincipalTest {
         OAuthKafkaPrincipal principal2 = new OAuthKafkaPrincipal("User", "service-account-my-client", token2);
 
 
-        OAuthKafkaPrincipal principal3 = new OAuthKafkaPrincipal("User", "service-account-my-client");
+        OAuthKafkaPrincipal principal3 = new OAuthKafkaPrincipal("User", "service-account-my-client", null);
 
-        OAuthKafkaPrincipal principal4 = new OAuthKafkaPrincipal("User", "bob");
+        OAuthKafkaPrincipal principal4 = new OAuthKafkaPrincipal("User", "bob", null);
 
 
         Assert.assertEquals("principal should be equal to principal2", principal, principal2);
@@ -72,9 +74,41 @@ public class OAuthKafkaPrincipalTest {
 
         JsonNode parsed = JSONUtil.readJSON(json, JsonNode.class);
         TokenInfo tki = new TokenInfo(parsed, rawToken, "bob");
-        BearerTokenWithPayload jwt = new BearerTokenWithGrants(tki);
+        BearerTokenWithPayload jwt = new BearerTokenWithJsonPayload(tki);
         OAuthKafkaPrincipal principalJwt = new OAuthKafkaPrincipal("User", "bob", jwt);
 
-        Assert.assertEquals("Can access parsed JWT", parsed, principalJwt.getJwt().getJSON());
+        Assert.assertEquals("Can access parsed JWT", parsed, principalJwt.getJwt().getClaimsJSON());
+    }
+
+    @Test
+    public void testSerialisation() throws IOException {
+
+        OAuthKafkaPrincipalBuilder builder = new OAuthKafkaPrincipalBuilder();
+
+        HashSet<String> groups = new HashSet<>();
+        groups.add("admins");
+        groups.add("operations");
+
+        HashSet<String> scopes = new HashSet<>();
+        scopes.add("offline");
+        scopes.add("openid");
+
+        long iat = System.currentTimeMillis() - 3600_000;
+        long exp = System.currentTimeMillis() + 3600_000;
+        String jwtBody = "{\"username\":\"alice\",\"exp\":" + exp / 1000 + ",\"groups\":[\"admins\",\"operations\"]}";
+        TokenInfo tokenInfo = new TokenInfo("mock.accesstoken.", scopes, "alice", groups, iat, exp, JSONUtil.readJSON(jwtBody, ObjectNode.class));
+        BearerTokenWithJsonPayload token = new BearerTokenWithJsonPayload(tokenInfo);
+        OAuthKafkaPrincipal principal = new OAuthKafkaPrincipal("User", "alice", token);
+
+
+        byte[] serialized = builder.serialize(principal);
+        KafkaPrincipal deserialized = builder.deserialize(serialized);
+
+        Assert.assertTrue("Is OAuthKafkaPrincipal", deserialized instanceof OAuthKafkaPrincipal);
+        OAuthKafkaPrincipal oauthDeserialized = (OAuthKafkaPrincipal) deserialized;
+        Assert.assertEquals("name", principal.getName(), oauthDeserialized.getName());
+        Assert.assertEquals("type", principal.getPrincipalType(), oauthDeserialized.getPrincipalType());
+        Assert.assertEquals("groups", principal.getGroups(), oauthDeserialized.getGroups());
+        Assert.assertEquals("tokenInfo", principal.getJwt(), oauthDeserialized.getJwt());
     }
 }

@@ -172,20 +172,20 @@ public class JSONUtil {
     /**
      * Set an array attribute on a JSON object to a collection of Strings
      *
-     * @param object The target JSON object
+     * @param target The target JSON object
      * @param attrName An attribute name
      * @param elements The collection of strings
      * @return Newly created ArrayNode
      */
-    public static ArrayNode setArrayOfStringsIfNotNull(JsonNode object, String attrName, Collection<String> elements) {
+    public static ArrayNode setArrayOfStringsIfNotNull(JsonNode target, String attrName, Collection<String> elements) {
         if (elements == null) {
             return null;
         }
-        if (!(object instanceof ObjectNode)) {
-            throw new IllegalArgumentException("Unexpected JSON Node type (not ObjectNode): " + object.getClass());
+        if (!(target instanceof ObjectNode)) {
+            throw new IllegalArgumentException("Unexpected JSON Node type (not ObjectNode): " + target.getClass());
         }
 
-        ArrayNode list = ((ObjectNode) object).putArray(attrName);
+        ArrayNode list = ((ObjectNode) target).putArray(attrName);
         for (String g: elements) {
             list.add(g);
         }

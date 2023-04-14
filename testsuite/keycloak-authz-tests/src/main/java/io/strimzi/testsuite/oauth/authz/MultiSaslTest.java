@@ -4,14 +4,12 @@
  */
 package io.strimzi.testsuite.oauth.authz;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.strimzi.kafka.oauth.client.ClientConfig;
 import io.strimzi.testsuite.oauth.common.TestMetrics;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.Producer;
-import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.errors.AuthenticationException;
+import org.apache.kafka.common.errors.AuthorizationException;
 import org.junit.Assert;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -20,25 +18,25 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ExecutionException;
 
 import static io.strimzi.testsuite.oauth.authz.Common.buildProducerConfigOAuthBearer;
 import static io.strimzi.testsuite.oauth.authz.Common.buildProducerConfigPlain;
-import static io.strimzi.testsuite.oauth.authz.Common.buildProducerConfigScram;
+import static io.strimzi.testsuite.oauth.authz.Common.produceToTopic;
 import static io.strimzi.testsuite.oauth.common.TestMetrics.getPrometheusMetrics;
 import static io.strimzi.testsuite.oauth.common.TestUtil.getContainerLogsForString;
 
+@SuppressFBWarnings("THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION")
 public class MultiSaslTest {
 
-    private static final Logger log = LoggerFactory.getLogger(MultiSaslTest.class);
-
     private static final String PLAIN_LISTENER = "kafka:9100";
-    private static final String SCRAM_LISTENER = "kafka:9101";
+
     private static final String JWT_LISTENER = "kafka:9092";
     private static final String JWTPLAIN_LISTENER = "kafka:9094";
 
     private final String kafkaContainer;
 
-    MultiSaslTest(String kafkaContainer) {
+    public MultiSaslTest(String kafkaContainer) {
         this.kafkaContainer = kafkaContainer;
     }
 
@@ -61,78 +59,25 @@ public class MultiSaslTest {
         try {
             produceToTopic("KeycloakAuthorizationTest-multiSaslTest-plain-denied", producerProps);
             Assert.fail("Should have failed");
-        } catch (Exception ignored) {
+        } catch (ExecutionException e) {
+            Assert.assertTrue("Instance of authorization exception", e.getCause() instanceof AuthorizationException);
         }
-
-        // Producing to SCRAM listener using SASL_SCRAM-SHA-512 should fail.
-        // User 'bobby' has not been configured for SCRAM in 'docker/kafka/scripts/start.sh'
-        producerProps = producerConfigScram(SCRAM_LISTENER, username, password);
-        try {
-            produceToTopic("KeycloakAuthorizationTest-multiSaslTest-scram", producerProps);
-            Assert.fail("Should have failed");
-        } catch (Exception ignored) {
-        }
-
-
-        // alice:alice-secret (user 'alice' has been configured for SCRAM in 'docker/kafka/scripts/start.sh')
-        username = "alice";
-        password = "alice-secret";
-
-        // Producing to PLAIN listener using SASL/PLAIN should fail.
-        // User 'alice' has not been configured for PLAIN in PLAIN listener configuration in 'docker-compose.yml'
-        producerProps = producerConfigPlain(PLAIN_LISTENER, username, password);
-        try {
-            produceToTopic("KeycloakAuthorizationTest-multiSaslTest-plain", producerProps);
-            Assert.fail("Should have failed");
-        } catch (Exception ignored) {
-        }
-
-        // Producing to SCRAM listener using SASL_SCRAM-SHA-512 should succeed.
-        // The necessary ACLs have been added by 'docker/kafka-acls/scripts/add-acls.sh'
-        producerProps = producerConfigScram(SCRAM_LISTENER, username, password);
-        produceToTopic("KeycloakAuthorizationTest-multiSaslTest-scram", producerProps);
-        try {
-            produceToTopic("KeycloakAuthorizationTest-multiSaslTest-scram-denied", producerProps);
-            Assert.fail("Should have failed");
-        } catch (Exception ignored) {
-        }
-
-        // OAuth authentication should fail
-        try {
-            Common.loginWithUsernamePassword(
-                    URI.create("http://keycloak:8080/auth/realms/kafka-authz/protocol/openid-connect/token"),
-                    username, password, "kafka-cli");
-
-            Assert.fail("Should have failed");
-        } catch (Exception ignored) {
-        }
-
 
         // alice:alice-password
         username = "alice";
         password = "alice-password";
 
         // Producing to PLAIN listener using SASL/PLAIN should fail.
-        // User 'alice' was not configured for PLAIN in 'docker-compose.yml'
+        // User 'alice' was not configured in PLAIN listener jaas configuration (port 9100) in 'docker-compose.yml'
         producerProps = producerConfigPlain(PLAIN_LISTENER, username, password);
         try {
             produceToTopic("KeycloakAuthorizationTest-multiSaslTest-plain", producerProps);
             Assert.fail("Should have failed");
-        } catch (Exception ignored) {
+        } catch (ExecutionException e) {
+            Assert.assertTrue("Instance of authentication exception", e.getCause() instanceof AuthenticationException);
         }
 
-        // Producing to SCRAM listener using SASL_SCRAM-SHA-512 should fail.
-        // User 'alice' was configured for SASL SCRAM in 'docker/kafka/scripts/start.sh' but with a different password
-        producerProps = producerConfigScram(SCRAM_LISTENER, username, password);
-        try {
-            produceToTopic("KeycloakAuthorizationTest-multiSaslTest-scram", producerProps);
-            Assert.fail("Should have failed");
-        } catch (Exception ignored) {
-        }
-
-        // Test the grants reuse feature
         int fetchGrantsCount = currentFetchGrantsLogCount();
-        checkAuthorizationGrantsReuse(0);
 
         // Producing to JWT listener using SASL/OAUTHBEARER using access token should succeed
         String accessToken = Common.loginWithUsernamePassword(
@@ -141,8 +86,6 @@ public class MultiSaslTest {
         producerProps = producerConfigOAuthBearerAccessToken(JWT_LISTENER, accessToken);
         produceToTopic("KeycloakAuthorizationTest-multiSaslTest-oauthbearer", producerProps);
 
-        // Test the grants reuse feature
-        checkAuthorizationGrantsReuse(2);
         checkGrantsFetchCountDiff(fetchGrantsCount);
 
         // producing to JWTPLAIN listener using SASL/PLAIN using $accessToken should succeed
@@ -155,16 +98,6 @@ public class MultiSaslTest {
         // check metrics
         checkAuthorizationRequestsMetrics(authHostPort, tokenPath);
         checkGrantsMetrics(authHostPort, tokenPath);
-    }
-
-    private void checkAuthorizationGrantsReuse(int numberOfReuses) {
-        List<String> lines = getContainerLogsForString(kafkaContainer, "Found existing grants for the token on another session");
-
-        if (numberOfReuses == 0) {
-            Assert.assertEquals("There should be no reuse of existing grants in Kafka log yet", 0, lines.size());
-        } else {
-            Assert.assertTrue("There should be " + numberOfReuses + " reuses of existing grants in Kafka log", lines.size() >= numberOfReuses);
-        }
     }
 
     private int currentFetchGrantsLogCount() {
@@ -185,11 +118,14 @@ public class MultiSaslTest {
         value = metrics.getValueSum("strimzi_oauth_http_requests_totaltimems", "kind", "keycloak-authorization", "host", authHostPort, "path", tokenPath, "outcome", "success");
         Assert.assertTrue("strimzi_oauth_http_requests_totaltimems for keycloak-authorization > 0", value.doubleValue() > 0.0);
 
-        value = metrics.getValueSum("strimzi_oauth_http_requests_count", "kind", "keycloak-authorization", "host", authHostPort, "path", tokenPath, "outcome", "error", "status", "403");
-        Assert.assertTrue("strimzi_oauth_http_requests_count with no-grants for keycloak-authorization > 0", value.intValue() > 0);
+        // There are 403 responses in Zookeeper mode, but not in KRaft mode
+        // Apparently the inter-broker session to JWT listener is not attempted in KRaft mode
 
-        value = metrics.getValueSum("strimzi_oauth_http_requests_totaltimems", "kind", "keycloak-authorization", "host", authHostPort, "path", tokenPath, "outcome", "error", "status", "403");
-        Assert.assertTrue("strimzi_oauth_http_requests_totaltimems with no-grants for keycloak-authorization > 0", value.doubleValue() > 0.0);
+        //value = metrics.getValueSum("strimzi_oauth_http_requests_count", "kind", "keycloak-authorization", "host", authHostPort, "path", tokenPath, "outcome", "error", "status", "403");
+        //Assert.assertTrue("strimzi_oauth_http_requests_count with no-grants for keycloak-authorization > 0", value.intValue() > 0);
+
+        //value = metrics.getValueSum("strimzi_oauth_http_requests_totaltimems", "kind", "keycloak-authorization", "host", authHostPort, "path", tokenPath, "outcome", "error", "status", "403");
+        //Assert.assertTrue("strimzi_oauth_http_requests_totaltimems with no-grants for keycloak-authorization > 0", value.doubleValue() > 0.0);
     }
 
     private static void checkAuthorizationRequestsMetrics(String authHostPort, String tokenPath) throws IOException {
@@ -208,14 +144,6 @@ public class MultiSaslTest {
         Assert.assertEquals("strimzi_oauth_authorization_requests_totaltimems for failed keycloak-authorization == 0", 0.0, value.doubleValue(), 0.0);
     }
 
-    private static Properties producerConfigScram(String kafkaBootstrap, String username, String password) {
-        Map<String, String> scramConfig = new HashMap<>();
-        scramConfig.put("username", username);
-        scramConfig.put("password", password);
-
-        return buildProducerConfigScram(kafkaBootstrap, scramConfig);
-    }
-
     private static Properties producerConfigPlain(String kafkaBootstrap, String username, String password) {
         Map<String, String> scramConfig = new HashMap<>();
         scramConfig.put("username", username);
@@ -230,13 +158,5 @@ public class MultiSaslTest {
         oauthConfig.put(ClientConfig.OAUTH_USERNAME_CLAIM, "preferred_username");
 
         return buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
-    }
-
-    private static void produceToTopic(String topic, Properties config) throws Exception {
-
-        Producer<String, String> producer = new KafkaProducer<>(config);
-
-        producer.send(new ProducerRecord<>(topic, "The Message")).get();
-        log.debug("Produced The Message");
     }
 }

@@ -73,10 +73,10 @@ User authentication is then an outside step which user manually performs to obta
 In the simplest case, the client application can authenticate in its own name using client 
 credentials - client id and secret.
 While the client secret is in this case packaged with application client, the benefit is still that it is not shared with application server (Kafka broker in our case) - the client first performs authentication against OAuth2 authorization server in exchange for an access token, which it then sends to the application server instead of its secret.
-Access tokens can be independently tracked and revoked at will, and represent a limited access to resources on application server.
+Access tokens can be independently tracked and revoked at will, and represent limited access to resources on application server.
 
 In a more advanced case, user authenticates and authorizes the application client in exchange for a token.
-The client application is then packaged with only a long lived access token or a long lived refresh token.
+The client application is then packaged with only a long-lived access token or a long-lived refresh token.
 User's username and password are never packaged with application client.
 If access token is configured it is sent directly to Kafka broker during session initialisation.
 But if refresh token is configured, it is first used to ask authorization server for a new access token, which is then sent to Kafka broker to start a new authenticated session.
@@ -110,7 +110,7 @@ Building
 Installing
 ----------
 
-Copy the following jars into your Kafka libs directory:
+Copy the following jars into your Kafka `libs` directory:
 
     oauth-common/target/kafka-oauth-common-*.jar
     oauth-server/target/kafka-oauth-server-*.jar
@@ -135,7 +135,7 @@ Also, you may want each developer to have a user account in order to configure u
 Configuring users, clients, and authorizing clients, obtaining access tokens, and refresh tokens are steps that are specific to the authorization server that you use.
 Consult your authorization server's documentation.
 
-If you use the KeycloakAuthorizer for authorization, then you have to use Keycloak or Keycloak based authorization server to configure security policies and permissions for users and service accounts.
+If you use the `KeycloakAuthorizer` for authorization, then you have to use Keycloak or Keycloak based authorization server to configure security policies and permissions for users and service accounts.
  
 Configuring the Kafka Broker 
 ----------------------------
@@ -145,7 +145,7 @@ Strimzi Kafka OAuth therefore needs to use JAAS configuration to activate SASL/O
 This is true for configuring the server side of the Kafka Broker, as well as for the Kafka client side - when using OAuth 2 for inter-broker communication.
 
 The authentication configuration specific to the Strimzi Kafka OAuth can be specified as part of JAAS configuration in the form of JAAS parameter values. 
-The authorization configuration for KeycloakAuthorizer is specified as `server.properties` key-value pairs.
+The authorization configuration for `KeycloakAuthorizer` is specified as `server.properties` key-value pairs.
 Both authentication and authorization configuration specific to Strimzi Kafka OAuth can also be set as ENV vars, or as Java system properties.
 The limitation here is that authentication configuration specified in this manner can not be listener-scoped. 
 
@@ -274,7 +274,7 @@ In terms of precedence the order of looking for a configuration is the following
 
 Whichever is found first is the one that is used.
 
-Similarly for authorization the `strimzi.*` properties follow a similar lookup mechanism except that they don't use JAAS config, but are specified as `server.properties` keys.
+Similarly, for authorization the `strimzi.*` properties follow a similar lookup mechanism except that they don't use JAAS config, but are specified as `server.properties` keys.
 For example, the order of looking for configuration for `strimzi.client.id` would be the following:
 - System property `strimzi.client.id`
 - ENV var `STRIMZI_CLIENT_ID`
@@ -314,13 +314,13 @@ If the configured `oauth.client.id` is `kafka`, the following are valid examples
 - "kafka"
 - \["rest-api", "kafka"\]
 
-JWT tokens contain unique user identification in `sub` claim. However, this is often a long number or a UUID, but we usually prefer to use human readable usernames, which may also be present in JWT token.
+JWT tokens contain unique user identification in `sub` claim. However, this is often a long number or a UUID, but we usually prefer to use human-readable usernames, which may also be present in JWT token.
 Use `oauth.username.claim` to map the claim (attribute) where the value you want to use as user id is stored:
 - `oauth.username.claim` (e.g.: "preferred_username")
 
 If `oauth.username.claim` is specified the value of that claim is used instead, but if not set, the automatic fallback claim is the `sub` claim.
 
-You can specify the secondary claim to fallback to, which allows you to map multiple account types into the same principal namespace: 
+You can specify the secondary claim to fall back to, which allows you to map multiple account types into the same principal namespace: 
 - `oauth.fallback.username.claim` (e.g.: "client_id")
 - `oauth.fallback.username.prefix` (e.g.: "client-account-")
 
@@ -355,7 +355,7 @@ You can control the minimum pause between two consecutive scheduled keys refresh
 
 All access tokens can be invalidated by rotating the keys on authorization server and expiring old keys.
 
-Some authorization servers don't specify the `"use": "sig"` attribute in validation keys in the JWKS endpoint response. By default only the public keys with `"use": "sig"` are considered for signature validation. There is an option to ignore the `use` attribute, and consider all the keys for token signature validation:
+Some authorization servers don't specify the `"use": "sig"` attribute in validation keys in the JWKS endpoint response. By default, only the public keys with `"use": "sig"` are considered for signature validation. There is an option to ignore the `use` attribute, and consider all the keys for token signature validation:
 - `oauth.jwks.ignore.key.use` (e.g.: "true" - ignore the `use` attribute on the keys in JWKS response)
 
 During the Kafka broker startup, a request to the JWKS endpoint immediately tries to load the keys.
@@ -402,7 +402,7 @@ If the information is available we attempt to extract the user id from Introspec
 Use `oauth.username.claim` to map the attribute where the user id is stored:
 - `oauth.username.claim` (e.g.: "preferred_username")
 
-You can fallback to a secondary attribute, which allows you to map multiple account types into the same user id namespace: 
+You can fall back to a secondary attribute, which allows you to map multiple account types into the same user id namespace: 
 - `oauth.fallback.username.claim` (e.g.: "client_id")
 - `oauth.fallback.username.prefix` (e.g.: "client-account-")
 
@@ -551,7 +551,7 @@ Then, you need to configure the `sasl.jaas.config` with client configuration opt
 
 All the Kafka brokers in the cluster should be configured with the same client ID and secret, and the corresponding user should be added to `super.users` since inter-broker client requires super-user permissions.
 
-When you configure your listener to support OAuth, you can configure it to support OAUTHBEARER, but you can also configure it to support the OAuth over PLAIN as explained previously. PLAIN does not make much sense on the broker for inter-broker communication since OAUTHBEARER is supported. Therefore it is best to only use OAUTHBEARER mechanism for inter-broker communication.
+When you configure your listener to support OAuth, you can configure it to support OAUTHBEARER, but you can also configure it to support the OAuth over PLAIN as explained previously. PLAIN does not make much sense on the broker for inter-broker communication since OAUTHBEARER is supported. Therefore, it is best to only use OAUTHBEARER mechanism for inter-broker communication.
 
 Specify the following `oauth.*` properties in `sasl.jaas.config` configuration:
 - `oauth.token.endpoint.uri` (e.g.: "https://localhost:8443/auth/realms/demo/protocol/openid-connect/token")
@@ -668,7 +668,7 @@ Instead, specify the following configuration:
 
     strimzi.authorizer.grant.when.no.delegate=true
 
-In this case, unless the access token has expired, all the actions will be granted. The broker will behave as if no authorizer was installed, effectively turning every user into a 'super user'.
+In this case, unless the access token has expired, all the actions will be granted. The broker will behave as if no authorizer was installed, effectively turning every user into a 'superuser'.
 The unauthenticated users, or users authenticated with a mechanism other than OAuth will also automatically have all the actions granted.
 
 Note: When using SASL/PLAIN authentication in combination with `KeycloakAuthorizer` or `OAuthSessionAuthorizer` the Kafka client session will expire when the access token expires.
@@ -687,8 +687,8 @@ They behave the same and handle the standard Kafka ACL based permissions as docu
 Strimzi Kafka OAuth provides an alternative authorizer - `io.strimzi.kafka.oauth.server.authorizer.KeycloakAuthorizer`.
 `KeycloakAuthorizer` uses the access token and the Token Endpoint of the same Keycloak realm used for OAuth2 authentication as a source of permission grants for the authenticated session.
 
-Note: Do not use `KeycloakRBACAuthorizer` directly as it only works in Zookeeper mode when standard ACL delegation is enabled. 
-Use `KeycloakAuthorizer` instead, as it detects the runtime environment, and delegates to `ACLAuthorizer` when in Zookeeper mode, and to `StandardAuthorizer` when in KRaft mode (as detected based on the presence of `process.roles` config property). 
+Note: In `Kafka` versions prior to 3.3.x `io.strimzi.kafka.oauth.server.authorizer.KeycloakRBACAuthorizer` class should be used for the authorizer. For latest versions of `Kafka` the `KeycloakAuthorizer` which supports both KRaft mode and Zookeeper mode should be used. 
+The `KeycloakAuthorizer` detects the runtime environment, and delegates to `ACLAuthorizer` when in Zookeeper mode, and to `StandardAuthorizer` when in KRaft mode (as detected based on the presence of `process.roles` config property). 
 
 #### Enabling the KeycloakAuthorizer
 
@@ -706,7 +706,7 @@ The token endpoint used by KeycloakAuthorizer has to be the same as the one used
 - `strimzi.authorization.token.endpoint.uri` (e.g.: "https://localhost:8443/auth/realms/demo/protocol/openid-connect/token" - the endpoint used to exchange the access token for a list of grants)
 - `strimzi.authorization.client.id` (e.g.: "kafka" - the client representing a Kafka Broker which has Authorization Services enabled)
 
-The authorizer will regularly reload the list of grants for active sessions. By default it will do this once every minute.
+The authorizer will regularly reload the list of grants for active sessions. By default, it will do this once every minute.
 You can change this period or turn it off for debugging reasons (by setting it to "0"):
 - `strimzi.authorization.grants.refresh.period.seconds` (e.g.: "120" - the refresh job period in seconds)
 
@@ -728,14 +728,21 @@ A single client typically uses a single unique access token for the concurrent s
 As a result, the number of active tokens on the broker is generally less than the number of active sessions (connections).
 However, keep in mind that this is replicated across all Kafka brokers in the cluster, as clients maintain active sessions to multiple brokers.
 
-New sessions will, by default, request the latest grants from the Keycloak in order for any changes in permissions to be reflected immediately.
-You can change this, and reuse the grants for the token, if they have previously been fetched due to the same token already having been used
-for another session on the broker. This can noticeably reduce the load from brokers to the Keycloak and can also help alleviate 'glitchiness' issues
-addressed by `strimzi.authorization.http.retries`. However, as a result, the grants initially used for the new session may be out-of-sync with
-Keycloak for up to `strimzi.authorization.grants.refresh.period.seconds`. This option is automatically enabled in KRaft more if delegation to Kafka ACL is enabled.
-- `strimzi.authorization.reuse.grants` (e.g.: "true" - if enabled, then grants fetched for another session may be used)
+Keycloak Authorization Services requires an access token to provide the grants for the user session. In the context of Kafka authorization the permissions are tied to a specific user id / principal name.
+Multiple sessions and multiple access tokens for the same user will receive the same set of grants. For that reason the grants are cached in Keycloak authorizer 'per user', rather than 'per access token'.
+The authorizer by default checks if the grants for the current user are available in grants cache. If grants are available, the existing grants are used. If not, they are fetched from Keycloak using the current session's access token and the current thread.
+Once the grants are cached they will stay in the cache for the duration of the session or until the access token used to fetch them expires. There is a background job that periodically refreshes the cached grants (see: `strimzi.authorization.grants.refresh.period.seconds`).
+The consequence of such a behavior is that the grants used for a new session may be out of sync with the state on the Keycloak server for up to the configured grants refresh period.
+Sometimes you may want (e.g. for the debug purposes, for any changes in permissions to be reflected immediately) to fetch fresh grants for each newly established session, rather than use the already cached ones.
+Note that this can noticeably increase the load from brokers to the Keycloak and aggravate any 'glitchiness' issues in communication with the Keycloak.
+To enable such behavior, set the following option to `false`.
+- `strimzi.authorization.reuse.grants` (e.g.: "false" - if set to false, then when a new session is established the grants will be fetched from Keycloak using that session's access token and cached to grants cache)
 
-You may also want to configure some other things. You may want to set a logical cluster name so you can target it with authorization rules:
+Note, this option used to be set to `false` by default in version 0.12.0.
+In versions prior to 0.13.0 the grants were cached per access token, rather than per user id / principal name.
+
+
+There are some other things you may also want to configure. You may want to set a logical cluster name so you can target it with authorization rules:
 - `strimzi.authorization.kafka.cluster.name` (e.g.: "dev-cluster" - a logical name of the cluster which can be targeted with authorization services resource definitions, and permission policies)
 
 You can integrate KeycloakAuthorizer with AclAuthorizer (in Zookeeper mode) or StandardAuthorizer (in KRaft mode):
@@ -972,7 +979,7 @@ For debug purposes you may want to properly configure which JWT token attribute 
 This does not affect how Kafka client is presented to the Kafka Broker.
 The broker performs user id extraction from the token once again or it uses the Introspection Endpoint or the User Info Endpoint to get the user id.
 
-By default the user id on the Kafka client is obtained from `sub` claim in the token - only if token is JWT. 
+By default, the user id on the Kafka client is obtained from `sub` claim in the token - only if token is JWT. 
 Client side user id extraction is not possible when token is an opaque token - not JWT.
 
 You may want to explicitly specify the period the access token is considered valid. This allows you to shorten the token's lifespan.
@@ -1094,7 +1101,7 @@ try {
 }
 ```
 
-Similarly for asynchronous API:
+Similarly, for asynchronous API:
 
 ```
 Producer<String, String> producer = new KafkaProducer<>(props);
@@ -1390,7 +1397,7 @@ Troubleshooting
 
 There are many reasons the token can be invalid, and rejected by Kafka broker during authentication.
 
-Here is a check list of most common problems:
+Here is a checklist of most common problems:
 
 * The client should use the same HOST and PORT when connecting to the Authorization Server as the Kafka broker.
 
@@ -1414,4 +1421,4 @@ The JWT tokens are signed by the authorization server when they are issued. The 
 
 The client may have obtained a new access token, but the Kafka broker has not yet refreshed the public keys from JWKS endpoint resulting in a mismatch. The Kafka Broker will automatically refresh JWT keys if it encounters an unknown `kid`, and the problem will self-correct in this case, you may just need to repeat your request a few times.
 
-It can also happen the other way around. Your existing client may still use the refresh token or the access token issued by the previous authorization server instance while the Kafka broker has already refreshed the keys from JWKS endpoint - resulting in a mismatch between the private key used by authorization server to sign the token, and the published public keys (JWKS endpoint). Since the problem is on the client you may need to configure your client with a newly obtained refresh token, or access token. If you configure your client with clientId and secret, it should auto-correct by itself, you just need to restart it.
+It can also happen the other way around. Your existing client may still use the refresh token or the access token issued by the previous authorization server instance while the Kafka broker has already refreshed the keys from JWKS endpoint - resulting in a mismatch between the private key used by authorization server to sign the token, and the published public keys (JWKS endpoint). Since the problem is on the client you may need to configure your client with a newly obtained refresh token, or access token. If you configure your client with clientId and secret, it should autocorrect by itself, you just need to restart it.

@@ -87,6 +87,24 @@
         "account" : [ "view-profile", "manage-account" ]
       },
       "groups" : [ "/ClusterManager-my-cluster Group" ]
+    }, {
+      "username" : "zero",
+      "enabled" : true,
+      "totp" : false,
+      "emailVerified" : true,
+      "firstName" : "Zero",
+      "email" : "zero@strimzi.io",
+      "credentials" : [ {
+        "type" : "password",
+        "value" : "zero-password"
+      } ],
+      "disableableCredentialTypes" : [ ],
+      "requiredActions" : [ ],
+      "realmRoles" : [ "offline_access", "uma_authorization" ],
+      "clientRoles" : {
+        "account" : [ "view-profile", "manage-account" ]
+      },
+      "groups" : []
     },
     {
       "username" : "service-account-team-a-client",

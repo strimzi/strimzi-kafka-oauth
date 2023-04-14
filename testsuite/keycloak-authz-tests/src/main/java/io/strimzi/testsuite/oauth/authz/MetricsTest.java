@@ -4,6 +4,7 @@
  */
 package io.strimzi.testsuite.oauth.authz;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.strimzi.testsuite.oauth.common.TestMetrics;
 import org.junit.Assert;
 
@@ -12,20 +13,20 @@ import java.net.URI;
 
 import static io.strimzi.testsuite.oauth.common.TestMetrics.getPrometheusMetrics;
 
+@SuppressFBWarnings("THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION")
 public class MetricsTest {
+
+    private static final String AUTH_HOST_PORT = "keycloak:8080";
+    private static final String REALM = "kafka-authz";
+    private static final String JWKS_PATH = "/auth/realms/" + REALM + "/protocol/openid-connect/certs";
 
     public static void doTest() throws Exception {
 
-        final String authHostPort = "keycloak:8080";
-        final String realm = "kafka-authz";
-        final String jwksPath = "/auth/realms/" + realm + "/protocol/openid-connect/certs";
-        final String tokenPath = "/auth/realms/" + realm + "/protocol/openid-connect/token";
-
         TestMetrics metrics = getPrometheusMetrics(URI.create("http://kafka:9404/metrics"));
-        BigDecimal value = metrics.getValueSum("strimzi_oauth_http_requests_count", "kind", "jwks", "host", authHostPort, "path", jwksPath, "outcome", "success");
+        BigDecimal value = metrics.getValueSum("strimzi_oauth_http_requests_count", "kind", "jwks", "host", AUTH_HOST_PORT, "path", JWKS_PATH, "outcome", "success");
         Assert.assertTrue("strimzi_oauth_http_requests_count for jwks > 0", value.doubleValue() > 0.0);
 
-        value = metrics.getValueSum("strimzi_oauth_http_requests_totaltimems", "kind", "jwks", "host", authHostPort, "path", jwksPath, "outcome", "success");
+        value = metrics.getValueSum("strimzi_oauth_http_requests_totaltimems", "kind", "jwks", "host", AUTH_HOST_PORT, "path", JWKS_PATH, "outcome", "success");
         Assert.assertTrue("strimzi_oauth_http_requests_totaltimems for jwks > 0.0", value.doubleValue() > 0.0);
 
         // Accross all the listeners there should only be 2 client authentication requests - those for inter-broker connection on JWT listener
@@ -34,15 +35,22 @@ public class MetricsTest {
 
         value = metrics.getValueSum("strimzi_oauth_authentication_requests_totaltimems", "kind", "client-auth", "outcome", "success");
         Assert.assertTrue("strimzi_oauth_authentication_requests_totaltimems for client-auth > 0.0", value.doubleValue() > 0.0);
+    }
 
-        // Inter-broker auth triggered the only successful validation request
-        value = metrics.getValueSum("strimzi_oauth_validation_requests_count", "kind", "jwks", "mechanism", "OAUTHBEARER", "outcome", "success");
-        Assert.assertEquals("strimzi_oauth_validation_requests_count for jwks == 1", 1, value.intValue());
+    public static void doTestValidationAndAuthorization() throws Exception {
+
+        final String tokenPath = "/auth/realms/" + REALM + "/protocol/openid-connect/token";
+
+        TestMetrics metrics = getPrometheusMetrics(URI.create("http://kafka:9404/metrics"));
+
+        BigDecimal value = metrics.getValueSum("strimzi_oauth_validation_requests_count", "kind", "jwks", "mechanism", "OAUTHBEARER", "outcome", "success");
+        Assert.assertTrue("strimzi_oauth_validation_requests_count for jwks > 0", value.intValue() > 0);
 
         value = metrics.getValueSum("strimzi_oauth_validation_requests_totaltimems", "kind", "jwks", "mechanism", "OAUTHBEARER", "outcome", "success");
         Assert.assertTrue("strimzi_oauth_validation_requests_totaltimems for jwks > 0.0", value.doubleValue() > 0.0);
 
-        value = metrics.getValueSum("strimzi_oauth_http_requests_count", "kind", "keycloak-authorization", "host", authHostPort, "path", tokenPath, "outcome", "error");
+        // No 403 (no grants) responses in this test
+        value = metrics.getValueSum("strimzi_oauth_http_requests_count", "kind", "keycloak-authorization", "host", AUTH_HOST_PORT, "path", tokenPath, "outcome", "success");
         Assert.assertTrue("strimzi_oauth_http_requests_count for keycloak-authorization > 0.0", value.doubleValue() > 0.0);
     }
 }

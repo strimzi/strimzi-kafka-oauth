@@ -11,6 +11,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -127,6 +128,12 @@ public class TokenInfo {
     @SuppressFBWarnings("EI_EXPOSE_REP2")
     // See: https://spotbugs.readthedocs.io/en/stable/bugDescriptions.html#ei2-may-expose-internal-representation-by-incorporating-reference-to-mutable-object-ei-expose-rep2
     public TokenInfo(String token, Set<String> scopes, String principal, Set<String> groups, long issuedAtMs, long expiresAtMs, JsonNode payload) {
+        if (token == null) {
+            throw new IllegalArgumentException("token can't be null");
+        }
+        if (principal == null) {
+            throw new IllegalArgumentException("principal can't be null");
+        }
         this.token = token;
         this.principal = principal;
         this.groups = groups != null ? Collections.unmodifiableSet(groups) : null;
@@ -210,5 +217,24 @@ public class TokenInfo {
     @SuppressFBWarnings("EI_EXPOSE_REP")
     public ObjectNode payload() {
         return payload;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof TokenInfo)) return false;
+        TokenInfo tokenInfo = (TokenInfo) o;
+        return expiresAt == tokenInfo.expiresAt &&
+                issuedAt == tokenInfo.issuedAt &&
+                token.equals(tokenInfo.token) &&
+                principal.equals(tokenInfo.principal) &&
+                Objects.equals(groups, tokenInfo.groups) &&
+                Objects.equals(scopes, tokenInfo.scopes) &&
+                Objects.equals(payload, tokenInfo.payload);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(token, expiresAt, principal, groups, issuedAt, scopes, payload);
     }
 }

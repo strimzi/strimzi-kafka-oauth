@@ -17,12 +17,15 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import java.io.File;
 import java.time.Duration;
 
+import static io.strimzi.testsuite.oauth.authz.Common.waitForACLs;
+import static io.strimzi.testsuite.oauth.common.TestUtil.logStart;
+
 /**
- * Tests for OAuth authentication using Keycloak + Keycloak Authorization Services based authorization
- *
+ * Tests for OAuth authentication using Keycloak + Keycloak Authorization Services based authorization when KeycloakRBACAuthorizer is configured on the Kafka broker running in Zookeeper mode.
+ * <p>
  * This test assumes there are multiple listeners configured with OAUTHBEARER or PLAIN support, but each configured differently
  * - configured with different options, or different realm.
- *
+ * <p>
  * There is KeycloakRBACAuthorizer configured on the Kafka broker.
  */
 public class KeycloakAuthorizationTests {
@@ -33,13 +36,10 @@ public class KeycloakAuthorizationTests {
                     .withServices("keycloak", "zookeeper", "kafka", "kafka-acls")
                     // ensure kafka has started
                     .waitingFor("kafka", Wait.forLogMessage(".*started \\(kafka.server.KafkaServer\\).*", 1)
-                            .withStartupTimeout(Duration.ofSeconds(180)))
+                            .withStartupTimeout(Duration.ofSeconds(60)));
+
                     // ensure ACLs for user 'alice' have been added
-                    .waitingFor("kafka", Wait.forLogMessage(".*User:alice has ALLOW permission for operations: IDEMPOTENT_WRITE.*", 1)
-                            .withStartupTimeout(Duration.ofSeconds(210)))
-                    // ensure a grants fetch request to 'keycloak' has been performed by authorizer's grants refresh job
-                    .waitingFor("kafka", Wait.forLogMessage(".*after: \\{\\}.*", 1)
-                            .withStartupTimeout(Duration.ofSeconds(210)));
+                    //   Moved into test code: waitForACLs()
 
     @Rule
     public TestRule logCollector = new TestContainersLogCollector(environment);
@@ -52,6 +52,7 @@ public class KeycloakAuthorizationTests {
     private static final String INTROSPECTPLAIN_LISTENER = "kafka:9095";
     private static final String JWTREFRESH_LISTENER = "kafka:9096";
 
+
     @Test
     public void doTest() throws Exception {
         try {
@@ -60,47 +61,50 @@ public class KeycloakAuthorizationTests {
             logStart("KeycloakAuthorizationTest :: ConfigurationTest");
             new ConfigurationTest(kafkaContainer).doTest();
 
-            logStart("KeycloakAuthorizationTest :: MetricsTest");
+            logStart("KeycloakAuthorizationTest :: MetricsTest (part 1)");
             MetricsTest.doTest();
 
+            // Ensure ACLs have been added to Kafka cluster
+            waitForACLs();
+
             // This test assumes that it is the first producing and consuming test
-            logStart("KeycloakAuthorizationTest :: MultiSaslTests");
+            logStart("KeycloakAuthorizationTest :: MultiSaslTest");
             new MultiSaslTest(kafkaContainer).doTest();
 
+            logStart("KeycloakAuthorizationTest :: ScramTest");
+            new ScramTest().doTest();
+
             logStart("KeycloakAuthorizationTest :: JwtValidationAuthzTest");
-            new BasicTest(JWT_LISTENER, false).doTest();
+            new BasicTest(kafkaContainer, JWT_LISTENER, false).doTest();
 
             logStart("KeycloakAuthorizationTest :: IntrospectionValidationAuthzTest");
-            new BasicTest(INTROSPECT_LISTENER, false).doTest();
+            new BasicTest(kafkaContainer, INTROSPECT_LISTENER, false).doTest();
+
+            logStart("KeycloakAuthorizationTest :: MetricsTest (part 2)");
+            MetricsTest.doTestValidationAndAuthorization();
 
             logStart("KeycloakAuthorizationTest :: OAuthOverPlain + JwtValidationAuthzTest");
-            new OAuthOverPlainTest(JWTPLAIN_LISTENER, true).doTest();
+            new OAuthOverPlainTest(kafkaContainer, JWTPLAIN_LISTENER, true).doTest();
 
             logStart("KeycloakAuthorizationTest :: OAuthOverPlain + IntrospectionValidationAuthzTest");
-            new OAuthOverPlainTest(INTROSPECTPLAIN_LISTENER, true).doTest();
+            new OAuthOverPlainTest(kafkaContainer, INTROSPECTPLAIN_LISTENER, true).doTest();
 
             logStart("KeycloakAuthorizationTest :: OAuthOverPLain + FloodTest");
-            new FloodTest(kafkaContainer, JWTPLAIN_LISTENER, true).doTest();
+            new FloodTest(JWTPLAIN_LISTENER, true).doTest();
 
             logStart("KeycloakAuthorizationTest :: JWT FloodTest");
-            new FloodTest(kafkaContainer, JWT_LISTENER, false).doTest();
+            new FloodTest(JWT_LISTENER, false).doTest();
 
             logStart("KeycloakAuthorizationTest :: Introspection FloodTest");
-            new FloodTest(kafkaContainer, INTROSPECT_LISTENER, false).doTest();
+            new FloodTest(INTROSPECT_LISTENER, false).doTest();
 
             // This test has to be the last one - it changes the team-a-client, and team-b-client permissions in Keycloak
             logStart("KeycloakAuthorizationTest :: JwtValidationAuthzTest + RefreshGrants");
-            new RefreshTest(JWTREFRESH_LISTENER, false).doTest();
+            new RefreshTest(kafkaContainer, JWTREFRESH_LISTENER, false).doTest();
 
         } catch (Throwable e) {
             log.error("Keycloak Authorization Test failed: ", e);
             throw e;
         }
-    }
-
-    private void logStart(String msg) {
-        System.out.println();
-        System.out.println("========    "  + msg);
-        System.out.println();
     }
 }

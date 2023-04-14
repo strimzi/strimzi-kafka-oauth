@@ -151,30 +151,29 @@ public class BasicTests {
         oauthConfig.put(ClientConfig.OAUTH_CLIENT_SECRET, "kafka-producer-client-secret");
         oauthConfig.put(ClientConfig.OAUTH_USERNAME_CLAIM, "preferred_username");
 
-        Properties producerProps = buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
-        Producer<String, String> producer = new KafkaProducer<>(producerProps);
-
         final String topic = "KeycloakAuthenticationTest-clientCredentialsWithJwtECDSAValidationTest";
 
-
-        producer.send(new ProducerRecord<>(topic, "The Message")).get();
-        log.debug("Produced The Message");
+        Properties producerProps = buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
+        try (Producer<String, String> producer = new KafkaProducer<>(producerProps)) {
+            producer.send(new ProducerRecord<>(topic, "The Message")).get();
+            log.debug("Produced The Message");
+        }
 
         Properties consumerProps = buildConsumerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
-        Consumer<String, String> consumer = new KafkaConsumer<>(consumerProps);
+        try (Consumer<String, String> consumer = new KafkaConsumer<>(consumerProps)) {
+            TopicPartition partition = new TopicPartition(topic, 0);
+            consumer.assign(singletonList(partition));
 
-        TopicPartition partition = new TopicPartition(topic, 0);
-        consumer.assign(singletonList(partition));
+            while (consumer.partitionsFor(topic, Duration.ofSeconds(1)).size() == 0) {
+                System.out.println("No assignment yet for consumer");
+            }
+            consumer.seekToBeginning(singletonList(partition));
 
-        while (consumer.partitionsFor(topic, Duration.ofSeconds(1)).size() == 0) {
-            System.out.println("No assignment yet for consumer");
+            ConsumerRecords<String, String> records = poll(consumer);
+
+            Assert.assertEquals("Got message", 1, records.count());
+            Assert.assertEquals("Is message text: 'The Message'", "The Message", records.iterator().next().value());
         }
-        consumer.seekToBeginning(singletonList(partition));
-
-        ConsumerRecords<String, String> records = poll(consumer);
-
-        Assert.assertEquals("Got message", 1, records.count());
-        Assert.assertEquals("Is message text: 'The Message'", "The Message", records.iterator().next().value());
 
         // Check metrics
 
@@ -221,30 +220,29 @@ public class BasicTests {
         oauthConfig.put(ClientConfig.OAUTH_CLIENT_SECRET, "team-a-client-secret");
         oauthConfig.put(ClientConfig.OAUTH_USERNAME_CLAIM, "preferred_username");
 
-        Properties producerProps = buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
-        Producer<String, String> producer = new KafkaProducer<>(producerProps);
-
         final String topic = "KeycloakAuthenticationTest-clientCredentialsWithJwtRSAValidationTest";
 
-
-        producer.send(new ProducerRecord<>(topic, "The Message")).get();
-        log.debug("Produced The Message");
+        Properties producerProps = buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
+        try (Producer<String, String> producer = new KafkaProducer<>(producerProps)) {
+            producer.send(new ProducerRecord<>(topic, "The Message")).get();
+            log.debug("Produced The Message");
+        }
 
         Properties consumerProps = buildConsumerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
-        Consumer<String, String> consumer = new KafkaConsumer<>(consumerProps);
+        try (Consumer<String, String> consumer = new KafkaConsumer<>(consumerProps)) {
+            TopicPartition partition = new TopicPartition(topic, 0);
+            consumer.assign(singletonList(partition));
 
-        TopicPartition partition = new TopicPartition(topic, 0);
-        consumer.assign(singletonList(partition));
+            while (consumer.partitionsFor(topic, Duration.ofSeconds(1)).size() == 0) {
+                System.out.println("No assignment yet for consumer");
+            }
+            consumer.seekToBeginning(singletonList(partition));
 
-        while (consumer.partitionsFor(topic, Duration.ofSeconds(1)).size() == 0) {
-            System.out.println("No assignment yet for consumer");
+            ConsumerRecords<String, String> records = poll(consumer);
+
+            Assert.assertEquals("Got message", 1, records.count());
+            Assert.assertEquals("Is message text: 'The Message'", "The Message", records.iterator().next().value());
         }
-        consumer.seekToBeginning(singletonList(partition));
-
-        ConsumerRecords<String, String> records = poll(consumer);
-
-        Assert.assertEquals("Got message", 1, records.count());
-        Assert.assertEquals("Is message text: 'The Message'", "The Message", records.iterator().next().value());
 
         // Check metrics
 
@@ -280,30 +278,29 @@ public class BasicTests {
         oauthConfig.put(ClientConfig.OAUTH_ACCESS_TOKEN, info.token());
         oauthConfig.put(ClientConfig.OAUTH_USERNAME_CLAIM, "preferred_username");
 
-        Properties producerProps = buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
-        Producer<String, String> producer = new KafkaProducer<>(producerProps);
-
-
         final String topic = "KeycloakAuthenticationTest-accessTokenWithIntrospectionTest";
 
-        producer.send(new ProducerRecord<>(topic, "The Message")).get();
-        log.debug("Produced The Message");
+        Properties producerProps = buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
+        try (Producer<String, String> producer = new KafkaProducer<>(producerProps)) {
+            producer.send(new ProducerRecord<>(topic, "The Message")).get();
+            log.debug("Produced The Message");
+        }
 
         Properties consumerProps = buildConsumerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
-        Consumer<String, String> consumer = new KafkaConsumer<>(consumerProps);
+        try (Consumer<String, String> consumer = new KafkaConsumer<>(consumerProps)) {
+            TopicPartition partition = new TopicPartition(topic, 0);
+            consumer.assign(singletonList(partition));
 
-        TopicPartition partition = new TopicPartition(topic, 0);
-        consumer.assign(singletonList(partition));
+            while (consumer.partitionsFor(topic, Duration.ofSeconds(1)).size() == 0) {
+                System.out.println("No assignment yet for consumer");
+            }
+            consumer.seekToBeginning(singletonList(partition));
 
-        while (consumer.partitionsFor(topic, Duration.ofSeconds(1)).size() == 0) {
-            System.out.println("No assignment yet for consumer");
+            ConsumerRecords<String, String> records = poll(consumer);
+
+            Assert.assertEquals("Got message", 1, records.count());
+            Assert.assertEquals("Is message text: 'The Message'", "The Message", records.iterator().next().value());
         }
-        consumer.seekToBeginning(singletonList(partition));
-
-        ConsumerRecords<String, String> records = poll(consumer);
-
-        Assert.assertEquals("Got message", 1, records.count());
-        Assert.assertEquals("Is message text: 'The Message'", "The Message", records.iterator().next().value());
 
         // Check metrics
         TestMetrics metrics = getPrometheusMetrics(URI.create("http://kafka:9404/metrics"));
@@ -343,30 +340,29 @@ public class BasicTests {
         oauthConfig.put(ClientConfig.OAUTH_REFRESH_TOKEN, refreshToken);
         oauthConfig.put(ClientConfig.OAUTH_USERNAME_CLAIM, "preferred_username");
 
-        Properties producerProps = buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
-        Producer<String, String> producer = new KafkaProducer<>(producerProps);
-
-
         final String topic = "KeycloakAuthenticationTest-refreshTokenWithIntrospectionTest";
 
-        producer.send(new ProducerRecord<>(topic, "The Message")).get();
-        log.debug("Produced The Message");
+        Properties producerProps = buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
+        try (Producer<String, String> producer = new KafkaProducer<>(producerProps)) {
+            producer.send(new ProducerRecord<>(topic, "The Message")).get();
+            log.debug("Produced The Message");
+        }
 
         Properties consumerProps = buildConsumerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
-        Consumer<String, String> consumer = new KafkaConsumer<>(consumerProps);
+        try (Consumer<String, String> consumer = new KafkaConsumer<>(consumerProps)) {
+            TopicPartition partition = new TopicPartition(topic, 0);
+            consumer.assign(singletonList(partition));
 
-        TopicPartition partition = new TopicPartition(topic, 0);
-        consumer.assign(singletonList(partition));
+            while (consumer.partitionsFor(topic, Duration.ofSeconds(1)).size() == 0) {
+                System.out.println("No assignment yet for consumer");
+            }
+            consumer.seekToBeginning(singletonList(partition));
 
-        while (consumer.partitionsFor(topic, Duration.ofSeconds(1)).size() == 0) {
-            System.out.println("No assignment yet for consumer");
+            ConsumerRecords<String, String> records = poll(consumer);
+
+            Assert.assertEquals("Got message", 1, records.count());
+            Assert.assertEquals("Is message text: 'The Message'", "The Message", records.iterator().next().value());
         }
-        consumer.seekToBeginning(singletonList(partition));
-
-        ConsumerRecords<String, String> records = poll(consumer);
-
-        Assert.assertEquals("Got message", 1, records.count());
-        Assert.assertEquals("Is message text: 'The Message'", "The Message", records.iterator().next().value());
 
         // Check metrics
         TestMetrics metrics = getPrometheusMetrics(URI.create("http://kafka:9404/metrics"));
@@ -396,30 +392,29 @@ public class BasicTests {
         oauthConfig.put(ClientConfig.OAUTH_PASSWORD_GRANT_PASSWORD, "alice-password");
         oauthConfig.put(ClientConfig.OAUTH_USERNAME_CLAIM, "preferred_username");
 
-        Properties producerProps = buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
-        Producer<String, String> producer = new KafkaProducer<>(producerProps);
-
         final String topic = "KeycloakAuthenticationTest-passwordGrantWithJwtRSAValidationTest";
 
-
-        producer.send(new ProducerRecord<>(topic, "The Message")).get();
-        log.debug("Produced The Message");
+        Properties producerProps = buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
+        try (Producer<String, String> producer = new KafkaProducer<>(producerProps)) {
+            producer.send(new ProducerRecord<>(topic, "The Message")).get();
+            log.debug("Produced The Message");
+        }
 
         Properties consumerProps = buildConsumerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
-        Consumer<String, String> consumer = new KafkaConsumer<>(consumerProps);
+        try (Consumer<String, String> consumer = new KafkaConsumer<>(consumerProps)) {
+            TopicPartition partition = new TopicPartition(topic, 0);
+            consumer.assign(singletonList(partition));
 
-        TopicPartition partition = new TopicPartition(topic, 0);
-        consumer.assign(singletonList(partition));
+            while (consumer.partitionsFor(topic, Duration.ofSeconds(1)).size() == 0) {
+                System.out.println("No assignment yet for consumer");
+            }
+            consumer.seekToBeginning(singletonList(partition));
 
-        while (consumer.partitionsFor(topic, Duration.ofSeconds(1)).size() == 0) {
-            System.out.println("No assignment yet for consumer");
+            ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(1));
+
+            Assert.assertEquals("Got message", 1, records.count());
+            Assert.assertEquals("Is message text: 'The Message'", "The Message", records.iterator().next().value());
         }
-        consumer.seekToBeginning(singletonList(partition));
-
-        ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(1));
-
-        Assert.assertEquals("Got message", 1, records.count());
-        Assert.assertEquals("Is message text: 'The Message'", "The Message", records.iterator().next().value());
     }
 
 
@@ -453,15 +448,13 @@ public class BasicTests {
         oauthConfig.put(ClientConfig.OAUTH_PASSWORD_GRANT_PASSWORD, password);
         oauthConfig.put(ClientConfig.OAUTH_USERNAME_CLAIM, "preferred_username");
 
-        Properties producerProps = buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
-        Producer<String, String> producer = new KafkaProducer<>(producerProps);
-
-
         final String topic = "KeycloakAuthenticationTest-passwordGrantWithIntrospectionTest";
 
-        producer.send(new ProducerRecord<>(topic, "The Message")).get();
-        log.debug("Produced The Message");
-
+        Properties producerProps = buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
+        try (Producer<String, String> producer = new KafkaProducer<>(producerProps)) {
+            producer.send(new ProducerRecord<>(topic, "The Message")).get();
+            log.debug("Produced The Message");
+        }
 
 
         // Authenticate using the username and password and a confidential client - different clientId + secret for consumer
@@ -480,20 +473,19 @@ public class BasicTests {
         oauthConfig.put(ClientConfig.OAUTH_CLIENT_SECRET, confidentialClientSecret);
 
         Properties consumerProps = buildConsumerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
-        Consumer<String, String> consumer = new KafkaConsumer<>(consumerProps);
+        try (Consumer<String, String> consumer = new KafkaConsumer<>(consumerProps)) {
+            TopicPartition partition = new TopicPartition(topic, 0);
+            consumer.assign(singletonList(partition));
 
-        TopicPartition partition = new TopicPartition(topic, 0);
-        consumer.assign(singletonList(partition));
+            while (consumer.partitionsFor(topic, Duration.ofSeconds(1)).size() == 0) {
+                System.out.println("No assignment yet for consumer");
+            }
+            consumer.seekToBeginning(singletonList(partition));
 
-        while (consumer.partitionsFor(topic, Duration.ofSeconds(1)).size() == 0) {
-            System.out.println("No assignment yet for consumer");
+            ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(1));
+
+            Assert.assertEquals("Got message", 1, records.count());
+            Assert.assertEquals("Is message text: 'The Message'", "The Message", records.iterator().next().value());
         }
-        consumer.seekToBeginning(singletonList(partition));
-
-        ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(1));
-
-        Assert.assertEquals("Got message", 1, records.count());
-        Assert.assertEquals("Is message text: 'The Message'", "The Message", records.iterator().next().value());
     }
-
 }

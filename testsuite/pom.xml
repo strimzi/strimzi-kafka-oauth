@@ -18,6 +18,7 @@
         <module>keycloak-auth-tests</module>
         <module>keycloak-authz-tests</module>
         <module>keycloak-authz-kraft-tests</module>
+        <module>keycloak-authz-zk-tests</module>
         <module>keycloak-errors-tests</module>
         <module>hydra-test</module>
     </modules>
@@ -41,7 +42,7 @@
         <fabric8-docker-plugin.version>0.40.2</fabric8-docker-plugin.version>
 
         <testcontainers.version>1.17.3</testcontainers.version>
-        <version.junit>4.13.1</version.junit>
+        <version.junit>4.13.2</version.junit>
         <spotbugs.version>4.7.0</spotbugs.version>
         <jackson.annotation.version>2.13.4</jackson.annotation.version>
         <strimzi-oauth.version>1.0.0-SNAPSHOT</strimzi-oauth.version>
@@ -65,6 +66,11 @@
                 <version>${project.version}</version>
             </dependency>
             <dependency>
+                <groupId>io.strimzi.oauth.testsuite</groupId>
+                <artifactId>keycloak-authz-tests</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.testcontainers</groupId>
                 <artifactId>testcontainers-bom</artifactId>
                 <version>${testcontainers.version}</version>
@@ -75,6 +81,16 @@
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-annotations</artifactId>
                 <version>${jackson.annotation.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>junit</groupId>
+                <artifactId>junit</artifactId>
+                <version>${version.junit}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs-annotations</artifactId>
+                <version>${spotbugs.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

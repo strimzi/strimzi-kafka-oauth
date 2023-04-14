@@ -49,7 +49,6 @@ import java.util.Map;
  * property definition in server.properties to install it.
  * </p>
  */
-@SuppressWarnings({"deprecation", "removal"})
 public class OAuthKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder implements Configurable {
 
     private static final SetAccessibleAction SET_PRINCIPAL_MAPPER = SetAccessibleAction.newInstance();
@@ -176,9 +175,9 @@ public class OAuthKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder imp
                     .setName(principal.getName())
                     .setTokenAuthenticated(principal.tokenAuthenticated());
             BearerTokenWithPayload token = ((OAuthKafkaPrincipal) principal).getJwt();
-            if (token instanceof BearerTokenWithGrants) {
+            if (token instanceof BearerTokenWithJsonPayload) {
                 try {
-                    data.unknownTaggedFields().add(new RawTaggedField(OAUTH_DATA_TAG, new BearerTokenWithGrants.Serde().serialize((BearerTokenWithGrants) token)));
+                    data.unknownTaggedFields().add(new RawTaggedField(OAUTH_DATA_TAG, new BearerTokenWithJsonPayload.Serde().serialize((BearerTokenWithJsonPayload) token)));
                 } catch (IOException e) {
                     throw new SerializationException("Failed to serialize OAuthKafkaPrincipal", e);
                 }
@@ -203,7 +202,7 @@ public class OAuthKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder imp
             RawTaggedField field = unknownFields.get(0);
             if (field.tag() == OAUTH_DATA_TAG) {
                 try {
-                    OAuthKafkaPrincipal result = new OAuthKafkaPrincipal(data.type(), data.name(), new BearerTokenWithGrants.Serde().deserialize(field.data()));
+                    OAuthKafkaPrincipal result = new OAuthKafkaPrincipal(data.type(), data.name(), new BearerTokenWithJsonPayload.Serde().deserialize(field.data()));
                     result.tokenAuthenticated(data.tokenAuthenticated());
                     return result;
                 } catch (IOException e) {

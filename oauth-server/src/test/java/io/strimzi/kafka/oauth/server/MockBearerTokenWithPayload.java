@@ -54,7 +54,7 @@ public class MockBearerTokenWithPayload implements BearerTokenWithPayload {
     }
 
     @Override
-    public ObjectNode getJSON() {
+    public ObjectNode getClaimsJSON() {
         return null;
     }
 
