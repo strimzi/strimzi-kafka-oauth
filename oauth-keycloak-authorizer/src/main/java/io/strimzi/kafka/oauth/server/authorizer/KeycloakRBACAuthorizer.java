@@ -344,7 +344,7 @@ public class KeycloakRBACAuthorizer implements Authorizer {
             }
 
             GrantsHandler.Info grantsInfo = grantsHandler.getGrantsInfoFromCache(token);
-            log.debug("[{}] Got grantsInfo: {}", grantsHandler, grantsInfo);
+            log.trace("Got grantsInfo: {}", grantsInfo);
             grants = grantsInfo.getGrants();
             boolean newSession = token.getPayload() == null;
             boolean mustReload = !configuration.isReuseGrants() && newSession;
@@ -360,10 +360,7 @@ public class KeycloakRBACAuthorizer implements Authorizer {
                     token.setPayload(JSONUtil.newObjectNode());
                 }
             }
-            log.debug("[{}] Got grants for '{}': {}", grantsHandler, principal, grants);
-            if (log.isDebugEnabled()) {
-                log.debug("Authorization grants for user {}: {}", principal, grants);
-            }
+            log.debug("Got grants for '{}': {}", principal, grants);
 
             if (grants != null) {
                 result = allowOrDenyBasedOnGrants(delegate, requestContext, actions, grants);

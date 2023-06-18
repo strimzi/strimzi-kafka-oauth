@@ -106,18 +106,81 @@ public class KeycloakAuthorizerTest {
     public void doTests() throws Exception {
         doConfigTests();
         doMalformedGrantsTests();
+        doGrantsSemanticEqualsTest();
         doHttpRetriesTest();
         doConcurrentGrantsRefreshTest();
         doGrantsGCTests();
         doGrants403Test();
+        doGrants401Test();
         doSingletonTest();
     }
 
-    private void doGrants403Test() throws IOException {
+    void doGrants401Test() throws IOException, InterruptedException, TimeoutException {
+        logStart("KeycloakAuthorizerTest :: Grants 401 (invalid token) Test");
 
+        changeAuthServerMode("token", "MODE_200");
+
+        LogLineReader logReader = new LogLineReader(LOG_PATH);
+        logReader.readNext();
+
+        List<String> lines;
+        HashMap<String, String> props = configureAuthorizer();
+        props.put(AuthzConfig.STRIMZI_AUTHORIZATION_TOKEN_ENDPOINT_URI, "https://mockoauth:8090/grants");
+        props.put(AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_REFRESH_PERIOD_SECONDS, "4");
+
+        try (KeycloakAuthorizer authorizer = new KeycloakAuthorizer()) {
+            authorizer.configure(props);
+
+            // authentication
+            TokenInfo tokenInfo = login(TOKEN_ENDPOINT, USER_ALICE, USER_ALICE_PASS, 1);
+
+            //   simulate an authenticated session
+            changeAuthServerMode("jwks", "MODE_200");
+
+            //     configure the authentication handler
+            AuthenticateCallbackHandler authHandler = configureJwtSignatureValidator();
+
+            LOG.info("Authenticate (validate) as alice");
+            OAuthKafkaPrincipal principal = authenticate(authHandler, tokenInfo);
+
+
+            // authorization
+            AuthorizableRequestContext ctx = newAuthorizableRequestContext(principal);
+
+            List<Action> actions = new ArrayList<>();
+            actions.add(new Action(
+                    AclOperation.CREATE,
+                    new ResourcePattern(ResourceType.TOPIC, "my-topic", PatternType.LITERAL),
+                    1, true, true));
+
+            List<AuthorizationResult> result = authorizer.authorize(ctx, actions);
+            Assert.assertNotNull("Authorizer has to return non-null", result);
+            Assert.assertEquals("Authorizer has to return as many results as it received inputs", result.size(), actions.size());
+            Assert.assertEquals("Authorizer should return ALLOWED", AuthorizationResult.ALLOWED, result.get(0));
+
+            lines = logReader.readNext();
+            Assert.assertTrue("Saving non-null grants", checkLogForRegex(lines, "Saving non-null grants"));
+
+            // Switch grants endpoint to 401 mode
+            changeAuthServerMode("grants", "MODE_401");
+
+            LOG.info("Waiting for: Done refreshing"); // Make sure to not repeat the below condition in the string here
+            lines = waitFor(logReader, "Done refreshing grants");
+            Assert.assertTrue("Failed to fetch", checkLogForRegex(lines, "Failed to fetch grants .* status 401"));
+            Assert.assertTrue("Removed user from grants cache", checkLogForRegex(lines, "Removed user from grants cache: alice"));
+            Assert.assertTrue("Removed invalid sessions", checkLogForRegex(lines, "Removed invalid sessions from sessions map \\(userId: alice"));
+
+        } finally {
+            changeAuthServerMode("grants", "MODE_200");
+        }
+
+        TestAuthzUtil.clearKeycloakAuthorizerService();
+    }
+
+    void doGrants403Test() throws IOException {
         logStart("KeycloakAuthorizerTest :: Grants 403 (no policies for user) Test");
 
-        // Add a 403 test
+        // Switch grants endpoint to 403 mode
         changeAuthServerMode("grants", "MODE_403");
 
         LogLineReader logReader = new LogLineReader(LOG_PATH);
@@ -148,7 +211,7 @@ public class KeycloakAuthorizerTest {
             lines = logReader.readNext();
 
             Assert.assertTrue("Saving non-null grants", checkLogForRegex(lines, "Saving non-null grants"));
-            Assert.assertTrue("grants for user: {}", checkLogForRegex(lines, "grants for user .*: \\{\\}"));
+            Assert.assertTrue("grants for user: {}", checkLogForRegex(lines, "grants for .*: \\{\\}"));
 
         } finally {
             changeAuthServerMode("grants", "MODE_200");
@@ -194,6 +257,8 @@ public class KeycloakAuthorizerTest {
             Assert.assertEquals("Authorizer has to return as many results as it received inputs", result.size(), actions.size());
             Assert.assertEquals("Authorizer should return ALLOWED", AuthorizationResult.ALLOWED, result.get(0));
         }
+
+        TestAuthzUtil.clearKeycloakAuthorizerService();
     }
 
     /**
@@ -472,7 +537,7 @@ public class KeycloakAuthorizerTest {
             authorizer.configure(props);
 
             // Perform authentications and authorizations with different access tokens for the same user
-            // That will populate the grantsCache map with a single entry and update already existing entry with latest access token
+            // That will populate the grantsCache map with a single entry and update already existing entry with the latest access token
 
             // authentication
             TokenInfo tokenInfo = login(TOKEN_ENDPOINT, userOne, userOnePass, 0);
@@ -697,7 +762,84 @@ public class KeycloakAuthorizerTest {
         TestAuthzUtil.clearKeycloakAuthorizerService();
     }
 
-    public void doSingletonTest() throws Exception {
+    /**
+     * Test for the semantic equality of grants - treat JSON array as a set
+     */
+    void doGrantsSemanticEqualsTest() throws Exception {
+        logStart("KeycloakAuthorizerTest :: Test semantic equality of grants (JSON array -> set)");
+
+        String grants1 = "[{\"scopes\":[\"Write\",\"Describe\"],\"rsid\":\"a92a050d-b4f1-4e91-ac65-dbe10f17ee36\",\"rsname\":\"Topic:x_*\"},{\"scopes\":[\"Read\",\"Write\",\"Delete\",\"Describe\",\"Alter\",\"Create\",\"DescribeConfigs\",\"AlterConfigs\"],\"rsid\":\"5098d4c2-0e7f-4121-8fd2-9964111370a2\",\"rsname\":\"Topic:a_*\"},{\"scopes\":[\"Read\",\"Describe\"],\"rsid\":\"916ed684-5bd0-42b1-b7ab-3b23448d3f50\",\"rsname\":\"Group:a_*\"},{\"scopes\":[\"IdempotentWrite\"],\"rsid\":\"d71850c3-5ea8-47ef-9a61-4fab9c1df363\",\"rsname\":\"kafka-cluster:my-cluster,Cluster:*\"}]";
+        String grants2 = "[{\"scopes\":[\"Write\",\"Describe\",\"Create\"],\"rsid\":\"a92a050d-b4f1-4e91-ac65-dbe10f17ee36\",\"rsname\":\"Topic:x_*\"},{\"scopes\":[\"Read\",\"Write\",\"Delete\",\"Describe\",\"Alter\",\"Create\",\"DescribeConfigs\",\"AlterConfigs\"],\"rsid\":\"5098d4c2-0e7f-4121-8fd2-9964111370a2\",\"rsname\":\"Topic:a_*\"},{\"scopes\":[\"Read\",\"Describe\"],\"rsid\":\"916ed684-5bd0-42b1-b7ab-3b23448d3f50\",\"rsname\":\"Group:a_*\"},{\"scopes\":[\"IdempotentWrite\"],\"rsid\":\"d71850c3-5ea8-47ef-9a61-4fab9c1df363\",\"rsname\":\"kafka-cluster:my-cluster,Cluster:*\"}]";
+        String grants3 = "[{\"scopes\":[\"Read\",\"Write\",\"Delete\",\"Describe\",\"Alter\",\"Create\",\"DescribeConfigs\",\"AlterConfigs\"],\"rsid\":\"5098d4c2-0e7f-4121-8fd2-9964111370a2\",\"rsname\":\"Topic:a_*\"},{\"scopes\":[\"Write\",\"Describe\",\"Create\"],\"rsid\":\"a92a050d-b4f1-4e91-ac65-dbe10f17ee36\",\"rsname\":\"Topic:x_*\"},{\"scopes\":[\"Read\",\"Describe\"],\"rsid\":\"916ed684-5bd0-42b1-b7ab-3b23448d3f50\",\"rsname\":\"Group:a_*\"},{\"scopes\":[\"IdempotentWrite\"],\"rsid\":\"d71850c3-5ea8-47ef-9a61-4fab9c1df363\",\"rsname\":\"kafka-cluster:my-cluster,Cluster:*\"}]";
+
+        // make sure the token endpoint works fine
+        changeAuthServerMode("token", "MODE_200");
+
+        // login as some user - alice in our case, and get the token
+        TokenInfo tokenInfo = login(TOKEN_ENDPOINT, USER_ALICE, USER_ALICE_PASS, 0);
+        OAuthKafkaPrincipal principal = new OAuthKafkaPrincipal(KafkaPrincipal.USER_TYPE, USER_ALICE, TestTokenFactory.newTokenForUser(tokenInfo));
+
+        // Set grants for the user to `grants1`
+        addGrantsForToken(tokenInfo.token(), grants1);
+
+        List<Action> actions = new ArrayList<>();
+        actions.add(new Action(
+                AclOperation.CREATE,
+                new ResourcePattern(ResourceType.TOPIC, "x_topic", PatternType.LITERAL),
+                1, true, true));
+
+        LogLineReader logReader = new LogLineReader(LOG_PATH);
+        // seek to the end of log file
+        logReader.readNext();
+
+        HashMap<String, String> props = configureAuthorizer();
+        props.put(AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_REFRESH_PERIOD_SECONDS, "2");
+
+        try (KeycloakAuthorizer authorizer = new KeycloakAuthorizer()) {
+            authorizer.configure(props);
+
+
+            AuthorizableRequestContext authzContext = newAuthorizableRequestContext(principal);
+
+            LOG.info("Call authorize() - create x_topic");
+            List<AuthorizationResult> result = authorizer.authorize(authzContext, actions);
+            Assert.assertEquals("Authz result: DENIED", AuthorizationResult.DENIED, result.get(0));
+
+            // Check log for 'Saving non-null grants for user: alice'
+            LOG.info("Waiting for: Saving non-null grants"); // Make sure to not repeat the below condition in the string here
+            waitFor(logReader, "Saving non-null grants for user: alice");
+
+            // set grants for the user to `grants2` which are semantically different from `grants1`
+            addGrantsForToken(tokenInfo.token(), grants2);
+
+            // wait for the refresh job to fetch the new grants
+            // Check log for 'Grants have changed for user: alice'
+            LOG.info("Waiting for: Grants have changed"); // Make sure to not repeat the below condition in the string here
+            waitFor(logReader, "Grants have changed for user: alice");
+
+            // set grants for the user to `grants3` which are semantically equal to `grants2`
+            addGrantsForToken(tokenInfo.token(), grants3);
+
+            // wait for the refresh job to fetch the new grants
+            LOG.info("Waiting for: Refreshing grants to start"); // Make sure to not repeat the below condition in the string here
+            waitFor(logReader, "Refreshing authorization grants");
+
+            // Check log for 'Done refreshing grants' and there should be no preceding line containing 'Grants have changed for user'
+            // wait for refresh grants job to complete
+            LOG.info("Waiting for grants refresh to complete"); // Make sure to not repeat the below condition in the string here
+            List<String> lines = waitFor(logReader, "Done refreshing grants");
+
+            int matchCount = countLogForRegex(lines, "Grants have changed for user");
+            Assert.assertEquals("Grants have changed again ?!?", 0, matchCount);
+
+            result = authorizer.authorize(authzContext, actions);
+            Assert.assertEquals("Authz result: ALLOWED", AuthorizationResult.ALLOWED, result.get(0));
+        }
+
+        TestAuthzUtil.clearKeycloakAuthorizerService();
+    }
+
+    void doSingletonTest() throws Exception {
         logStart("KeycloakAuthorizerTest :: Ensure that multiple instantiated KeycloakAuthorizers share a single instance of KeycloakRBACAuthorizer");
 
         HashMap<String, String> config = configureAuthorizer();
@@ -724,15 +866,24 @@ public class KeycloakAuthorizerTest {
         TestAuthzUtil.clearKeycloakAuthorizerService();
     }
 
-    private void waitFor(LogLineReader logReader, String condition) throws TimeoutException, InterruptedException {
+    private List<String> waitFor(LogLineReader logReader, String condition) throws TimeoutException, InterruptedException {
+        List<String> result = new ArrayList<>();
         TestUtil.waitForCondition(() -> {
             try {
                 List<String> lines = logReader.readNext();
-                return countLogForRegex(lines, condition) > 0;
+                int lineNum = findFirstMatchingInLog(lines, condition);
+                if (lineNum >= 0) {
+                    result.addAll(lines.subList(0, lineNum));
+                    return true;
+                }
+                result.addAll(lines);
+                return false;
             } catch (Exception e) {
-                throw new RuntimeException("Failed to read log");
+                throw new RuntimeException("Failed to read log", e);
             }
         }, LOOP_PAUSE_MS, TIMEOUT_SECONDS);
+
+        return result;
     }
 
     private static Future<List<AuthorizationResult>> submitAuthorizationCall(KeycloakAuthorizer authorizer, AuthorizableRequestContext ctx, ExecutorService executorService, String topic) {
@@ -782,6 +933,18 @@ public class KeycloakAuthorizerTest {
             }
         }
         return count;
+    }
+
+    static int findFirstMatchingInLog(List<String> log, String regex) {
+        int lineNum = 0;
+        Pattern pattern = Pattern.compile(prepareRegex(regex));
+        for (String line: log) {
+            if (pattern.matcher(line).matches()) {
+                return lineNum;
+            }
+            lineNum++;
+        }
+        return -1;
     }
 
     static String prepareRegex(String regex) {

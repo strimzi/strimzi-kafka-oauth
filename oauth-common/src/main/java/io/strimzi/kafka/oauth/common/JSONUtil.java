@@ -16,7 +16,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -190,5 +192,19 @@ public class JSONUtil {
             list.add(g);
         }
         return list;
+    }
+
+    /**
+     * Convert a JSON array to a Set object
+     *
+     * @param list ArrayNode to convert
+     * @return Set containing the elements of the ArrayNode
+     */
+    public static Set<JsonNode> asSetOfNodes(ArrayNode list) {
+        HashSet<JsonNode> result = new HashSet<>();
+        for (JsonNode node: list) {
+            result.add(node);
+        }
+        return result;
     }
 }

@@ -281,7 +281,7 @@ public class BasicTest extends Common {
         List<String> lines = TestUtil.getContainerLogsForString(kafkaContainer, "Saving non-null grants for user: zero");
         Assert.assertEquals("Saved non-null grants", 1, lines.size());
 
-        lines = TestUtil.getContainerLogsForString(kafkaContainer, "Authorization grants for user OAuthKafkaPrincipal(User:zero,");
+        lines = TestUtil.getContainerLogsForString(kafkaContainer, "Got grants for 'OAuthKafkaPrincipal(User:zero,");
         Assert.assertTrue("Grants for user are: {}", lines.size() > 0);
 
         for (String line: lines) {

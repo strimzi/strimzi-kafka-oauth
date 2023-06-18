@@ -5,6 +5,7 @@
 package io.strimzi.kafka.oauth.server.authorizer;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
 import io.strimzi.kafka.oauth.common.HttpException;
@@ -26,11 +27,11 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 
+import static io.strimzi.kafka.oauth.common.JSONUtil.asSetOfNodes;
 import static io.strimzi.kafka.oauth.common.LogUtil.mask;
 
 /**
@@ -45,9 +46,11 @@ class GrantsHandler implements Closeable {
 
     private final Semaphores<JsonNode> semaphores = new Semaphores<>();
 
-    private final ExecutorService workerPool;
+    private final ExecutorService refreshWorker;
 
     private final ScheduledExecutorService gcWorker;
+
+    private final ScheduledExecutorService refreshScheduler;
 
     private final long gcPeriodMillis;
 
@@ -64,17 +67,20 @@ class GrantsHandler implements Closeable {
      */
     @Override
     public void close() {
+        shutDownExecutorService("grants refresh scheduler", refreshScheduler);
+        shutDownExecutorService("grants refresh worker", refreshWorker);
+        shutDownExecutorService("gc worker", gcWorker);
+    }
+
+    private void shutDownExecutorService(String name, ExecutorService service) {
         try {
-            workerPool.shutdownNow();
-            workerPool.awaitTermination(10, TimeUnit.SECONDS);
+            log.trace("Shutting down {} [{}]", name, service);
+            service.shutdownNow();
+            if (!service.awaitTermination(10, TimeUnit.SECONDS)) {
+                log.debug("[IGNORED] Failed to cleanly shutdown {} within 10 seconds", name);
+            }
         } catch (Throwable t) {
-            log.warn("[IGNORED] Failed to normally shutdown grants refresh worker pool: ", t);
-        }
-        try {
-            gcWorker.shutdownNow();
-            gcWorker.awaitTermination(10, TimeUnit.SECONDS);
-        } catch (Throwable t) {
-            log.warn("[IGNORED] Failed to normally shutdown garbage collector worker: ", t);
+            log.warn("[IGNORED] Failed to cleanly shutdown " + name + ": ", t);
         }
     }
 
@@ -190,6 +196,7 @@ class GrantsHandler implements Closeable {
      * @param httpRetries A maximum number of repeated attempts if a grants request to the token endpoint fails in unexpected way
      * @param gcPeriodSeconds Number of seconds between two consecutive grants garbage collection job runs
      */
+    @SuppressFBWarnings("MC_OVERRIDABLE_METHOD_CALL_IN_CONSTRUCTOR")
     GrantsHandler(int grantsRefreshPeriodSeconds, int grantsRefreshPoolSize, int grantsMaxIdleTimeSeconds, Function<String, JsonNode> httpGrantsProvider, int httpRetries, int gcPeriodSeconds) {
         this.authorizationGrantsProvider = httpGrantsProvider;
         this.httpRetries = httpRetries;
@@ -201,10 +208,14 @@ class GrantsHandler implements Closeable {
 
         DaemonThreadFactory daemonThreadFactory = new DaemonThreadFactory();
         if (grantsRefreshPeriodSeconds > 0) {
-            this.workerPool = Executors.newFixedThreadPool(grantsRefreshPoolSize, daemonThreadFactory);
-            setupRefreshGrantsJob(daemonThreadFactory, grantsRefreshPeriodSeconds);
+            this.refreshWorker = Executors.newFixedThreadPool(grantsRefreshPoolSize, daemonThreadFactory);
+
+            // Set up periodic timer to fetch grants for active sessions every refresh seconds
+            this.refreshScheduler = Executors.newSingleThreadScheduledExecutor(daemonThreadFactory);
+            refreshScheduler.scheduleAtFixedRate(this::performRefreshGrantsRun, grantsRefreshPeriodSeconds, grantsRefreshPeriodSeconds, TimeUnit.SECONDS);
         } else {
-            this.workerPool = null;
+            this.refreshWorker = null;
+            this.refreshScheduler = null;
         }
 
         if (gcPeriodSeconds <= 0) {
@@ -213,18 +224,6 @@ class GrantsHandler implements Closeable {
         this.gcPeriodMillis = gcPeriodSeconds * 1000L;
         this.gcWorker = Executors.newSingleThreadScheduledExecutor(daemonThreadFactory);
         gcWorker.scheduleAtFixedRate(this::gcGrantsCacheRunnable, gcPeriodSeconds, gcPeriodSeconds, TimeUnit.SECONDS);
-    }
-
-    /**
-     * Schedule a periodic grants refresh job
-     *
-     * @param threadFactory ThreadFactory to use for creating a service thread
-     * @param refreshSeconds Run period for the periodic job
-     */
-    private void setupRefreshGrantsJob(ThreadFactory threadFactory, int refreshSeconds) {
-        // Set up periodic timer to fetch grants for active sessions every refresh seconds
-        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(threadFactory);
-        scheduler.scheduleAtFixedRate(this::performRefreshGrantsRun, refreshSeconds, refreshSeconds, TimeUnit.SECONDS);
     }
 
     /**
@@ -258,8 +257,8 @@ class GrantsHandler implements Closeable {
     }
 
     /**
-     * Fetch grants for the user using the access token contained in the passed grantsInfo,
-     * and save the result into the grantsInfo object.
+     * Fetch grants for the user using the access token contained in the grantsInfo,
+     * and save the result to the grantsInfo object.
      *
      * @param userId User id
      * @param grantsInfo Grants info object representing the cached grants entry for the user
@@ -269,7 +268,7 @@ class GrantsHandler implements Closeable {
         // If no grants found, fetch grants from server
         JsonNode grants = null;
         try {
-            log.debug("[{}] Fetching grants from Keycloak for user {}", this, userId);
+            log.debug("Fetching grants from Keycloak for user {}", userId);
             grants = fetchGrantsWithRetry(grantsInfo.getAccessToken());
             if (grants == null) {
                 log.debug("Received null grants for user: {}, token: {}", userId, mask(grantsInfo.getAccessToken()));
@@ -279,7 +278,7 @@ class GrantsHandler implements Closeable {
             if (e.getStatus() == 403) {
                 grants = JSONUtil.newObjectNode();
             } else {
-                log.warn("Unexpected status while fetching authorization data - will retry next time: " + e.getMessage());
+                log.warn("Unexpected status while fetching authorization data - will retry next time: {}", e.getMessage());
             }
         }
         if (grants != null) {
@@ -320,9 +319,11 @@ class GrantsHandler implements Closeable {
                     }
                 }
 
-                log.info("Failed to fetch grants on try no. " + i, e);
+                if (log.isInfoEnabled()) {
+                    log.info("Failed to fetch grants on try no. " + i, e);
+                }
                 if (i > httpRetries) {
-                    log.debug("Failed to fetch grants after " + i + " tries");
+                    log.debug("Failed to fetch grants after {} tries", i);
                     throw e;
                 }
             }
@@ -334,7 +335,7 @@ class GrantsHandler implements Closeable {
      */
     private void performRefreshGrantsRun() {
         try {
-            log.debug("Refreshing authorization grants ...");
+            log.debug("Refreshing authorization grants ... [{}]", this);
 
             HashMap<String, Info> workmap;
             synchronized (grantsCache) {
@@ -350,7 +351,7 @@ class GrantsHandler implements Closeable {
                     log.debug("Skipping refreshing grants for user '{}' due to max idle time.", userId);
                     removeUserFromCacheIfExpiredOrIdle(userId);
                 }
-                scheduled.add(new Future(userId, grantsInfo, workerPool.submit(() -> {
+                scheduled.add(new Future(userId, grantsInfo, refreshWorker.submit(() -> {
 
                     if (log.isTraceEnabled()) {
                         log.trace("Fetch grants for user: " + userId + ", token: " + mask(grantsInfo.getAccessToken()));
@@ -367,8 +368,8 @@ class GrantsHandler implements Closeable {
                             throw e;
                         }
                     }
-                    Object oldGrants = grantsInfo.getGrants();
-                    if (!newGrants.equals(oldGrants)) {
+                    JsonNode oldGrants = grantsInfo.getGrants();
+                    if (!semanticGrantsEquals(newGrants, oldGrants)) {
                         if (log.isDebugEnabled()) {
                             log.debug("Grants have changed for user: {}; before: {}; after: {}", userId, oldGrants, newGrants);
                         }
@@ -384,15 +385,24 @@ class GrantsHandler implements Closeable {
                 try {
                     f.get();
                 } catch (ExecutionException e) {
-                    log.warn("[IGNORED] Failed to fetch grants for user: " + e.getMessage(), e);
                     final Throwable cause = e.getCause();
                     if (cause instanceof HttpException) {
+                        log.debug("[IGNORED] Failed to fetch grants for user: {}", cause.getMessage());
                         if (401 == ((HttpException) cause).getStatus()) {
+                            grantsCache.remove(f.getUserId());
+                            log.debug("Removed user from grants cache: {}", f.getUserId());
                             Services.getInstance().getSessions().removeAllWithMatchingAccessToken(f.getGrantsInfo().accessToken);
+                            continue;
                         }
                     }
+                    if (log.isWarnEnabled()) {
+                        log.warn("[IGNORED] Failed to fetch grants for user: " + e.getMessage(), e);
+                    }
+
                 } catch (Throwable e) {
-                    log.warn("[IGNORED] Failed to fetch grants for user: " + f.getUserId() + ", token: " + mask(f.getGrantsInfo().accessToken) + " - " + e.getMessage(), e);
+                    if (log.isWarnEnabled()) {
+                        log.warn("[IGNORED] Failed to fetch grants for user: " + f.getUserId() + ", token: " + mask(f.getGrantsInfo().accessToken) + " - " + e.getMessage(), e);
+                    }
                 }
             }
 
@@ -461,7 +471,7 @@ class GrantsHandler implements Closeable {
         if (semaphore.acquired()) {
             // If acquired
             try {
-                log.debug("[{}] Acquired semaphore for '{}'", this, userId);
+                log.debug("Acquired semaphore for '{}'", userId);
                 JsonNode grants = fetchAndSaveGrants(userId, grantsInfo);
                 semaphore.future().complete(grants);
                 return grants;
@@ -471,12 +481,12 @@ class GrantsHandler implements Closeable {
                 throw t;
             } finally {
                 semaphores.releaseSemaphore(userId);
-                log.debug("[{}] Released semaphore for '{}'", this, userId);
+                log.debug("Released semaphore for '{}'", userId);
             }
 
         } else {
             try {
-                log.debug("[{}] Waiting on another thread to get grants for '{}'", this, userId);
+                log.debug("Waiting on another thread to get grants for '{}'", userId);
                 return semaphore.future().get();
             } catch (ExecutionException e) {
                 Throwable cause = e.getCause();
@@ -489,5 +499,22 @@ class GrantsHandler implements Closeable {
                 throw new ServiceException("InterruptedException waiting for grants result: ", e);
             }
         }
+    }
+
+    private static boolean semanticGrantsEquals(JsonNode grants1, JsonNode grants2) {
+        if (grants1 == grants2) return true;
+        if (grants1 == null) {
+            throw new IllegalArgumentException("Invalid grants: null");
+        }
+        if (grants2 == null) {
+            return false;
+        }
+        if (!grants1.isArray()) {
+            throw new IllegalArgumentException("Invalid grants: not a JSON array");
+        }
+        if (!grants2.isArray()) {
+            throw new IllegalArgumentException("Invalid grants: not a JSON array");
+        }
+        return asSetOfNodes((ArrayNode) grants1).equals(asSetOfNodes((ArrayNode) grants2));
     }
 }
