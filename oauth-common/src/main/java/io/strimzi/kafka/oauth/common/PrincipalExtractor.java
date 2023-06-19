@@ -10,7 +10,7 @@ import static io.strimzi.kafka.oauth.common.JSONUtil.getClaimFromJWT;
 
 /**
  * An object with logic for extracting a principal name (i.e. a user id) from a JWT token.
- *
+ * <p>
  * First a claim configured as <code>usernameClaim</code> is looked up.
  * If not found the claim configured as <code>fallbackUsernameClaim</code> is looked up. If that one is found and if
  * the <code>fallbackUsernamePrefix</code> is configured prefix the found value with the prefix, otherwise not.
@@ -29,7 +29,7 @@ public class PrincipalExtractor {
     /**
      * Create a new instance
      *
-     * @param usernameClaim Attribute name for an attribute containing the user id to lookup first
+     * @param usernameClaim Attribute name for an attribute containing the user id to lookup first. Use '.' to refer to nested child objects.
      * @param fallbackUsernameClaim Attribute name for an attribute containg the user id to lookup as a fallback
      * @param fallbackUsernamePrefix A prefix to prepend to the value of the fallback attribute value if set
      */
@@ -49,13 +49,13 @@ public class PrincipalExtractor {
         String result;
 
         if (usernameClaim != null) {
-            result = getClaimFromJWT(json, usernameClaim);
+            result = getClaimFromJWT(usernameClaim, json);
             if (result != null) {
                 return result;
             }
 
             if (fallbackUsernameClaim != null) {
-                result = getClaimFromJWT(json, fallbackUsernameClaim);
+                result = getClaimFromJWT(fallbackUsernameClaim, json);
                 if (result != null) {
                     return fallbackUsernamePrefix == null ? result : fallbackUsernamePrefix + result;
                 }
