@@ -104,6 +104,9 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
  * <li><em>strimzi.authorization.grants.refresh.pool.size</em> The number of threads used to fetch grants from token endpoint (in parallel).<br>
  * The default value is <em>5</em>.
  * </li>
+ * <li><em>strimzi.authorization.reuse.grants</em> Set this option to 'false' if you want every new session to reload and cache new grants for the user rather than using existing ones from the cache.
+ * The default value is <em>true</em>
+ * </li>
  * <li><em>strimzi.authorization.grants.max.idle.time.seconds</em> The time limit in seconds of a cached grant not being accessed. After that time it will be evicted from grants cache to prevent possibly stale remnant sessions from consuming memory.<br>
  * The default value is <em>300</em>.
  * </li>
