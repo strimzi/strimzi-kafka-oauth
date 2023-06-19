@@ -731,16 +731,27 @@ However, keep in mind that this is replicated across all Kafka brokers in the cl
 Keycloak Authorization Services requires an access token to provide the grants for the user session. In the context of Kafka authorization the permissions are tied to a specific user id / principal name.
 Multiple sessions and multiple access tokens for the same user will receive the same set of grants. For that reason the grants are cached in Keycloak authorizer 'per user', rather than 'per access token'.
 The authorizer by default checks if the grants for the current user are available in grants cache. If grants are available, the existing grants are used. If not, they are fetched from Keycloak using the current session's access token and the current thread.
-Once the grants are cached they will stay in the cache for the duration of the session or until the access token used to fetch them expires. There is a background job that periodically refreshes the cached grants (see: `strimzi.authorization.grants.refresh.period.seconds`).
+Once the grants are cached they will stay in the cache for the duration of the session or until the access token used to fetch them expires or idles out due to inactivity. There is a background job that periodically refreshes the cached grants (see: `strimzi.authorization.grants.refresh.period.seconds`).
 The consequence of such a behavior is that the grants used for a new session may be out of sync with the state on the Keycloak server for up to the configured grants refresh period.
 Sometimes you may want (e.g. for the debug purposes, for any changes in permissions to be reflected immediately) to fetch fresh grants for each newly established session, rather than use the already cached ones.
 Note that this can noticeably increase the load from brokers to the Keycloak and aggravate any 'glitchiness' issues in communication with the Keycloak.
 To enable such behavior, set the following option to `false`.
 - `strimzi.authorization.reuse.grants` (e.g.: "false" - if set to false, then when a new session is established the grants will be fetched from Keycloak using that session's access token and cached to grants cache)
 
-Note, this option used to be set to `false` by default in version 0.12.0.
+**Note**
+This option used to be set to `false` by default in version 0.12.0.
 In versions prior to 0.13.0 the grants were cached per access token, rather than per user id / principal name.
 
+The grants in the grants cache are shared between sessions of the same user id. To facilitate the timely removal from cache, the maximum time in seconds that a grant is kept in grants cache without being accessed can be configured.
+It allows for reliable active releasing of memory rather than waiting for VM's gc() to kick in for the timed-out sessions. Normally, the open sessions should not just idly consume resources, rather they should perform some operations.
+The default value for the maximum idle time of cached grants is 300 seconds. After that the grant will be removed from cache. If it is needed again it will be reloaded from the Keycloak server. 
+The following option can be used to set a custom value for the maximum idle time for a cached grant:
+- `strimzi.authorization.grants.max.idle.time.seconds` (e.g.: "600" - if authorization grants for user are not access for more than ten minutes, remove them from grants cache)
+
+There is a background service that removes the idle grants and grants with expired access token from grants cache by periodically iterating of the cache.
+The default time between two consecutive runs is 300 seconds.
+The following option can be used to set a custom value for the job period:
+- `strimzi.authorization.grants.gc.period.seconds` (e.g.: "600" - idle grants and grants with expired access token will be removed from grants cache every ten minutes)
 
 There are some other things you may also want to configure. You may want to set a logical cluster name so you can target it with authorization rules:
 - `strimzi.authorization.kafka.cluster.name` (e.g.: "dev-cluster" - a logical name of the cluster which can be targeted with authorization services resource definitions, and permission policies)
