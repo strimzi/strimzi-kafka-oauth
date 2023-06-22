@@ -80,7 +80,7 @@ class GrantsHandler implements Closeable {
                 log.debug("[IGNORED] Failed to cleanly shutdown {} within 10 seconds", name);
             }
         } catch (Throwable t) {
-            log.warn("[IGNORED] Failed to cleanly shutdown " + name + ": ", t);
+            log.warn("[IGNORED] Failed to cleanly shutdown {}: ", name, t);
         }
     }
 
@@ -247,13 +247,14 @@ class GrantsHandler implements Closeable {
         log.trace("Grants gc: active users: {}", userIds);
         int beforeSize;
         int afterSize;
+        long start = System.currentTimeMillis();
         synchronized (grantsCache) {
             beforeSize = grantsCache.size();
             // keep the active sessions, remove grants for unknown user ids
             grantsCache.keySet().retainAll(userIds);
             afterSize = grantsCache.size();
         }
-        log.debug("Grants gc: active users count: {}, grantsCache size before: {}, grantsCache size after: {}", userIds.size(), beforeSize, afterSize);
+        log.debug("Grants gc: active users count: {}, grantsCache size before: {}, grantsCache size after: {}, gc duration: {} ms", userIds.size(), beforeSize, afterSize, System.currentTimeMillis() - start);
     }
 
     /**
@@ -307,7 +308,7 @@ class GrantsHandler implements Closeable {
 
             try {
                 if (i > 1) {
-                    log.debug("Grants request attempt no. " + i);
+                    log.debug("Grants request attempt no. {}", i);
                 }
                 return authorizationGrantsProvider.apply(token);
 
@@ -320,7 +321,7 @@ class GrantsHandler implements Closeable {
                 }
 
                 if (log.isInfoEnabled()) {
-                    log.info("Failed to fetch grants on try no. " + i, e);
+                    log.info("Failed to fetch grants on try no. {}", i, e);
                 }
                 if (i > httpRetries) {
                     log.debug("Failed to fetch grants after {} tries", i);
@@ -344,25 +345,28 @@ class GrantsHandler implements Closeable {
 
             Set<Map.Entry<String, Info>> entries = workmap.entrySet();
             List<Future> scheduled = new ArrayList<>(entries.size());
+            long now = System.currentTimeMillis();
+
             for (Map.Entry<String, Info> ent : entries) {
                 String userId = ent.getKey();
                 Info grantsInfo = ent.getValue();
-                if (grantsInfo.getLastUsed() < System.currentTimeMillis() - grantsMaxIdleMillis) {
+                if (grantsInfo.getLastUsed() < now - grantsMaxIdleMillis) {
                     log.debug("Skipping refreshing grants for user '{}' due to max idle time.", userId);
                     removeUserFromCacheIfExpiredOrIdle(userId);
                 }
                 scheduled.add(new Future(userId, grantsInfo, refreshWorker.submit(() -> {
 
                     if (log.isTraceEnabled()) {
-                        log.trace("Fetch grants for user: " + userId + ", token: " + mask(grantsInfo.getAccessToken()));
+                        log.trace("Fetch grants for user: {}, token: {}", userId, mask(grantsInfo.getAccessToken()));
                     }
 
                     JsonNode newGrants;
                     try {
                         newGrants = fetchGrantsWithRetry(grantsInfo.getAccessToken());
                     } catch (HttpException e) {
+                        // Handle Keycloak token / grants endpoint returning status 403 Forbidden
+                        // 403 happens when no policy matches the token - thus there are no grants, no permission granted
                         if (403 == e.getStatus()) {
-                            // 403 happens when no policy matches the token - thus there are no grants, no permission granted
                             newGrants = JSONUtil.newObjectNode();
                         } else {
                             throw e;
@@ -388,6 +392,8 @@ class GrantsHandler implements Closeable {
                     final Throwable cause = e.getCause();
                     if (cause instanceof HttpException) {
                         log.debug("[IGNORED] Failed to fetch grants for user: {}", cause.getMessage());
+                        // Handle Keycloak token / grants endpoint returning status 401 Unauthorized
+                        // 401 happens when the token has expired or has been revoked
                         if (401 == ((HttpException) cause).getStatus()) {
                             grantsCache.remove(f.getUserId());
                             log.debug("Removed user from grants cache: {}", f.getUserId());
@@ -396,19 +402,19 @@ class GrantsHandler implements Closeable {
                         }
                     }
                     if (log.isWarnEnabled()) {
-                        log.warn("[IGNORED] Failed to fetch grants for user: " + e.getMessage(), e);
+                        log.warn("[IGNORED] Failed to fetch grants for user: {}", e.getMessage(), e);
                     }
 
                 } catch (Throwable e) {
                     if (log.isWarnEnabled()) {
-                        log.warn("[IGNORED] Failed to fetch grants for user: " + f.getUserId() + ", token: " + mask(f.getGrantsInfo().accessToken) + " - " + e.getMessage(), e);
+                        log.warn("[IGNORED] Failed to fetch grants for user: {}, token: {} - {}", f.getUserId(), mask(f.getGrantsInfo().accessToken), e.getMessage(), e);
                     }
                 }
             }
 
         } catch (Throwable t) {
             // Log, but don't rethrow the exception to prevent scheduler cancelling the scheduled job.
-            log.error(t.getMessage(), t);
+            log.error("{}", t.getMessage(), t);
         } finally {
             log.debug("Done refreshing grants");
         }
@@ -501,6 +507,16 @@ class GrantsHandler implements Closeable {
         }
     }
 
+    /**
+     * This method compares two JSON objects with grants for semantic equality.
+     * <p>
+     * Keycloak sometimes returns grants for the user in different order, treating the JSON array as a Set.
+     * When checking for equality we should also treat the JSON array as a Set.
+     *
+     * @param grants1 First JSON array containing grants
+     * @param grants2 Second JSON array containing grants
+     * @return true if grants objects are semantically equal
+     */
     private static boolean semanticGrantsEquals(JsonNode grants1, JsonNode grants2) {
         if (grants1 == grants2) return true;
         if (grants1 == null) {

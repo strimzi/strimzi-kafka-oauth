@@ -23,7 +23,36 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
+import static io.strimzi.kafka.oauth.client.ClientConfig.OAUTH_TOKEN_ENDPOINT_URI;
+import static io.strimzi.kafka.oauth.common.Config.OAUTH_CONNECT_TIMEOUT_SECONDS;
+import static io.strimzi.kafka.oauth.common.Config.OAUTH_ENABLE_METRICS;
+import static io.strimzi.kafka.oauth.common.Config.OAUTH_READ_TIMEOUT_SECONDS;
+import static io.strimzi.kafka.oauth.common.Config.OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM;
+import static io.strimzi.kafka.oauth.common.Config.OAUTH_SSL_SECURE_RANDOM_IMPLEMENTATION;
+import static io.strimzi.kafka.oauth.common.Config.OAUTH_SSL_TRUSTSTORE_CERTIFICATES;
+import static io.strimzi.kafka.oauth.common.Config.OAUTH_SSL_TRUSTSTORE_LOCATION;
+import static io.strimzi.kafka.oauth.common.Config.OAUTH_SSL_TRUSTSTORE_PASSWORD;
+import static io.strimzi.kafka.oauth.common.Config.OAUTH_SSL_TRUSTSTORE_TYPE;
 import static io.strimzi.kafka.oauth.common.Config.isTrue;
+import static io.strimzi.kafka.oauth.server.authorizer.AuthzConfig.STRIMZI_AUTHORIZATION_CLIENT_ID;
+import static io.strimzi.kafka.oauth.server.authorizer.AuthzConfig.STRIMZI_AUTHORIZATION_CONNECT_TIMEOUT_SECONDS;
+import static io.strimzi.kafka.oauth.server.authorizer.AuthzConfig.STRIMZI_AUTHORIZATION_DELEGATE_TO_KAFKA_ACL;
+import static io.strimzi.kafka.oauth.server.authorizer.AuthzConfig.STRIMZI_AUTHORIZATION_ENABLE_METRICS;
+import static io.strimzi.kafka.oauth.server.authorizer.AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_GC_PERIOD_SECONDS;
+import static io.strimzi.kafka.oauth.server.authorizer.AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_MAX_IDLE_TIME_SECONDS;
+import static io.strimzi.kafka.oauth.server.authorizer.AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_REFRESH_PERIOD_SECONDS;
+import static io.strimzi.kafka.oauth.server.authorizer.AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_REFRESH_POOL_SIZE;
+import static io.strimzi.kafka.oauth.server.authorizer.AuthzConfig.STRIMZI_AUTHORIZATION_HTTP_RETRIES;
+import static io.strimzi.kafka.oauth.server.authorizer.AuthzConfig.STRIMZI_AUTHORIZATION_KAFKA_CLUSTER_NAME;
+import static io.strimzi.kafka.oauth.server.authorizer.AuthzConfig.STRIMZI_AUTHORIZATION_READ_TIMEOUT_SECONDS;
+import static io.strimzi.kafka.oauth.server.authorizer.AuthzConfig.STRIMZI_AUTHORIZATION_REUSE_GRANTS;
+import static io.strimzi.kafka.oauth.server.authorizer.AuthzConfig.STRIMZI_AUTHORIZATION_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM;
+import static io.strimzi.kafka.oauth.server.authorizer.AuthzConfig.STRIMZI_AUTHORIZATION_SSL_SECURE_RANDOM_IMPLEMENTATION;
+import static io.strimzi.kafka.oauth.server.authorizer.AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_CERTIFICATES;
+import static io.strimzi.kafka.oauth.server.authorizer.AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_LOCATION;
+import static io.strimzi.kafka.oauth.server.authorizer.AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_PASSWORD;
+import static io.strimzi.kafka.oauth.server.authorizer.AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_TYPE;
+import static io.strimzi.kafka.oauth.server.authorizer.AuthzConfig.STRIMZI_AUTHORIZATION_TOKEN_ENDPOINT_URI;
 
 /**
  * The classes used to parse and store Authorizer configuration.
@@ -88,39 +117,39 @@ public class Configuration {
 
         configureTokenEndpoint(authzConfig);
 
-        clientId = ConfigUtil.getConfigWithFallbackLookup(authzConfig, AuthzConfig.STRIMZI_AUTHORIZATION_CLIENT_ID, ClientConfig.OAUTH_CLIENT_ID);
+        clientId = ConfigUtil.getConfigWithFallbackLookup(authzConfig, STRIMZI_AUTHORIZATION_CLIENT_ID, ClientConfig.OAUTH_CLIENT_ID);
         if (clientId == null) {
-            throw new ConfigException("OAuth client id ('strimzi.authorization.client.id') not set.");
+            throw new ConfigException("OAuth client id ('" + STRIMZI_AUTHORIZATION_CLIENT_ID + "') not set.");
         }
 
         configureSSLFactory(authzConfig);
         configureHostnameVerifier(authzConfig);
         configureHttpTimeouts(authzConfig);
 
-        String clusterName = authzConfig.getValue(AuthzConfig.STRIMZI_AUTHORIZATION_KAFKA_CLUSTER_NAME);
+        String clusterName = authzConfig.getValue(STRIMZI_AUTHORIZATION_KAFKA_CLUSTER_NAME);
         if (clusterName == null) {
             clusterName = "kafka-cluster";
         }
         this.clusterName = clusterName;
 
-        delegateToKafkaACL = authzConfig.getValueAsBoolean(AuthzConfig.STRIMZI_AUTHORIZATION_DELEGATE_TO_KAFKA_ACL, false);
+        delegateToKafkaACL = authzConfig.getValueAsBoolean(STRIMZI_AUTHORIZATION_DELEGATE_TO_KAFKA_ACL, false);
 
 
         configureSuperUsers(configs);
 
         // Number of threads that can perform token endpoint requests at the same time
-        grantsRefreshPoolSize = authzConfig.getValueAsInt(AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_REFRESH_POOL_SIZE, 5);
+        grantsRefreshPoolSize = authzConfig.getValueAsInt(STRIMZI_AUTHORIZATION_GRANTS_REFRESH_POOL_SIZE, 5);
         if (grantsRefreshPoolSize < 1) {
-            throw new ConfigException("Invalid value of 'strimzi.authorization.grants.refresh.pool.size': " + grantsRefreshPoolSize + ". Has to be >= 1.");
+            throw new ConfigException("Invalid value of '" + STRIMZI_AUTHORIZATION_GRANTS_REFRESH_POOL_SIZE + "': " + grantsRefreshPoolSize + ". Has to be >= 1.");
         }
 
         // Less or equal zero means to never refresh
-        grantsRefreshPeriodSeconds = authzConfig.getValueAsInt(AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_REFRESH_PERIOD_SECONDS, 60);
+        grantsRefreshPeriodSeconds = authzConfig.getValueAsInt(STRIMZI_AUTHORIZATION_GRANTS_REFRESH_PERIOD_SECONDS, 60);
         grantsMaxIdleTimeSeconds = configureGrantsMaxIdleTimeSeconds(authzConfig);
 
         gcPeriodSeconds = configureGcPeriodSeconds(authzConfig);
 
-        reuseGrants = authzConfig.getValueAsBoolean(AuthzConfig.STRIMZI_AUTHORIZATION_REUSE_GRANTS, true);
+        reuseGrants = authzConfig.getValueAsBoolean(STRIMZI_AUTHORIZATION_REUSE_GRANTS, true);
 
         configureHttpRetries(authzConfig);
 
@@ -144,18 +173,18 @@ public class Configuration {
     }
 
     private int configureGrantsMaxIdleTimeSeconds(AuthzConfig config) {
-        int grantsMaxIdleTimeSeconds = config.getValueAsInt(AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_MAX_IDLE_TIME_SECONDS, 300);
+        int grantsMaxIdleTimeSeconds = config.getValueAsInt(STRIMZI_AUTHORIZATION_GRANTS_MAX_IDLE_TIME_SECONDS, 300);
         if (grantsMaxIdleTimeSeconds <= 0) {
-            logs.add(new Log(Log.Level.WARNING, "'strimzi.authorization.grants.max.idle.time.seconds' set to invalid value: " + grantsMaxIdleTimeSeconds + " (should be a positive number), using the default value: 300 seconds"));
+            logs.add(new Log(Log.Level.WARNING, "'" + STRIMZI_AUTHORIZATION_GRANTS_MAX_IDLE_TIME_SECONDS + "' set to invalid value: " + grantsMaxIdleTimeSeconds + " (should be a positive number), using the default value: 300 seconds"));
             grantsMaxIdleTimeSeconds = 300;
         }
         return grantsMaxIdleTimeSeconds;
     }
 
     private int configureGcPeriodSeconds(AuthzConfig config) {
-        int gcPeriodSeconds = config.getValueAsInt(AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_GC_PERIOD_SECONDS, 300);
+        int gcPeriodSeconds = config.getValueAsInt(STRIMZI_AUTHORIZATION_GRANTS_GC_PERIOD_SECONDS, 300);
         if (gcPeriodSeconds <= 0) {
-            logs.add(new Log(Log.Level.WARNING, "'strimzi.authorization.grants.gc.period.seconds' set to invalid value: " + gcPeriodSeconds + ", using the default value: 300 seconds"));
+            logs.add(new Log(Log.Level.WARNING, "'" + STRIMZI_AUTHORIZATION_GRANTS_GC_PERIOD_SECONDS + "' set to invalid value: " + gcPeriodSeconds + ", using the default value: 300 seconds"));
             gcPeriodSeconds = 300;
         }
         return gcPeriodSeconds;
@@ -172,20 +201,20 @@ public class Configuration {
 
     private void configureSSLFactory(AuthzConfig config) {
         truststore = ConfigUtil.getConfigWithFallbackLookup(config,
-                AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_LOCATION, Config.OAUTH_SSL_TRUSTSTORE_LOCATION);
+                STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_LOCATION, OAUTH_SSL_TRUSTSTORE_LOCATION);
         truststoreData = ConfigUtil.getConfigWithFallbackLookup(config,
-                AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_CERTIFICATES, Config.OAUTH_SSL_TRUSTSTORE_CERTIFICATES);
+                STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_CERTIFICATES, OAUTH_SSL_TRUSTSTORE_CERTIFICATES);
         truststorePassword = ConfigUtil.getConfigWithFallbackLookup(config,
-                AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_PASSWORD, Config.OAUTH_SSL_TRUSTSTORE_PASSWORD);
+                STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_PASSWORD, OAUTH_SSL_TRUSTSTORE_PASSWORD);
         truststoreType = ConfigUtil.getConfigWithFallbackLookup(config,
-                AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_TYPE, Config.OAUTH_SSL_TRUSTSTORE_TYPE);
+                STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_TYPE, OAUTH_SSL_TRUSTSTORE_TYPE);
         prng = ConfigUtil.getConfigWithFallbackLookup(config,
-                AuthzConfig.STRIMZI_AUTHORIZATION_SSL_SECURE_RANDOM_IMPLEMENTATION, Config.OAUTH_SSL_SECURE_RANDOM_IMPLEMENTATION);
+                STRIMZI_AUTHORIZATION_SSL_SECURE_RANDOM_IMPLEMENTATION, OAUTH_SSL_SECURE_RANDOM_IMPLEMENTATION);
     }
 
     private void configureHostnameVerifier(AuthzConfig config) {
         String hostCheck = ConfigUtil.getConfigWithFallbackLookup(config,
-                AuthzConfig.STRIMZI_AUTHORIZATION_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM, Config.OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM);
+                STRIMZI_AUTHORIZATION_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM, OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM);
 
         if (hostCheck == null) {
             hostCheck = "HTTPS";
@@ -193,26 +222,26 @@ public class Configuration {
         this.certificateHostCheckAlgorithm = hostCheck;
     }
     private void configureHttpRetries(AuthzConfig config) {
-        httpRetries = config.getValueAsInt(AuthzConfig.STRIMZI_AUTHORIZATION_HTTP_RETRIES, 0);
+        httpRetries = config.getValueAsInt(STRIMZI_AUTHORIZATION_HTTP_RETRIES, 0);
         if (httpRetries < 0) {
-            throw new ConfigException("Invalid value of 'strimzi.authorization.http.retries': " + httpRetries + ". Has to be >= 0.");
+            throw new ConfigException("Invalid value of '" + STRIMZI_AUTHORIZATION_HTTP_RETRIES + "': " + httpRetries + ". Has to be >= 0.");
         }
     }
     private void configureMetrics(AuthzConfig config) {
 
-        String enableMetricsString = ConfigUtil.getConfigWithFallbackLookup(config, AuthzConfig.STRIMZI_AUTHORIZATION_ENABLE_METRICS, Config.OAUTH_ENABLE_METRICS);
+        String enableMetricsString = ConfigUtil.getConfigWithFallbackLookup(config, STRIMZI_AUTHORIZATION_ENABLE_METRICS, OAUTH_ENABLE_METRICS);
         try {
             enableMetrics = enableMetricsString != null && isTrue(enableMetricsString);
         } catch (Exception e) {
-            throw new ConfigException("Bad boolean value for key: " + AuthzConfig.STRIMZI_AUTHORIZATION_ENABLE_METRICS + ", value: " + enableMetricsString);
+            throw new ConfigException("Bad boolean value for key: " + STRIMZI_AUTHORIZATION_ENABLE_METRICS + ", value: " + enableMetricsString);
         }
     }
 
     private void configureTokenEndpoint(AuthzConfig config) {
-        String endpoint = ConfigUtil.getConfigWithFallbackLookup(config, AuthzConfig.STRIMZI_AUTHORIZATION_TOKEN_ENDPOINT_URI,
-                ClientConfig.OAUTH_TOKEN_ENDPOINT_URI);
+        String endpoint = ConfigUtil.getConfigWithFallbackLookup(config, STRIMZI_AUTHORIZATION_TOKEN_ENDPOINT_URI,
+                OAUTH_TOKEN_ENDPOINT_URI);
         if (endpoint == null) {
-            throw new ConfigException("OAuth2 Token Endpoint ('strimzi.authorization.token.endpoint.uri') not set.");
+            throw new ConfigException("OAuth2 Token Endpoint ('" + STRIMZI_AUTHORIZATION_TOKEN_ENDPOINT_URI + "') not set.");
         }
 
         try {
@@ -224,8 +253,8 @@ public class Configuration {
 
     private void configureHttpTimeouts(AuthzConfig config) {
         List<String> warnings = new LinkedList<>();
-        connectTimeoutSeconds = ConfigUtil.getTimeoutConfigWithFallbackLookup(config, AuthzConfig.STRIMZI_AUTHORIZATION_CONNECT_TIMEOUT_SECONDS, ClientConfig.OAUTH_CONNECT_TIMEOUT_SECONDS, warnings);
-        readTimeoutSeconds = ConfigUtil.getTimeoutConfigWithFallbackLookup(config, AuthzConfig.STRIMZI_AUTHORIZATION_READ_TIMEOUT_SECONDS, ClientConfig.OAUTH_READ_TIMEOUT_SECONDS, warnings);
+        connectTimeoutSeconds = ConfigUtil.getTimeoutConfigWithFallbackLookup(config, STRIMZI_AUTHORIZATION_CONNECT_TIMEOUT_SECONDS, OAUTH_CONNECT_TIMEOUT_SECONDS, warnings);
+        readTimeoutSeconds = ConfigUtil.getTimeoutConfigWithFallbackLookup(config, STRIMZI_AUTHORIZATION_READ_TIMEOUT_SECONDS, OAUTH_READ_TIMEOUT_SECONDS, warnings);
 
         for (String message: warnings) {
             logs.add(new Log(Log.Level.WARNING, message));
@@ -247,36 +276,36 @@ public class Configuration {
         // If you add a new config property, make sure to add it to this list
         // otherwise it won't be picked
         String[] keys = {
-            AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_REFRESH_PERIOD_SECONDS,
-            AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_REFRESH_POOL_SIZE,
-            AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_MAX_IDLE_TIME_SECONDS,
-            AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_GC_PERIOD_SECONDS,
-            AuthzConfig.STRIMZI_AUTHORIZATION_HTTP_RETRIES,
-            AuthzConfig.STRIMZI_AUTHORIZATION_REUSE_GRANTS,
-            AuthzConfig.STRIMZI_AUTHORIZATION_DELEGATE_TO_KAFKA_ACL,
-            AuthzConfig.STRIMZI_AUTHORIZATION_KAFKA_CLUSTER_NAME,
-            AuthzConfig.STRIMZI_AUTHORIZATION_CLIENT_ID,
+            STRIMZI_AUTHORIZATION_GRANTS_REFRESH_PERIOD_SECONDS,
+            STRIMZI_AUTHORIZATION_GRANTS_REFRESH_POOL_SIZE,
+            STRIMZI_AUTHORIZATION_GRANTS_MAX_IDLE_TIME_SECONDS,
+            STRIMZI_AUTHORIZATION_GRANTS_GC_PERIOD_SECONDS,
+            STRIMZI_AUTHORIZATION_HTTP_RETRIES,
+            STRIMZI_AUTHORIZATION_REUSE_GRANTS,
+            STRIMZI_AUTHORIZATION_DELEGATE_TO_KAFKA_ACL,
+            STRIMZI_AUTHORIZATION_KAFKA_CLUSTER_NAME,
+            STRIMZI_AUTHORIZATION_CLIENT_ID,
             Config.OAUTH_CLIENT_ID,
-            AuthzConfig.STRIMZI_AUTHORIZATION_TOKEN_ENDPOINT_URI,
-            ClientConfig.OAUTH_TOKEN_ENDPOINT_URI,
-            AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_LOCATION,
-            Config.OAUTH_SSL_TRUSTSTORE_LOCATION,
-            AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_CERTIFICATES,
-            Config.OAUTH_SSL_TRUSTSTORE_CERTIFICATES,
-            AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_PASSWORD,
-            Config.OAUTH_SSL_TRUSTSTORE_PASSWORD,
-            AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_TYPE,
-            Config.OAUTH_SSL_TRUSTSTORE_TYPE,
-            AuthzConfig.STRIMZI_AUTHORIZATION_SSL_SECURE_RANDOM_IMPLEMENTATION,
-            Config.OAUTH_SSL_SECURE_RANDOM_IMPLEMENTATION,
-            AuthzConfig.STRIMZI_AUTHORIZATION_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM,
-            Config.OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM,
-            AuthzConfig.STRIMZI_AUTHORIZATION_CONNECT_TIMEOUT_SECONDS,
-            Config.OAUTH_CONNECT_TIMEOUT_SECONDS,
-            AuthzConfig.STRIMZI_AUTHORIZATION_READ_TIMEOUT_SECONDS,
-            Config.OAUTH_READ_TIMEOUT_SECONDS,
-            AuthzConfig.STRIMZI_AUTHORIZATION_ENABLE_METRICS,
-            Config.OAUTH_ENABLE_METRICS
+            STRIMZI_AUTHORIZATION_TOKEN_ENDPOINT_URI,
+            OAUTH_TOKEN_ENDPOINT_URI,
+            STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_LOCATION,
+            OAUTH_SSL_TRUSTSTORE_LOCATION,
+            STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_CERTIFICATES,
+            OAUTH_SSL_TRUSTSTORE_CERTIFICATES,
+            STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_PASSWORD,
+            OAUTH_SSL_TRUSTSTORE_PASSWORD,
+            STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_TYPE,
+            OAUTH_SSL_TRUSTSTORE_TYPE,
+            STRIMZI_AUTHORIZATION_SSL_SECURE_RANDOM_IMPLEMENTATION,
+            OAUTH_SSL_SECURE_RANDOM_IMPLEMENTATION,
+            STRIMZI_AUTHORIZATION_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM,
+            OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM,
+            STRIMZI_AUTHORIZATION_CONNECT_TIMEOUT_SECONDS,
+            OAUTH_CONNECT_TIMEOUT_SECONDS,
+            STRIMZI_AUTHORIZATION_READ_TIMEOUT_SECONDS,
+            OAUTH_READ_TIMEOUT_SECONDS,
+            STRIMZI_AUTHORIZATION_ENABLE_METRICS,
+            OAUTH_ENABLE_METRICS
         };
 
         // Copy over the keys

@@ -69,7 +69,7 @@ public class ConfigUtil {
      * @return Configured value as int
      */
     public static int getConnectTimeout(Config config) {
-        return getTimeout(config, Config.OAUTH_CONNECT_TIMEOUT_SECONDS, null);
+        return getTimeoutAppendingWarnings(config, Config.OAUTH_CONNECT_TIMEOUT_SECONDS, null);
     }
 
     /**
@@ -79,7 +79,7 @@ public class ConfigUtil {
      * @return Configured value as int
      */
     public static int getReadTimeout(Config config) {
-        return getTimeout(config, Config.OAUTH_READ_TIMEOUT_SECONDS, null);
+        return getTimeoutAppendingWarnings(config, Config.OAUTH_READ_TIMEOUT_SECONDS, null);
     }
 
     /**
@@ -91,7 +91,7 @@ public class ConfigUtil {
      *
      * @return Configured value as int
      */
-    public static int getTimeout(Config c, String key, List<String> warnings) {
+    public static int getTimeoutAppendingWarnings(Config c, String key, List<String> warnings) {
         int timeout = c.getValueAsInt(key, 60);
         if (timeout <= 0) {
             String msg = "The configured value of `" + key + "` (" + timeout + ") is <= 0 and will be ignored. Default used: 60 seconds";
@@ -118,9 +118,9 @@ public class ConfigUtil {
     public static int getTimeoutConfigWithFallbackLookup(Config c, String key, String fallbackKey, List<String> warnings) {
         String result = c.getValue(key);
         if (result == null) {
-            return getTimeout(c, fallbackKey, warnings);
+            return getTimeoutAppendingWarnings(c, fallbackKey, warnings);
         }
-        return getTimeout(c, key, warnings);
+        return getTimeoutAppendingWarnings(c, key, warnings);
     }
 
     /**
