@@ -161,8 +161,16 @@ public class KeycloakRBACAuthorizer implements Authorizer {
     static final Logger log = LoggerFactory.getLogger(KeycloakRBACAuthorizer.class);
     static final Logger GRANT_LOG = LoggerFactory.getLogger(KeycloakRBACAuthorizer.class.getName() + ".grant");
     static final Logger DENY_LOG = LoggerFactory.getLogger(KeycloakRBACAuthorizer.class.getName() + ".deny");
-    private final static AtomicInteger VERSION_COUNTER = new AtomicInteger(1);
-    private final int version = VERSION_COUNTER.getAndIncrement();
+
+    /**
+     * A counter used to generate an instance number for each instance of this class
+     */
+    private final static AtomicInteger INSTANCE_NUMBER_COUNTER = new AtomicInteger(1);
+
+    /**
+     * An instance number used in {@link #toString()} method, to easily track the number of instances of this class
+     */
+    private final int instanceNumber = INSTANCE_NUMBER_COUNTER.getAndIncrement();
 
     private SSLSocketFactory socketFactory;
     private HostnameVerifier hostnameVerifier;
@@ -618,6 +626,6 @@ public class KeycloakRBACAuthorizer implements Authorizer {
 
     @Override
     public String toString() {
-        return KeycloakRBACAuthorizer.class.getSimpleName() + "@" + version;
+        return KeycloakRBACAuthorizer.class.getSimpleName() + "@" + instanceNumber;
     }
 }

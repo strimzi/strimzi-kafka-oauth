@@ -115,7 +115,8 @@ class GrantsHandler implements Closeable {
     }
 
     /**
-     * A cached record with grants JSON, access token used to retrieve grants, token expiry info and last usage info.
+     * A grants record in <code>grantsCache</code> map containing a grants JSON, access token used to retrieve grants, token expiry info and last usage info.
+     * Multiple threads can access the instance of this class for read and write.
      */
     static class Info {
         private volatile String accessToken;
@@ -129,6 +130,13 @@ class GrantsHandler implements Closeable {
             this.lastUsed = System.currentTimeMillis();
         }
 
+        /**
+         * This method is called once per authorize() call to update the fact that grants have been accessed,
+         * and to update the access token and the associated info if it is found to be longer lived that the existing
+         * access token.
+         *
+         * @param token An object holding the access token and associated info
+         */
         synchronized void updateTokenIfExpiresLater(BearerTokenWithPayload token) {
             lastUsed = System.currentTimeMillis();
             if (token.lifetimeMs() > expiresAt) {
@@ -158,6 +166,10 @@ class GrantsHandler implements Closeable {
         }
     }
 
+    /**
+     * A Future that provides a result of the scheduled grants refresh job.
+     * It wraps the Future instance returned by a call to <code>refreshWorker.submit()</code>
+     */
     static class Future implements java.util.concurrent.Future<JsonNode> {
 
         private final java.util.concurrent.Future<JsonNode> delegate;
@@ -167,6 +179,8 @@ class GrantsHandler implements Closeable {
         /**
          * Create a new instance
          *
+         * @param userId User id that server as a key in grantsCache map
+         * @param grantsInfo Cached grants record in grantsCache map
          * @param future Original future instance to wrap
          */
         @SuppressFBWarnings("EI_EXPOSE_REP2")

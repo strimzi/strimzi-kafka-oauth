@@ -402,7 +402,7 @@ public class KeycloakAuthorizerTest {
                 authorizer.configure(config);
                 Assert.fail("Should have failed");
             } catch (ConfigException e) {
-                Assert.assertTrue("'principal.builder.class' is missing", e.getMessage().contains("KeycloakRBACAuthorizer requires io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder as 'principal.builder.class'"));
+                Assert.assertTrue("'principal.builder.class' is missing", e.getMessage().contains("requires io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder as 'principal.builder.class'"));
             }
         }
         config.put("principal.builder.class", "io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder");

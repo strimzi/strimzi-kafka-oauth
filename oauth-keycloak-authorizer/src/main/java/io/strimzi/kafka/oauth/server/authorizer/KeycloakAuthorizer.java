@@ -32,14 +32,38 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 
 /**
- * An authorizer that ensures a single stateful instance is used for authorization callbacks.
+ * An authorizer using Keycloak Authorization Services that supports KRaft mode and Zookeeper mode.
+ * <p>
+ * In KRaft mode multiple instances of this class can be instantiated, and each needs its own instance of <code>StandardAuthorizer</code> for
+ * delegating authorization to Kafka ACL implementation.
+ * <p>
+ * This authorizer auto-detects whether it runs in KRaft mode or Zookeeper mode, and automatically sets up appropriate Kafka ACL delegation classes.
+ * All authorization logic is delegated to <code>KeycloakRBACAuthorizer</code> of which a single instance is created and shared between all
+ * instances of this class.
+ * <p>
+ * To install this authorizer in Kafka, specify the following in your 'server.properties':
+ * </p>
+ * <pre>
+ *     authorizer.class.name=io.strimzi.kafka.oauth.server.authorizer.KeycloakAuthorizer
+ *     principal.builder.class=io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder
+ * </pre>
+ * <p>
+ * Configuration options are the same as for {@link KeycloakRBACAuthorizer}.
  */
 public class KeycloakAuthorizer implements ClusterMetadataAuthorizer {
 
     private static final Logger log = LoggerFactory.getLogger(KeycloakAuthorizer.class);
 
-    private final static AtomicInteger VERSION_COUNTER = new AtomicInteger(1);
-    private final int version = VERSION_COUNTER.getAndIncrement();
+    /**
+     * A counter used to generate an instance number for each instance of this class
+     */
+    private final static AtomicInteger INSTANCE_NUMBER_COUNTER = new AtomicInteger(1);
+
+    /**
+     * An instance number used in {@link #toString()} method, to easily track the number of instances of this class
+     */
+    private final int instanceNumber = INSTANCE_NUMBER_COUNTER.getAndIncrement();
+
     private StandardAuthorizer delegate;
     private KeycloakRBACAuthorizer singleton;
 
@@ -217,6 +241,6 @@ public class KeycloakAuthorizer implements ClusterMetadataAuthorizer {
 
     @Override
     public String toString() {
-        return KeycloakAuthorizer.class.getSimpleName() + "@" + version;
+        return KeycloakAuthorizer.class.getSimpleName() + "@" + instanceNumber;
     }
 }
