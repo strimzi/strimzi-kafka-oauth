@@ -118,7 +118,7 @@ public class FloodProducer extends Thread {
                 producer.send(new ProducerRecord<>(topic, "Message " + i))
                         .get();
 
-                log.debug("[" + clientId + "] Produced message to '" + topic + "': Message " + i);
+                log.debug("[{}] Produced message to '{}': Message {}", clientId, topic, i);
 
                 if (i < sendLimit - 1) {
                     Thread.sleep(2000);

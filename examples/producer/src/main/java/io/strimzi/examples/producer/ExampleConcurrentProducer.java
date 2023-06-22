@@ -123,7 +123,7 @@ public class ExampleConcurrentProducer {
         boolean reinit = false;
         try {
             job.result.get();
-            log.info("Sent '" + job.message + "'");
+            log.info("Sent '{}'", job.message);
         } catch (InterruptedException e) {
             throw new RuntimeException("Interrupted while sending!");
 
@@ -133,7 +133,7 @@ public class ExampleConcurrentProducer {
                     || cause instanceof AuthorizationException) {
                 reinit = true;
                 rerunJobs.add(new Job(job.message));
-                log.error("Failed to send message due to auth / authz issue ('" + job.message + "')", cause);
+                log.error("Failed to send message due to auth / authz issue ('{}')", job.message, cause);
             } else {
                 throw new RuntimeException("Failed to send message due to unexpected error ('" + job.message + "')", e);
             }

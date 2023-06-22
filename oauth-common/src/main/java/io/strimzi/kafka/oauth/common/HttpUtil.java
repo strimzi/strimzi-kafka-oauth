@@ -82,7 +82,7 @@ public class HttpUtil {
 
             try {
                 if (i > 1) {
-                    log.debug("Request attempt no. " + i);
+                    log.debug("Request attempt no. {}", i);
                 }
                 long requestStartTime = System.currentTimeMillis();
                 try {
@@ -100,7 +100,7 @@ public class HttpUtil {
                 }
             } catch (Exception e) {
                 exception = e;
-                log.info("Action failed on try no. " + i, e);
+                log.info("Action failed on try no. {}", i, e);
             }
         } while (i <= retries);
 

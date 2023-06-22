@@ -16,12 +16,12 @@ public class MockCurrentTimeProvider implements CurrentTimeProvider {
 
     public synchronized void setTime(long millis) {
         diff = millis - System.currentTimeMillis();
-        log.debug("New current time is: " + (System.currentTimeMillis() + diff));
+        log.debug("New current time is: {}", System.currentTimeMillis() + diff);
     }
 
     public synchronized long addSeconds(int seconds) {
         diff += 1000L * seconds;
-        log.debug("New current time is: plus " + seconds + "s: " + (System.currentTimeMillis() + diff));
+        log.debug("New current time is: plus {}s: {}", seconds, System.currentTimeMillis() + diff);
         return currentTime();
     }
 
