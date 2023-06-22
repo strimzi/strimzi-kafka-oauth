@@ -748,7 +748,7 @@ The default value for the maximum idle time of cached grants is 300 seconds. Aft
 The following option can be used to set a custom value for the maximum idle time for a cached grant:
 - `strimzi.authorization.grants.max.idle.time.seconds` (e.g.: "600" - if authorization grants for user are not access for more than ten minutes, remove them from grants cache)
 
-There is a background service that removes the idle grants and grants with expired access token from grants cache by periodically iterating of the cache.
+There is a background service that removes the idle grants and grants with expired access token from grants cache by periodically iterating over the cache.
 The default time between two consecutive runs is 300 seconds.
 The following option can be used to set a custom value for the job period:
 - `strimzi.authorization.grants.gc.period.seconds` (e.g.: "600" - idle grants and grants with expired access token will be removed from grants cache every ten minutes)

@@ -192,17 +192,12 @@ public class Configuration {
         }
         this.certificateHostCheckAlgorithm = hostCheck;
     }
-
-
     private void configureHttpRetries(AuthzConfig config) {
         httpRetries = config.getValueAsInt(AuthzConfig.STRIMZI_AUTHORIZATION_HTTP_RETRIES, 0);
         if (httpRetries < 0) {
             throw new ConfigException("Invalid value of 'strimzi.authorization.http.retries': " + httpRetries + ". Has to be >= 0.");
         }
     }
-
-
-
     private void configureMetrics(AuthzConfig config) {
 
         String enableMetricsString = ConfigUtil.getConfigWithFallbackLookup(config, AuthzConfig.STRIMZI_AUTHORIZATION_ENABLE_METRICS, Config.OAUTH_ENABLE_METRICS);
