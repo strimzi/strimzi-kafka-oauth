@@ -8,6 +8,12 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+/**
+ * A helper class used to maintain per-user-id semaphores to implement the logic where one thread executes fetching of grants
+ * while other threads wait and reuse the results.
+ *
+ * @param <T> A result type
+ */
 class Semaphores<T> {
 
     private final ConcurrentHashMap<String, Semaphore<T>> futures = new ConcurrentHashMap<>();

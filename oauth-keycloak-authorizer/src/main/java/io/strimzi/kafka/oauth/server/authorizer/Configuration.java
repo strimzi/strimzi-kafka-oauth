@@ -108,7 +108,7 @@ public class Configuration {
 
         String pbclass = (String) configMap.get("principal.builder.class");
         if (!PRINCIPAL_BUILDER_CLASS.equals(pbclass) && !DEPRECATED_PRINCIPAL_BUILDER_CLASS.equals(pbclass)) {
-            throw new ConfigException("KeycloakRBACAuthorizer requires " + PRINCIPAL_BUILDER_CLASS + " as 'principal.builder.class'");
+            throw new ConfigException("This authorizer requires " + PRINCIPAL_BUILDER_CLASS + " as 'principal.builder.class'");
         }
 
         if (DEPRECATED_PRINCIPAL_BUILDER_CLASS.equals(pbclass)) {

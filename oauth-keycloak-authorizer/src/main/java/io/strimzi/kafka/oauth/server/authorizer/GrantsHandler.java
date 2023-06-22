@@ -35,7 +35,29 @@ import static io.strimzi.kafka.oauth.common.JSONUtil.asSetOfNodes;
 import static io.strimzi.kafka.oauth.common.LogUtil.mask;
 
 /**
- * The class that handles grants cache and services to maintain it
+ * The class that handles grants cache and services to maintain it.
+ * <p>
+ * Grants are cached per user id. All sessions by the same user id share the cached grants.
+ * The underlying authentication for fetching the grants is still an access token. Different sessions
+ * with the same user id can authenticate using different access tokens. The assumption is that grants resolution
+ * for the user id produces the same set of grants regardless of the access token used to obtain grants.
+ * Access token for a specific user id with the longest expiry is held in the cache for a background grants refresh job.
+ *
+ * The instance of this class runs three background services:
+ * <ul>
+ *     <li><em>Grants Refresh Scheduler</em> A ScheduledExecutorService that wakes up on a fixed period and scans the grants cache,
+ *     queueing a refresh for every grant that has a valid access token, and hasn't been idle for more than the max idle time.
+ *     Grants with expired access tokens and idled out grants are removed from cache.</li>
+ *     <li><em>Grants Refresh Worker</em> A fixed thread pool ExecutorService that executes refresh jobs queued by Grants Refresh Scheduler</li>
+ *     <li><em>GC Worker</em> A ScheduledExecutorService that wakes up on a fixed period and removes grants for user ids for which there are no active sessions.
+ *     It removes such grants from cache, so they are no longer refreshed.</li>
+ * </ul>
+ *
+ * When a new session triggers a first authorize() call, the grants are looked up in the cache. If grants are available they are returned and used.
+ * If not, they are fetched. If during that time any authorize() call comes in for the same user id it is made to wait for the results of the existing grants fetching job to be complete.
+ * This way we prevent multiple fetches of grants for the same user id when they are not yet in the cache. When grant is successfully retrieved it is cached,
+ * and returned to all the waiting authorize() threads. If fetching of grants is unsuccessful they all receive an exception, and all the authorize() actions are denied.
+ * In that case, since there is no grant cached for user id, the next authorize() request will attempt to fetch grants for that user id again using the current session's access token.
  */
 @SuppressFBWarnings("THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION")
 class GrantsHandler implements Closeable {
@@ -44,22 +66,30 @@ class GrantsHandler implements Closeable {
 
     private final HashMap<String, Info> grantsCache = new HashMap<>();
 
+    /** Helper methods to queue up grants refresh jobs per user id */
     private final Semaphores<JsonNode> semaphores = new Semaphores<>();
 
+    /** Grants Refresh Worker */
     private final ExecutorService refreshWorker;
 
+    /** GC Worker */
     private final ScheduledExecutorService gcWorker;
 
+    /** Grants Refresh Scheduler */
     private final ScheduledExecutorService refreshScheduler;
 
     private final long gcPeriodMillis;
 
+    /** Externally provided function that performs an HTTP request to the Keycloak token / grants endpoint */
     private final Function<String, JsonNode> authorizationGrantsProvider;
 
+    /** Maximum number of retries to attempt if the grants refresh fails */
     private final int httpRetries;
 
+    /** Maximum idle time in millis for a cached grant (time in which a grant has not been accessed in cache) */
     private final long grantsMaxIdleMillis;
 
+    /** Used to check when the last gc run was performed in order to prevent gc runs from queueing up */
     private long lastGcRunTimeMillis;
 
     /**
@@ -243,11 +273,11 @@ class GrantsHandler implements Closeable {
      * Perform one garbage collection run
      */
     private void gcGrantsCache() {
+        long start = System.currentTimeMillis();
         HashSet<String> userIds = new HashSet<>(Services.getInstance().getSessions().map(BearerTokenWithPayload::principalName));
         log.trace("Grants gc: active users: {}", userIds);
         int beforeSize;
         int afterSize;
-        long start = System.currentTimeMillis();
         synchronized (grantsCache) {
             beforeSize = grantsCache.size();
             // keep the active sessions, remove grants for unknown user ids
@@ -401,9 +431,8 @@ class GrantsHandler implements Closeable {
                             continue;
                         }
                     }
-                    if (log.isWarnEnabled()) {
-                        log.warn("[IGNORED] Failed to fetch grants for user: {}", e.getMessage(), e);
-                    }
+
+                    log.warn("[IGNORED] Failed to fetch grants for user: {}", e.getMessage(), e);
 
                 } catch (Throwable e) {
                     if (log.isWarnEnabled()) {

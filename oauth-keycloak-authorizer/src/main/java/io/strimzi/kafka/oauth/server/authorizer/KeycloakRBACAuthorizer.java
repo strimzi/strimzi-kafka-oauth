@@ -110,7 +110,7 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
  * <li><em>strimzi.authorization.grants.max.idle.time.seconds</em> The time limit in seconds of a cached grant not being accessed. After that time it will be evicted from grants cache to prevent possibly stale remnant sessions from consuming memory.<br>
  * The default value is <em>300</em>.
  * </li>
- * <li><em>strimzi.authorization.grants.gc.period.seconds</em> A time in seconds between two consecutive runs of the background job that evicts idle or expired grants from cache.<br/>
+ * <li><em>strimzi.authorization.grants.gc.period.seconds</em> A time in seconds between two consecutive runs of the background job that evicts idle or expired grants from cache.<br>
  * The default value is <em>300</em>.
  * </li>
  * <li><em>strimzi.authorization.http.retries</em> The number of times to retry fetch grants from token endpoint.<br>
