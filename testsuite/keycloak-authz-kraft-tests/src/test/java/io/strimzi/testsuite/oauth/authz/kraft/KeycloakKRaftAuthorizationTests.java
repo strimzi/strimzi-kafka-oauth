@@ -46,7 +46,7 @@ public class KeycloakKRaftAuthorizationTests {
 
                     // ensure kafka has started
                     .waitingFor("kafka", Wait.forLogMessage(".*started \\(kafka.server.KafkaRaftServer\\).*", 1)
-                            .withStartupTimeout(Duration.ofSeconds(60)));
+                            .withStartupTimeout(Duration.ofSeconds(120)));
 
                     // ensure ACLs for user 'alice' have been added
                     //   Moved into test code: waitForACLs()
