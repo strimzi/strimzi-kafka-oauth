@@ -1,12 +1,13 @@
 #!/bin/sh
 
-docker-compose -f compose.yml -f spring/compose.yml up -d
+docker rm -f spring
+docker run --rm -t --name spring strimzi/example-spring &
 for i in {1..10}
 do
   sleep 1
   RESULT=$(docker logs spring | grep "Started SimpleAuthorizationServerApplication")
   if [ "$RESULT" != "" ]; then
-     docker-compose -f compose.yml -f spring/compose.yml down
+     docker rm -f spring
      exit 0
   fi
 done
