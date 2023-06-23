@@ -46,6 +46,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -168,7 +169,7 @@ public class KeycloakAuthorizerTest {
             lines = waitFor(logReader, "Done refreshing grants");
             Assert.assertTrue("Failed to fetch", checkLogForRegex(lines, "Failed to fetch grants .* status 401"));
             Assert.assertTrue("Removed user from grants cache", checkLogForRegex(lines, "Removed user from grants cache: alice"));
-            Assert.assertTrue("Removed invalid sessions", checkLogForRegex(lines, "Removed invalid sessions from sessions map \\(userId: alice"));
+            Assert.assertTrue("Removed invalid session", checkLogForRegex(lines, "Removed invalid session from sessions map \\(userId: alice"));
 
         } finally {
             changeAuthServerMode("grants", "MODE_200");
@@ -518,6 +519,9 @@ public class KeycloakAuthorizerTest {
     void doGrantsGCTests() throws Exception {
         logStart("KeycloakAuthorizerTest :: Grants Garbage Collection Tests");
 
+        // Hold on to the created principals to prevent JVM gc() clearing the sessions
+        List<OAuthKafkaPrincipal> principals = new LinkedList<>();
+
         // make sure the token endpoint works fine
         changeAuthServerMode("token", "MODE_200");
 
@@ -558,7 +562,7 @@ public class KeycloakAuthorizerTest {
 
             LOG.info("Authenticate (validate) as gcUser1");
             OAuthKafkaPrincipal principal = authenticate(authHandler, tokenInfo);
-
+            principals.add(principal);
 
             // authorization
 
@@ -590,6 +594,7 @@ public class KeycloakAuthorizerTest {
 
             LOG.info("Authenticate (validate) gcUser2");
             principal = authenticate(authHandler, tokenInfo);
+            principals.add(principal);
 
             LOG.info("Waiting for: active users count: 2, grantsCache size before: 1, grantsCache size after: 1"); // Make sure to not repeat the below condition in the string here
             // wait for cgGrants run on 2 users

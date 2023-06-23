@@ -73,7 +73,7 @@ public class Sessions {
             if (accessToken.equals(token.value())) {
                 activeSessions.remove(token);
                 if (log.isDebugEnabled()) {
-                    log.debug("Removed invalid sessions from sessions map (userId: {}, session: {}, token: {}). Will not refresh its grants any more.",
+                    log.debug("Removed invalid session from sessions map (userId: {}, session: {}, token: {})",
                             token.principalName(), token.getSessionId(), mask(token.value()));
                 }
             }
