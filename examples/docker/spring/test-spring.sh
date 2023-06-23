@@ -1,4 +1,9 @@
 #!/bin/sh
+set -x
+
+docker version
+docker images
+docker ps
 
 docker rm -f spring
 docker run --rm -t --name spring strimzi/example-spring &
