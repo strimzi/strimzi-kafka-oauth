@@ -1,17 +1,13 @@
 #!/bin/sh
 set -x
 
-docker version
-docker images
-docker ps
-
 docker rm -f spring
-docker run --rm -t --name spring strimzi/example-spring &
-for i in {1..10}
+docker run -d --name spring strimzi/example-spring
+for i in 1 2 3 4 5
 do
   sleep 1
   RESULT=$(docker logs spring | grep "Started SimpleAuthorizationServerApplication")
-  if [ "$RESULT" != "" ]; then
+  if [[ "$RESULT" != "" ]]; then
      docker rm -f spring
      exit 0
   fi
