@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSocketFactory;
+import java.util.List;
 import java.util.Properties;
 
 /**
@@ -68,7 +69,7 @@ public class ConfigUtil {
      * @return Configured value as int
      */
     public static int getConnectTimeout(Config config) {
-        return getTimeout(config, Config.OAUTH_CONNECT_TIMEOUT_SECONDS);
+        return getTimeoutAppendingWarnings(config, Config.OAUTH_CONNECT_TIMEOUT_SECONDS, null);
     }
 
     /**
@@ -78,20 +79,27 @@ public class ConfigUtil {
      * @return Configured value as int
      */
     public static int getReadTimeout(Config config) {
-        return getTimeout(config, Config.OAUTH_READ_TIMEOUT_SECONDS);
+        return getTimeoutAppendingWarnings(config, Config.OAUTH_READ_TIMEOUT_SECONDS, null);
     }
 
     /**
      * Resolve the configuration value for the key as a timeout in seconds with the default value of 60
      *
-     * @param c the Config object
-     * @param key the configuration key
+     * @param c        the Config object
+     * @param key      the configuration key
+     * @param warnings a warnings list where any warnings should be added, and will later be logged as WARN
+     *
      * @return Configured value as int
      */
-    public static int getTimeout(Config c, String key) {
+    public static int getTimeoutAppendingWarnings(Config c, String key, List<String> warnings) {
         int timeout = c.getValueAsInt(key, 60);
         if (timeout <= 0) {
-            log.warn("The configured value of `" + key + "` (" + timeout + ") is <= 0 and will be ignored. Default used: 60 seconds");
+            String msg = "The configured value of `" + key + "` (" + timeout + ") is <= 0 and will be ignored. Default used: 60 seconds";
+            if (warnings != null) {
+                warnings.add(msg);
+            } else {
+                log.warn(msg);
+            }
             timeout = 60;
         }
         return timeout;
@@ -104,14 +112,15 @@ public class ConfigUtil {
      * @param c the Config object
      * @param key the configuration key
      * @param fallbackKey the fallback key
+     * @param warnings a warnings list where any warnings should be added, and will later be logged as WARN
      * @return Configured value as int
      */
-    public static int getTimeoutConfigWithFallbackLookup(Config c, String key, String fallbackKey) {
+    public static int getTimeoutConfigWithFallbackLookup(Config c, String key, String fallbackKey, List<String> warnings) {
         String result = c.getValue(key);
         if (result == null) {
-            return getTimeout(c, fallbackKey);
+            return getTimeoutAppendingWarnings(c, fallbackKey, warnings);
         }
-        return getTimeout(c, key);
+        return getTimeoutAppendingWarnings(c, key, warnings);
     }
 
     /**

@@ -6,7 +6,7 @@ package io.strimzi.testsuite.oauth.authz;
 
 public class OAuthOverPlainTest extends BasicTest {
 
-    public OAuthOverPlainTest(String kafkaBootstrap, boolean oauthOverPlain) {
-        super(kafkaBootstrap, oauthOverPlain);
+    public OAuthOverPlainTest(String kafkaContainer, String kafkaBootstrap, boolean oauthOverPlain) {
+        super(kafkaContainer, kafkaBootstrap, oauthOverPlain);
     }
 }

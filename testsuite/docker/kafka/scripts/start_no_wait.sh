@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+[ "$KAFKA_ZOOKEEPER_CONNECT" == "" ] && KAFKA_ZOOKEEPER_CONNECT=localhost:2181
+[ "$KAFKA_ZOOKEEPER_CONNECTION_TIMEOUT_MS" == "" ] && KAFKA_ZOOKEEPER_CONNECTION_TIMEOUT_MS=6000
+
 ./simple_kafka_config.sh | tee /tmp/strimzi.properties
 
 # set log dir to writable directory

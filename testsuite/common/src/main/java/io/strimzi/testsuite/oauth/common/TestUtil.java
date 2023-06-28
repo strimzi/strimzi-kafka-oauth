@@ -11,6 +11,8 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 public class TestUtil {
@@ -25,11 +27,11 @@ public class TestUtil {
      * Get Kafka log by executing 'docker logs kafka', then extract only the entries
      * (possibly multi-line when there's a stacktrace) that contain the passed filter.
      *
-     * @param filter The string to look for (not a regex) in the log
+     * @param filters Strings to look for (not a regex) in the log - they all must be present in a line for the line to match
      * @return A list of lines from the log that match the filter (logging entries that contain the filter string)
      */
     @SuppressFBWarnings("THROWS_METHOD_THROWS_RUNTIMEEXCEPTION")
-    public static List<String> getContainerLogsForString(String containerName, String filter) {
+    public static List<String> getContainerLogsForString(String containerName, String... filters) {
         try {
             boolean inmatch = false;
             ArrayList<String> result = new ArrayList<>();
@@ -42,7 +44,13 @@ public class TestUtil {
                     // is new logging entry?
                     if (pat.matcher(line).matches()) {
                         // contains the err string?
-                        inmatch = line.contains(filter);
+                        // all filters have to match
+                        for (String filter: filters) {
+                            inmatch = line.contains(filter);
+                            if (!inmatch) {
+                                break;
+                            }
+                        }
                     }
                     if (inmatch) {
                         result.add(line);
@@ -54,5 +62,35 @@ public class TestUtil {
         } catch (Throwable e) {
             throw new RuntimeException("Failed to get '" + containerName + "' log", e);
         }
+    }
+
+    /**
+     * Helper method to wait for a condition by periodically testing the condition until it is satisfied or until timeout.
+     *
+     * @param condition The condition to test
+     * @param loopPauseMs A pause between two repeats in millis
+     * @param timeoutSeconds A timeout in seconds
+     * @throws TimeoutException An exception thrown if condition not satisfied within a timeout
+     * @throws InterruptedException An exception thrown if interrupted
+     */
+    public static void waitForCondition(Supplier<Boolean> condition, int loopPauseMs, int timeoutSeconds) throws TimeoutException, InterruptedException {
+        long startTime = System.currentTimeMillis();
+        boolean done;
+        do {
+            done = condition.get();
+            if (!done) {
+                // Condition not met
+                if (System.currentTimeMillis() + loopPauseMs - startTime >= timeoutSeconds * 1000L) {
+                    throw new TimeoutException("Condition not met in " + timeoutSeconds + " seconds");
+                }
+                Thread.sleep(loopPauseMs);
+            }
+        } while (!done);
+    }
+
+    public static void logStart(String msg) {
+        System.out.println();
+        System.out.println("========    "  + msg);
+        System.out.println();
     }
 }

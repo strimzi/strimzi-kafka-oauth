@@ -25,7 +25,7 @@ public class TestMetrics {
 
     /**
      * Get response from prometheus endpoint as a map of key:value pairs
-     * We expect the response to be a 'well formed' key=value document in the sense that each line contains a '=' sign
+     * We expect the response to be a 'well-formed' key=value document in the sense that each line contains a '=' sign
      *
      * @param metricsEndpointUri The endpoint used to fetch metrics
      * @return Metrics object
@@ -83,7 +83,7 @@ public class TestMetrics {
 
     /**
      * Returns a value of a single metric matching the key and the attributes.
-     *
+     * <p>
      * Attributes are specified as: name1, value1, name2, value2, ...
      * Not all attributes have to be specified, but those specified have to match (equality).
      *
@@ -116,7 +116,7 @@ public class TestMetrics {
 
     /**
      * Get the sum of values of all the metrics matching the key and the attributes
-     *
+     * <p>
      * Attributes are specified as: name1, value1, name2, value2, ...
      * Not all attributes have to be specified, but those specified have to match (equality).
      *

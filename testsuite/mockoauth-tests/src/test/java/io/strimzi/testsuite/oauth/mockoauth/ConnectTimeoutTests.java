@@ -92,7 +92,7 @@ public class ConnectTimeoutTests {
         Properties producerProps = buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
 
         long start = System.currentTimeMillis();
-        try (KafkaProducer<String, String> p = new KafkaProducer<>(producerProps)) {
+        try (KafkaProducer<String, String> ignored = new KafkaProducer<>(producerProps)) {
 
             Assert.fail("Should fail with KafkaException");
         } catch (Exception e) {
@@ -102,6 +102,7 @@ public class ConnectTimeoutTests {
             Assert.assertTrue("Unexpected diff: " + diff, diff > timeoutOverride * 1000 && diff < timeoutOverride * 1000 + 1000);
         } finally {
             changeAuthServerMode("token", "mode_200");
+            System.clearProperty("oauth.read.timeout.seconds");
         }
     }
 

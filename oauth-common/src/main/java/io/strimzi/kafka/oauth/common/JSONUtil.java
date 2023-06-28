@@ -6,6 +6,7 @@ package io.strimzi.kafka.oauth.common;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.io.ByteArrayOutputStream;
@@ -14,7 +15,10 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -164,6 +168,43 @@ public class JSONUtil {
             }
         }
 
+        return result;
+    }
+
+    /**
+     * Set an array attribute on a JSON object to a collection of Strings
+     *
+     * @param target The target JSON object
+     * @param attrName An attribute name
+     * @param elements The collection of strings
+     * @return Newly created ArrayNode
+     */
+    public static ArrayNode setArrayOfStringsIfNotNull(JsonNode target, String attrName, Collection<String> elements) {
+        if (elements == null) {
+            return null;
+        }
+        if (!(target instanceof ObjectNode)) {
+            throw new IllegalArgumentException("Unexpected JSON Node type (not ObjectNode): " + target.getClass());
+        }
+
+        ArrayNode list = ((ObjectNode) target).putArray(attrName);
+        for (String g: elements) {
+            list.add(g);
+        }
+        return list;
+    }
+
+    /**
+     * Convert a JSON array to a Set object
+     *
+     * @param list ArrayNode to convert
+     * @return Set containing the elements of the ArrayNode
+     */
+    public static Set<JsonNode> asSetOfNodes(ArrayNode list) {
+        HashSet<JsonNode> result = new HashSet<>();
+        for (JsonNode node: list) {
+            result.add(node);
+        }
         return result;
     }
 }

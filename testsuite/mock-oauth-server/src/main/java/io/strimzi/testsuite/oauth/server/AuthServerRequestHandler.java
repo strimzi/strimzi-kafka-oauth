@@ -54,6 +54,7 @@ import static io.strimzi.testsuite.oauth.server.Endpoint.INTROSPECT;
 import static io.strimzi.testsuite.oauth.server.Endpoint.TOKEN;
 import static io.strimzi.testsuite.oauth.server.Endpoint.USERINFO;
 import static io.strimzi.testsuite.oauth.server.Mode.MODE_200;
+import static io.strimzi.testsuite.oauth.server.Mode.MODE_200_DELAYED;
 import static io.strimzi.testsuite.oauth.server.Mode.MODE_FAILING_500;
 import static io.strimzi.testsuite.oauth.server.Mode.MODE_JWKS_RSA_WITHOUT_SIG_USE;
 import static io.strimzi.testsuite.oauth.server.Mode.MODE_JWKS_RSA_WITH_SIG_USE;
@@ -95,43 +96,48 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
         Mode mode = verticle.getMode(endpoint);
 
         try {
-            if (endpoint == Endpoint.JWKS &&
-                    isOneOf(mode, MODE_200, MODE_JWKS_RSA_WITH_SIG_USE, MODE_JWKS_RSA_WITHOUT_SIG_USE)) {
-                processJwksRequest(req, mode);
-                return;
-            } else if (endpoint == TOKEN && mode == MODE_200) {
-                processTokenRequest(req);
-                return;
-            } else if (endpoint == FAILING_TOKEN) {
-                processFailingRequest(req, endpoint, mode, this::processTokenRequest);
-                return;
-            } else if (endpoint == INTROSPECT && mode == MODE_200) {
-                processIntrospectRequest(req);
-                return;
-            } else if (endpoint == FAILING_INTROSPECT) {
-                processFailingRequest(req, endpoint, mode, this::processIntrospectRequest);
-                return;
-            } else if (endpoint == USERINFO && mode == MODE_200) {
-                processUserInfoRequest(req);
-                return;
-            } else if (endpoint == FAILING_USERINFO) {
-                processFailingRequest(req, endpoint, mode, this::processUserInfoRequest);
-                return;
-            } else if (endpoint == GRANTS && mode == MODE_200) {
-                processGrantsRequest(req);
-                return;
-            } else if (endpoint == FAILING_GRANTS) {
-                processFailingRequest(req, endpoint, mode, this::processGrantsRequest);
-                return;
+            if (!processRequest(endpoint, mode, req)) {
+                if (!generateResponse(req, mode)) {
+                    sendResponse(req, OK, "" + verticle.getMode(endpoint));
+                }
             }
-
-            if (!generateResponse(req, mode)) {
-                sendResponse(req, OK, "" + verticle.getMode(endpoint));
-            }
-
         } catch (Throwable t) {
             handleFailure(req, t, log);
         }
+    }
+
+    private boolean processRequest(Endpoint endpoint, Mode mode, HttpServerRequest req) throws NoSuchAlgorithmException, JOSEException, InterruptedException {
+        if (endpoint == Endpoint.JWKS &&
+                isOneOf(mode, MODE_200, MODE_JWKS_RSA_WITH_SIG_USE, MODE_JWKS_RSA_WITHOUT_SIG_USE)) {
+            processJwksRequest(req, mode);
+        } else if (endpoint == TOKEN && mode == MODE_200) {
+            processTokenRequest(req);
+        } else if (endpoint == FAILING_TOKEN) {
+            processFailingRequest(req, endpoint, mode, this::processTokenRequest);
+        } else if (endpoint == INTROSPECT && mode == MODE_200) {
+            processIntrospectRequest(req);
+        } else if (endpoint == FAILING_INTROSPECT) {
+            processFailingRequest(req, endpoint, mode, this::processIntrospectRequest);
+        } else if (endpoint == USERINFO && mode == MODE_200) {
+            processUserInfoRequest(req);
+        } else if (endpoint == FAILING_USERINFO) {
+            processFailingRequest(req, endpoint, mode, this::processUserInfoRequest);
+        } else if (endpoint == GRANTS && (mode == MODE_200 || mode == MODE_200_DELAYED)) {
+            if (mode == MODE_200_DELAYED) {
+                //verticle.getVertx().setTimer(1000, v -> processGrantsRequest(req));
+                Thread.sleep(2000);
+
+                processGrantsRequest(req);
+            } else {
+                processGrantsRequest(req);
+            }
+        } else if (endpoint == FAILING_GRANTS) {
+            processFailingRequest(req, endpoint, mode, this::processGrantsRequest);
+        } else {
+            return false;
+        }
+
+        return true;
     }
 
     private static boolean generateResponse(HttpServerRequest req, Mode mode) {
@@ -213,14 +219,23 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
 
             try {
                 // Create JSON response
-                JsonArray result = new JsonArray(
-                    "[{\"scopes\":[\"Delete\",\"Write\",\"Describe\",\"Read\",\"Alter\",\"Create\",\"DescribeConfigs\",\"AlterConfigs\"],\"rsid\":\"ca6f195f-dbdc-48b7-a953-8e441d17f7fa\",\"rsname\":\"Topic:*\"}," +
-                        "{\"scopes\":[\"IdempotentWrite\"],\"rsid\":\"73af36e6-5796-43e7-8129-b57fe0bac7a1\",\"rsname\":\"Cluster:*\"}," +
-                        "{\"scopes\":[\"Describe\",\"Read\"],\"rsid\":\"141c56e8-1a85-40f3-b38a-f490bad76913\",\"rsname\":\"Group:*\"}]");
+                JsonArray result = verticle.getGrants().get(token);
+                if (result == null) {
+                    String jsonString = new JsonArray(
+                            "[{\"scopes\":[\"Delete\",\"Write\",\"Describe\",\"Read\",\"Alter\",\"Create\",\"DescribeConfigs\",\"AlterConfigs\"],\"rsid\":\"ca6f195f-dbdc-48b7-a953-8e441d17f7fa\",\"rsname\":\"Topic:*\"}," +
+                                    "{\"scopes\":[\"IdempotentWrite\"],\"rsid\":\"73af36e6-5796-43e7-8129-b57fe0bac7a1\",\"rsname\":\"Cluster:*\"}," +
+                                    "{\"scopes\":[\"Describe\",\"Read\"],\"rsid\":\"141c56e8-1a85-40f3-b38a-f490bad76913\",\"rsname\":\"Group:*\"}]")
+                            .encode();
+                    sendResponse(req, OK, jsonString);
 
-                String jsonString = result.encode();
-                sendResponse(req, OK, jsonString);
-
+                } else {
+                    String jsonString = result.encode();
+                    if ("[]".equals(jsonString)) {
+                        sendResponse(req, UNAUTHORIZED);
+                    } else {
+                        sendResponse(req, OK, jsonString);
+                    }
+                }
             } catch (Throwable t) {
                 handleFailure(req, t, log);
             }
@@ -270,11 +285,14 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
 
             try {
                 // Create a signed JWT token
-                String accessToken = createSignedAccessToken(clientId, username);
+                UserInfo userInfo = username != null ? verticle.getUsers().get(username) : null;
+                long expiresIn = userInfo != null && userInfo.expiresIn != null ? userInfo.expiresIn : EXPIRES_IN_SECONDS;
+
+                String accessToken = createSignedAccessToken(clientId, username, expiresIn);
 
                 JsonObject result = new JsonObject();
                 result.put("access_token", accessToken);
-                result.put("expires_in", EXPIRES_IN_SECONDS);
+                result.put("expires_in", expiresIn);
                 result.put("scope", "all");
 
                 String jsonString = result.encode();
@@ -442,7 +460,7 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
         return System.currentTimeMillis() > expiryTimeSeconds * 1000L;
     }
 
-    private String createSignedAccessToken(String clientId, String username) throws JOSEException, NoSuchAlgorithmException {
+    private String createSignedAccessToken(String clientId, String username, long expiresIn) throws JOSEException, NoSuchAlgorithmException {
 
         // Create RSA-signer with the private key
         JWSSigner signer = new RSASSASigner(verticle.getSigKey());
@@ -451,7 +469,7 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
         JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder()
                 .subject(username != null ? username : clientId)
                 .issuer("https://mockoauth:8090")
-                .expirationTime(new Date(System.currentTimeMillis() + EXPIRES_IN_SECONDS * 1000));
+                .expirationTime(new Date(System.currentTimeMillis() + expiresIn * 1000));
 
         if (clientId != null) {
             builder.claim("clientId", clientId);
@@ -494,11 +512,11 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
     }
 
     private String authorizeUser(String username, String password) {
-        String pass = verticle.getUsers().get(username);
-        if (pass == null) {
+        UserInfo userInfo = verticle.getUsers().get(username);
+        if (userInfo == null || userInfo.password == null) {
             return null;
         }
-        return pass.equals(password) ? username : null;
+        return userInfo.password.equals(password) ? username : null;
     }
 
     private void processJwksRequest(HttpServerRequest req, Mode mode) throws NoSuchAlgorithmException, JOSEException {

@@ -14,6 +14,7 @@ import io.strimzi.testsuite.oauth.mockoauth.KeycloakAuthorizerTest;
 import io.strimzi.testsuite.oauth.mockoauth.PasswordAuthTest;
 
 import io.strimzi.testsuite.oauth.mockoauth.RetriesTests;
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -23,8 +24,14 @@ import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.wait.strategy.Wait;
 
 import java.io.File;
+import java.io.IOException;
 import java.time.Duration;
 
+/**
+ * Some tests rely on <code>resources/simplelogger.properties</code> to be configured to log to the file <code>target/test.log</code>.
+ * <p>
+ * Log output is analyzed in the test to make sure the behaviour is as expected.
+ */
 public class MockOAuthTests {
 
     @ClassRule
@@ -41,10 +48,16 @@ public class MockOAuthTests {
 
     private static final Logger log = LoggerFactory.getLogger(MockOAuthTests.class);
 
+    @BeforeClass
+    public static void staticInit() throws IOException {
+        KeycloakAuthorizerTest.staticInit();
+    }
+
     @Test
     public void runTests() throws Exception {
         try {
             String kafkaContainer = environment.getContainerByServiceName("kafka_1").get().getContainerInfo().getName().substring(1);
+            System.out.println("See log at: " + new File("target/test.log").getAbsolutePath());
 
             logStart("MetricsTest :: Basic Metrics Tests");
             new MetricsTest().doTest();
@@ -64,8 +77,8 @@ public class MockOAuthTests {
             logStart("RetriesTests :: Authentication HTTP Retries Tests");
             new RetriesTests(kafkaContainer).doTests();
 
-            logStart("KeycloakAuthorizerTest :: Grants HTTP Retries Tests");
-            new KeycloakAuthorizerTest().doHttpRetriesTest();
+            // Keycloak authorizer tests
+            new KeycloakAuthorizerTest().doTests();
 
         } catch (Throwable e) {
             log.error("Exception has occurred: ", e);

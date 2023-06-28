@@ -4,6 +4,7 @@
  */
 package io.strimzi.testsuite.oauth.authz;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -20,29 +21,25 @@ import java.io.InterruptedIOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithClientSecret;
-import static io.strimzi.testsuite.oauth.common.TestUtil.getContainerLogsForString;
 
+@SuppressFBWarnings({"THROWS_METHOD_THROWS_RUNTIMEEXCEPTION", "THROWS_METHOD_THROWS_CLAUSE_THROWABLE"})
 public class FloodTest extends Common {
 
     private static final Logger log = LoggerFactory.getLogger(FloodTest.class);
 
-    private final ArrayList<Thread> threads = new ArrayList<>();
+    private final ArrayList<ClientJob> threads = new ArrayList<>();
 
-    private static AtomicInteger startedCount;
+    private static final AtomicInteger STARTED_COUNT = new AtomicInteger(0);
 
     static int sendLimit = 1;
 
-    private final String kafkaContainer;
-
-    FloodTest(String kafkaContainer, String kafkaBootstrap, boolean oauthOverPlain) {
+    public FloodTest(String kafkaBootstrap, boolean oauthOverPlain) {
         super(kafkaBootstrap, oauthOverPlain);
-        this.kafkaContainer = kafkaContainer;
     }
 
     public void doTest() throws IOException {
@@ -52,7 +49,7 @@ public class FloodTest extends Common {
 
     /**
      * This test uses the Kafka listener configured with both OAUTHBEARER and PLAIN.
-     *
+     * <p>
      * It connects concurrently with multiple producers with different client IDs using the PLAIN mechanism, testing the OAuth over PLAIN functionality.
      * With KeycloakRBACAuthorizer configured, any mixup of the credentials between different clients will be caught as
      * AuthorizationException would be thrown trying to write to the topic if the user context was mismatched.
@@ -100,7 +97,11 @@ public class FloodTest extends Common {
             startThreads();
 
             // Wait for all threads to finish
-            joinThreads();
+            try {
+                joinThreads();
+            } catch (InterruptedException e) {
+                throw new InterruptedIOException("Interrupted");
+            }
 
             // Check for errors
             checkExceptions();
@@ -127,7 +128,11 @@ public class FloodTest extends Common {
             startThreads();
 
             // Wait for all threads to finish
-            joinThreads();
+            try {
+                joinThreads();
+            } catch (InterruptedException e) {
+                throw new InterruptedIOException("Interrupted");
+            }
 
             // Check for errors
             checkExceptions();
@@ -137,22 +142,12 @@ public class FloodTest extends Common {
         }
     }
 
-    private int currentFoundExistingGrantsLogCount() {
-        List<String> lines = getContainerLogsForString(kafkaContainer, "Found existing grants for the token on another session");
-        return lines.size();
-    }
-
-    private int currentSemaphoreBlockLogCount() {
-        List<String> lines = getContainerLogsForString(kafkaContainer, "Waiting on another thread to get grants");
-        return lines.size();
-    }
-
     private void sendSingleMessage(String clientId, String secret, String topic) throws ExecutionException, InterruptedException {
         Properties props = buildProducerConfig(kafkaBootstrap, usePlain, clientId, secret);
-        KafkaProducer<String, String> producer = new KafkaProducer<>(props);
-
-        producer.send(new ProducerRecord<>(topic, "Message 0"))
-                .get();
+        try (KafkaProducer<String, String> producer = new KafkaProducer<>(props)) {
+            producer.send(new ProducerRecord<>(topic, "Message 0"))
+                    .get();
+        }
     }
 
     private String groupForConsumer(int index) {
@@ -173,26 +168,21 @@ public class FloodTest extends Common {
     }
 
     public void startThreads() {
-        startedCount = new AtomicInteger(0);
         for (Thread t : threads) {
             t.start();
         }
     }
 
-    public void joinThreads() {
+    public void joinThreads() throws InterruptedException {
         for (Thread t : threads) {
-            try {
-                t.join();
-            } catch (InterruptedException e) {
-                throw new RuntimeException("Interrupted - exiting ...");
-            }
+            t.join();
         }
     }
 
     public void checkExceptions() {
         try {
-            for (Thread t : threads) {
-                ((ClientJob) t).checkException();
+            for (ClientJob t : threads) {
+                t.checkException();
             }
         } catch (RuntimeException e) {
             throw e;
@@ -253,12 +243,12 @@ public class FloodTest extends Common {
         }
 
         public void run() {
-            int started = startedCount.addAndGet(1);
+            int started = STARTED_COUNT.addAndGet(1);
 
             try {
                 while (started < threads.size()) {
                     Thread.sleep(10);
-                    started = startedCount.get();
+                    started = STARTED_COUNT.get();
                 }
 
                 for (int i = 0; i < sendLimit; i++) {
@@ -313,13 +303,13 @@ public class FloodTest extends Common {
         }
 
         public void run() {
-            int started = startedCount.addAndGet(1);
+            int started = STARTED_COUNT.addAndGet(1);
 
             try {
 
                 while (started < threads.size()) {
                     Thread.sleep(10);
-                    started = startedCount.get();
+                    started = STARTED_COUNT.get();
                 }
 
                 for (int i = 0; i < sendLimit; i++) {

@@ -14,7 +14,7 @@ public class ConfigurationTest {
 
     private final String kafkaContainer;
 
-    ConfigurationTest(String kafkaContainer) {
+    public ConfigurationTest(String kafkaContainer) {
         this.kafkaContainer = kafkaContainer;
     }
 

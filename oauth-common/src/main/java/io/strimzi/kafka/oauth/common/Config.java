@@ -84,6 +84,8 @@ public class Config {
 
     private Map<String, ?> defaults;
 
+    Config delegate;
+
     /**
      * Use this construtor if you only want to lookup configuration in system properties and env
      * without any default configuration.
@@ -105,6 +107,17 @@ public class Config {
     }
 
     /**
+     * Use this constructor if you want to wrap another Config object and override some functionality
+     * <p>
+     * You only need to override {@link #getValue(String, String)} in your extending class.
+     *
+     * @param delegate The Config object to delegate to
+     */
+    public Config(Config delegate) {
+        this.delegate = delegate;
+    }
+
+    /**
      * Use this constructor to provide default values in case some configuration is not set through system properties or ENV.
      *
      * @param p Default property values
@@ -115,7 +128,7 @@ public class Config {
 
     /**
      * Validate configuration by checking for unknown or missing properties.
-     *
+     * <p>
      * Override this method to provide custom validation.
      *
      * @throws RuntimeException if validation fails
@@ -124,15 +137,15 @@ public class Config {
 
     /**
      * Get value for property key, returning fallback value if configuration for key is not found.
-     *
+     * <p>
      * This method first checks if system property exists for the key.
      * If not, it checks if env variable exists with the name derived from the key:
-     *
+     * <pre>
      *   key.toUpperCase().replace('-', '_').replace('.', '_');
-     *
+     * </pre>
      * If not, it checks if env variable with name equal to key exists.
      * Ultimately, it checks the defaults passed at Config object construction time.
-     *
+     * <p>
      * If no configuration is found for key, it returns the fallback value.
      *
      * @param key Config key
@@ -140,6 +153,9 @@ public class Config {
      * @return Configuration value for specified key
      */
     public String getValue(String key, String fallback) {
+        if (delegate != null) {
+            return delegate.getValue(key, fallback);
+        }
 
         // try system properties first
         String result = System.getProperty(key, null);
@@ -174,7 +190,7 @@ public class Config {
      * @param key Config key
      * @return Config value
      */
-    public String getValue(String key) {
+    public final String getValue(String key) {
         return getValue(key, null);
     }
 
@@ -185,7 +201,7 @@ public class Config {
      * @param fallback Fallback value
      * @return Config value
      */
-    public int getValueAsInt(String key, int fallback) {
+    public final int getValueAsInt(String key, int fallback) {
         String result = getValue(key);
         return result != null ? Integer.parseInt(result) : fallback;
     }
@@ -197,21 +213,21 @@ public class Config {
      * @param fallback Fallback value
      * @return Config value
      */
-    public long getValueAsLong(String key, long fallback) {
+    public final long getValueAsLong(String key, long fallback) {
         String result = getValue(key);
         return result != null ? Long.parseLong(result) : fallback;
     }
 
     /**
      * Get value for property key as boolean or fallback value if not found
-     *
+     * <p>
      * Valid values are: "true", "false", "yes", "no", "y", "n", "1", "0"
      *
      * @param key Config key
      * @param fallback Fallback value
      * @return Config value
      */
-    public boolean getValueAsBoolean(String key, boolean fallback) {
+    public final boolean getValueAsBoolean(String key, boolean fallback) {
         String result = getValue(key);
         try {
             return result != null ? isTrue(result) : fallback;
@@ -226,7 +242,7 @@ public class Config {
      * @param key Config key
      * @return Config value
      */
-    public URI getValueAsURI(String key) {
+    public final URI getValueAsURI(String key) {
         String result = getValue(key);
         try {
             return URI.create(result);
@@ -254,7 +270,7 @@ public class Config {
 
     /**
      * Convert property key to env key.
-     *
+     * <p>
      * Property key is converted to all uppercase, then all '.' and '-' characters are converted to '_'
      *
      * @param key   A key of a property which should be converted to environment variable name

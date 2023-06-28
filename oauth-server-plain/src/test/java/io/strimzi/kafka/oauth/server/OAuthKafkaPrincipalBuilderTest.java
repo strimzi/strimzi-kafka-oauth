@@ -5,6 +5,7 @@
 package io.strimzi.kafka.oauth.server;
 
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
+import io.strimzi.kafka.oauth.common.JSONUtil;
 import io.strimzi.kafka.oauth.services.Credentials;
 import io.strimzi.kafka.oauth.services.Principals;
 import io.strimzi.kafka.oauth.services.Services;
@@ -34,7 +35,7 @@ public class OAuthKafkaPrincipalBuilderTest {
 
         // Simulate authentication using OAuth over PLAIN
         BearerTokenWithPayload token = mock(BearerTokenWithPayload.class);
-        when(token.getPayload()).thenReturn("jwttoken");
+        when(token.getPayload()).thenReturn(JSONUtil.asJson("{}"));
 
         OAuthKafkaPrincipal authenticatedPrincipal = new OAuthKafkaPrincipal(KafkaPrincipal.USER_TYPE, USERNAME, token);
         credentials.storeCredentials(USERNAME, authenticatedPrincipal);

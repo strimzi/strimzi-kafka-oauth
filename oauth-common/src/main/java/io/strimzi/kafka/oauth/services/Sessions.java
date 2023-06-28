@@ -5,6 +5,8 @@
 package io.strimzi.kafka.oauth.services;
 
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -13,13 +15,20 @@ import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+
+import static io.strimzi.kafka.oauth.common.LogUtil.mask;
 
 /**
  * Sessions entries should automatically get cleared as KafkaPrincipals for the sessions get garbage collected by JVM.
  * The size of `activeSessions` at any moment in time should be about the number of currently active sessions.
+ * They may also get removed by broker-side plugins like custom authorizers when it is determined that the token has expired.
  */
 public class Sessions {
+
+    private static final Logger log = LoggerFactory.getLogger(Sessions.class);
 
     private static final Object NONE = new Object();
 
@@ -47,6 +56,28 @@ public class Sessions {
      */
     public void remove(BearerTokenWithPayload token) {
         activeSessions.remove(token);
+    }
+
+    /**
+     * Remove all the active sessions for the passed access token
+     *
+     * @param accessToken access token for which to remove the sessions
+     */
+    public void removeAllWithMatchingAccessToken(String accessToken) {
+        // In order to prevent the possible ConcurrentModificationException in the middle of using an iterator
+        // we first make a local copy, then iterate over the copy
+        ArrayList<BearerTokenWithPayload> values = new ArrayList<>(activeSessions.keySet());
+
+        // Remove matching
+        for (BearerTokenWithPayload token: values) {
+            if (accessToken.equals(token.value())) {
+                activeSessions.remove(token);
+                if (log.isDebugEnabled()) {
+                    log.debug("Removed invalid session from sessions map (userId: {}, session: {}, token: {})",
+                            token.principalName(), token.getSessionId(), mask(token.value()));
+                }
+            }
+        }
     }
 
     /**
@@ -96,21 +127,18 @@ public class Sessions {
     }
 
     /**
-     * Iterate over sessions, and find the first element matching the filter.
+     * Get a list of objects retrieved by applying the passed mapping function to the current active sessions set.
+     * <p>
+     * For example, you can get a list of all the princiapl names.
      *
-     * @param filter A filter to apply
-     * @return The first matching session
+     * @param mapper A mapping function
+     * @return A list of mapped results
+     * @param <T> A return type
      */
-    public BearerTokenWithPayload findFirst(Predicate<BearerTokenWithPayload> filter) {
-        // In order to prevent the possible ConcurrentModificationException in the middle of using an iterator
-        // we first make a local copy, then iterate over the copy
+    public <T> List<T> map(Function<BearerTokenWithPayload, T> mapper) {
+        cleanupExpired();
         ArrayList<BearerTokenWithPayload> values = new ArrayList<>(activeSessions.keySet());
 
-        for (BearerTokenWithPayload token: values) {
-            if (filter.test(token)) {
-                return token;
-            }
-        }
-        return null;
+        return values.stream().map(mapper).collect(Collectors.toList());
     }
 }

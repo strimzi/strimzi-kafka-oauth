@@ -15,6 +15,9 @@ import org.testcontainers.containers.DockerComposeContainer;
 import org.testcontainers.containers.wait.strategy.WaitStrategy;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -22,7 +25,7 @@ import java.util.Optional;
 
 public class TestContainersWatcher implements TestRule {
 
-    private DockerComposeContainer<?> environment;
+    private final DockerComposeContainer<?> environment;
 
     private boolean collectLogs;
 
@@ -86,6 +89,14 @@ public class TestContainersWatcher implements TestRule {
         environment.getContainerByServiceName("hydra-jwt_1").ifPresent(c -> System.out.println("\n\n'hydra-jwt' log:\n\n" + c.getLogs() + "\n"));
         environment.getContainerByServiceName("hydra-import_1").ifPresent(c -> System.out.println("\n\n'hydra-import' log:\n\n" + c.getLogs() + "\n"));
         environment.getContainerByServiceName("hydra-jwt-import_1").ifPresent(c -> System.out.println("\n\n'hydra-jwt-import' log:\n\n" + c.getLogs() + "\n"));
+        File testLog = new File("target/test.log");
+        if (testLog.isFile()) {
+            try {
+                System.out.println("\n\n'mockoauth-tests' test.log:\n\n" + new String(Files.readAllBytes(testLog.toPath()), StandardCharsets.ISO_8859_1) + "\n");
+            } catch (IOException e) {
+                System.out.println("Failed to read file: " + testLog.getAbsolutePath());
+            }
+        }
     }
 
     public void collectLogsOnExit() {

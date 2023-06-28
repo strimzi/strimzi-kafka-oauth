@@ -11,11 +11,12 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 /**
  * TokenInfo encapsulates the information about the access token.
- *
+ * <p>
  * It can also be used for storing extra application information associated with the access token by directly
  * accessing the payload JSON object.
  */
@@ -61,7 +62,7 @@ public class TokenInfo {
     /**
      * Create a new instance
      *
-     * @param payload The body of the JWT token or composed from authorization server's introspection endpoint response
+     * @param payload The body of the JWT token or composed of authorization server's introspection endpoint response
      * @param token The raw access token
      * @param principal The extracted user ID
      */
@@ -72,7 +73,7 @@ public class TokenInfo {
     /**
      * Create a new instance
      *
-     * @param payload The body of the JWT token or composed from authorization server's introspection endpoint response
+     * @param payload The body of the JWT token or composed of authorization server's introspection endpoint response
      * @param token The raw access token
      * @param principal The extracted user ID
      * @param groups A set of groups extracted from JWT token or authorization server's inspect endpoint response
@@ -105,14 +106,44 @@ public class TokenInfo {
      * @param expiresAtMs The token's `expires at` time in millis
      */
     public TokenInfo(String token, String scope, String principal, Set<String> groups, long issuedAtMs, long expiresAtMs) {
+        this(token,
+                Collections.unmodifiableSet(new HashSet<>(Arrays.asList(scope != null ? scope.split(" ") : new String[0]))),
+                principal,
+                groups,
+                issuedAtMs,
+                expiresAtMs,
+                null);
+    }
+
+    /**
+     *
+     * @param token The raw access token
+     * @param scopes The list of scopes
+     * @param principal The extracted user ID
+     * @param groups A set of groups extracted from JWT token or authorization server's inspect endpoint response
+     * @param issuedAtMs The token's `issued at` time in millis
+     * @param expiresAtMs The token's `expires at` time in millis
+     * @param payload The body of the JWT token or composed of authorization server's introspection endpoint response
+     */
+    @SuppressFBWarnings("EI_EXPOSE_REP2")
+    // See: https://spotbugs.readthedocs.io/en/stable/bugDescriptions.html#ei2-may-expose-internal-representation-by-incorporating-reference-to-mutable-object-ei-expose-rep2
+    public TokenInfo(String token, Set<String> scopes, String principal, Set<String> groups, long issuedAtMs, long expiresAtMs, JsonNode payload) {
+        if (token == null) {
+            throw new IllegalArgumentException("token can't be null");
+        }
+        if (principal == null) {
+            throw new IllegalArgumentException("principal can't be null");
+        }
         this.token = token;
         this.principal = principal;
         this.groups = groups != null ? Collections.unmodifiableSet(groups) : null;
         this.issuedAt = issuedAtMs;
         this.expiresAt = expiresAtMs;
-
-        String[] parsedScopes = scope != null ? scope.split(" ") : new String[0];
-        scopes = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(parsedScopes)));
+        this.scopes = scopes;
+        if (payload != null && !(payload instanceof ObjectNode)) {
+            throw new IllegalArgumentException("Unexpected JSON Node type (not ObjectNode): " + payload.getClass());
+        }
+        this.payload = (ObjectNode) payload;
     }
 
     /**
@@ -177,7 +208,7 @@ public class TokenInfo {
 
     /**
      * Get the payload object passed during construction.
-     *
+     * <p>
      * The same instance, passed to the TokenInfo constructor is returned which makes it possible to add custom attributes
      * or make modifications during request processing.
      *
@@ -186,5 +217,24 @@ public class TokenInfo {
     @SuppressFBWarnings("EI_EXPOSE_REP")
     public ObjectNode payload() {
         return payload;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof TokenInfo)) return false;
+        TokenInfo tokenInfo = (TokenInfo) o;
+        return expiresAt == tokenInfo.expiresAt &&
+                issuedAt == tokenInfo.issuedAt &&
+                token.equals(tokenInfo.token) &&
+                principal.equals(tokenInfo.principal) &&
+                Objects.equals(groups, tokenInfo.groups) &&
+                Objects.equals(scopes, tokenInfo.scopes) &&
+                Objects.equals(payload, tokenInfo.payload);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(token, expiresAt, principal, groups, issuedAt, scopes, payload);
     }
 }

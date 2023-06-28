@@ -4,6 +4,7 @@
  */
 package io.strimzi.kafka.oauth.server;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
 
@@ -20,9 +21,9 @@ public class MockBearerTokenWithPayload implements BearerTokenWithPayload {
     private final long lifetime;
     private final Set<String> scopes;
     private final String token;
-    private Object payload;
+    private JsonNode payload;
 
-    MockBearerTokenWithPayload(String principalName, Set<String> groups, long createTime, long lifetime, String scope, String token, Object payload) {
+    MockBearerTokenWithPayload(String principalName, Set<String> groups, long createTime, long lifetime, String scope, String token, JsonNode payload) {
         this.principalName = principalName;
         this.groups = groups;
         this.createTime = createTime;
@@ -38,12 +39,12 @@ public class MockBearerTokenWithPayload implements BearerTokenWithPayload {
     }
 
     @Override
-    public Object getPayload() {
+    public JsonNode getPayload() {
         return payload;
     }
 
     @Override
-    public void setPayload(Object payload) {
+    public void setPayload(JsonNode payload) {
         this.payload = payload;
     }
 
@@ -53,7 +54,7 @@ public class MockBearerTokenWithPayload implements BearerTokenWithPayload {
     }
 
     @Override
-    public ObjectNode getJSON() {
+    public ObjectNode getClaimsJSON() {
         return null;
     }
 

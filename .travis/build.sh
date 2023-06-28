@@ -33,6 +33,13 @@ mvn spotbugs:check
 # Also test examples build on different architectures (exclude ppc64le until fixed)
 if [ "$arch" != 'ppc64le' ]; then
   mvn clean install -f examples/docker
+  cd examples/docker
+  set +e
+  ./spring/test-spring.sh
+  EXIT=$?
+  cd ../..
+  exitIfError
+  set -e
 fi
 
 # Run testsuite
@@ -68,24 +75,24 @@ elif [[ "$arch" != 'ppc64le' ]]; then
   exitIfError
 
   clearDockerEnv
-  mvn -e -V -B clean install -f testsuite -Pkafka-3_2_3
+  mvn -e -V -B clean install -f testsuite -Pkafka-3_2_3 -DfailIfNoTests=false -Dtest=\!KeycloakKRaftAuthorizationTests
   EXIT=$?
   exitIfError
 
   # Excluded by default to not exceed Travis job timeout
-  if [ "SKIP_DISABLED" == "false" ]; then
+  if [ "$SKIP_DISABLED" == "false" ]; then
     clearDockerEnv
-    mvn -e -V -B clean install -f testsuite -Pkafka-3_1_2
+    mvn -e -V -B clean install -f testsuite -Pkafka-3_1_2 -DfailIfNoTests=false -Dtest=\!KeycloakKRaftAuthorizationTests,\!KeycloakZKAuthorizationTests
     EXIT=$?
     exitIfError
 
     clearDockerEnv
-    mvn -e -V -B clean install -f testsuite -Pkafka-3_0_0
+    mvn -e -V -B clean install -f testsuite -Pkafka-3_0_0 -DfailIfNoTests=false -Dtest=\!KeycloakKRaftAuthorizationTests,\!KeycloakZKAuthorizationTests
     EXIT=$?
     exitIfError
 
     clearDockerEnv
-    mvn -e -V -B clean install -f testsuite -Pkafka-2_8_1
+    mvn -e -V -B clean install -f testsuite -Pkafka-2_8_1 -DfailIfNoTests=false -Dtest=\!KeycloakKRaftAuthorizationTests,\!KeycloakZKAuthorizationTests
     EXIT=$?
     exitIfError
   fi

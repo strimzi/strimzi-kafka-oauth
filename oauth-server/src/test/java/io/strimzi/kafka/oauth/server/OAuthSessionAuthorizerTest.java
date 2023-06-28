@@ -104,9 +104,9 @@ public class OAuthSessionAuthorizerTest {
 
         // Prepare condition after mock OAuth athentication with valid token
         TokenInfo tokenInfo = new TokenInfo("accesstoken123", null, "User:bob", new HashSet<>(Arrays.asList("group1", "group2")),
-                System.currentTimeMillis() - 100000,
-                System.currentTimeMillis() + 100000);
-        BearerTokenWithPayload token = new JaasServerOauthValidatorCallbackHandler.BearerTokenWithPayloadImpl(tokenInfo);
+                System.currentTimeMillis() - 100_000,
+                System.currentTimeMillis() + 100_000);
+        BearerTokenWithPayload token = new BearerTokenWithJsonPayload(tokenInfo);
 
         AuthorizableRequestContext ctx = requestContext(new OAuthKafkaPrincipal("User", "bob", token));
 
@@ -118,7 +118,7 @@ public class OAuthSessionAuthorizerTest {
                         true
                 ));
 
-        // authorize() call should be delegated because the OAuthKafkaPrincipa contains a valid token
+        // authorize() call should be delegated because the OAuthKafkaPrincipal contains a valid token
         List<AuthorizationResult> results = authorizer.authorize(ctx, actions);
 
         MockAuthorizerLog lastEntry = delegateAuthorizer.invocationLog.getLast();
@@ -134,9 +134,9 @@ public class OAuthSessionAuthorizerTest {
 
         // Make it so that the token is expired
         TokenInfo tokenInfo = new TokenInfo("accesstoken234", null, "User:bob", null,
-                System.currentTimeMillis() - 200000,
-                System.currentTimeMillis() - 100000);
-        BearerTokenWithPayload token = new JaasServerOauthValidatorCallbackHandler.BearerTokenWithPayloadImpl(tokenInfo);
+                System.currentTimeMillis() - 200_000,
+                System.currentTimeMillis() - 100_000);
+        BearerTokenWithPayload token = new BearerTokenWithJsonPayload(tokenInfo);
 
         AuthorizableRequestContext ctx = requestContext(new OAuthKafkaPrincipal("User", "bob", token));
 
@@ -148,7 +148,7 @@ public class OAuthSessionAuthorizerTest {
                         true
                 ));
 
-        // authorize() call should not be delegated because the OAuthKafkaPrincipa contains an expired token
+        // authorize() call should not be delegated because the OAuthKafkaPrincipal contains an expired token
         List<AuthorizationResult> results = authorizer.authorize(ctx, actions);
 
         MockAuthorizerLog lastEntry = delegateAuthorizer.invocationLog.getLast();
@@ -217,7 +217,7 @@ public class OAuthSessionAuthorizerTest {
                         true
                 ));
 
-        // authorize() call should be delegated because the OAuthKafkaPrincipa contains a valid token
+        // authorize() call should be delegated because the OAuthKafkaPrincipal contains a valid token
         List<AuthorizationResult> results = authorizer.authorize(ctx, actions);
 
         Assert.assertEquals("Should be allowed", AuthorizationResult.ALLOWED, results.get(0));
@@ -227,9 +227,9 @@ public class OAuthSessionAuthorizerTest {
 
         // Prepare condition after mock OAuth athentication with valid token
         TokenInfo tokenInfo = new TokenInfo("accesstoken123", null, "User:bob", null,
-                System.currentTimeMillis() - 100000,
-                System.currentTimeMillis() + 100000);
-        BearerTokenWithPayload token = new JaasServerOauthValidatorCallbackHandler.BearerTokenWithPayloadImpl(tokenInfo);
+                System.currentTimeMillis() - 100_000,
+                System.currentTimeMillis() + 100_000);
+        BearerTokenWithPayload token = new BearerTokenWithJsonPayload(tokenInfo);
 
         AuthorizableRequestContext ctx = requestContext(new OAuthKafkaPrincipal("User", "bob", token));
 
@@ -241,7 +241,7 @@ public class OAuthSessionAuthorizerTest {
                         true
                 ));
 
-        // authorize() call should not be delegated because the OAuthKafkaPrincipa contains an expired token
+        // authorize() call should not be delegated because the OAuthKafkaPrincipal contains an expired token
         List<AuthorizationResult> results = authorizer.authorize(ctx, actions);
 
         Assert.assertEquals("Should be allowed", AuthorizationResult.ALLOWED, results.get(0));
@@ -251,9 +251,9 @@ public class OAuthSessionAuthorizerTest {
 
         // Make it so that the token is expired
         TokenInfo tokenInfo = new TokenInfo("accesstoken234", null, "User:bob", null,
-                System.currentTimeMillis() - 200000,
-                System.currentTimeMillis() - 100000);
-        BearerTokenWithPayload token = new JaasServerOauthValidatorCallbackHandler.BearerTokenWithPayloadImpl(tokenInfo);
+                System.currentTimeMillis() - 200_000,
+                System.currentTimeMillis() - 100_000);
+        BearerTokenWithPayload token = new BearerTokenWithJsonPayload(tokenInfo);
         OAuthKafkaPrincipal principal = new OAuthKafkaPrincipal("User", "bob", token);
 
         List<Action> actions = Collections.singletonList(
@@ -329,7 +329,6 @@ public class OAuthSessionAuthorizerTest {
         private List<Action> actions;
         private Map<String, ?> config;
 
-        long entryTime = System.currentTimeMillis();
 
         MockAuthorizerLog(AuthorizableRequestContext requestContext, List<Action> actions) {
             this.type = MockAuthorizerType.AUTHORIZE;
@@ -345,11 +344,7 @@ public class OAuthSessionAuthorizerTest {
 
     enum MockAuthorizerType {
         CONFIGURE,
-        AUTHORIZE,
-        ADD_ACLS,
-        REMOVE_ACLS,
-        GET_ACLS,
-        CLOSE
+        AUTHORIZE
     }
 
 }

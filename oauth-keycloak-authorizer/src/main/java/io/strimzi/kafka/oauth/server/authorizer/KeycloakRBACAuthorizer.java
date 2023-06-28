@@ -5,11 +5,7 @@
 package io.strimzi.kafka.oauth.server.authorizer;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import io.strimzi.kafka.oauth.client.ClientConfig;
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
-import io.strimzi.kafka.oauth.common.Config;
-import io.strimzi.kafka.oauth.common.ConfigException;
-import io.strimzi.kafka.oauth.common.ConfigUtil;
 import io.strimzi.kafka.oauth.common.HttpException;
 import io.strimzi.kafka.oauth.common.JSONUtil;
 import io.strimzi.kafka.oauth.common.SSLUtil;
@@ -21,10 +17,7 @@ import io.strimzi.kafka.oauth.server.authorizer.metrics.KeycloakAuthorizationSen
 import io.strimzi.kafka.oauth.services.OAuthMetrics;
 import io.strimzi.kafka.oauth.services.ServiceException;
 import io.strimzi.kafka.oauth.services.Services;
-import io.strimzi.kafka.oauth.services.SessionFuture;
-import io.strimzi.kafka.oauth.services.Sessions;
 import io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder;
-import io.strimzi.kafka.oauth.validator.DaemonThreadFactory;
 import kafka.security.authorizer.AclAuthorizer;
 import org.apache.kafka.common.Endpoint;
 import org.apache.kafka.common.acl.AclBinding;
@@ -36,34 +29,23 @@ import org.apache.kafka.server.authorizer.AclDeleteResult;
 import org.apache.kafka.server.authorizer.Action;
 import org.apache.kafka.server.authorizer.AuthorizableRequestContext;
 import org.apache.kafka.server.authorizer.AuthorizationResult;
+import org.apache.kafka.server.authorizer.Authorizer;
 import org.apache.kafka.server.authorizer.AuthorizerServerInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSocketFactory;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import static io.strimzi.kafka.oauth.common.Config.isTrue;
 import static io.strimzi.kafka.oauth.common.HttpUtil.post;
 import static io.strimzi.kafka.oauth.common.LogUtil.mask;
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
@@ -81,6 +63,11 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
  *     principal.builder.class=io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder
  * </pre>
  * <p>
+ * This authorizer only supports Kafka running in 'zookeeper' mode. It does not support 'KRaft' mode.
+ * There is a {@link KeycloakAuthorizer} class that auto-detects the environment and works both in 'KRaft' and 'zookeeper' mode,
+ * that should be used instead of this class.
+ * </p>
+ * <p>
  * There is additional configuration that needs to be specified in order for this authorizer to work.
  * </p>
  * <blockquote>
@@ -93,7 +80,7 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
  * Required configuration:
  * </p>
  * <ul>
- * <li><em>strimzi.authorization.token.endpoint.uri</em> A URL of the Keycloak's token endpoint (e.g. https://keycloak:8443/auth/realms/master/protocol/openid-connect/token).<br>
+ * <li><em>strimzi.authorization.token.endpoint.uri</em> A URL of the Keycloak's token endpoint (e.g. <code>https://keycloak:8443/auth/realms/master/protocol/openid-connect/token</code>).<br>
  * If not present, <em>oauth.token.endpoint.uri</em> is used as a fallback configuration key to avoid unnecessary duplication when already present for the purpose of client authentication.
  * </li>
  * <li><em>strimzi.authorization.client.id</em> A client id of the OAuth client definition in Keycloak, that has Authorization Services enabled.<br>
@@ -106,16 +93,25 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
  * </p>
  * <ul>
  * <li><em>strimzi.authorization.kafka.cluster.name</em> The name of this cluster, used to target permissions to specific Kafka cluster, making it possible to manage multiple clusters within the same Keycloak realm.<br>
- * The default value is <em>kafka-cluster</em>
+ * The default value is <em>kafka-cluster</em>.
  * </li>
  * <li><em>strimzi.authorization.delegate.to.kafka.acl</em> Whether authorization decision should be delegated to ACLAuthorizer if DENIED by Keycloak Authorization Services policies.<br>
- * The default value is <em>false</em>
+ * The default value is <em>false</em>.
  * </li>
  * <li><em>strimzi.authorization.grants.refresh.period.seconds</em> The time interval for refreshing the grants of the active sessions. The scheduled job iterates over active sessions and fetches a fresh list of grants for each.<br>
- * The default value is <em>60</em>
+ * The default value is <em>60</em>.
  * </li>
- * <li><em>strimzi.authorization.grants.refresh.pool.size</em> The number of threads to fetch grants from token endpoint (in parallel).<br>
- * The default value is <em>5</em>
+ * <li><em>strimzi.authorization.grants.refresh.pool.size</em> The number of threads used to fetch grants from token endpoint (in parallel).<br>
+ * The default value is <em>5</em>.
+ * </li>
+ * <li><em>strimzi.authorization.reuse.grants</em> Set this option to 'false' if you want every new session to reload and cache new grants for the user rather than using existing ones from the cache.
+ * The default value is <em>true</em>
+ * </li>
+ * <li><em>strimzi.authorization.grants.max.idle.time.seconds</em> The time limit in seconds of a cached grant not being accessed. After that time it will be evicted from grants cache to prevent possibly stale remnant sessions from consuming memory.<br>
+ * The default value is <em>300</em>.
+ * </li>
+ * <li><em>strimzi.authorization.grants.gc.period.seconds</em> A time in seconds between two consecutive runs of the background job that evicts idle or expired grants from cache.<br>
+ * The default value is <em>300</em>.
  * </li>
  * <li><em>strimzi.authorization.http.retries</em> The number of times to retry fetch grants from token endpoint.<br>
  * The retry is immediate without pausing due to the authorize() method holding up the Kafka worker thread. The default is <em>0</em> i.e. no retries.
@@ -160,258 +156,143 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
  * This authorizer honors the <em>super.users</em> configuration. Super users are automatically granted any authorization request.
  * </p>
  */
-@SuppressWarnings("deprecation")
-public class KeycloakRBACAuthorizer extends AclAuthorizer {
-
-    private static final String PRINCIPAL_BUILDER_CLASS = OAuthKafkaPrincipalBuilder.class.getName();
-    private static final String DEPRECATED_PRINCIPAL_BUILDER_CLASS = JwtKafkaPrincipalBuilder.class.getName();
+@Deprecated
+public class KeycloakRBACAuthorizer implements Authorizer {
 
     static final Logger log = LoggerFactory.getLogger(KeycloakRBACAuthorizer.class);
     static final Logger GRANT_LOG = LoggerFactory.getLogger(KeycloakRBACAuthorizer.class.getName() + ".grant");
     static final Logger DENY_LOG = LoggerFactory.getLogger(KeycloakRBACAuthorizer.class.getName() + ".deny");
 
-    private URI tokenEndpointUrl;
-    private String clientId;
-    private String clusterName;
+    /**
+     * A counter used to generate an instance number for each instance of this class
+     */
+    private final static AtomicInteger INSTANCE_NUMBER_COUNTER = new AtomicInteger(1);
+
+    /**
+     * An instance number used in {@link #toString()} method, to easily track the number of instances of this class
+     */
+    private final int instanceNumber = INSTANCE_NUMBER_COUNTER.getAndIncrement();
+
+    private final Authorizer delegator;
+
     private SSLSocketFactory socketFactory;
     private HostnameVerifier hostnameVerifier;
-    private List<UserSpec> superUsers = Collections.emptyList();
-    private boolean delegateToKafkaACL = false;
-    private int connectTimeoutSeconds;
-    private int readTimeoutSeconds;
-
-    private int httpRetries;
-
-    private boolean reuseGrants;
 
     // Turning it to false will not enforce access token expiry time (only for debugging purposes during development)
     private final boolean denyWhenTokenInvalid = true;
 
-    private ExecutorService workerPool;
-
     private OAuthMetrics metrics;
-    private boolean enableMetrics;
+
     private SensorKeyProducer authzSensorKeyProducer;
     private SensorKeyProducer grantsSensorKeyProducer;
-    private final Semaphores<JsonNode> semaphores = new Semaphores<>();
+
+    private Authorizer delegate;
+
+    private GrantsHandler grantsHandler;
+
+    private Configuration configuration;
 
     /**
      * Create a new instance
      */
     public KeycloakRBACAuthorizer() {
-        super();
+        log.warn("KeycloakRBACAuthorizer has been deprecated, please use '{}' instead.", KeycloakAuthorizer.class.getName());
+        this.delegator = null;
+    }
+
+    /**
+     * Create a new instance, passing a delegating authorizer instance
+     *
+     * @param delegator The delegating authorizer instance
+     */
+    KeycloakRBACAuthorizer(Authorizer delegator) {
+        this.delegator = delegator;
     }
 
     @Override
     public void configure(Map<String, ?> configs) {
 
-        AuthzConfig config = convertToCommonConfig(configs);
+        configuration = new Configuration(configs);
+        configuration.printLogs();
 
-        String pbclass = (String) configs.get("principal.builder.class");
-        if (!PRINCIPAL_BUILDER_CLASS.equals(pbclass) && !DEPRECATED_PRINCIPAL_BUILDER_CLASS.equals(pbclass)) {
-            throw new ConfigException("KeycloakRBACAuthorizer requires " + PRINCIPAL_BUILDER_CLASS + " as 'principal.builder.class'");
-        }
-
-        if (DEPRECATED_PRINCIPAL_BUILDER_CLASS.equals(pbclass)) {
-            log.warn("The '" + DEPRECATED_PRINCIPAL_BUILDER_CLASS + "' class has been deprecated, and may be removed in the future. Please use '" + PRINCIPAL_BUILDER_CLASS + "' as 'principal.builder.class' instead.");
-        }
-
-        configureTokenEndpoint(config);
-
-        clientId = ConfigUtil.getConfigWithFallbackLookup(config, AuthzConfig.STRIMZI_AUTHORIZATION_CLIENT_ID, ClientConfig.OAUTH_CLIENT_ID);
-        if (clientId == null) {
-            throw new ConfigException("OAuth client id ('strimzi.authorization.client.id') not set.");
-        }
-
-        configureHttpTimeouts(config);
-
-        socketFactory = createSSLFactory(config);
-        hostnameVerifier = createHostnameVerifier(config);
-
-        clusterName = config.getValue(AuthzConfig.STRIMZI_AUTHORIZATION_KAFKA_CLUSTER_NAME);
-        if (clusterName == null) {
-            clusterName = "kafka-cluster";
-        }
-
-        delegateToKafkaACL = config.getValueAsBoolean(AuthzConfig.STRIMZI_AUTHORIZATION_DELEGATE_TO_KAFKA_ACL, false);
-
-        configureSuperUsers(configs);
-
-        // Number of threads that can perform token endpoint requests at the same time
-        final int grantsRefreshPoolSize = config.getValueAsInt(AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_REFRESH_POOL_SIZE, 5);
-        if (grantsRefreshPoolSize < 1) {
-            throw new ConfigException("Invalid value of 'strimzi.authorization.grants.refresh.pool.size': " + grantsRefreshPoolSize + ". Has to be >= 1.");
-        }
-
-        // Less or equal zero means to never check
-        final int grantsRefreshPeriodSeconds = config.getValueAsInt(AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_REFRESH_PERIOD_SECONDS, 60);
-
-        if (grantsRefreshPeriodSeconds > 0) {
-            workerPool = Executors.newFixedThreadPool(grantsRefreshPoolSize);
-            setupRefreshGrantsJob(grantsRefreshPeriodSeconds);
-        }
-
-        reuseGrants = config.getValueAsBoolean(AuthzConfig.STRIMZI_AUTHORIZATION_REUSE_GRANTS, false);
-
-        configureHttpRetries(config);
-
-        configureMetrics(configs, config);
-
-        authzSensorKeyProducer = new KeycloakAuthorizationSensorKeyProducer("keycloak-authorizer", tokenEndpointUrl);
-        grantsSensorKeyProducer = new GrantsHttpSensorKeyProducer("keycloak-authorizer", tokenEndpointUrl);
-
-        if (delegateToKafkaACL) {
-            super.configure(configs);
-        }
+        assignFields(configuration);
 
         if (log.isDebugEnabled()) {
-            log.debug("Configured KeycloakRBACAuthorizer:\n    tokenEndpointUri: " + tokenEndpointUrl
+            log.debug("Configured " + this + (delegator != null ? " (via " + delegator + ")" : "") + ":\n    tokenEndpointUri: " + configuration.getTokenEndpointUrl()
                     + "\n    sslSocketFactory: " + socketFactory
                     + "\n    hostnameVerifier: " + hostnameVerifier
-                    + "\n    clientId: " + clientId
-                    + "\n    clusterName: " + clusterName
-                    + "\n    delegateToKafkaACL: " + delegateToKafkaACL
-                    + "\n    superUsers: " + superUsers.stream().map(u -> "'" + u.getType() + ":" + u.getName() + "'").collect(Collectors.toList())
-                    + "\n    grantsRefreshPeriodSeconds: " + grantsRefreshPeriodSeconds
-                    + "\n    grantsRefreshPoolSize: " + grantsRefreshPoolSize
-                    + "\n    httpRetries: " + httpRetries
-                    + "\n    reuseGrants: " + reuseGrants
-                    + "\n    connectTimeoutSeconds: " + connectTimeoutSeconds
-                    + "\n    readTimeoutSeconds: " + readTimeoutSeconds
-                    + "\n    enableMetrics: " + enableMetrics
+                    + "\n    clientId: " + configuration.getClientId()
+                    + "\n    clusterName: " + configuration.getClusterName()
+                    + "\n    delegateToKafkaACL: " + configuration.isDelegateToKafkaACL()
+                    + "\n    superUsers: " + configuration.getSuperUsers().stream().map(u -> "'" + u.getType() + ":" + u.getName() + "'").collect(Collectors.toList())
+                    + "\n    grantsRefreshPeriodSeconds: " + configuration.getGrantsRefreshPeriodSeconds()
+                    + "\n    grantsRefreshPoolSize: " + configuration.getGrantsRefreshPoolSize()
+                    + "\n    grantsMaxIdleTimeSeconds: " + configuration.getGrantsMaxIdleTimeSeconds()
+                    + "\n    httpRetries: " + configuration.getHttpRetries()
+                    + "\n    reuseGrants: " + configuration.isReuseGrants()
+                    + "\n    connectTimeoutSeconds: " + configuration.getConnectTimeoutSeconds()
+                    + "\n    readTimeoutSeconds: " + configuration.getReadTimeoutSeconds()
+                    + "\n    enableMetrics: " + configuration.isEnableMetrics()
+                    + "\n    gcPeriodSeconds: " + configuration.getGcPeriodSeconds()
             );
         }
     }
 
-    private void configureHttpTimeouts(AuthzConfig config) {
-        connectTimeoutSeconds = ConfigUtil.getTimeoutConfigWithFallbackLookup(config, AuthzConfig.STRIMZI_AUTHORIZATION_CONNECT_TIMEOUT_SECONDS, ClientConfig.OAUTH_CONNECT_TIMEOUT_SECONDS);
-        readTimeoutSeconds = ConfigUtil.getTimeoutConfigWithFallbackLookup(config, AuthzConfig.STRIMZI_AUTHORIZATION_READ_TIMEOUT_SECONDS, ClientConfig.OAUTH_READ_TIMEOUT_SECONDS);
-    }
+    private void assignFields(Configuration configuration) {
+        socketFactory = createSSLFactory(configuration);
+        hostnameVerifier = createHostnameVerifier(configuration);
 
-    private void configureSuperUsers(Map<String, ?> configs) {
-        String users = (String) configs.get("super.users");
-        if (users != null) {
-            superUsers = Arrays.stream(users.split(";"))
-                    .map(UserSpec::of)
-                    .collect(Collectors.toList());
-        }
-    }
-
-    private void configureHttpRetries(AuthzConfig config) {
-        httpRetries = config.getValueAsInt(AuthzConfig.STRIMZI_AUTHORIZATION_HTTP_RETRIES, 0);
-        if (httpRetries < 0) {
-            throw new ConfigException("Invalid value of 'strimzi.authorization.http.retries': " + httpRetries + ". Has to be >= 0.");
-        }
-    }
-
-    private void configureTokenEndpoint(AuthzConfig config) {
-        String endpoint = ConfigUtil.getConfigWithFallbackLookup(config, AuthzConfig.STRIMZI_AUTHORIZATION_TOKEN_ENDPOINT_URI,
-                ClientConfig.OAUTH_TOKEN_ENDPOINT_URI);
-        if (endpoint == null) {
-            throw new ConfigException("OAuth2 Token Endpoint ('strimzi.authorization.token.endpoint.uri') not set.");
+        if (configuration.isDelegateToKafkaACL()) {
+            setupDelegateAuthorizer();
         }
 
-        try {
-            tokenEndpointUrl = new URI(endpoint);
-        } catch (URISyntaxException e) {
-            throw new ConfigException("Specified token endpoint uri is invalid: " + endpoint);
-        }
-    }
-
-    private void configureMetrics(Map<String, ?> configs, AuthzConfig config) {
         if (!Services.isAvailable()) {
-            Services.configure(configs);
+            Services.configure(configuration.getConfigMap());
         }
-
-        String enableMetricsString = ConfigUtil.getConfigWithFallbackLookup(config, AuthzConfig.STRIMZI_AUTHORIZATION_ENABLE_METRICS, Config.OAUTH_ENABLE_METRICS);
-        try {
-            enableMetrics = enableMetricsString != null && isTrue(enableMetricsString);
-        } catch (Exception e) {
-            throw new ConfigException("Bad boolean value for key: " + AuthzConfig.STRIMZI_AUTHORIZATION_ENABLE_METRICS + ", value: " + enableMetricsString);
-        }
-
-        if (enableMetrics) {
+        if (configuration.isEnableMetrics()) {
             metrics = Services.getInstance().getMetrics();
+        }
+
+        authzSensorKeyProducer = new KeycloakAuthorizationSensorKeyProducer("keycloak-authorizer", configuration.getTokenEndpointUrl());
+        grantsSensorKeyProducer = new GrantsHttpSensorKeyProducer("keycloak-authorizer", configuration.getTokenEndpointUrl());
+
+        grantsHandler = new GrantsHandler(configuration.getGrantsRefreshPeriodSeconds(),
+                configuration.getGrantsRefreshPoolSize(),
+                configuration.getGrantsMaxIdleTimeSeconds(),
+                this::fetchAuthorizationGrantsOnce,
+                configuration.getHttpRetries(),
+                configuration.getGcPeriodSeconds());
+
+        // Call configure() on the delegate as the last thing
+        if (delegate != null) {
+            delegate.configure(configuration.getConfigMap());
         }
     }
 
     /**
-     * This method extracts the key=value configuration entries relevant for KeycloakRBACAuthorizer from
-     * Kafka properties configuration file (server.properties) and wraps them with AuthzConfig instance.
-     * <p>
-     * Any new config options have to be added here in order to become visible, otherwise they will be ignored.
-     *
-     * @param configs Kafka configs map
-     * @return Config object
+     * This method is only called if <code>delegateToKafkaACL</code> is enabled.
+     * It is responsible for instantiating the Authorizer delegate instance.
      */
-    static AuthzConfig convertToCommonConfig(Map<String, ?> configs) {
-        Properties p = new Properties();
-
-        // If you add a new config property, make sure to add it to this list
-        // otherwise it won't be picked
-        String[] keys = {
-            AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_REFRESH_PERIOD_SECONDS,
-            AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_REFRESH_POOL_SIZE,
-            AuthzConfig.STRIMZI_AUTHORIZATION_HTTP_RETRIES,
-            AuthzConfig.STRIMZI_AUTHORIZATION_REUSE_GRANTS,
-            AuthzConfig.STRIMZI_AUTHORIZATION_DELEGATE_TO_KAFKA_ACL,
-            AuthzConfig.STRIMZI_AUTHORIZATION_KAFKA_CLUSTER_NAME,
-            AuthzConfig.STRIMZI_AUTHORIZATION_CLIENT_ID,
-            Config.OAUTH_CLIENT_ID,
-            AuthzConfig.STRIMZI_AUTHORIZATION_TOKEN_ENDPOINT_URI,
-            ClientConfig.OAUTH_TOKEN_ENDPOINT_URI,
-            AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_LOCATION,
-            Config.OAUTH_SSL_TRUSTSTORE_LOCATION,
-            AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_CERTIFICATES,
-            Config.OAUTH_SSL_TRUSTSTORE_CERTIFICATES,
-            AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_PASSWORD,
-            Config.OAUTH_SSL_TRUSTSTORE_PASSWORD,
-            AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_TYPE,
-            Config.OAUTH_SSL_TRUSTSTORE_TYPE,
-            AuthzConfig.STRIMZI_AUTHORIZATION_SSL_SECURE_RANDOM_IMPLEMENTATION,
-            Config.OAUTH_SSL_SECURE_RANDOM_IMPLEMENTATION,
-            AuthzConfig.STRIMZI_AUTHORIZATION_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM,
-            Config.OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM,
-            AuthzConfig.STRIMZI_AUTHORIZATION_CONNECT_TIMEOUT_SECONDS,
-            Config.OAUTH_CONNECT_TIMEOUT_SECONDS,
-            AuthzConfig.STRIMZI_AUTHORIZATION_READ_TIMEOUT_SECONDS,
-            Config.OAUTH_READ_TIMEOUT_SECONDS,
-            AuthzConfig.STRIMZI_AUTHORIZATION_ENABLE_METRICS,
-            Config.OAUTH_ENABLE_METRICS
-        };
-
-        // Copy over the keys
-        for (String key: keys) {
-            ConfigUtil.putIfNotNull(p, key, configs.get(key));
+    void setupDelegateAuthorizer() {
+        if (delegate == null && !configuration.isKRaft()) {
+            log.debug("Using AclAuthorizer (ZooKeeper based) as a delegate");
+            delegate = new AclAuthorizer();
         }
-
-        return new AuthzConfig(p);
     }
 
-    static SSLSocketFactory createSSLFactory(Config config) {
-        String truststore = ConfigUtil.getConfigWithFallbackLookup(config,
-                AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_LOCATION, Config.OAUTH_SSL_TRUSTSTORE_LOCATION);
-        String truststoreData = ConfigUtil.getConfigWithFallbackLookup(config,
-                AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_CERTIFICATES, Config.OAUTH_SSL_TRUSTSTORE_CERTIFICATES);
-        String password = ConfigUtil.getConfigWithFallbackLookup(config,
-                AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_PASSWORD, Config.OAUTH_SSL_TRUSTSTORE_PASSWORD);
-        String type = ConfigUtil.getConfigWithFallbackLookup(config,
-                AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_TYPE, Config.OAUTH_SSL_TRUSTSTORE_TYPE);
-        String rnd = ConfigUtil.getConfigWithFallbackLookup(config,
-                AuthzConfig.STRIMZI_AUTHORIZATION_SSL_SECURE_RANDOM_IMPLEMENTATION, Config.OAUTH_SSL_SECURE_RANDOM_IMPLEMENTATION);
-
-        return SSLUtil.createSSLFactory(truststore, truststoreData, password, type, rnd);
+    static SSLSocketFactory createSSLFactory(Configuration config) {
+        return SSLUtil.createSSLFactory(config.getTruststore(), config.getTruststoreData(), config.getTruststorePassword(), config.getTruststoreType(), config.getPrng());
     }
 
-    static HostnameVerifier createHostnameVerifier(Config config) {
-        String hostCheck = ConfigUtil.getConfigWithFallbackLookup(config,
-                AuthzConfig.STRIMZI_AUTHORIZATION_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM, Config.OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM);
-
-        if (hostCheck == null) {
-            hostCheck = "HTTPS";
-        }
+    /**
+     * This method returning null means that the default certificate hostname validation rules apply
+     *
+     * @param config Configuration object with parsed configuration
+     * @return HostnameVerifier that ignores hostname mismatches in the certificate or null
+     */
+    static HostnameVerifier createHostnameVerifier(Configuration config) {
         // Following Kafka convention for skipping hostname validation (when set to <empty>)
-        return "".equals(hostCheck) ? SSLUtil.createAnyHostHostnameVerifier() : null;
+        return "".equals(config.getCertificateHostCheckAlgorithm()) ? SSLUtil.createAnyHostHostnameVerifier() : null;
     }
 
     /**
@@ -428,6 +309,21 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
      * @return List of authorization results for each action in the same order as the provided actions
      */
     public List<AuthorizationResult> authorize(AuthorizableRequestContext requestContext, List<Action> actions) {
+        return authorize(delegate, requestContext, actions);
+    }
+
+    /**
+     * Authorizer method that can be called by another authorizer to delegate the authorization call to a specific delegate instance.
+     * It allows multiple authorizer instances to delegate to the same KeycloakRBACAuthorizer instance.
+     *
+     * @see KeycloakRBACAuthorizer#authorize(AuthorizableRequestContext, List)
+     *
+     * @param delegate Delegate authorizer to use as fallback
+     * @param requestContext Request context including request type, security protocol and listener name
+     * @param actions Actions being authorized including resource and operation for each action
+     * @return List of authorization results for each action in the same order as the provided actions
+     */
+    List<AuthorizationResult> authorize(Authorizer delegate, AuthorizableRequestContext requestContext, List<Action> actions) {
 
         JsonNode grants = null;
         long startTime = System.currentTimeMillis();
@@ -436,15 +332,15 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
         try {
             KafkaPrincipal principal = requestContext.principal();
 
-            for (UserSpec u : superUsers) {
+            for (UserSpec u : configuration.getSuperUsers()) {
                 if (principal.getPrincipalType().equals(u.getType())
                         && principal.getName().equals(u.getName())) {
 
                     for (Action action: actions) {
-                        // It's a super user. super users are granted everything
+                        // It's a superuser. Superusers are granted everything
                         if (GRANT_LOG.isDebugEnabled() && action.logIfAllowed()) {
                             GRANT_LOG.debug("Authorization GRANTED - user is a superuser: " + requestContext.principal() +
-                                    ", cluster: " + clusterName + ", operation: " + action.operation() + ", resource: " + fromResourcePattern(action.resourcePattern()));
+                                    ", cluster: " + configuration.getClusterName() + ", operation: " + action.operation() + ", resource: " + fromResourcePattern(action.resourcePattern()));
                         }
                     }
                     addAuthzMetricSuccessTime(startTime);
@@ -455,7 +351,8 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
             if (!(principal instanceof OAuthKafkaPrincipal)) {
                 // If user wasn't authenticated over OAuth, and simple ACL delegation is enabled
                 // we delegate to simple ACL
-                result = delegateIfRequested(requestContext, actions, null);
+
+                result = delegateIfRequested(delegate, requestContext, actions, null);
 
                 addAuthzMetricSuccessTime(startTime);
                 return result;
@@ -463,33 +360,43 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
 
             //
             // Check if authorization grants are available
-            // If not, fetch authorization grants and store them in the token
+            // If not, fetch authorization grants and store them in the grants cache
             //
 
-            OAuthKafkaPrincipal jwtPrincipal = (OAuthKafkaPrincipal) principal;
-
-            BearerTokenWithPayload token = jwtPrincipal.getJwt();
+            BearerTokenWithPayload token = ((OAuthKafkaPrincipal) principal).getJwt();
 
             if (denyIfTokenInvalid(token)) {
                 addAuthzMetricSuccessTime(startTime);
                 return Collections.nCopies(actions.size(), AuthorizationResult.DENIED);
             }
 
-            grants = (JsonNode) token.getPayload();
-
-            if (grants == null) {
-                log.debug("No grants yet for user: {}", principal);
-                grants = handleFetchingGrants(token);
+            if (grantsHandler == null) {
+                throw new IllegalStateException("Authorizer has not been configured - configure() not called");
             }
 
-            if (log.isDebugEnabled()) {
-                log.debug("Authorization grants for user {}: {}", principal, grants);
+            GrantsHandler.Info grantsInfo = grantsHandler.getGrantsInfoFromCache(token);
+            log.trace("Got grantsInfo: {}", grantsInfo);
+            grants = grantsInfo.getGrants();
+            boolean newSession = token.getPayload() == null;
+            boolean mustReload = !configuration.isReuseGrants() && newSession;
+            if (grants == null || mustReload) {
+                if (grants == null) {
+                    log.debug("No grants yet for user: {}", principal);
+                } else {
+                    log.debug("Grants available but new session and reuseGrants is `false`");
+                }
+                grants = grantsHandler.fetchGrantsForUserOrWaitForDelivery(principal.getName(), grantsInfo);
+                if (mustReload) {
+                    // save empty JSON object as marker that the session has had the grants loaded.
+                    token.setPayload(JSONUtil.newObjectNode());
+                }
             }
+            log.debug("Got grants for '{}': {}", principal, grants);
 
             if (grants != null) {
-                result = allowOrDenyBasedOnGrants(requestContext, actions, grants);
+                result = allowOrDenyBasedOnGrants(delegate, requestContext, actions, grants);
             } else {
-                result = delegateIfRequested(requestContext, actions, null);
+                result = delegateIfRequested(delegate, requestContext, actions, null);
             }
             addAuthzMetricSuccessTime(startTime);
             return result;
@@ -498,7 +405,7 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
             log.error("An unexpected exception has occurred: ", t);
             if (DENY_LOG.isDebugEnabled()) {
                 DENY_LOG.debug("Authorization DENIED due to error - user: " + requestContext.principal() +
-                        ", cluster: " + clusterName + ", actions: " + actions + ",\n permissions: " + grants);
+                        ", cluster: " + configuration.getClusterName() + ", actions: " + actions + ",\n permissions: " + grants);
             }
             addAuthzMetricErrorTime(t, startTime);
 
@@ -514,7 +421,7 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
     }
 
 
-    private List<AuthorizationResult> allowOrDenyBasedOnGrants(AuthorizableRequestContext requestContext, List<Action> actions, JsonNode grants) {
+    private List<AuthorizationResult> allowOrDenyBasedOnGrants(Authorizer delegate, AuthorizableRequestContext requestContext, List<Action> actions, JsonNode grants) {
         List<AuthorizationResult> results = new ArrayList<>(actions.size());
 
         //
@@ -525,7 +432,7 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
             for (JsonNode permission : grants) {
                 String name = permission.get("rsname").asText();
                 ResourceSpec resourceSpec = ResourceSpec.of(name);
-                if (resourceSpec.match(clusterName, action.resourcePattern().resourceType().name(), action.resourcePattern().name())) {
+                if (resourceSpec.match(configuration.getClusterName(), action.resourcePattern().resourceType().name(), action.resourcePattern().name())) {
 
                     JsonNode scopes = permission.get("scopes");
                     ScopesSpec grantedScopes = scopes == null ? null : ScopesSpec.of(
@@ -534,7 +441,7 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
 
                     if (scopes == null || grantedScopes.isGranted(action.operation().name())) {
                         if (GRANT_LOG.isDebugEnabled() && action.logIfAllowed()) {
-                            GRANT_LOG.debug("Authorization GRANTED - cluster: " + clusterName + ", user: " + requestContext.principal() +
+                            GRANT_LOG.debug("Authorization GRANTED - cluster: " + configuration.getClusterName() + ", user: " + requestContext.principal() +
                                     ", operation: " + action.operation() + ", resource: " + fromResourcePattern(action.resourcePattern()) +
                                     "\nGranted scopes for resource (" + resourceSpec + "): " + (grantedScopes == null ? "ALL" : grantedScopes));
                         }
@@ -543,7 +450,7 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
                     }
                 }
             }
-            results.addAll(delegateIfRequested(requestContext, Collections.singletonList(action), grants));
+            results.addAll(delegateIfRequested(delegate, requestContext, Collections.singletonList(action), grants));
         }
         return results;
     }
@@ -559,88 +466,6 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
         return false;
     }
 
-
-
-    private JsonNode handleFetchingGrants(BearerTokenWithPayload token) {
-        // Fetch authorization grants
-        Semaphores.SemaphoreResult<JsonNode> semaphore = semaphores.acquireSemaphore(token.value());
-
-        // Try to acquire semaphore for fetching grants
-        if (semaphore.acquired()) {
-            // If acquired
-            try {
-                JsonNode grants = null;
-                if (reuseGrants) {
-                    // If reuseGrants is enabled, first try to get the grants from one of the existing sessions having the same access token
-                    grants = lookupGrantsInExistingSessions(token);
-                }
-                if (grants == null) {
-                    // If grants not available it is on us to fetch (others may be waiting)
-                    grants = fetchAndStoreGrants(token);
-                } else {
-                    log.debug("Found existing grants for the token on another session");
-                }
-
-                semaphore.future().complete(grants);
-                return grants;
-
-            } catch (Throwable t) {
-                semaphore.future().completeExceptionally(t);
-                throw t;
-            } finally {
-                semaphores.releaseSemaphore(token.value());
-            }
-
-        } else {
-            try {
-                log.debug("Waiting on another thread to get grants");
-                return semaphore.future().get();
-            } catch (ExecutionException e) {
-                Throwable cause = e.getCause();
-                if (cause instanceof ServiceException) {
-                    throw (ServiceException) cause;
-                } else {
-                    throw new ServiceException("ExecutionException waiting for grants result: ", e);
-                }
-            } catch (InterruptedException e) {
-                throw new ServiceException("InterruptedException waiting for grants result: ", e);
-            }
-        }
-    }
-
-    private JsonNode fetchAndStoreGrants(BearerTokenWithPayload token) {
-        // If no grants found, fetch grants from server
-        JsonNode grants = null;
-        try {
-            log.debug("Fetching grants from Keycloak");
-            grants = fetchAuthorizationGrants(token.value());
-            if (grants == null) {
-                log.debug("Received null grants for token: {}", mask(token.value()));
-                grants = JSONUtil.newObjectNode();
-            }
-        } catch (HttpException e) {
-            if (e.getStatus() == 403) {
-                grants = JSONUtil.newObjectNode();
-            } else {
-                log.warn("Unexpected status while fetching authorization data - will retry next time: " + e.getMessage());
-            }
-        }
-        if (grants != null) {
-            // Store authz grants in the token, so they are available for subsequent requests
-            log.debug("Saving non-null grants for token: {}", mask(token.value()));
-            token.setPayload(grants);
-        }
-        return grants;
-    }
-
-    private static JsonNode lookupGrantsInExistingSessions(BearerTokenWithPayload token) {
-        Sessions sessions = Services.getInstance().getSessions();
-        BearerTokenWithPayload existing = sessions.findFirst(t ->
-            t.value().equals(token.value()) && t.getPayload() != null
-        );
-        return existing != null ? (JsonNode) existing.getPayload() : null;
-    }
-
     static List<ScopesSpec.AuthzScope> validateScopes(List<String> scopes) {
         List<ScopesSpec.AuthzScope> enumScopes = new ArrayList<>(scopes.size());
         for (String name: scopes) {
@@ -653,10 +478,10 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
         return enumScopes;
     }
 
-    private List<AuthorizationResult> delegateIfRequested(AuthorizableRequestContext context, List<Action> actions, JsonNode authz) {
+    private List<AuthorizationResult> delegateIfRequested(Authorizer delegate, AuthorizableRequestContext context, List<Action> actions, JsonNode authz) {
         String nonAuthMessageFragment = context.principal() instanceof OAuthKafkaPrincipal ? "" : " non-oauth";
-        if (delegateToKafkaACL) {
-            List<AuthorizationResult> results = super.authorize(context, actions);
+        if (delegate != null) {
+            List<AuthorizationResult> results = delegate.authorize(context, actions);
 
             int i = 0;
             for (AuthorizationResult result: results) {
@@ -708,55 +533,15 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
 
     private void logDenied(Logger logger, AuthorizableRequestContext context, JsonNode authz, String nonAuthMessageFragment, Action action) {
         logger.debug("Authorization DENIED -" + nonAuthMessageFragment + " user: " + context.principal() +
-                ", cluster: " + clusterName + ", operation: " + action.operation() +
+                ", cluster: " + configuration.getClusterName() + ", operation: " + action.operation() +
                 ", resource: " + fromResourcePattern(action.resourcePattern()) + ",\n permissions: " + authz);
-    }
-
-
-    /**
-     * Method that performs the POST request to fetch grants for the token.
-     * In case of a connection failure or a non-200 status response this method immediately retries the request if so configured.
-     * <p>
-     * Status 401 does not trigger a retry since it is used to signal an invalid token.
-     * Status 403 does not trigger a retry either since it signals no permissions.
-     *
-     * @param token The raw access token
-     * @return Grants JSON response
-     */
-    private JsonNode fetchAuthorizationGrants(String token) {
-
-        int i = 0;
-        do {
-            i += 1;
-
-            try {
-                if (i > 1) {
-                    log.debug("Grants request attempt no. " + i);
-                }
-                return fetchAuthorizationGrantsOnce(token);
-
-            } catch (Exception e) {
-                if (e instanceof HttpException) {
-                    int status = ((HttpException) e).getStatus();
-                    if (403 == status || 401 == status) {
-                        throw e;
-                    }
-                }
-
-                log.info("Failed to fetch grants on try no. " + i, e);
-                if (i > httpRetries) {
-                    log.debug("Failed to fetch grants after " + i + " tries");
-                    throw e;
-                }
-            }
-        } while (true);
     }
 
     private JsonNode fetchAuthorizationGrantsOnce(String token) {
 
         String authorization = "Bearer " + token;
 
-        StringBuilder body = new StringBuilder("audience=").append(urlencode(clientId))
+        StringBuilder body = new StringBuilder("audience=").append(urlencode(configuration.getClientId()))
                 .append("&grant_type=").append(urlencode("urn:ietf:params:oauth:grant-type:uma-ticket"))
                 .append("&response_mode=permissions");
 
@@ -764,8 +549,8 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
         long startTime = System.currentTimeMillis();
 
         try {
-            response = post(tokenEndpointUrl, socketFactory, hostnameVerifier, authorization,
-                    "application/x-www-form-urlencoded", body.toString(), JsonNode.class, connectTimeoutSeconds, readTimeoutSeconds);
+            response = post(configuration.getTokenEndpointUrl(), socketFactory, hostnameVerifier, authorization,
+                    "application/x-www-form-urlencoded", body.toString(), JsonNode.class, configuration.getConnectTimeoutSeconds(), configuration.getReadTimeoutSeconds());
             addGrantsHttpMetricSuccessTime(startTime);
         } catch (HttpException e) {
             addGrantsHttpMetricErrorTime(e, startTime);
@@ -778,193 +563,89 @@ public class KeycloakRBACAuthorizer extends AclAuthorizer {
         return response;
     }
 
-    private void setupRefreshGrantsJob(int refreshSeconds) {
-        // Set up periodic timer to fetch grants for active sessions every refresh seconds
-        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(new DaemonThreadFactory());
-
-        scheduler.scheduleAtFixedRate(this::refreshGrants, refreshSeconds, refreshSeconds, TimeUnit.SECONDS);
-    }
-
-    private void refreshGrants() {
-        try {
-            log.debug("Refreshing authorization grants ...");
-            // Multiple sessions can be authenticated with the same access token
-            // Only make one grants request for one unique access_token,
-            // but update all sessions for the same token
-            ConcurrentHashMap<String, ConcurrentLinkedQueue<BearerTokenWithPayload>> tokens = new ConcurrentHashMap<>();
-
-            Predicate<BearerTokenWithPayload> filter = token -> {
-                ConcurrentLinkedQueue<BearerTokenWithPayload> queue = tokens.computeIfAbsent(token.value(), k -> {
-                    ConcurrentLinkedQueue<BearerTokenWithPayload> q = new ConcurrentLinkedQueue<>();
-                    q.add(token);
-                    return q;
-                });
-
-                // If we are the first for the access_token return true
-                // if not, add the token to the queue, and return false
-                if (token != queue.peek()) {
-                    queue.add(token);
-                    return false;
-                }
-                return true;
-            };
-
-            Sessions sessions = Services.getInstance().getSessions();
-            List<SessionFuture<?>> scheduled = scheduleGrantsRefresh(filter, sessions);
-
-            for (SessionFuture<?> f: scheduled) {
-                try {
-                    f.get();
-                } catch (ExecutionException e) {
-                    log.warn("[IGNORED] Failed to fetch grants for token: " + e.getMessage(), e);
-                    final Throwable cause = e.getCause();
-                    if (cause instanceof HttpException) {
-                        if (401 == ((HttpException) cause).getStatus()) {
-                            JsonNode emptyGrants = JSONUtil.newObjectNode();
-                            ConcurrentLinkedQueue<BearerTokenWithPayload> queue = tokens.get(f.getToken().value());
-                            for (BearerTokenWithPayload token: queue) {
-                                token.setPayload(emptyGrants);
-                                sessions.remove(token);
-                                if (log.isDebugEnabled()) {
-                                    log.debug("Removed invalid session from sessions map (session: {}, token: {}). Will not refresh its grants any more.",
-                                            f.getToken().getSessionId(), mask(f.getToken().value()));
-                                }
-                            }
-                        }
-                    }
-                } catch (Throwable e) {
-                    log.warn("[IGNORED] Failed to fetch grants for session: " + f.getToken().getSessionId() + ", token: " + mask(f.getToken().value()) + " - " + e.getMessage(), e);
-                }
-            }
-
-            // Go over tokens, and copy the grants from the first session
-            // for same access token to all the others
-            for (ConcurrentLinkedQueue<BearerTokenWithPayload> q: tokens.values()) {
-                BearerTokenWithPayload refreshed = null;
-                for (BearerTokenWithPayload t: q) {
-                    if (refreshed == null) {
-                        refreshed = t;
-                        continue;
-                    }
-                    Object oldGrants = t.getPayload();
-                    Object newGrants = refreshed.getPayload();
-                    if (newGrants == null) {
-                        newGrants = JSONUtil.newObjectNode();
-                    }
-                    if (newGrants.equals(oldGrants)) {
-                        // Grants refreshed, but no change - no need to copy over to all sessions
-                        break;
-                    }
-                    if (log.isDebugEnabled()) {
-                        log.debug("Grants have changed for session: {}, token: {}\nbefore: {}\nafter: {}", t.getSessionId(), mask(t.value()), oldGrants, newGrants);
-                    }
-                    t.setPayload(newGrants);
-                }
-            }
-
-        } catch (Throwable t) {
-            // Log, but don't rethrow the exception to prevent scheduler cancelling the scheduled job.
-            log.error(t.getMessage(), t);
-        } finally {
-            log.debug("Done refreshing grants");
-        }
-    }
-
-    private List<SessionFuture<?>> scheduleGrantsRefresh(Predicate<BearerTokenWithPayload> filter, Sessions sessions) {
-        return sessions.executeTask(workerPool, filter, token -> {
-            if (log.isTraceEnabled()) {
-                log.trace("Fetch grants for session: " + token.getSessionId() + ", token: " + mask(token.value()));
-            }
-
-            JsonNode newGrants;
-            try {
-                newGrants = fetchAuthorizationGrants(token.value());
-            } catch (HttpException e) {
-                if (403 == e.getStatus()) {
-                    // 403 happens when no policy matches the token - thus there are no grants
-                    newGrants = JSONUtil.newObjectNode();
-                } else {
-                    throw e;
-                }
-            }
-            Object oldGrants = token.getPayload();
-            if (!newGrants.equals(oldGrants)) {
-                if (log.isDebugEnabled()) {
-                    log.debug("Grants have changed for session: {}, token: {}\nbefore: {}\nafter: {}", token.getSessionId(), mask(token.value()), oldGrants, newGrants);
-                }
-                token.setPayload(newGrants);
-            }
-        });
-    }
-
     @Override
     public void close() {
         // We don't care about finishing the refresh tasks
-        try {
-            if (workerPool != null) {
-                workerPool.shutdownNow();
+        if (grantsHandler != null) {
+            try {
+                grantsHandler.close();
+            } catch (Exception e) {
+                log.error("Failed to shutdown the worker pool", e);
             }
-        } catch (Exception e) {
-            log.error("Failed to shutdown the worker pool", e);
         }
-        super.close();
+
+        if (delegate != null) {
+            try {
+                delegate.close();
+            } catch (Exception e) {
+                log.error("Failed to close the delegate authorizer", e);
+            }
+        }
     }
 
     @Override
     public java.util.Map<Endpoint, ? extends CompletionStage<Void>> start(AuthorizerServerInfo serverInfo) {
         CompletableFuture<Void> future = CompletableFuture.completedFuture(null);
-        if (!delegateToKafkaACL) {
+        if (delegate == null) {
             return serverInfo.endpoints().stream().collect(Collectors.toMap(Function.identity(), e -> future));
         }
-        return super.start(serverInfo);
+        return delegate.start(serverInfo);
     }
 
     @Override
     public List<? extends CompletionStage<AclCreateResult>> createAcls(AuthorizableRequestContext requestContext, List<AclBinding> aclBindings) {
-        if (!delegateToKafkaACL) {
+        if (delegate == null) {
             throw new UnsupportedOperationException("Simple ACL delegation not enabled");
         }
-        return super.createAcls(requestContext, aclBindings);
+        return delegate.createAcls(requestContext, aclBindings);
     }
 
     @Override
     public List<? extends CompletionStage<AclDeleteResult>> deleteAcls(AuthorizableRequestContext requestContext, List<AclBindingFilter> aclBindingFilters) {
-        if (!delegateToKafkaACL) {
+        if (delegate == null) {
             throw new UnsupportedOperationException("Simple ACL delegation not enabled");
         }
-        return super.deleteAcls(requestContext, aclBindingFilters);
+        return delegate.deleteAcls(requestContext, aclBindingFilters);
     }
 
     @Override
     public Iterable<AclBinding> acls(AclBindingFilter filter) {
-        if (!delegateToKafkaACL) {
+        if (delegate == null) {
             throw new UnsupportedOperationException("Simple ACL delegation not enabled");
         }
-        return super.acls(filter);
+        return delegate.acls(filter);
     }
 
     private void addAuthzMetricSuccessTime(long startTimeMs) {
-        if (enableMetrics) {
+        if (configuration.isEnableMetrics()) {
             metrics.addTime(authzSensorKeyProducer.successKey(), System.currentTimeMillis() - startTimeMs);
         }
     }
 
     private void addAuthzMetricErrorTime(Throwable e, long startTimeMs) {
-        if (enableMetrics) {
+        if (configuration.isEnableMetrics()) {
             metrics.addTime(authzSensorKeyProducer.errorKey(e), System.currentTimeMillis() - startTimeMs);
         }
     }
 
     private void addGrantsHttpMetricSuccessTime(long startTimeMs) {
-        if (enableMetrics) {
+        if (configuration.isEnableMetrics()) {
             metrics.addTime(grantsSensorKeyProducer.successKey(), System.currentTimeMillis() - startTimeMs);
         }
     }
 
     private void addGrantsHttpMetricErrorTime(Throwable e, long startTimeMs) {
-        if (enableMetrics) {
+        if (configuration.isEnableMetrics()) {
             metrics.addTime(grantsSensorKeyProducer.errorKey(e), System.currentTimeMillis() - startTimeMs);
         }
     }
 
+    Configuration getConfiguration() {
+        return configuration;
+    }
+
+    @Override
+    public String toString() {
+        return KeycloakRBACAuthorizer.class.getSimpleName() + "@" + instanceNumber;
+    }
 }

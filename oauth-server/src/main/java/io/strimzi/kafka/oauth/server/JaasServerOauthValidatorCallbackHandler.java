@@ -4,14 +4,11 @@
  */
 package io.strimzi.kafka.oauth.server;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.strimzi.kafka.oauth.common.Config;
 import io.strimzi.kafka.oauth.common.ConfigException;
 import io.strimzi.kafka.oauth.common.ConfigUtil;
-import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
 import io.strimzi.kafka.oauth.common.IOUtil;
 import io.strimzi.kafka.oauth.common.PrincipalExtractor;
-import io.strimzi.kafka.oauth.common.TimeUtil;
 import io.strimzi.kafka.oauth.jsonpath.JsonPathFilterQuery;
 import io.strimzi.kafka.oauth.metrics.IntrospectValidationSensorKeyProducer;
 import io.strimzi.kafka.oauth.metrics.JwksValidationSensorKeyProducer;
@@ -40,9 +37,7 @@ import javax.security.auth.login.AppConfigurationEntry;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Properties;
-import java.util.Set;
 import java.util.function.Supplier;
 
 import static io.strimzi.kafka.oauth.common.DeprecationUtil.isAccessTokenJwt;
@@ -605,7 +600,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
             debugLogToken(token);
 
             TokenInfo ti = validateToken(token);
-            callback.token(new BearerTokenWithPayloadImpl(ti));
+            callback.token(new BearerTokenWithJsonPayload(ti));
             if (log.isDebugEnabled()) {
                 log.debug("Set validated token on callback: " + callback.token());
             }
@@ -730,84 +725,6 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
      */
     public int getReadTimeout() {
         return readTimeout;
-    }
-
-    static class BearerTokenWithPayloadImpl implements BearerTokenWithPayload {
-
-        private final TokenInfo ti;
-        private volatile Object payload;
-
-        BearerTokenWithPayloadImpl(TokenInfo ti) {
-            if (ti == null) {
-                throw new IllegalArgumentException("TokenInfo == null");
-            }
-            this.ti = ti;
-        }
-
-        @Override
-        public synchronized Object getPayload() {
-            return payload;
-        }
-
-        @Override
-        public synchronized void setPayload(Object value) {
-            payload = value;
-        }
-
-        @Override
-        public Set<String> getGroups() {
-            return ti.groups();
-        }
-
-        @Override
-        public ObjectNode getJSON() {
-            return ti.payload();
-        }
-
-        @Override
-        public String value() {
-            return ti.token();
-        }
-
-        @Override
-        public Set<String> scope() {
-            return ti.scope();
-        }
-
-        @Override
-        public long lifetimeMs() {
-            return ti.expiresAtMs();
-        }
-
-        @Override
-        public String principalName() {
-            return ti.principal();
-        }
-
-        @Override
-        public Long startTimeMs() {
-            return ti.issuedAtMs();
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            BearerTokenWithPayloadImpl that = (BearerTokenWithPayloadImpl) o;
-            return Objects.equals(ti, that.ti);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(ti);
-        }
-
-        @Override
-        public String toString() {
-            return "BearerTokenWithPayloadImpl (principalName: " + ti.principal() + ", groups: " + ti.groups() + ", lifetimeMs: " +
-                    ti.expiresAtMs() + " [" + TimeUtil.formatIsoDateTimeUTC(ti.expiresAtMs()) + " UTC], startTimeMs: " +
-                    ti.issuedAtMs() + " [" + TimeUtil.formatIsoDateTimeUTC(ti.issuedAtMs()) + " UTC], scope: " + ti.scope() + ")";
-        }
     }
 
     protected String getConfigId() {

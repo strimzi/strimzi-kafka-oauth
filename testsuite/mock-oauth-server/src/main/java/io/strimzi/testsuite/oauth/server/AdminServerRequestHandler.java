@@ -65,6 +65,9 @@ public class AdminServerRequestHandler implements Handler<HttpServerRequest> {
             } else if (endpoint == Endpoint.REVOCATIONS) {
                 processRevocation(req, path);
                 return;
+            } else if (endpoint == Endpoint.GRANTS_MAP) {
+                processGrants(req, path);
+                return;
             }
 
             if (req.method() == GET) {
@@ -181,7 +184,52 @@ public class AdminServerRequestHandler implements Handler<HttpServerRequest> {
                         return;
                     }
 
-                    verticle.createOrUpdateUser(username, password);
+                    Long expiresIn = json.getLong("expires_in");
+
+                    verticle.createOrUpdateUser(username, new UserInfo(password, expiresIn));
+                    sendResponse(req, OK);
+
+                } catch (Exception e) {
+                    handleFailure(req, e, log);
+                }
+            });
+            return;
+        }
+
+        sendResponse(req, METHOD_NOT_ALLOWED);
+    }
+
+    private void processGrants(HttpServerRequest req, String[] path) {
+        if (path.length > 3) {
+            sendResponse(req, NOT_FOUND);
+            return;
+        }
+
+        if (req.method() == GET) {
+            sendResponse(req, OK, getClientsAsJsonString());
+            return;
+
+        } else if (isOneOf(req.method(), POST, PUT)) {
+
+            req.bodyHandler(buffer -> {
+                try {
+                    log.info(buffer.toString());
+
+                    JsonObject json = buffer.toJsonObject();
+
+                    String token = json.getString("token");
+                    if (token == null) {
+                        sendResponse(req, BAD_REQUEST, "Required attribute 'token' is null or missing.");
+                        return;
+                    }
+
+                    JsonArray grants = json.getJsonArray("grants");
+                    if (grants == null) {
+                        sendResponse(req, BAD_REQUEST, "Required attribute 'grants' is missing.");
+                        return;
+                    }
+
+                    verticle.createOrUpdateGrants(token, grants);
                     sendResponse(req, OK);
 
                 } catch (Exception e) {
@@ -250,9 +298,11 @@ public class AdminServerRequestHandler implements Handler<HttpServerRequest> {
 
     private String getUsersAsJsonString() {
         JsonArray result = new JsonArray();
-        for (Map.Entry<String, String> ent: verticle.getUsers().entrySet()) {
+        for (Map.Entry<String, UserInfo> ent: verticle.getUsers().entrySet()) {
             JsonObject json = new JsonObject();
-            json.put(ent.getKey(), ent.getValue());
+            json.put("username", ent.getKey());
+            json.put("password", ent.getValue().password);
+            json.put("expires_in", ent.getValue().expiresIn);
             result.add(json);
         }
         return result.toString();
