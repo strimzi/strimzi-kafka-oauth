@@ -50,6 +50,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * <p>
  * Configuration options are the same as for {@link KeycloakRBACAuthorizer}.
  */
+@SuppressWarnings("deprecation")
 public class KeycloakAuthorizer implements ClusterMetadataAuthorizer {
 
     private static final Logger log = LoggerFactory.getLogger(KeycloakAuthorizer.class);
@@ -74,7 +75,7 @@ public class KeycloakAuthorizer implements ClusterMetadataAuthorizer {
         // There is one singleton to which authorize() calls are delegated
         singleton = KeycloakAuthorizerService.getInstance();
         if (singleton == null) {
-            singleton = new KeycloakRBACAuthorizer();
+            singleton = new KeycloakRBACAuthorizer(this);
             singleton.configure(configs);
             KeycloakAuthorizerService.setInstance(singleton);
         } else if (!configuration.equals(singleton.getConfiguration())) {

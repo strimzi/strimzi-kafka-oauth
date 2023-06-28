@@ -64,7 +64,7 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
  * </pre>
  * <p>
  * This authorizer only supports Kafka running in 'zookeeper' mode. It does not support 'KRaft' mode.
- * There is a {@link KeycloakAuthorizer} class that autodetects the environment and works both in 'KRaft' and 'zookeeper' mode,
+ * There is a {@link KeycloakAuthorizer} class that auto-detects the environment and works both in 'KRaft' and 'zookeeper' mode,
  * that should be used instead of this class.
  * </p>
  * <p>
@@ -156,6 +156,7 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
  * This authorizer honors the <em>super.users</em> configuration. Super users are automatically granted any authorization request.
  * </p>
  */
+@Deprecated
 public class KeycloakRBACAuthorizer implements Authorizer {
 
     static final Logger log = LoggerFactory.getLogger(KeycloakRBACAuthorizer.class);
@@ -171,6 +172,8 @@ public class KeycloakRBACAuthorizer implements Authorizer {
      * An instance number used in {@link #toString()} method, to easily track the number of instances of this class
      */
     private final int instanceNumber = INSTANCE_NUMBER_COUNTER.getAndIncrement();
+
+    private final Authorizer delegator;
 
     private SSLSocketFactory socketFactory;
     private HostnameVerifier hostnameVerifier;
@@ -189,16 +192,33 @@ public class KeycloakRBACAuthorizer implements Authorizer {
 
     private Configuration configuration;
 
+    /**
+     * Create a new instance
+     */
+    public KeycloakRBACAuthorizer() {
+        log.warn("KeycloakRBACAuthorizer has been deprecated, please use '{}' instead.", KeycloakAuthorizer.class.getName());
+        this.delegator = null;
+    }
+
+    /**
+     * Create a new instance, passing a delegating authorizer instance
+     *
+     * @param delegator The delegating authorizer instance
+     */
+    KeycloakRBACAuthorizer(Authorizer delegator) {
+        this.delegator = delegator;
+    }
+
     @Override
     public void configure(Map<String, ?> configs) {
 
         configuration = new Configuration(configs);
         configuration.printLogs();
 
-        instantiateObjects(configuration);
+        assignFields(configuration);
 
         if (log.isDebugEnabled()) {
-            log.debug("Configured " + this + "):\n    tokenEndpointUri: " + configuration.getTokenEndpointUrl()
+            log.debug("Configured " + this + (delegator != null ? " (via " + delegator + ")" : "") + ":\n    tokenEndpointUri: " + configuration.getTokenEndpointUrl()
                     + "\n    sslSocketFactory: " + socketFactory
                     + "\n    hostnameVerifier: " + hostnameVerifier
                     + "\n    clientId: " + configuration.getClientId()
@@ -218,7 +238,7 @@ public class KeycloakRBACAuthorizer implements Authorizer {
         }
     }
 
-    void instantiateObjects(Configuration configuration) {
+    private void assignFields(Configuration configuration) {
         socketFactory = createSSLFactory(configuration);
         hostnameVerifier = createHostnameVerifier(configuration);
 

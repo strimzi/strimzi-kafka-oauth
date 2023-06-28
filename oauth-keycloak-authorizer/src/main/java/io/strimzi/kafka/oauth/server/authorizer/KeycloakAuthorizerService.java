@@ -7,6 +7,7 @@ package io.strimzi.kafka.oauth.server.authorizer;
 /**
  * A static holder for the KeycloakAuthorizerSingleton instance
  */
+@SuppressWarnings("deprecation")
 public class KeycloakAuthorizerService {
 
     private static KeycloakRBACAuthorizer instance;
