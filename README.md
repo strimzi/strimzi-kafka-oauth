@@ -316,12 +316,12 @@ If the configured `oauth.client.id` is `kafka`, the following are valid examples
 
 JWT tokens contain unique user identification in `sub` claim. However, this is often a long number or a UUID, but we usually prefer to use human-readable usernames, which may also be present in JWT token.
 Use `oauth.username.claim` to map the claim (attribute) where the value you want to use as user id is stored:
-- `oauth.username.claim` (e.g.: "preferred_username", for nested attributes use '.')
+- `oauth.username.claim` (e.g.: "preferred_username", for nested attributes use `[topAttrKey].[subAttrKey]`. Claim names can also be single quoted: `['topAttrKey'].['subAttrKey']`)
 
 If `oauth.username.claim` is specified the value of that claim is used instead, but if not set, the automatic fallback claim is the `sub` claim.
 
 You can specify the secondary claim to fall back to, which allows you to map multiple account types into the same principal namespace: 
-- `oauth.fallback.username.claim` (e.g.: "client_id", for nested attributes use '.')
+- `oauth.fallback.username.claim` (e.g.: "client_id", for nested attributes use `[topAttrKey].[subAttrKey]`. Claim names can also be single quoted: `['topAttrKey'].['subAttrKey']`)
 - `oauth.fallback.username.prefix` (e.g.: "client-account-")
 
 If `oauth.username.claim` is specified but value does not exist in the token, then `oauth.fallback.username.claim` is used. If value for that doesn't exist either, the exception is thrown.
@@ -400,10 +400,10 @@ Introspection Endpoint may or may not return identifying information which we co
 If the information is available we attempt to extract the user id from Introspection Endpoint response.
 
 Use `oauth.username.claim` to map the attribute where the user id is stored:
-- `oauth.username.claim` (e.g.: "preferred_username", for nested attributes use '.')
+- `oauth.username.claim` (e.g.: "preferred_username", for nested attributes use `[topAttrKey].[subAttrKey]`. Claim names can also be single quoted: `['topAttrKey'].['subAttrKey']`)
 
 You can fall back to a secondary attribute, which allows you to map multiple account types into the same user id namespace: 
-- `oauth.fallback.username.claim` (e.g.: "client_id", for nested attributes use '.')
+- `oauth.fallback.username.claim` (e.g.: "client_id", for nested attributes use `[topAttrKey].[subAttrKey]`. Claim names can also be single quoted: `['topAttrKey'].['subAttrKey']`)
 - `oauth.fallback.username.prefix` (e.g.: "client-account-")
 
 If `oauth.username.claim` is specified but value does not exist in the Introspection Endpoint response, then `oauth.fallback.username.claim` is used. If value for that doesn't exist either, the exception is thrown.
@@ -985,7 +985,7 @@ Audience is sent to the Token Endpoint when obtaining the access token.
 
 For debug purposes you may want to properly configure which JWT token attribute contains the user id of the account used to obtain the access token:
 
-- `oauth.username.claim` (e.g.: "preferred_username", for nested attributes use '.')
+- `oauth.username.claim` (e.g.: "preferred_username", for nested attributes use `[topAttrKey].[subAttrKey]`. Claim names can also be single quoted: `['topAttrKey'].['subAttrKey']`)
 
 This does not affect how Kafka client is presented to the Kafka Broker.
 The broker performs user id extraction from the token once again or it uses the Introspection Endpoint or the User Info Endpoint to get the user id.

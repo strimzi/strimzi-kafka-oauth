@@ -112,6 +112,9 @@ public class JSONUtil {
      * @return Value of the specific claim as String or null if claim not present
      */
     public static String getClaimFromJWT(JsonNode node, String... path) {
+        if (path.length == 0) {
+            return null;
+        }
         for (String p: path) {
             node = node.get(p);
             if (node == null) {

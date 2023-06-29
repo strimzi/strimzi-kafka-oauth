@@ -138,9 +138,9 @@ import static io.strimzi.kafka.oauth.common.TokenIntrospection.debugLogJWT;
  * <ul>
  * <li><em>oauth.username.claim</em> The attribute key that should be used to extract the user id. If not set `sub` attribute is used.<br>
  * The attribute key refers to the JWT token claim when fast local validation is used, or to attribute in the response by introspection endpoint when introspection based validation is used.
- * For nested attributes use '.'. It has no default value.</li>
+ * For nested attributes use '[topAttrKey].[subAttrKey]'. Claim names can also be single quoted: ['topAttrKey'].['subAttrKey']. It has no default value.</li>
  * <li><em>oauth.fallback.username.claim</em> The fallback username claim to be used for the user id if the attribute key specified by `oauth.username.claim` <br>
- * is not present. This is useful when `client_credentials` authentication only results in the client id being provided in another claim. For nested attributes use '.'.
+ * is not present. This is useful when `client_credentials` authentication only results in the client id being provided in another claim. For nested attributes same rules apply as for `oauth.username.claim`.
  * <li><em>oauth.fallback.username.prefix</em> The prefix to use with the value of <em>oauth.fallback.username.claim</em> to construct the user id.  <br>
  * This only takes effect if <em>oauth.fallback.username.claim</em> is <em>true</em>, and the value is present for the claim.
  * Mapping usernames and client ids into the same user id space is useful in preventing name collisions.</li>

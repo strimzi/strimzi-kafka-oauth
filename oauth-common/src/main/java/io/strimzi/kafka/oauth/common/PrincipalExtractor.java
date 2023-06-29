@@ -6,6 +6,10 @@ package io.strimzi.kafka.oauth.common;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+
 import static io.strimzi.kafka.oauth.common.JSONUtil.getClaimFromJWT;
 
 /**
@@ -14,28 +18,41 @@ import static io.strimzi.kafka.oauth.common.JSONUtil.getClaimFromJWT;
  * First a claim configured as <code>usernameClaim</code> is looked up.
  * If not found the claim configured as <code>fallbackUsernameClaim</code> is looked up. If that one is found and if
  * the <code>fallbackUsernamePrefix</code> is configured prefix the found value with the prefix, otherwise not.
+ * <p>
+ * Claims configuration can refer to a nested attribute as well.
+ * Examples of configurations:
+ * <pre>
+ *     userId              ... use top level attribute named 'userId'
+ *     user.id             ... use top level attribute named 'user.id'
+ *     [userInfo].[id]     ... use nested attribute 'id' under 'userInfo' top level attribute
+ *     ['userInfo'].['id'] ... use nested attribute 'id' under 'userInfo' top level attribute
+ * </pre>
  */
 public class PrincipalExtractor {
 
-    private String usernameClaim;
-    private String fallbackUsernameClaim;
-    private String fallbackUsernamePrefix;
+    private final List<String> usernameClaim;
+    private final List<String> fallbackUsernameClaim;
+    private final String fallbackUsernamePrefix;
 
     /**
      * Create a new instance
      */
-    public PrincipalExtractor() {}
+    public PrincipalExtractor() {
+        usernameClaim = null;
+        fallbackUsernameClaim = null;
+        fallbackUsernamePrefix = null;
+    }
 
     /**
      * Create a new instance
      *
-     * @param usernameClaim Attribute name for an attribute containing the user id to lookup first. Use '.' to refer to nested child objects.
+     * @param usernameClaim Attribute name for an attribute containing the user id to lookup first.
      * @param fallbackUsernameClaim Attribute name for an attribute containg the user id to lookup as a fallback
      * @param fallbackUsernamePrefix A prefix to prepend to the value of the fallback attribute value if set
      */
     public PrincipalExtractor(String usernameClaim, String fallbackUsernameClaim, String fallbackUsernamePrefix) {
-        this.usernameClaim = usernameClaim;
-        this.fallbackUsernameClaim = fallbackUsernameClaim;
+        this.usernameClaim = parseClaimSpec(usernameClaim);
+        this.fallbackUsernameClaim = parseClaimSpec(fallbackUsernameClaim);
         this.fallbackUsernamePrefix = fallbackUsernamePrefix;
     }
 
@@ -49,13 +66,13 @@ public class PrincipalExtractor {
         String result;
 
         if (usernameClaim != null) {
-            result = getClaimFromJWT(usernameClaim, json);
+            result = getClaimFromJWT(json, usernameClaim.toArray(new String[0]));
             if (result != null) {
                 return result;
             }
 
             if (fallbackUsernameClaim != null) {
-                result = getClaimFromJWT(fallbackUsernameClaim, json);
+                result = getClaimFromJWT(json, fallbackUsernameClaim.toArray(new String[0]));
                 if (result != null) {
                     return fallbackUsernamePrefix == null ? result : fallbackUsernamePrefix + result;
                 }
@@ -87,5 +104,61 @@ public class PrincipalExtractor {
      */
     public boolean isConfigured() {
         return usernameClaim != null || fallbackUsernameClaim != null || fallbackUsernamePrefix != null;
+    }
+
+    private static List<String> parseClaimSpec(String spec) {
+        spec = spec == null ? null : spec.trim();
+        if (spec == null || "".equals(spec)) {
+            return null;
+        }
+
+        if (!spec.startsWith("[")) {
+            return Collections.singletonList(spec);
+        }
+
+        LinkedList<String> parsed = new LinkedList<>();
+        int pos = 0;
+        int epos = 0;
+        while (pos != -1) {
+            pos += 1;
+            epos = spec.indexOf("]", pos);
+            if (epos == -1) {
+                throw new IllegalArgumentException("Failed to parse username claim spec: '" + spec + "' (Missing ']')");
+            }
+            parsed.add(removeQuotesAndSpaces(spec.substring(pos, epos)));
+            pos = epos + 1;
+            epos = skipSpaces(spec, pos);
+            if (epos >= spec.length()) {
+                return parsed;
+            }
+            if (spec.charAt(epos) != '.') {
+                throw new IllegalArgumentException("Failed to parse usename claim spec: '" + spec + "' (Missing '.' at position: " + epos + ")");
+            }
+            pos = spec.indexOf("[", epos + 1);
+        }
+
+        throw new IllegalArgumentException("Failed to parse username claim spec: '" + spec + "' (Missing '[' at position:" + (epos + 1) + ")");
+    }
+
+    private static int skipSpaces(String spec, int pos) {
+        int i = pos;
+        while (i < spec.length() && spec.charAt(i) == ' ') {
+            i += 1;
+        }
+        return i;
+    }
+
+    private static String removeQuotesAndSpaces(String value) {
+        value = value.trim();
+        if (value.startsWith("'")) {
+            if (value.length() == 0) {
+                throw new IllegalArgumentException("Failed to parse username claim spec: empty []");
+            }
+            if (value.length() == 1 || !value.endsWith("'")) {
+                throw new IllegalArgumentException("Failed to parse username claim spec: missing ending quote [']: " + value);
+            }
+            return value.substring(1, value.length() - 1);
+        }
+        return value;
     }
 }
