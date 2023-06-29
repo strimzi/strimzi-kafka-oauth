@@ -99,8 +99,7 @@ public class OAuthSessionAuthorizer implements Authorizer {
         }
 
         if (log.isDebugEnabled()) {
-            log.debug("Configured OAuthSessionAuthorizer:"
-                    + "\n    " + ServerConfig.STRIMZI_AUTHORIZER_DELEGATE_CLASS_NAME + ": " + className);
+            log.debug("Configured OAuthSessionAuthorizer:\n\t{}: {}", ServerConfig.STRIMZI_AUTHORIZER_DELEGATE_CLASS_NAME, className);
         }
     }
 

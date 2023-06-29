@@ -258,7 +258,7 @@ public class FloodTest extends Common {
                     for (int triesLeft = 300; triesLeft > 0; triesLeft--) {
                         try {
                             consume(consumer, topic);
-                            log.debug("[" + clientId + "] Consumed message from '" + topic + "': Message " + i);
+                            log.debug("[{}] Consumed message from '{}': Message {}", clientId, topic, i);
                             break;
                         } catch (Throwable t) {
                             if (triesLeft <= 1) {
@@ -282,7 +282,7 @@ public class FloodTest extends Common {
                 }
             }
             if (error != null) {
-                log.error("[" + clientId + "] failed: ", error);
+                log.error("[{}] failed: ", clientId, error);
             }
         }
     }
@@ -316,7 +316,7 @@ public class FloodTest extends Common {
                     producer.send(new ProducerRecord<>(topic, "Message " + i))
                             .get();
 
-                    log.debug("[" + clientId + "] Produced message to '" + topic + "': Message " + i);
+                    log.debug("[{}] Produced message to '{}': Message {}", clientId, topic, i);
 
                     if (i < sendLimit - 1) {
                         Thread.sleep(2000);
@@ -334,7 +334,7 @@ public class FloodTest extends Common {
                 }
             }
             if (error != null) {
-                log.error("[" + clientId + "] failed: ", error);
+                log.error("[{}] failed: ", clientId, error);
             }
         }
     }

@@ -307,7 +307,7 @@ public class JWTSignatureValidator implements TokenValidator {
                 fastScheduler.scheduleTask();
             } catch (Throwable e) {
                 // Log, but don't rethrow the exception to prevent scheduler cancelling the scheduled job.
-                log.error(e.getMessage(), e);
+                log.error("{}", e.getMessage(), e);
             }
         }, refreshSeconds, refreshSeconds, TimeUnit.SECONDS);
     }
@@ -320,11 +320,11 @@ public class JWTSignatureValidator implements TokenValidator {
         if (lastFetchTime + maxStaleSeconds * 1000L > System.currentTimeMillis()) {
             PublicKey result = cache.get(id);
             if (result == null) {
-                log.warn("No public key for id: " + id);
+                log.warn("No public key for id: {}", id);
             }
             return result;
         } else {
-            log.warn("The cached public key with id '" + id + "' is expired!");
+            log.warn("The cached public key with id '{}' is expired!", id);
             return null;
         }
     }
@@ -348,7 +348,7 @@ public class JWTSignatureValidator implements TokenValidator {
                     } else if (jwk instanceof RSAKey) {
                         publicKey = ((RSAKey) jwk).toPublicKey();
                     } else {
-                        log.warn("Unsupported JWK key type: " + jwk.getKeyType());
+                        log.warn("Unsupported JWK key type: {}", jwk.getKeyType());
                         continue;
                     }
                     newCache.put(jwk.getKeyID(), publicKey);

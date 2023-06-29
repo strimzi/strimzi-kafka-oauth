@@ -160,15 +160,15 @@ public class BackOffTaskSchedulerTest {
 
         // The Task - always executed through BackOffTaskScheduler
         Runnable theTask = () -> {
-            log.info("Task start time: " + timeProvider.currentTime());
+            log.info("Task start time: {}", timeProvider.currentTime());
 
             // Simulate the task taking a while to execute
             timeProvider.addSeconds(taskDuration);
 
-            log.info("Task end time: " + timeProvider.currentTime());
+            log.info("Task end time: {}", timeProvider.currentTime());
 
             int count = theTaskCounter.incrementAndGet();
-            log.info("Count == " + count);
+            log.info("Count == {}", count);
 
             // Fail by default
             throw new RuntimeException("Test failure (deliberate)");
@@ -193,7 +193,7 @@ public class BackOffTaskSchedulerTest {
                 regularTriggerCounter.incrementAndGet();
             } catch (Exception e) {
                 // Log, but don't rethrow the exception to prevent scheduler cancelling the scheduled job.
-                log.error(e.getMessage(), e);
+                log.error("{}", e.getMessage(), e);
             }
         };
 

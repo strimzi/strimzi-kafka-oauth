@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
+import static io.strimzi.kafka.oauth.common.Config.OAUTH_HTTP_RETRY_PAUSE_MILLIS;
 import static io.strimzi.kafka.oauth.common.ConfigUtil.getConnectTimeout;
 import static io.strimzi.kafka.oauth.common.ConfigUtil.getReadTimeout;
 import static io.strimzi.kafka.oauth.common.DeprecationUtil.isAccessTokenJwt;
@@ -176,14 +177,14 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
     }
 
     private long getHttpRetryPauseMillis(ClientConfig config, int retries) {
-        long retryPauseMillis = config.getValueAsLong(Config.OAUTH_HTTP_RETRY_PAUSE_MILLIS, 0);
+        long retryPauseMillis = config.getValueAsLong(OAUTH_HTTP_RETRY_PAUSE_MILLIS, 0);
         if (retries > 0) {
             if (retryPauseMillis < 0) {
                 retryPauseMillis = 0;
-                LOG.warn("The configured value of 'oauth.http.retry.pause.millis' is less than zero and will be ignored");
+                LOG.warn("The configured value of '{}' is less than zero and will be ignored", OAUTH_HTTP_RETRY_PAUSE_MILLIS);
             }
             if (retryPauseMillis <= 0) {
-                LOG.warn("No pause between http retries configured. Consider setting 'oauth.http.retry.pause.millis' to greater than zero to avoid flooding the authorization server with requests.");
+                LOG.warn("No pause between http retries configured. Consider setting '{}' to greater than zero to avoid flooding the authorization server with requests.", OAUTH_HTTP_RETRY_PAUSE_MILLIS);
             }
         }
         return retryPauseMillis;

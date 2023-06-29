@@ -68,7 +68,7 @@ public class TokenIntrospection {
             jws = JWSObject.parse(token);
             log.debug("Token: {}", jws.getPayload());
         } catch (Exception e) {
-            log.debug("[IGNORED] Token doesn't seem to be JWT token: " + mask(token));
+            log.debug("[IGNORED] Token doesn't seem to be JWT token: {}", mask(token));
             return;
         }
 
