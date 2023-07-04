@@ -106,6 +106,26 @@ public class PrincipalExtractor {
         return usernameClaim != null || fallbackUsernameClaim != null || fallbackUsernamePrefix != null;
     }
 
+    /**
+     * This method parses the configured principal extraction specification using a syntax similar to JSONPath.
+     * A claim (an attribute inside a JSON object) is targeted in arbitrary levels of nested depth.
+     * For specifying nested claims the specification has to start with an opening square bracket and end with a closing square bracket.
+     * The segments are separated by a dot '.'  (e.g.: [topClaim].[subClaim]).
+     *
+     * Optionally, the claims named inside square brackets can be in single quotes (e.g.: ['topClaim'].['subClaim']).
+     *
+     * Examples of claim specification:
+     * <pre>
+     *     userId                    ... use top level attribute named 'userId'
+     *     user.id                   ... use top level attribute named 'user.id'
+     *     [userInfo].[id]           ... use nested attribute 'id' under 'userInfo' top level attribute
+     *     ['userInfo'] . ['id']     ... use nested attribute 'id' under 'userInfo' top level attribute
+     *     ['user.info'].['user.id'] ... use nested attribute 'user.id' under 'user.info' top level attribute
+     * </pre>
+
+     * @param spec
+     * @return
+     */
     private static List<String> parseClaimSpec(String spec) {
         spec = spec == null ? null : spec.trim();
         if (spec == null || "".equals(spec)) {
@@ -132,9 +152,15 @@ public class PrincipalExtractor {
                 return parsed;
             }
             if (spec.charAt(epos) != '.') {
-                throw new IllegalArgumentException("Failed to parse usename claim spec: '" + spec + "' (Missing '.' at position: " + epos + ")");
+                throw new IllegalArgumentException("Failed to parse username claim spec: '" + spec + "' (Missing '.' at position: " + epos + ")");
             }
             pos = spec.indexOf("[", epos + 1);
+            if (pos != -1) {
+                int nonSpacePos = skipSpaces(spec, epos + 1);
+                if (nonSpacePos != pos) {
+                    throw new IllegalArgumentException("Failed to parse username claim spec: '" + spec + "' (Expected '[' at position: " + nonSpacePos + ")");
+                }
+            }
         }
 
         throw new IllegalArgumentException("Failed to parse username claim spec: '" + spec + "' (Missing '[' at position:" + (epos + 1) + ")");

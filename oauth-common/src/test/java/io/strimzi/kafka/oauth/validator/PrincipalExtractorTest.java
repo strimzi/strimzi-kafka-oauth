@@ -23,7 +23,9 @@ public class PrincipalExtractorTest {
                 "\"userId\": \"alice\", " +
                 "\"user.id\": \"alice-123456\", " +
                 "\"userInfo\": {\"id\": \"alice@example.com\" }, " +
-                "\"user.info\": {\"sub.id\": \"alice-123456@example.com\"}" +
+                "\"user.info\": {\"sub.id\": \"alice-123456@example.com\"}, " +
+                "\"foo'bar\": \"alice-in-wonderland\", " +
+                "\"uname[1\": \"white-rabbit\"" +
                 "}", ObjectNode.class);
 
         // 'userId' claim exists and is used as primary
@@ -102,20 +104,44 @@ public class PrincipalExtractorTest {
         try {
             new PrincipalExtractor("[user.info][user.id]", "nonexisting", null);
             Assert.fail("Should have failed");
-        } catch (Exception e) {
-            Assert.assertTrue("Failed to parse usename claim spec: '[user.info][user.id]' (Missing '.' at position: 11)", e.toString().contains("Failed to parse usename claim spec: '[user.info][user.id]' (Missing '.' at position: 11)"));
+        } catch (IllegalArgumentException e) {
+            Assert.assertTrue("Failed to parse username claim spec: '[user.info][user.id]' (Missing '.' at position: 11)", e.toString().contains("Failed to parse username claim spec: '[user.info][user.id]' (Missing '.' at position: 11)"));
         }
 
         // once you start using [] you should use them consistently
         try {
             new PrincipalExtractor("[user.info].id", "nonexisting", null);
             Assert.fail("Should have failed");
-        } catch (Exception e) {
+        } catch (IllegalArgumentException e) {
             Assert.assertTrue("Failed to parse username claim spec: '[user.info].id' (Missing '[' at position:12)", e.toString().contains("Failed to parse username claim spec: '[user.info].id' (Missing '[' at position:12)"));
         }
 
         // 'user.id]' top level claim does not exist
         extractor = new PrincipalExtractor("user.id]", "nonexisting", null);
         Assert.assertNull("'user.id]' top level claim does not exist (note the ending square bracket)", extractor.getPrincipal(json));
+
+        // '[foo].bar[baz]'
+        try {
+            extractor = new PrincipalExtractor("[foo].bar[baz]", "nonexisting", null);
+            Assert.fail("Should have failed");
+        } catch (IllegalArgumentException e) {
+            Assert.assertTrue("Failed to parse username claim spec: '[foo].bar[baz]' (Expected '[' at position: 6)", e.toString().contains("Failed to parse username claim spec: '[foo].bar[baz]' (Expected '[' at position: 6)"));
+        }
+
+        // ['foo'bar]
+        try {
+            extractor = new PrincipalExtractor("['foo'bar]", "nonexisting", null);
+            Assert.fail("Should have failed");
+        } catch (IllegalArgumentException e) {
+            Assert.assertTrue("Failed to parse username claim spec: missing ending quote [']: 'foo'bar", e.toString().contains("Failed to parse username claim spec: missing ending quote [']: 'foo'bar"));
+        }
+
+        // ['foo'bar']
+        extractor = new PrincipalExtractor("['foo'bar']", "nonexisting", null);
+        Assert.assertEquals("['foo'bar'] works as primary", "alice-in-wonderland", extractor.getPrincipal(json));
+
+        // ['uname[1']
+        extractor = new PrincipalExtractor("['uname[1']", "nonexisting", null);
+        Assert.assertEquals("['uname[1'] works as primary", "white-rabbit", extractor.getPrincipal(json));
     }
 }
