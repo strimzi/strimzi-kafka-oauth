@@ -10,6 +10,7 @@ import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
+import org.apache.kafka.common.metrics.JmxReporter;
 import org.apache.kafka.common.metrics.KafkaMetricsContext;
 import org.apache.kafka.common.metrics.MetricConfig;
 import org.apache.kafka.common.metrics.Metrics;
@@ -43,17 +44,25 @@ import static org.apache.kafka.clients.CommonClientConfigs.METRICS_SAMPLE_WINDOW
  * There is a one-to-one mapping between a <code>SensorKey</code> and a <code>Sensor</code>, and one-to-one mapping between a <code>Sensor</code> and an <code>MBean</code> name.
  * <p>
  * MBeans are registered as requested by <code>JmxReporter</code> attached to the <code>Metrics</code> object.
- * The <code>JmxReporter</code> has to be explicitly configured using a config option <code>strimzi.oauth.metric.reporters</code>, which is
- * analogous to the Kafka <code>metric.reporters</code> configuration option. It is not configured by default.
+ * The <code>JmxReporter</code> either has to be explicitly configured using a config option <code>strimzi.oauth.metric.reporters</code>,
+ * or if that config option si not set, a new instance is configured by default.
  * <p>
  * Since OAuth instantiates its own <code>Metrics</code> object it also has to instantiate reporters to attach them to this <code>Metrics</code> object.
  * To prevent double instantiation of <code>MetricReporter</code> objects that require to be singleton, all <code>MetricReporter</code> objects
  * to be integrated with <code>OAuthMetrics</code> have to be separately instantiated.
  * <p>
- * Example:
+ * Example 1:
  * <pre>
- *    strimzi.oauth.metric.reporters=org.apache.kafka.common.metrics.JmxReporter
+ *    strimzi.oauth.metric.reporters=org.apache.kafka.common.metrics.JmxReporter,org.some.package.SomeMetricReporter
  * </pre>
+ * The above will instantiate and integrate with OAuth metrics the JmxReporter instance, and a SomeMetricReporter instance.
+ * <p>
+ * Example 2:
+ * <pre>
+ *    strimzi.oauth.metric.reporters=
+ * </pre>
+ * The above will not instantiate and integrate any metric reporters with OAuth metrics, not even JmxReporter.
+ * <p>
  * Note: On the Kafka broker it is best to use <code>STRIMZI_OAUTH_METRIC_REPORTERS</code> env variable or <code>strimzi.oauth.metric.reporters</code> system property,
  * rather than a `server.properties` global configuration option.
  */
@@ -112,10 +121,10 @@ public class OAuthMetrics {
         AbstractConfig kafkaConfig = initKafkaConfig();
         if (configMap.get(STRIMZI_OAUTH_METRIC_REPORTERS) != null) {
             return kafkaConfig.getConfiguredInstances(STRIMZI_OAUTH_METRIC_REPORTERS, MetricsReporter.class);
-        } else {
-            log.warn("Configuration option '{}' is not set, OAuth metrics will not be exported to JMX", STRIMZI_OAUTH_METRIC_REPORTERS);
         }
-        return Collections.emptyList();
+        JmxReporter reporter = new JmxReporter();
+        reporter.configure(configMap);
+        return Collections.singletonList(reporter);
     }
 
     private AbstractConfig initKafkaConfig() {
@@ -143,7 +152,7 @@ public class OAuthMetrics {
                 result.put(ent.getKey(), ((Class<?>) val).getCanonicalName());
             } else if (val instanceof List) {
                 String stringVal = ((List<?>) val).stream().map(String::valueOf).collect(Collectors.joining(","));
-                if (!"".equals(stringVal)) {
+                if (!stringVal.isEmpty()) {
                     result.put(ent.getKey(), stringVal);
                 }
             } else {

@@ -1235,9 +1235,12 @@ If `OAUTH_ENABLE_METRICS` env variable is set or if `oauth.enable.metrics` syste
 
 The OAuth metrics ignores the Kafka `metric.reporters` option in order to prevent automatically instantiating double instances of reporters. Most reporters may expect that they are singleton object and may not function properly in multiple copies.
 Instead, there is `strimzi.oauth.metric.reporters` option where the reporters that support multiple copies can be specified for the purpose of metrics integration:
-- `strimzi.oauth.metric.reporters` (e.g.: "org.apache.kafka.common.metrics.JmxReporter", use ',' as a separator to enable multiple reporters)
+- `strimzi.oauth.metric.reporters` (e.g.: "org.apache.kafka.common.metrics.JmxReporter,org.some.package.SomeMetricReporter", use ',' as a separator to enable multiple reporters.)
 
-The configuration option `strimzi.oauth.metric.reporters` has to be configured as an env variable or a system property. Using it on the Kafka broker inside `server.properties` does not work reliably due to multiple pluggability mechanisms that can be used (authorizer, authentication callback handler, client).
+If this configuration option is not set and OAuth metrics is enabled for some component, then a new instance of `org.apache.kafka.common.metrics.JmxReporter` will automatically be instantiated to provide JMX integration for OAuth metrics.
+However, if `strimzi.oauth.metric.reporters` is set, then only the reporters specified in the list will be instantiated and integrated. Setting the option to an empty string will result in no reporters instantiated.
+
+The configuration option `strimzi.oauth.metric.reporters` on the Kafka broker has to be configured as an env variable or a system property. Using it on the Kafka broker inside `server.properties` does not work reliably due to multiple pluggability mechanisms that can be used (authorizer, authentication callback handler, inter-broker client).
 Some of these mechanisms get the `server.properties` filtered so only configuration recognised by Kafka makes it through. However, this is a global OAuth Metrics configuration, and it is initialized on first use by any of the components, using the configuration provided to that component.
 Specifically, the inter-broker client using OAUTHBEARER might be the first to trigger OAuth Metrics initialisation on the broker, and does not see this config option.
 
@@ -1245,13 +1248,45 @@ In order to reliably configure `strimzi.oauth.metric.reporters` one of the follo
 - `STRIMZI_OAUTH_METRIC_REPORTERS` env variable
 - `strimzi.oauth.metric.reporters` env variable or system property
 
-When OAuth metrics are enabled the OAuth layer can not reuse existing metric reporter instances, and have to create its own copies of metric reporters. Noteably, it does not create its copy of `org.apache.kafka.common.metrics.JmxReporter` automatically. Instead, it has to be explicitly specified in `strimzi.oauth.metric.reporters` configuration as item in the list of reporters to instantiate.
 At the moment there is no way to integrate with the existing Kafka metrics / reporters objects already instantiated in different Kafka runtimes (producer, consumer, broker, ...).
+When OAuth metrics is enabled the OAuth layer has to create its own copies of metric reporters.
 
-NOTE: This breaks compatibility with OAuth versions preceding 0.13.0 where `metric.reporters` was used to configure reporters which were consequently automatically instantiated twice.
-
+NOTE: In OAuth versions preceding 0.13.0 the configuration option `metric.reporters` was used to configure reporters which were consequently automatically instantiated twice.
+The configuration option `metric.reporters` is no longer used.
 
 The Kafka options that control sampling are honored: `metrics.num.samples`, `metrics.recording.level` and `metrics.sample.window.ms`.  
+
+### Example for Kafka broker:
+```
+# Enable OAuth metrics for all listeners, Keycloak authorizer, and inter-broker clients:
+export OAUTH_ENABLE_METRICS=true
+# Use a custom metric reporter rather than the default JmxReporter
+export STRIMZI_OAUTH_METRIC_REPORTERS=org.some.package.SomeMetricReporter
+bin/kafka-server-start.sh config/server.properties
+```
+
+### Example for Kafka client:
+```
+# Show the content of client properties file
+cat ~/client.properties
+...
+sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
+oauth.token.endpoint.uri="https://server/token-endpoint" oauth.client.id="clientId" oauth.client.secret="client-secret" oauth.enable.metrics="true";
+
+strimzi.oauth.metric.reporters=org.some.package.SomeMetricReporter
+...
+
+# Start the client 
+bin/kafka-console-producer.sh --broker-list kafka:9092 --topic my-topic  --producer.config=$HOME/client.properties
+```
+
+### Simplest example for Kafka broker:
+```
+# Enable OAuth metrics for all listeners, Keycloak authorizer, and inter-broker clients:
+# With no 'strimzi.oauth.metric.reporters' specified 'org.apache.kafka.common.metrics.JmxReporter' will be used automatically
+export OAUTH_ENABLE_METRICS=true
+bin/kafka-server-start.sh config/server.properties
+```
 
 A common use-case is for metrics to be exposed through JMX managed beans. They can then also be exposed as Prometheus metrics by using the Prometheus JMX Exporter agent, and mapping the JMX metrics names to prometheus metrics names.
 If `oauth.config.id` is specified in JAAS configuration of the listener or the client, it will be available in MBean / metric name as `contextId` attribute. If not specified, it will be calculated from JAAS configuration for the validator or default to `client` in client JAAS config, or `keycloak-authorizer` for KeycloakAuthorizer metrics.

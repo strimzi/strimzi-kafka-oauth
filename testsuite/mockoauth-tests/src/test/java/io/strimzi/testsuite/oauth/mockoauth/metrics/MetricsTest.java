@@ -90,9 +90,10 @@ public class MetricsTest {
         }
 
         List<String> lines = logReader.readNext();
-        Assert.assertTrue("Contains log warning", TestUtil.checkLogForRegex(lines, "OAuth metrics will not be exported to JMX"));
+        Assert.assertTrue("Instantiated JMX Reporter", TestUtil.checkLogForRegex(lines, "reporters: \\[org\\.apache\\.kafka\\.common\\.metrics\\.JmxReporter"));
 
-        producerProps.put(GlobalConfig.STRIMZI_OAUTH_METRIC_REPORTERS, "org.apache.kafka.common.metrics.JmxReporter");
+
+        producerProps.put(GlobalConfig.STRIMZI_OAUTH_METRIC_REPORTERS, "io.strimzi.testsuite.oauth.common.metrics.TestMetricsReporter");
 
         // Clear the configured metrics in order to trigger reinitialisation
         Services.close();
@@ -106,8 +107,7 @@ public class MetricsTest {
         }
 
         lines = logReader.readNext();
-        Assert.assertFalse("Contains log warning", TestUtil.checkLogForRegex(lines, "OAuth metrics will not be exported to JMX"));
-        Assert.assertTrue("Instantiated JMX Reporter", TestUtil.checkLogForRegex(lines, "reporters: \\[org.apache.kafka.common.metrics.JmxReporter"));
+        Assert.assertTrue("Instantiated TestMetricsReporter", TestUtil.checkLogForRegex(lines, "reporters: \\[io\\.strimzi\\.testsuite\\.oauth\\.common\\.metrics\\.TestMetricsReporter[^,]+\\]"));
     }
 
     private void initJaas(Map<String, String> oauthConfig, Properties additionalProps) throws Exception {
@@ -248,18 +248,15 @@ public class MetricsTest {
         reinitServices(configs);
         Services.getInstance().getMetrics();
         LOG.info("Waiting for: reporters: TestMetricsReporter"); // Make sure to not repeat the below condition in the string here
-        logReader.waitFor("reporters: \\[io\\.strimzi\\.testsuite\\.oauth\\.common\\.metrics\\.TestMetricsReporter");
+        logReader.waitFor("reporters: \\[io\\.strimzi\\.testsuite\\.oauth\\.common\\.metrics\\.TestMetricsReporter[^,]+\\]");
 
         configs.remove("strimzi.oauth.metric.reporters");
         configs.put("metric.reporters", "io.strimzi.testsuite.oauth.common.metrics.TestMetricsReporter");
         reinitServices(configs);
-        // No reporter will be instantiated
+        // JmxReporter will be instantiated, 'metric.reporters' setting is ignored
         Services.getInstance().getMetrics();
-        LOG.info("Waiting for reporters warning"); // Make sure to not repeat the below condition in the string here
-        logReader.waitFor("OAuth metrics will not be exported to JMX");
-
-        LOG.info("Waiting for: reporters: <empty>"); // Make sure to not repeat the below condition in the string here
-        logReader.waitFor("reporters: \\[\\]");
+        LOG.info("Waiting for: reporters: JmxReporter"); // Make sure to not repeat the below condition in the string here
+        logReader.waitFor("reporters: \\[org\\.apache\\.kafka\\.common\\.metrics\\.JmxReporter");
 
         configs.put("strimzi.oauth.metric.reporters", "org.apache.kafka.common.metrics.JmxReporter");
         reinitServices(configs);
