@@ -96,9 +96,9 @@ public class TestUtil {
 
     public static int findFirstMatchingInLog(List<String> log, String regex) {
         int lineNum = 0;
-        Pattern pattern = Pattern.compile(prepareRegex(regex));
+        Pattern pattern = Pattern.compile(regex);
         for (String line: log) {
-            if (pattern.matcher(line).matches()) {
+            if (pattern.matcher(line).find()) {
                 return lineNum;
             }
             lineNum++;
@@ -106,19 +106,18 @@ public class TestUtil {
         return -1;
     }
 
-    public static String prepareRegex(String regex) {
-        String prefix = regex.startsWith("^") ? "" : ".*";
-        String suffix = regex.endsWith("$") ? "" : ".*";
-        return prefix + regex + suffix;
+    public static boolean checkLogForRegex(List<String> log, String regex) {
+        return findFirstMatchingInLog(log, regex) != -1;
     }
 
-    public static boolean checkLogForRegex(List<String> log, String regex) {
-        Pattern pattern = Pattern.compile(prepareRegex(regex));
+    public static int countLogForRegex(List<String> log, String regex) {
+        int count = 0;
+        Pattern pattern = Pattern.compile(regex);
         for (String line: log) {
-            if (pattern.matcher(line).matches()) {
-                return true;
+            if (pattern.matcher(line).find()) {
+                count += 1;
             }
         }
-        return false;
+        return count;
     }
 }
