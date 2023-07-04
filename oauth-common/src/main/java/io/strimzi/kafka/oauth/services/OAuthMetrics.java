@@ -24,7 +24,6 @@ import org.apache.kafka.common.utils.Time;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -55,7 +54,7 @@ import static org.apache.kafka.clients.CommonClientConfigs.METRICS_SAMPLE_WINDOW
  * <pre>
  *    strimzi.oauth.metric.reporters=org.apache.kafka.common.metrics.JmxReporter
  * </pre>
- * Note: On the Kafka broker it is best to use <code>STRIMZI_METRIC_REPORTERS</code> env variable or <code>strimzi.oauth.metric.reporters</code> system property,
+ * Note: On the Kafka broker it is best to use <code>STRIMZI_OAUTH_METRIC_REPORTERS</code> env variable or <code>strimzi.oauth.metric.reporters</code> system property,
  * rather than a `server.properties` global configuration option.
  */
 public class OAuthMetrics {
@@ -111,13 +110,12 @@ public class OAuthMetrics {
 
     private List<MetricsReporter> initReporters() {
         AbstractConfig kafkaConfig = initKafkaConfig();
-        List<MetricsReporter> reporters = new ArrayList<>(3);
         if (configMap.get(STRIMZI_OAUTH_METRIC_REPORTERS) != null) {
-            reporters = kafkaConfig.getConfiguredInstances(STRIMZI_OAUTH_METRIC_REPORTERS, MetricsReporter.class);
+            return kafkaConfig.getConfiguredInstances(STRIMZI_OAUTH_METRIC_REPORTERS, MetricsReporter.class);
         } else {
             log.warn("Configuration option '{}' is not set, OAuth metrics will not be exported to JMX", STRIMZI_OAUTH_METRIC_REPORTERS);
         }
-        return reporters;
+        return Collections.emptyList();
     }
 
     private AbstractConfig initKafkaConfig() {
