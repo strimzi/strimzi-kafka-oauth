@@ -12,6 +12,6 @@ import io.strimzi.kafka.oauth.common.Config;
  */
 public class GlobalConfig extends Config {
 
-    /** The name of the 'strimzi.metric.reporters' config option */
-    public static final String STRIMZI_METRIC_REPORTERS = "strimzi.metric.reporters";
+    /** The name of the 'strimzi.oauth.metric.reporters' config option */
+    public static final String STRIMZI_OAUTH_METRIC_REPORTERS = "strimzi.oauth.metric.reporters";
 }

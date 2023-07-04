@@ -137,12 +137,12 @@ services:
 
       - OAUTH_ENABLE_METRICS=true
       #   When enabling metrics we also have to explicitly configure JmxReporter to have metrics available in JMX
-      #   The following value will be available as env var STRIMZI_METRIC_REPORTERS
-      - STRIMZI_METRIC_REPORTERS=org.apache.kafka.common.metrics.JmxReporter
+      #   The following value will be available as env var STRIMZI_OAUTH_METRIC_REPORTERS
+      - STRIMZI_OAUTH_METRIC_REPORTERS=org.apache.kafka.common.metrics.JmxReporter
 
-      #   The following value will turn to 'strimzi.metric.reporters=...' in 'strimzi.properties' file
+      #   The following value will turn to 'strimzi.oauth.metric.reporters=...' in 'strimzi.properties' file
       #   However, that won't work as the value may be filtered to the component that happens to initialise OAuthMetrics
-      #- KAFKA_STRIMZI_METRIC_REPORTERS=org.apache.kafka.common.metrics.JmxReporter
+      #- KAFKA_STRIMZI_OAUTH_METRIC_REPORTERS=org.apache.kafka.common.metrics.JmxReporter
 
 
       # Other configuration
