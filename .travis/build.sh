@@ -74,13 +74,14 @@ elif [[ "$arch" != 'ppc64le' ]]; then
   EXIT=$?
   exitIfError
 
-  clearDockerEnv
-  mvn -e -V -B clean install -f testsuite -Pkafka-3_2_3 -DfailIfNoTests=false -Dtest=\!KeycloakKRaftAuthorizationTests
-  EXIT=$?
-  exitIfError
-
   # Excluded by default to not exceed Travis job timeout
   if [ "$SKIP_DISABLED" == "false" ]; then
+
+    clearDockerEnv
+    mvn -e -V -B clean install -f testsuite -Pkafka-3_2_3 -DfailIfNoTests=false -Dtest=\!KeycloakKRaftAuthorizationTests
+    EXIT=$?
+    exitIfError
+
     clearDockerEnv
     mvn -e -V -B clean install -f testsuite -Pkafka-3_1_2 -DfailIfNoTests=false -Dtest=\!KeycloakKRaftAuthorizationTests,\!KeycloakZKAuthorizationTests
     EXIT=$?

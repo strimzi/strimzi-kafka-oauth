@@ -1225,13 +1225,13 @@ Configuring the metrics
 
 By default, the gathering and exporting of metrics is disabled. Metrics are available to get an insight into the performance and failures during token validation, authorization operations and client authentication to the authorization server. You can also monitor the authorization server requests by background services such as refreshing of JWKS keys and refreshing of grants when `KeycloakAuthorizer` is used.
 
-You can enable metrics for token validation, and keycloak authorization on the Kafka broker or for client authentication on the client by setting the following JAAS option to `true`:
+You can enable metrics for token validation, and `KeycloakAuthorizer` on the Kafka broker or for client authentication on the client by setting the following JAAS option to `true`:
 - `oauth.enable.metrics` (e.g.: "true")
 
-You can also enable metrics only for keycloak authorization by setting an analogous option in Kafka broker's `server.properties` file:
+You can also enable metrics only for `KeycloakAuthorizer` by setting an analogous option in Kafka broker's `server.properties` file:
 - `strimzi.authorization.enable.metrics` (e.g.: "true")
 
-If `OAUTH_ENABLE_METRICS` env variable is set or if `oauth.enable.metrics` system property is set, that will also enable the metrics for keycloak authorization (as well as for token validation, and client authentication).
+If `OAUTH_ENABLE_METRICS` env variable is set or if `oauth.enable.metrics` system property is set, that will also enable the metrics for `KeycloakAuthorizer` (as well as for token validation, and client authentication).
 
 The OAuth metrics ignores the Kafka `metric.reporters` option in order to prevent automatically instantiating double instances of reporters. Most reporters may expect that they are singleton object and may not function properly in multiple copies.
 Instead, there is `strimzi.oauth.metric.reporters` option where the reporters that support multiple copies can be specified for the purpose of metrics integration:
@@ -1289,7 +1289,7 @@ bin/kafka-server-start.sh config/server.properties
 ```
 
 A common use-case is for metrics to be exposed through JMX managed beans. They can then also be exposed as Prometheus metrics by using the Prometheus JMX Exporter agent, and mapping the JMX metrics names to prometheus metrics names.
-If `oauth.config.id` is specified in JAAS configuration of the listener or the client, it will be available in MBean / metric name as `contextId` attribute. If not specified, it will be calculated from JAAS configuration for the validator or default to `client` in client JAAS config, or `keycloak-authorizer` for KeycloakAuthorizer metrics.
+If `oauth.config.id` is specified in JAAS configuration of the listener or the client, it will be available in MBean / metric name as `contextId` attribute. If not specified, it will be calculated from JAAS configuration for the validator or default to `client` in client JAAS config, or `keycloak-authorizer` for `KeycloakAuthorizer` metrics.
 
 When `JmxReporter` is enabled, managed beans are registered on demand, containing the attributes that are easily translated into Prometheus metrics.
 
