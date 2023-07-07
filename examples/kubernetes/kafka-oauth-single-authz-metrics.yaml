@@ -5,7 +5,7 @@ metadata:
   name: my-cluster
 spec:
   kafka:
-    version: 3.3.2
+    version: 3.4.0
     replicas: 1
     listeners:
       - name: plain
@@ -68,12 +68,14 @@ spec:
         env:
           - name: OAUTH_ENABLE_METRICS
             value: "true"
-    #      - name: KAFKA_DEBUG
-    #        value: "y"
-    #      - name: DEBUG_SUSPEND_FLAG
-    #        value: "y"
-    #      - name: JAVA_DEBUG_PORT
-    #        value: "5005"
+          - name: STRIMZI_OAUTH_METRIC_REPORTERS
+            value: org.apache.kafka.common.metrics.JmxReporter
+          #- name: KAFKA_DEBUG
+          #  value: "y"
+          #- name: DEBUG_SUSPEND_FLAG
+          #  value: "n"
+          #- name: JAVA_DEBUG_PORT
+          #  value: "5005"
     jmxOptions: {}
 
   zookeeper:
@@ -94,6 +96,7 @@ spec:
   entityOperator:
     topicOperator: {}
     userOperator: {}
+
 ---
 kind: ConfigMap
 apiVersion: v1

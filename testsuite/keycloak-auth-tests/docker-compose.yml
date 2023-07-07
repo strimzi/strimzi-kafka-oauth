@@ -45,7 +45,7 @@ services:
       - "5006:5006"
     volumes:
       - ${PWD}/../docker/target/kafka/libs:/opt/kafka/libs/strimzi
-      - ${PWD}/target/test-classes:/opt/kafka/libs/strimzi/reporters
+      - ${PWD}/../common/target/classes:/opt/kafka/libs/strimzi/reporters
       - ${PWD}/../docker/kafka/config:/opt/kafka/config/strimzi
       - ${PWD}/../docker/kafka/scripts:/opt/kafka/strimzi
     command:
@@ -65,9 +65,6 @@ services:
       - KAFKA_SASL_ENABLED_MECHANISMS=OAUTHBEARER
       - KAFKA_INTER_BROKER_LISTENER_NAME=INTROSPECT
       - KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL=OAUTHBEARER
-
-      # Common settings for all the listeners
-      - OAUTH_ENABLE_METRICS=true
 
       # username extraction from JWT token claim
       - OAUTH_USERNAME_CLAIM=preferred_username
@@ -129,11 +126,23 @@ services:
       - KAFKA_LISTENER_NAME_FORGE_OAUTHBEARER_SASL_SERVER_CALLBACK_HANDLER_CLASS=io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
 
       # Test Metrics Reporters
-      - KAFKA_METRIC_REPORTERS=io.strimzi.testsuite.oauth.auth.metrics.TestMetricsReporter
       - KAFKA_METRICS_CONTEXT_TEST_LABEL=testvalue
       - KAFKA_METRICS_NUM_SAMPLES=3
       - KAFKA_METRICS_RECORDING_LEVEL=DEBUG
       - KAFKA_METRICS_SAMPLE_WINDOW_MS=15000
+
+
+      # OAuth metrics configuration
+
+      - OAUTH_ENABLE_METRICS=true
+      #   When enabling metrics we also have to explicitly configure JmxReporter to have metrics available in JMX
+      #   The following value will be available as env var STRIMZI_OAUTH_METRIC_REPORTERS
+      - STRIMZI_OAUTH_METRIC_REPORTERS=org.apache.kafka.common.metrics.JmxReporter,io.strimzi.testsuite.oauth.common.metrics.TestMetricsReporter
+
+      #   The following value will turn to 'strimzi.oauth.metric.reporters=...' in 'strimzi.properties' file
+      #   However, that won't work as the value may be filtered to the component that happens to initialise OAuthMetrics
+      #- KAFKA_STRIMZI_OAUTH_METRIC_REPORTERS=org.apache.kafka.common.metrics.JmxReporter
+
 
       # For start.sh script to know where the keycloak is listening
       - KEYCLOAK_HOST=${KEYCLOAK_HOST:-keycloak}

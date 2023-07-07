@@ -2,12 +2,29 @@
  * Copyright 2017-2021, Strimzi authors.
  * License: Apache License 2.0 (see the file LICENSE or http://apache.org/licenses/LICENSE-2.0.html).
  */
-package io.strimzi.testsuite.oauth.metrics;
+package io.strimzi.testsuite.oauth.mockoauth.metrics;
 
+import io.strimzi.kafka.oauth.client.ClientConfig;
+import io.strimzi.kafka.oauth.metrics.GlobalConfig;
+import io.strimzi.kafka.oauth.services.Services;
+import io.strimzi.testsuite.oauth.common.TestUtil;
+import io.strimzi.testsuite.oauth.mockoauth.Common;
+import io.strimzi.testsuite.oauth.mockoauth.LogLineReader;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.junit.Assert;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URI;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.TimeoutException;
 
 import static io.strimzi.testsuite.oauth.mockoauth.Common.changeAuthServerMode;
 import static io.strimzi.testsuite.oauth.mockoauth.Common.getPrometheusMetrics;
@@ -16,7 +33,13 @@ import static io.strimzi.testsuite.oauth.mockoauth.Common.reloadMetrics;
 
 public class MetricsTest {
 
+    private static final Logger LOG = LoggerFactory.getLogger(MetricsTest.class);
+
     private final static int PAUSE_MILLIS = 15_000;
+
+    private static final String KAFKA_BOOTSTRAP = "kafka:9092";
+    private static final String TOKEN_ENDPOINT_URI = "https://mockoauth:8090/token";
+
 
     public void doTest() throws Exception {
 
@@ -34,6 +57,65 @@ public class MetricsTest {
 
         logStart("Check 5xx errors show in Prometheus metrics");
         testInternalServerErrors();
+
+        logStart("Check `strimzi.oauth.metric.reporters` configuration handling");
+        testOAuthMetricReporters();
+
+        logStart("Check enabling metrics with JMX for the Kafka client");
+        testKafkaClientConfig();
+    }
+
+    private void testKafkaClientConfig() throws Exception {
+
+        Map<String, String> oauthConfig = new HashMap<>();
+        oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, TOKEN_ENDPOINT_URI);
+        oauthConfig.put(ClientConfig.OAUTH_CLIENT_ID, "ignored");
+        oauthConfig.put(ClientConfig.OAUTH_CLIENT_SECRET, "ignored");
+        oauthConfig.put(ClientConfig.OAUTH_ENABLE_METRICS, "true");
+
+        Properties producerProps = new Properties();
+
+        LogLineReader logReader = new LogLineReader(Common.LOG_PATH);
+        logReader.readNext();
+
+        // Clear the configured metrics in order to trigger reinitialisation
+        Services.close();
+
+        try {
+            initJaas(oauthConfig, producerProps);
+            Assert.fail("Should have failed due to bad access token");
+
+        } catch (Exception e) {
+            LOG.debug("[IGNORED] Failed as expected: {}", e.getMessage(), e);
+        }
+
+        List<String> lines = logReader.readNext();
+        Assert.assertTrue("Instantiated JMX Reporter", TestUtil.checkLogForRegex(lines, "reporters: \\[org\\.apache\\.kafka\\.common\\.metrics\\.JmxReporter"));
+
+
+        producerProps.put(GlobalConfig.STRIMZI_OAUTH_METRIC_REPORTERS, "io.strimzi.testsuite.oauth.common.metrics.TestMetricsReporter");
+
+        // Clear the configured metrics in order to trigger reinitialisation
+        Services.close();
+
+        try {
+            initJaas(oauthConfig, producerProps);
+            Assert.fail("Should have failed due to bad access token");
+
+        } catch (Exception e) {
+            LOG.debug("[IGNORED] Failed as expected: {}", e.getMessage(), e);
+        }
+
+        lines = logReader.readNext();
+        Assert.assertTrue("Instantiated TestMetricsReporter", TestUtil.checkLogForRegex(lines, "reporters: \\[io\\.strimzi\\.testsuite\\.oauth\\.common\\.metrics\\.TestMetricsReporter[^,]+\\]"));
+    }
+
+    private void initJaas(Map<String, String> oauthConfig, Properties additionalProps) throws Exception {
+        Properties producerProps = Common.buildProducerConfigOAuthBearer(KAFKA_BOOTSTRAP, oauthConfig);
+        producerProps.putAll(additionalProps);
+        try (Producer<String, String> producer = new KafkaProducer<>(producerProps)) {
+            producer.send(new ProducerRecord<>("Test-testTopic", "The Message")).get();
+        }
     }
 
     private void testInternalServerErrors() throws IOException, InterruptedException {
@@ -153,6 +235,54 @@ public class MetricsTest {
 
         value = metrics.getValue("strimzi_oauth_http_requests_totaltimems", "context", "JWTPLAIN", "outcome", "success");
         Assert.assertNull(value);
+    }
+
+    private void testOAuthMetricReporters() throws IOException, InterruptedException, TimeoutException {
+
+        LogLineReader logReader = new LogLineReader(Common.LOG_PATH);
+        // seek to the end of log file
+        logReader.readNext();
+
+        Map<String, String> configs = new HashMap<>();
+        configs.put("strimzi.oauth.metric.reporters", "io.strimzi.testsuite.oauth.common.metrics.TestMetricsReporter");
+        reinitServices(configs);
+        Services.getInstance().getMetrics();
+        LOG.info("Waiting for: reporters: TestMetricsReporter"); // Make sure to not repeat the below condition in the string here
+        logReader.waitFor("reporters: \\[io\\.strimzi\\.testsuite\\.oauth\\.common\\.metrics\\.TestMetricsReporter[^,]+\\]");
+
+        configs.remove("strimzi.oauth.metric.reporters");
+        configs.put("metric.reporters", "io.strimzi.testsuite.oauth.common.metrics.TestMetricsReporter");
+        reinitServices(configs);
+        // JmxReporter will be instantiated, 'metric.reporters' setting is ignored
+        Services.getInstance().getMetrics();
+        LOG.info("Waiting for: reporters: JmxReporter"); // Make sure to not repeat the below condition in the string here
+        logReader.waitFor("reporters: \\[org\\.apache\\.kafka\\.common\\.metrics\\.JmxReporter");
+
+        configs.put("strimzi.oauth.metric.reporters", "org.apache.kafka.common.metrics.JmxReporter");
+        reinitServices(configs);
+        // Only JmxReporter will be instantiated the other setting is ignored
+        Services.getInstance().getMetrics();
+        LOG.info("Waiting for: reporters: JmxReporter"); // Make sure to not repeat the below condition in the string here
+        logReader.waitFor("reporters: \\[org\\.apache\\.kafka\\.common\\.metrics\\.JmxReporter");
+
+        configs.put("strimzi.oauth.metric.reporters", "");
+        reinitServices(configs);
+        // No reporter will be instantiated
+        Services.getInstance().getMetrics();
+        LOG.info("Waiting for: reporters: <empty>"); // Make sure to not repeat the below condition in the string here
+        logReader.waitFor("reporters: \\[\\]");
+
+        configs.put("strimzi.oauth.metric.reporters", "org.apache.kafka.common.metrics.JmxReporter,io.strimzi.testsuite.oauth.common.metrics.TestMetricsReporter");
+        reinitServices(configs);
+        // JmxReporter and TestMetricsReporter are instantiated
+        Services.getInstance().getMetrics();
+        LOG.info("Waiting for: reporters: JmxReporter,TestMetricsReporter"); // Make sure to not repeat the below condition in the string here
+        logReader.waitFor("reporters: \\[org\\.apache\\.kafka\\.common\\.metrics\\.JmxReporter.*, io\\.strimzi\\.testsuite\\.oauth\\.common\\.metrics\\.TestMetricsReporter");
+    }
+
+    private void reinitServices(Map<String, String> configs) {
+        Services.close();
+        Services.configure(configs);
     }
 
     private void logStart(String msg) {

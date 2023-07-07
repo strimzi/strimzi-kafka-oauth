@@ -54,9 +54,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static io.strimzi.testsuite.oauth.common.TestUtil.checkLogForRegex;
 import static io.strimzi.testsuite.oauth.mockoauth.Common.addGrantsForToken;
 import static io.strimzi.testsuite.oauth.mockoauth.Common.changeAuthServerMode;
 import static io.strimzi.testsuite.oauth.mockoauth.Common.createOAuthClient;
@@ -70,8 +70,6 @@ public class KeycloakAuthorizerTest {
 
     static final int LOOP_PAUSE_MS = 1000;
     static final int TIMEOUT_SECONDS = 30;
-
-    static final String LOG_PATH = "target/test.log";
 
     static final String CLIENT_CLI = "kafka-cli";
 
@@ -121,7 +119,7 @@ public class KeycloakAuthorizerTest {
 
         changeAuthServerMode("token", "MODE_200");
 
-        LogLineReader logReader = new LogLineReader(LOG_PATH);
+        LogLineReader logReader = new LogLineReader(Common.LOG_PATH);
         logReader.readNext();
 
         List<String> lines;
@@ -166,7 +164,7 @@ public class KeycloakAuthorizerTest {
             changeAuthServerMode("grants", "MODE_401");
 
             LOG.info("Waiting for: Done refreshing"); // Make sure to not repeat the below condition in the string here
-            lines = waitFor(logReader, "Done refreshing grants");
+            lines = logReader.waitFor("Done refreshing grants");
             Assert.assertTrue("Failed to fetch", checkLogForRegex(lines, "Failed to fetch grants .* status 401"));
             Assert.assertTrue("Removed user from grants cache", checkLogForRegex(lines, "Removed user from grants cache: alice"));
             Assert.assertTrue("Removed invalid session", checkLogForRegex(lines, "Removed invalid session from sessions map \\(userId: alice"));
@@ -184,7 +182,7 @@ public class KeycloakAuthorizerTest {
         // Switch grants endpoint to 403 mode
         changeAuthServerMode("grants", "MODE_403");
 
-        LogLineReader logReader = new LogLineReader(LOG_PATH);
+        LogLineReader logReader = new LogLineReader(Common.LOG_PATH);
         logReader.readNext();
 
         List<String> lines;
@@ -298,7 +296,7 @@ public class KeycloakAuthorizerTest {
         try (KeycloakAuthorizer authorizer = new KeycloakAuthorizer()) {
             authorizer.configure(props);
 
-            LogLineReader logReader = new LogLineReader(LOG_PATH);
+            LogLineReader logReader = new LogLineReader(Common.LOG_PATH);
             List<String> lines = logReader.readNext();
 
             if (withReuse) {
@@ -334,9 +332,9 @@ public class KeycloakAuthorizerTest {
                 // It's the same whether reuseGrants is true or false - because concurrent requests are perceived by user to occur at the same time
                 lines = logReader.readNext();
 
-                Assert.assertEquals("One thread fetches grants", 1, countLogForRegex(lines, "Fetching grants from Keycloak for user user1"));
-                Assert.assertEquals("One thread waits", 1, countLogForRegex(lines, "Waiting on another thread to get grants"));
-                Assert.assertEquals("One grants fetch", 1, countLogForRegex(lines, "Response body for POST https://mockoauth:8090/grants"));
+                Assert.assertEquals("One thread fetches grants", 1, TestUtil.countLogForRegex(lines, "Fetching grants from Keycloak for user user1"));
+                Assert.assertEquals("One thread waits", 1, TestUtil.countLogForRegex(lines, "Waiting on another thread to get grants"));
+                Assert.assertEquals("One grants fetch", 1, TestUtil.countLogForRegex(lines, "Response body for POST https://mockoauth:8090/grants"));
 
                 // Check the authorization result
                 Assert.assertEquals("One result for my-topic action", 1, result.size());
@@ -359,7 +357,7 @@ public class KeycloakAuthorizerTest {
                 // check log from last checkpoint on
                 lines = logReader.readNext();
 
-                Assert.assertEquals("No grants fetch", 0, countLogForRegex(lines, "Response body for POST https://mockoauth:8090/grants"));
+                Assert.assertEquals("No grants fetch", 0, TestUtil.countLogForRegex(lines, "Response body for POST https://mockoauth:8090/grants"));
 
                 // Check the authorization result
                 Assert.assertEquals("One result for x-topic-1 action", 1, result.size());
@@ -376,10 +374,10 @@ public class KeycloakAuthorizerTest {
                 lines = logReader.readNext();
                 if (!withReuse) {
                     // Check that grants have been fetched
-                    Assert.assertEquals("Grants fetched", 1, countLogForRegex(lines, "Response body for POST https://mockoauth:8090/grants"));
+                    Assert.assertEquals("Grants fetched", 1, TestUtil.countLogForRegex(lines, "Response body for POST https://mockoauth:8090/grants"));
                 } else {
                     // Check that grants have not been fetched again
-                    Assert.assertEquals("Grants not fetched", 0, countLogForRegex(lines, "Response body for POST https://mockoauth:8090/grants"));
+                    Assert.assertEquals("Grants not fetched", 0, TestUtil.countLogForRegex(lines, "Response body for POST https://mockoauth:8090/grants"));
                 }
 
                 // Check the authorization result
@@ -428,7 +426,7 @@ public class KeycloakAuthorizerTest {
         }
         config.put(AuthzConfig.STRIMZI_AUTHORIZATION_CLIENT_ID, "kafka");
 
-        LogLineReader logReader = new LogLineReader(LOG_PATH);
+        LogLineReader logReader = new LogLineReader(Common.LOG_PATH);
 
         // Position to the end of the existing log file
         logReader.readNext();
@@ -440,22 +438,22 @@ public class KeycloakAuthorizerTest {
         List<String> lines = logReader.readNext();
 
         // Check the defaults
-        Assert.assertEquals("tokenEndpointUri: https://mockoauth:8090/grants", 1, countLogForRegex(lines, "tokenEndpointUri: https://mockoauth:8090/grants"));
-        Assert.assertEquals("clientId: kafka", 1, countLogForRegex(lines, "clientId: kafka"));
-        Assert.assertEquals("sslSocketFactory: null", 1, countLogForRegex(lines, "sslSocketFactory: null"));
-        Assert.assertEquals("hostnameVerifier: null", 1, countLogForRegex(lines, "hostnameVerifier: null"));
-        Assert.assertEquals("clusterName: kafka-cluster", 1, countLogForRegex(lines, "clusterName: kafka-cluster"));
-        Assert.assertEquals("delegateToKafkaACL: false", 1, countLogForRegex(lines, "delegateToKafkaACL: false"));
-        Assert.assertEquals("superUsers: []", 1, countLogForRegex(lines, "superUsers: \\[\\]"));
-        Assert.assertEquals("grantsRefreshPeriodSeconds: 60", 1, countLogForRegex(lines, "grantsRefreshPeriodSeconds: 60"));
-        Assert.assertEquals("grantsRefreshPoolSize: 5", 1, countLogForRegex(lines, "grantsRefreshPoolSize: 5"));
-        Assert.assertEquals("grantsMaxIdleTimeSeconds: 300", 1, countLogForRegex(lines, "grantsMaxIdleTimeSeconds: 300"));
-        Assert.assertEquals("httpRetries: 0", 1, countLogForRegex(lines, "httpRetries: 0"));
-        Assert.assertEquals("reuseGrants: true", 1, countLogForRegex(lines, "reuseGrants: true"));
-        Assert.assertEquals("connectTimeoutSeconds: 60", 1, countLogForRegex(lines, "connectTimeoutSeconds: 60"));
-        Assert.assertEquals("readTimeoutSeconds: 60", 1, countLogForRegex(lines, "readTimeoutSeconds: 60"));
-        Assert.assertEquals("enableMetrics: false", 1, countLogForRegex(lines, "enableMetrics: false"));
-        Assert.assertEquals("gcPeriodSeconds: 300", 1, countLogForRegex(lines, "gcPeriodSeconds: 300"));
+        Assert.assertEquals("tokenEndpointUri: https://mockoauth:8090/grants", 1, TestUtil.countLogForRegex(lines, "tokenEndpointUri: https://mockoauth:8090/grants"));
+        Assert.assertEquals("clientId: kafka", 1, TestUtil.countLogForRegex(lines, "clientId: kafka"));
+        Assert.assertEquals("sslSocketFactory: null", 1, TestUtil.countLogForRegex(lines, "sslSocketFactory: null"));
+        Assert.assertEquals("hostnameVerifier: null", 1, TestUtil.countLogForRegex(lines, "hostnameVerifier: null"));
+        Assert.assertEquals("clusterName: kafka-cluster", 1, TestUtil.countLogForRegex(lines, "clusterName: kafka-cluster"));
+        Assert.assertEquals("delegateToKafkaACL: false", 1, TestUtil.countLogForRegex(lines, "delegateToKafkaACL: false"));
+        Assert.assertEquals("superUsers: []", 1, TestUtil.countLogForRegex(lines, "superUsers: \\[\\]"));
+        Assert.assertEquals("grantsRefreshPeriodSeconds: 60", 1, TestUtil.countLogForRegex(lines, "grantsRefreshPeriodSeconds: 60"));
+        Assert.assertEquals("grantsRefreshPoolSize: 5", 1, TestUtil.countLogForRegex(lines, "grantsRefreshPoolSize: 5"));
+        Assert.assertEquals("grantsMaxIdleTimeSeconds: 300", 1, TestUtil.countLogForRegex(lines, "grantsMaxIdleTimeSeconds: 300"));
+        Assert.assertEquals("httpRetries: 0", 1, TestUtil.countLogForRegex(lines, "httpRetries: 0"));
+        Assert.assertEquals("reuseGrants: true", 1, TestUtil.countLogForRegex(lines, "reuseGrants: true"));
+        Assert.assertEquals("connectTimeoutSeconds: 60", 1, TestUtil.countLogForRegex(lines, "connectTimeoutSeconds: 60"));
+        Assert.assertEquals("readTimeoutSeconds: 60", 1, TestUtil.countLogForRegex(lines, "readTimeoutSeconds: 60"));
+        Assert.assertEquals("enableMetrics: false", 1, TestUtil.countLogForRegex(lines, "enableMetrics: false"));
+        Assert.assertEquals("gcPeriodSeconds: 300", 1, TestUtil.countLogForRegex(lines, "gcPeriodSeconds: 300"));
 
         // Custom config
 
@@ -487,17 +485,17 @@ public class KeycloakAuthorizerTest {
 
         lines = logReader.readNext();
 
-        Assert.assertEquals("clusterName: cluster1", 1, countLogForRegex(lines, "clusterName: cluster1"));
-        Assert.assertEquals("superUsers: ['User:admin', 'User:service-account-kafka']", 1, countLogForRegex(lines, "superUsers: \\['User:admin', 'User:service-account-kafka'\\]"));
-        Assert.assertEquals("grantsRefreshPeriodSeconds: 180", 1, countLogForRegex(lines, "grantsRefreshPeriodSeconds: 180"));
-        Assert.assertEquals("grantsRefreshPoolSize: 3", 1, countLogForRegex(lines, "grantsRefreshPoolSize: 3"));
-        Assert.assertEquals("grantsMaxIdleTimeSeconds: 30", 1, countLogForRegex(lines, "grantsMaxIdleTimeSeconds: 30"));
-        Assert.assertEquals("httpRetries: 2", 1, countLogForRegex(lines, "httpRetries: 2"));
-        Assert.assertEquals("reuseGrants: false", 1, countLogForRegex(lines, "reuseGrants: false"));
-        Assert.assertEquals("connectTimeoutSeconds: 15", 1, countLogForRegex(lines, "connectTimeoutSeconds: 15"));
-        Assert.assertEquals("readTimeoutSeconds: 15", 1, countLogForRegex(lines, "readTimeoutSeconds: 15"));
-        Assert.assertEquals("enableMetrics: true", 1, countLogForRegex(lines, "enableMetrics: true"));
-        Assert.assertEquals("gcPeriodSeconds: 60", 1, countLogForRegex(lines, "gcPeriodSeconds: 60"));
+        Assert.assertEquals("clusterName: cluster1", 1, TestUtil.countLogForRegex(lines, "clusterName: cluster1"));
+        Assert.assertEquals("superUsers: ['User:admin', 'User:service-account-kafka']", 1, TestUtil.countLogForRegex(lines, "superUsers: \\['User:admin', 'User:service-account-kafka'\\]"));
+        Assert.assertEquals("grantsRefreshPeriodSeconds: 180", 1, TestUtil.countLogForRegex(lines, "grantsRefreshPeriodSeconds: 180"));
+        Assert.assertEquals("grantsRefreshPoolSize: 3", 1, TestUtil.countLogForRegex(lines, "grantsRefreshPoolSize: 3"));
+        Assert.assertEquals("grantsMaxIdleTimeSeconds: 30", 1, TestUtil.countLogForRegex(lines, "grantsMaxIdleTimeSeconds: 30"));
+        Assert.assertEquals("httpRetries: 2", 1, TestUtil.countLogForRegex(lines, "httpRetries: 2"));
+        Assert.assertEquals("reuseGrants: false", 1, TestUtil.countLogForRegex(lines, "reuseGrants: false"));
+        Assert.assertEquals("connectTimeoutSeconds: 15", 1, TestUtil.countLogForRegex(lines, "connectTimeoutSeconds: 15"));
+        Assert.assertEquals("readTimeoutSeconds: 15", 1, TestUtil.countLogForRegex(lines, "readTimeoutSeconds: 15"));
+        Assert.assertEquals("enableMetrics: true", 1, TestUtil.countLogForRegex(lines, "enableMetrics: true"));
+        Assert.assertEquals("gcPeriodSeconds: 60", 1, TestUtil.countLogForRegex(lines, "gcPeriodSeconds: 60"));
 
 
         // test gcPeriodSeconds set to 0
@@ -510,8 +508,8 @@ public class KeycloakAuthorizerTest {
 
         lines = logReader.readNext();
 
-        Assert.assertEquals("gcPeriodSeconds invalid value: 0", 1, countLogForRegex(lines, "'strimzi.authorization.grants.gc.period.seconds' set to invalid value: 0, using the default value: 300 seconds"));
-        Assert.assertEquals("gcPeriodSeconds: 300", 1, countLogForRegex(lines, "gcPeriodSeconds: 300"));
+        Assert.assertEquals("gcPeriodSeconds invalid value: 0", 1, TestUtil.countLogForRegex(lines, "'strimzi.authorization.grants.gc.period.seconds' set to invalid value: 0, using the default value: 300 seconds"));
+        Assert.assertEquals("gcPeriodSeconds: 300", 1, TestUtil.countLogForRegex(lines, "gcPeriodSeconds: 300"));
 
         TestAuthzUtil.clearKeycloakAuthorizerService();
     }
@@ -554,11 +552,11 @@ public class KeycloakAuthorizerTest {
 
 
             // check the logs for updated access token
-            LogLineReader logReader = new LogLineReader(LOG_PATH);
+            LogLineReader logReader = new LogLineReader(Common.LOG_PATH);
 
             // wait for cgGrants run on 0 users
             LOG.info("Waiting for: active users count: 0"); // Make sure to not repeat the below condition in the string here
-            waitFor(logReader, "Grants gc: active users count: 0");
+            logReader.waitFor("Grants gc: active users count: 0");
 
             LOG.info("Authenticate (validate) as gcUser1");
             OAuthKafkaPrincipal principal = authenticate(authHandler, tokenInfo);
@@ -581,7 +579,7 @@ public class KeycloakAuthorizerTest {
 
             // check the logs for updated access token
             List<String> lines = logReader.readNext();
-            Assert.assertEquals("Fetch grants", 1, countLogForRegex(lines, "Fetching grants from Keycloak for user gcUser1"));
+            Assert.assertEquals("Fetch grants", 1, TestUtil.countLogForRegex(lines, "Fetching grants from Keycloak for user gcUser1"));
 
 
             String userTwo = "gcUser2";
@@ -598,7 +596,7 @@ public class KeycloakAuthorizerTest {
 
             LOG.info("Waiting for: active users count: 2, grantsCache size before: 1, grantsCache size after: 1"); // Make sure to not repeat the below condition in the string here
             // wait for cgGrants run on 2 users
-            waitFor(logReader, "Grants gc: active users count: 2, grantsCache size before: 1, grantsCache size after: 1");
+            logReader.waitFor("Grants gc: active users count: 2, grantsCache size before: 1, grantsCache size after: 1");
 
 
             authzContext = newAuthorizableRequestContext(principal);
@@ -609,12 +607,12 @@ public class KeycloakAuthorizerTest {
 
             // wait for cgGrants run on 2 users and two grants cache entries
             LOG.info("Waiting for: active users count: 2, grantsCache size before: 2, grantsCache size after: 2"); // Make sure to not repeat the below condition in the string here
-            waitFor(logReader, "Grants gc: active users count: 2, grantsCache size before: 2, grantsCache size after: 2");
+            logReader.waitFor("Grants gc: active users count: 2, grantsCache size before: 2, grantsCache size after: 2");
 
 
             // now wait for token to expire for gcUser2
             LOG.info("Waiting for: active users count: 1, grantsCache size before: 2, grantsCache size after: 1"); // Make sure to not repeat the below condition in the string here
-            waitFor(logReader, "Grants gc: active users count: 1, grantsCache size before: 2, grantsCache size after: 1");
+            logReader.waitFor("Grants gc: active users count: 1, grantsCache size before: 2, grantsCache size after: 1");
 
 
             // authorization should now fail since the token has expired
@@ -697,7 +695,7 @@ public class KeycloakAuthorizerTest {
                 new ResourcePattern(ResourceType.TOPIC, "my-topic", PatternType.LITERAL),
                 1, true, true));
 
-        LogLineReader logReader = new LogLineReader(LOG_PATH);
+        LogLineReader logReader = new LogLineReader(Common.LOG_PATH);
         // seek to the end of log file
         logReader.readNext();
 
@@ -716,7 +714,7 @@ public class KeycloakAuthorizerTest {
 
             // This is a first authorize() call on the KeycloakAuthorizer -> the grantsCache is empty
             LOG.info("Waiting for: unsupported segment type: Topc"); // Make sure to not repeat the below condition in the string here
-            waitFor(logReader, "Failed to parse .* unsupported segment type: Topc");
+            logReader.waitFor("Failed to parse .* unsupported segment type: Topc");
 
 
             // malformed resource spec - no ':' in Topic;my-topic*
@@ -726,7 +724,7 @@ public class KeycloakAuthorizerTest {
 
             // wait for grants refresh
             LOG.info("Waiting for: Done refreshing grants"); // Make sure to not repeat the below condition in the string here
-            waitFor(logReader, "Response body .*Topic;my-topic");
+            logReader.waitFor("Response body .*Topic;my-topic");
 
 
             LOG.info("Call authorize() - test grants record with malformed resource spec 'Topic;my-topic*' (no ':')");
@@ -734,7 +732,7 @@ public class KeycloakAuthorizerTest {
             Assert.assertEquals("Authz result: DENIED", AuthorizationResult.DENIED, result.get(0));
 
             LOG.info("Waiting for: doesn't follow TYPE:NAME pattern"); // Make sure to not repeat the below condition in the string here
-            waitFor(logReader, "part doesn't follow TYPE:NAME pattern");
+            logReader.waitFor("part doesn't follow TYPE:NAME pattern");
 
             // malformed resource spec - '*' not at the end in 'Topic:*-topic'
             addGrantsForToken(tokenInfo.token(), "[{\"scopes\":[\"Delete\",\"Write\",\"Describe\",\"Read\",\"Alter\",\"Create\",\"DescribeConfigs\",\"AlterConfigs\"],\"rsid\":\"ca6f195f-dbdc-48b7-a953-8e441d17f7fa\",\"rsname\":\"Topic:*-topic\"}," +
@@ -743,7 +741,7 @@ public class KeycloakAuthorizerTest {
 
             // wait for grants refresh
             LOG.info("Waiting for: Done refreshing grants"); // Make sure to not repeat the below condition in the string here
-            waitFor(logReader, "Response body .*Topic:\\*-topic");
+            logReader.waitFor("Response body .*Topic:\\*-topic");
 
             LOG.info("Call authorize() - test grants record with malformed resource spec 'Topic:*-topic' ('*' only interpreted as asterisk at the end of resource spec)");
             result = authorizer.authorize(authzContext, actions);
@@ -757,7 +755,7 @@ public class KeycloakAuthorizerTest {
 
             // wait for grants refresh
             LOG.info("Waiting for: Done refreshing grants"); // Make sure to not repeat the below condition in the string here
-            waitFor(logReader, "Response body .*Crate");
+            logReader.waitFor("Response body .*Crate");
 
             LOG.info("Call authorize() - test grants record with unknown / invalid scope 'Crate' (it should be 'Create')");
             result = authorizer.authorize(authzContext, actions);
@@ -793,7 +791,7 @@ public class KeycloakAuthorizerTest {
                 new ResourcePattern(ResourceType.TOPIC, "x_topic", PatternType.LITERAL),
                 1, true, true));
 
-        LogLineReader logReader = new LogLineReader(LOG_PATH);
+        LogLineReader logReader = new LogLineReader(Common.LOG_PATH);
         // seek to the end of log file
         logReader.readNext();
 
@@ -812,7 +810,7 @@ public class KeycloakAuthorizerTest {
 
             // Check log for 'Saving non-null grants for user: alice'
             LOG.info("Waiting for: Saving non-null grants"); // Make sure to not repeat the below condition in the string here
-            waitFor(logReader, "Saving non-null grants for user: alice");
+            logReader.waitFor("Saving non-null grants for user: alice");
 
             // set grants for the user to `grants2` which are semantically different from `grants1`
             addGrantsForToken(tokenInfo.token(), grants2);
@@ -820,22 +818,21 @@ public class KeycloakAuthorizerTest {
             // wait for the refresh job to fetch the new grants
             // Check log for 'Grants have changed for user: alice'
             LOG.info("Waiting for: Grants have changed"); // Make sure to not repeat the below condition in the string here
-            waitFor(logReader, "Grants have changed for user: alice");
+            logReader.waitFor("Grants have changed for user: alice");
 
             // set grants for the user to `grants3` which are semantically equal to `grants2`
             addGrantsForToken(tokenInfo.token(), grants3);
 
             // wait for the refresh job to fetch the new grants
             LOG.info("Waiting for: Refreshing grants to start"); // Make sure to not repeat the below condition in the string here
-            waitFor(logReader, "Refreshing authorization grants");
+            logReader.waitFor("Refreshing authorization grants");
 
             // Check log for 'Done refreshing grants' and there should be no preceding line containing 'Grants have changed for user'
             // wait for refresh grants job to complete
             LOG.info("Waiting for grants refresh to complete"); // Make sure to not repeat the below condition in the string here
-            List<String> lines = waitFor(logReader, "Done refreshing grants");
+            List<String> lines = logReader.waitFor("Done refreshing grants");
 
-            int matchCount = countLogForRegex(lines, "Grants have changed for user");
-            Assert.assertEquals("Grants have changed again ?!?", 0, matchCount);
+            Assert.assertFalse("Grants have changed again ?!?", checkLogForRegex(lines, "Grants have changed for user"));
 
             result = authorizer.authorize(authzContext, actions);
             Assert.assertEquals("Authz result: ALLOWED", AuthorizationResult.ALLOWED, result.get(0));
@@ -849,7 +846,7 @@ public class KeycloakAuthorizerTest {
 
         HashMap<String, String> config = configureAuthorizer();
 
-        LogLineReader logReader = new LogLineReader(LOG_PATH);
+        LogLineReader logReader = new LogLineReader(Common.LOG_PATH);
         logReader.readNext();
 
         List<String> lines;
@@ -869,26 +866,6 @@ public class KeycloakAuthorizerTest {
         }
 
         TestAuthzUtil.clearKeycloakAuthorizerService();
-    }
-
-    private List<String> waitFor(LogLineReader logReader, String condition) throws TimeoutException, InterruptedException {
-        List<String> result = new ArrayList<>();
-        TestUtil.waitForCondition(() -> {
-            try {
-                List<String> lines = logReader.readNext();
-                int lineNum = findFirstMatchingInLog(lines, condition);
-                if (lineNum >= 0) {
-                    result.addAll(lines.subList(0, lineNum));
-                    return true;
-                }
-                result.addAll(lines);
-                return false;
-            } catch (Exception e) {
-                throw new RuntimeException("Failed to read log", e);
-            }
-        }, LOOP_PAUSE_MS, TIMEOUT_SECONDS);
-
-        return result;
     }
 
     private static Future<List<AuthorizationResult>> submitAuthorizationCall(KeycloakAuthorizer authorizer, AuthorizableRequestContext ctx, ExecutorService executorService, String topic) {
@@ -927,45 +904,6 @@ public class KeycloakAuthorizerTest {
         props.put("super.users", "User:admin;User:service-account-kafka");
         props.put("principal.builder.class", "io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder");
         return props;
-    }
-
-    static int countLogForRegex(List<String> log, String regex) {
-        int count = 0;
-        Pattern pattern = Pattern.compile(prepareRegex(regex));
-        for (String line: log) {
-            if (pattern.matcher(line).matches()) {
-                count += 1;
-            }
-        }
-        return count;
-    }
-
-    static int findFirstMatchingInLog(List<String> log, String regex) {
-        int lineNum = 0;
-        Pattern pattern = Pattern.compile(prepareRegex(regex));
-        for (String line: log) {
-            if (pattern.matcher(line).matches()) {
-                return lineNum;
-            }
-            lineNum++;
-        }
-        return -1;
-    }
-
-    static String prepareRegex(String regex) {
-        String prefix = regex.startsWith("^") ? "" : ".*";
-        String suffix = regex.endsWith("$") ? "" : ".*";
-        return prefix + regex + suffix;
-    }
-
-    static boolean checkLogForRegex(List<String> log, String regex) {
-        Pattern pattern = Pattern.compile(prepareRegex(regex));
-        for (String line: log) {
-            if (pattern.matcher(line).matches()) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private AuthorizableRequestContext newAuthorizableRequestContext(KafkaPrincipal principal) {

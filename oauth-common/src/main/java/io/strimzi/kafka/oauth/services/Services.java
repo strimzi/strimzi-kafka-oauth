@@ -40,6 +40,13 @@ public class Services {
     }
 
     /**
+     * Close any configured Services so they can be reinitialised again
+     */
+    public static synchronized void close() {
+        services = null;
+    }
+
+    /**
      * Get a configured singleton instance
      *
      * @return Services object

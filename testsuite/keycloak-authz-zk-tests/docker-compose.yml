@@ -68,8 +68,6 @@ services:
       - OAUTH_USERNAME_CLAIM=preferred_username
       - OAUTH_CONNECT_TIMEOUT_SECONDS=20
 
-      - OAUTH_ENABLE_METRICS=true
-
       # Configuration of individual listeners
       - KAFKA_LISTENER_NAME_JWT_OAUTHBEARER_SASL_JAAS_CONFIG=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required    oauth.jwks.endpoint.uri=\"http://keycloak:8080/auth/realms/kafka-authz/protocol/openid-connect/certs\"    oauth.valid.issuer.uri=\"http://keycloak:8080/auth/realms/kafka-authz\"    oauth.token.endpoint.uri=\"http://keycloak:8080/auth/realms/kafka-authz/protocol/openid-connect/token\"    oauth.client.id=\"kafka\"    oauth.client.secret=\"kafka-secret\"    oauth.groups.claim=\"$$.realm_access.roles\" ;
       - KAFKA_LISTENER_NAME_JWT_OAUTHBEARER_SASL_SERVER_CALLBACK_HANDLER_CLASS=io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
@@ -125,6 +123,19 @@ services:
       - KAFKA_STRIMZI_AUTHORIZATION_ENABLE_METRICS=true
 
       - KAFKA_SUPER_USERS=User:admin;User:service-account-kafka
+
+
+      # OAuth metrics configuration
+
+      - OAUTH_ENABLE_METRICS=true
+      #   When enabling metrics we also have to explicitly configure JmxReporter to have metrics available in JMX
+      #   The following value will be available as env var STRIMZI_OAUTH_METRIC_REPORTERS
+      - STRIMZI_OAUTH_METRIC_REPORTERS=org.apache.kafka.common.metrics.JmxReporter
+
+      #   The following value will turn to 'strimzi.oauth.metric.reporters=...' in 'strimzi.properties' file
+      #   However, that won't work as the value may be filtered to the component that happens to initialise OAuthMetrics
+      #- KAFKA_STRIMZI_OAUTH_METRIC_REPORTERS=org.apache.kafka.common.metrics.JmxReporter
+
 
       # Other configuration
       - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
