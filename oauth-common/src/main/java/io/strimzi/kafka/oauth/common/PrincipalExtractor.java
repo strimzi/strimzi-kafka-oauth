@@ -26,7 +26,7 @@ import static io.strimzi.kafka.oauth.common.JSONUtil.getClaimFromJWT;
  * A JsonPath query is resolved relative to JSON object containing info to identify user
  * (a JWT payload, a response from Introspection Endpoint or a response from User Info Endpoint).
  * <p>
- * For more on JsonPath syntax {@see https://github.com/json-path/JsonPath}.
+ * For more on JsonPath syntax see https://github.com/json-path/JsonPath.
  * <p>
  * Examples of claim specification:
  * <pre>
@@ -141,7 +141,7 @@ public class PrincipalExtractor {
      * targeting a nested attribute. </li>
      * <li>Otherwise, it is interpreted as a top level attribute name.</li>
      * </ul>
-     * For more on JsonPath syntax {@see https://github.com/json-path/JsonPath}.
+     * For more on JsonPath syntax see https://github.com/json-path/JsonPath.
      * <p>
      * Examples of claim specification:
      * <pre>
