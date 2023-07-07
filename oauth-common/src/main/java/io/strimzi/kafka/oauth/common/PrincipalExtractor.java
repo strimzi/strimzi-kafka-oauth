@@ -5,10 +5,7 @@
 package io.strimzi.kafka.oauth.common;
 
 import com.fasterxml.jackson.databind.JsonNode;
-
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
+import io.strimzi.kafka.oauth.jsonpath.JsonPathQuery;
 
 import static io.strimzi.kafka.oauth.common.JSONUtil.getClaimFromJWT;
 
@@ -19,27 +16,43 @@ import static io.strimzi.kafka.oauth.common.JSONUtil.getClaimFromJWT;
  * If not found the claim configured as <code>fallbackUsernameClaim</code> is looked up. If that one is found and if
  * the <code>fallbackUsernamePrefix</code> is configured prefix the found value with the prefix, otherwise not.
  * <p>
- * Claims configuration can refer to a nested attribute as well.
- * Examples of configurations:
+ * The claim specification uses the following rules:
+ * <ul>
+ * <li>If the claim specification starts with an opening square bracket '[', it is interpreted as a JsonPath query, and allows
+ * targeting a nested attribute. </li>
+ * <li>Otherwise, it is interpreted as a top level attribute name.</li>
+ * </ul>
+ * <p>
+ * A JsonPath query is resolved relative to JSON object containing info to identify user
+ * (a JWT payload, a response from Introspection Endpoint or a response from User Info Endpoint).
+ * <p>
+ * For more on JsonPath syntax {@see https://github.com/json-path/JsonPath}.
+ * <p>
+ * Examples of claim specification:
  * <pre>
- *     userId              ... use top level attribute named 'userId'
- *     user.id             ... use top level attribute named 'user.id'
- *     [userInfo].[id]     ... use nested attribute 'id' under 'userInfo' top level attribute
- *     ['userInfo'].['id'] ... use nested attribute 'id' under 'userInfo' top level attribute
+ *     userId                    ... use top level attribute named 'userId'
+ *     user.id                   ... use top level attribute named 'user.id'
+ *     $userid                   ... use top level attribute named '$userid'
+ *     ['userInfo']['id']        ... use nested attribute 'id' under 'userInfo' top level attribute
+ *     ['userInfo'].id           ... use nested attribute 'id' under 'userInfo' top level attribute (second segment not using brackets)
+ *     ['user.info']['user.id']  ... use nested attribute 'user.id' under 'user.info' top level attribute
+ *     ['user.info'].['user.id'] ... use nested attribute 'user.id' under 'user.info' top level attribute (optional dot)
  * </pre>
+ *
+ * See PrincipalExtractorTest.java for more working and non-working examples of claim specification.
  */
 public class PrincipalExtractor {
 
-    private final List<String> usernameClaim;
-    private final List<String> fallbackUsernameClaim;
+    private final Extractor usernameExtractor;
+    private final Extractor fallbackUsernameExtractor;
     private final String fallbackUsernamePrefix;
 
     /**
      * Create a new instance
      */
     public PrincipalExtractor() {
-        usernameClaim = null;
-        fallbackUsernameClaim = null;
+        usernameExtractor = null;
+        fallbackUsernameExtractor = null;
         fallbackUsernamePrefix = null;
     }
 
@@ -51,8 +64,8 @@ public class PrincipalExtractor {
      * @param fallbackUsernamePrefix A prefix to prepend to the value of the fallback attribute value if set
      */
     public PrincipalExtractor(String usernameClaim, String fallbackUsernameClaim, String fallbackUsernamePrefix) {
-        this.usernameClaim = parseClaimSpec(usernameClaim);
-        this.fallbackUsernameClaim = parseClaimSpec(fallbackUsernameClaim);
+        this.usernameExtractor = parseClaimSpec(usernameClaim);
+        this.fallbackUsernameExtractor = parseClaimSpec(fallbackUsernameClaim);
         this.fallbackUsernamePrefix = fallbackUsernamePrefix;
     }
 
@@ -65,20 +78,35 @@ public class PrincipalExtractor {
     public String getPrincipal(JsonNode json) {
         String result;
 
-        if (usernameClaim != null) {
-            result = getClaimFromJWT(json, usernameClaim.toArray(new String[0]));
+        if (usernameExtractor != null) {
+            result = extractUsername(usernameExtractor, json);
             if (result != null) {
                 return result;
             }
-
-            if (fallbackUsernameClaim != null) {
-                result = getClaimFromJWT(json, fallbackUsernameClaim.toArray(new String[0]));
+            if (fallbackUsernameExtractor != null) {
+                result = extractUsername(fallbackUsernameExtractor, json);
                 if (result != null) {
-                    return fallbackUsernamePrefix == null ? result : fallbackUsernamePrefix + result;
+                    return result;
                 }
             }
         }
 
+        return null;
+    }
+
+    private String extractUsername(Extractor extractor, JsonNode json) {
+        if (extractor.getAttributeName() != null) {
+            String result = getClaimFromJWT(json, extractor.getAttributeName());
+            if (result != null && !result.isEmpty()) {
+                return result;
+            }
+        } else {
+            JsonNode queryResult = extractor.getJSONPathQuery().apply(json);
+            String result = queryResult == null ? null : queryResult.asText().trim();
+            if (result != null && !result.isEmpty()) {
+                return result;
+            }
+        }
         return null;
     }
 
@@ -94,7 +122,7 @@ public class PrincipalExtractor {
 
     @Override
     public String toString() {
-        return "PrincipalExtractor {usernameClaim: " + usernameClaim  + ", fallbackUsernameClaim: " + fallbackUsernameClaim + ", fallbackUsernamePrefix: " + fallbackUsernamePrefix + "}";
+        return "PrincipalExtractor {usernameClaim: " + usernameExtractor + ", fallbackUsernameClaim: " + fallbackUsernameExtractor + ", fallbackUsernamePrefix: " + fallbackUsernamePrefix + "}";
     }
 
     /**
@@ -103,88 +131,66 @@ public class PrincipalExtractor {
      * @return True if any of the constructor parameters is set
      */
     public boolean isConfigured() {
-        return usernameClaim != null || fallbackUsernameClaim != null || fallbackUsernamePrefix != null;
+        return usernameExtractor != null || fallbackUsernameExtractor != null || fallbackUsernamePrefix != null;
     }
 
     /**
-     * This method parses the configured principal extraction specification using a syntax similar to JSONPath.
-     * A claim (an attribute inside a JSON object) is targeted in arbitrary levels of nested depth.
-     * For specifying nested claims the specification has to start with an opening square bracket and end with a closing square bracket.
-     * The segments are separated by a dot '.'  (e.g.: [topClaim].[subClaim]).
-     *
-     * Optionally, the claims named inside square brackets can be in single quotes (e.g.: ['topClaim'].['subClaim']).
-     *
+     * The claim specification uses the following rules:
+     * <ul>
+     * <li>If the claim specification starts with an opening square bracket '[', it is interpreted as a JsonPath query, and allows
+     * targeting a nested attribute. </li>
+     * <li>Otherwise, it is interpreted as a top level attribute name.</li>
+     * </ul>
+     * For more on JsonPath syntax {@see https://github.com/json-path/JsonPath}.
+     * <p>
      * Examples of claim specification:
      * <pre>
      *     userId                    ... use top level attribute named 'userId'
      *     user.id                   ... use top level attribute named 'user.id'
-     *     [userInfo].[id]           ... use nested attribute 'id' under 'userInfo' top level attribute
-     *     ['userInfo'] . ['id']     ... use nested attribute 'id' under 'userInfo' top level attribute
-     *     ['user.info'].['user.id'] ... use nested attribute 'user.id' under 'user.info' top level attribute
+     *     $userid                   ... use top level attribute named '$userid'
+     *     ['userInfo']['id']        ... use nested attribute 'id' under 'userInfo' top level attribute
+     *     ['userInfo'].id           ... use nested attribute 'id' under 'userInfo' top level attribute (second segment not using brackets)
+     *     ['user.info']['user.id']  ... use nested attribute 'user.id' under 'user.info' top level attribute
+     *     ['user.info'].['user.id'] ... use nested attribute 'user.id' under 'user.info' top level attribute (optional dot)
      * </pre>
-
-     * @param spec
-     * @return
+     *
+     * @param spec Claim specification
+     * @return Result containing either a claim with top level attribute name or a JsonPathQuery object
      */
-    private static List<String> parseClaimSpec(String spec) {
+    private static Extractor parseClaimSpec(String spec) {
         spec = spec == null ? null : spec.trim();
-        if (spec == null || "".equals(spec)) {
+        if (spec == null || spec.isEmpty()) {
             return null;
         }
 
         if (!spec.startsWith("[")) {
-            return Collections.singletonList(spec);
+            return new Extractor(spec);
         }
 
-        LinkedList<String> parsed = new LinkedList<>();
-        int pos = 0;
-        int epos = 0;
-        while (pos != -1) {
-            pos += 1;
-            epos = spec.indexOf("]", pos);
-            if (epos == -1) {
-                throw new IllegalArgumentException("Failed to parse username claim spec: '" + spec + "' (Missing ']')");
-            }
-            parsed.add(removeQuotesAndSpaces(spec.substring(pos, epos)));
-            pos = epos + 1;
-            epos = skipSpaces(spec, pos);
-            if (epos >= spec.length()) {
-                return parsed;
-            }
-            if (spec.charAt(epos) != '.') {
-                throw new IllegalArgumentException("Failed to parse username claim spec: '" + spec + "' (Missing '.' at position: " + epos + ")");
-            }
-            pos = spec.indexOf("[", epos + 1);
-            if (pos != -1) {
-                int nonSpacePos = skipSpaces(spec, epos + 1);
-                if (nonSpacePos != pos) {
-                    throw new IllegalArgumentException("Failed to parse username claim spec: '" + spec + "' (Expected '[' at position: " + nonSpacePos + ")");
-                }
-            }
-        }
-
-        throw new IllegalArgumentException("Failed to parse username claim spec: '" + spec + "' (Missing '[' at position:" + (epos + 1) + ")");
+        return new Extractor(JsonPathQuery.parse(spec));
     }
 
-    private static int skipSpaces(String spec, int pos) {
-        int i = pos;
-        while (i < spec.length() && spec.charAt(i) == ' ') {
-            i += 1;
-        }
-        return i;
-    }
+    static class Extractor {
 
-    private static String removeQuotesAndSpaces(String value) {
-        value = value.trim();
-        if (value.startsWith("'")) {
-            if (value.length() == 0) {
-                throw new IllegalArgumentException("Failed to parse username claim spec: empty []");
-            }
-            if (value.length() == 1 || !value.endsWith("'")) {
-                throw new IllegalArgumentException("Failed to parse username claim spec: missing ending quote [']: " + value);
-            }
-            return value.substring(1, value.length() - 1);
+        private final String attributeName;
+        private final JsonPathQuery query;
+
+        private Extractor(JsonPathQuery query) {
+            this.query = query;
+            this.attributeName = null;
         }
-        return value;
+
+        private Extractor(String attributeName) {
+            this.attributeName = attributeName;
+            this.query = null;
+        }
+
+        String getAttributeName() {
+            return attributeName;
+        }
+
+        JsonPathQuery getJSONPathQuery() {
+            return query;
+        }
     }
 }
