@@ -4,6 +4,53 @@ Release Notes
 0.13.0
 ------
 
+### KeycloakRBACAuthorizer has been superseded by KeycloakAuthorizer and works in both Zookeeper and KRaft mode
+
+While `KeycloakRBACAuthorizer` can still be used in Zookeeper mode, for the future you should migrate your configuration to use `KeycloakAuthorizer`:
+
+In your `server.properties` use:
+```
+authorizer.class.name=io.strimzi.kafka.oauth.server.authorizer.KeycloakAuthorizer
+```
+
+As part of supporting KRaft mode the grants mapping logic has changed slightly. Rather than using the access token as a unit of grant, the user id is now used. 
+This results in better sharing of the grants between sessions of the same user, and should also reduce the number of grants held in cache, and the number of refresh requests to the Keycloak server.
+
+Due to these changes additional configuration options have been added:
+* `strimzi.authorization.grants.max.idle.time.seconds` specifies the time after which an idle grant in the cache can be garbage collected
+* `strimzi.authorization.grants.gc.period.seconds` specifies an interval in which cleaning of stale grants from grants cache is performed
+
+Also, as a result the option `strimzi.authorization.reuse.grants` now defaults to `true`, and no longer to `false`.
+
+See [PR 188](https://github.com/strimzi/strimzi-kafka-oauth/pull/188)
+
+### Option `strimzi.oauth.metric.reporters` added to supersede `metric.reporters` in OAuth metric
+
+Due to integration difficulties of OAuth metrics with Kafka metrics system the OAuth has to instantiate its own copy of metric reporters.
+It turns out that some metric reporters don't work correctly when instantiated multiple times. To address that, we no longer use Kafka's `metric.reporters` configuration.
+
+If `strimzi.oauth.metric.reporters` is not set OAuth metrics will still instantiate a default `org.apache.kafka.common.metrics.JmxReporter` if any OAuth metrics are enabled.
+In order to install some other metric reporter in addition to `JmxReporter` both have to be listed.
+Also, the suggested way to configure it on the Kafka broker is to set it as an env variable, rather than a property in `server.properties` file: 
+```
+export OAUTH_ENABLE_METRICS=true
+export STRIMZI_OAUTH_METRIC_REPORTERS=org.apache.kafka.common.metrics.JmxReporter,org.some.package.SomeReporter
+bin/kafka-server-start.sh config/server.properties
+```
+
+See [PR 193](https://github.com/strimzi/strimzi-kafka-oauth/pull/193)
+
+### Principal extraction from nested username claim was added
+
+It is now possible to use JsonPath query to target nested attributes when extracting a principal.
+For example:
+```
+oauth.username.claim="['user.info'].['user.id']"
+oauth.fallback.username.claim="['user.info'].['client.id']"
+```
+
+See [PR 194](https://github.com/strimzi/strimzi-kafka-oauth/pull/194)
+
 ### Fixed json-path handling of null
 
 This change introduces a backwards incompatible change in how queries using `equals` or `not equals` comparison to `null` are handled.
