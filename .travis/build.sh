@@ -14,6 +14,14 @@ exitIfError() {
 arch=$(uname -m)
 echo "Architecture: $arch"
 
+echo "JAVA_HOME: $JAVA_HOME"
+echo "public class PrintHome { public static void main(String[] args) { System.out.println(System.getProperty(\"java.home\"));  }}" > /tmp/PrintHome.java
+javac -d /tmp /tmp/PrintHome.java
+export JAVA_HOME=`dirname $(java -cp /tmp PrintHome)`
+echo "JAVA_HOME after resetting: $JAVA_HOME"
+
+mvn -version
+
 # The first segment of the version number is '1' for releases < 9; then '9', '10', '11', ...
 JAVA_MAJOR_VERSION=$(java -version 2>&1 | sed -E -n 's/.* version "([0-9]*).*$/\1/p')
 echo "JAVA_MAJOR_VERSION: $JAVA_MAJOR_VERSION"
