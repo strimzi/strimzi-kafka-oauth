@@ -85,9 +85,7 @@ public class PrincipalExtractor {
             }
             if (fallbackUsernameExtractor != null) {
                 result = extractUsername(fallbackUsernameExtractor, json);
-                if (result != null) {
-                    return result;
-                }
+                return result;
             }
         }
 
@@ -191,6 +189,11 @@ public class PrincipalExtractor {
 
         JsonPathQuery getJSONPathQuery() {
             return query;
+        }
+
+        @Override
+        public String toString() {
+            return query != null ? query.toString() : attributeName;
         }
     }
 }
