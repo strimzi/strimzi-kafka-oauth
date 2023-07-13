@@ -15,12 +15,21 @@ arch=$(uname -m)
 echo "Architecture: $arch"
 
 echo "JAVA_HOME: $JAVA_HOME"
+
+echo "ls -la /usr/bin/jvm:"
+ls -la /usr/lib/jvm
+
 echo "public class PrintHome { public static void main(String[] args) { System.out.println(System.getProperty(\"java.home\"));  }}" > /tmp/PrintHome.java
 javac -d /tmp /tmp/PrintHome.java
-export JAVA_HOME=`dirname $(java -cp /tmp PrintHome)`
-echo "JAVA_HOME after resetting: $JAVA_HOME"
+
+echo "Effective JAVA_HOME: "
+java -cp /tmp PrintHome
+#export JAVA_HOME=`dirname $(java -cp /tmp PrintHome)`
+#echo "JAVA_HOME after resetting: $JAVA_HOME"
 
 mvn -version
+
+exit 1
 
 # The first segment of the version number is '1' for releases < 9; then '9', '10', '11', ...
 JAVA_MAJOR_VERSION=$(java -version 2>&1 | sed -E -n 's/.* version "([0-9]*).*$/\1/p')
