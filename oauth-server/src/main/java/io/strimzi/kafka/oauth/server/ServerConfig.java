@@ -84,6 +84,11 @@ public class ServerConfig extends Config {
     public static final String OAUTH_GROUPS_CLAIM_DELIMITER = "oauth.groups.claim.delimiter";
 
     /**
+     * "oauth.include.accept.header"
+     */
+    public static final String OAUTH_INCLUDE_ACCEPT_HEADER = "oauth.include.accept.header";
+
+    /**
      * "oauth.valid.token.type"
      */
     public static final String OAUTH_VALID_TOKEN_TYPE = "oauth.valid.token.type";

@@ -173,7 +173,27 @@ public class HttpUtil {
      * @throws HttpException A runtime exception when an HTTP response status signals a failed request
      */
     public static <T> T get(URI uri, SSLSocketFactory socketFactory, HostnameVerifier hostnameVerifier, String authorization, Class<T> responseType, int connectTimeout, int readTimeout) throws IOException {
-        return request(uri, "GET", socketFactory, hostnameVerifier, authorization, null, null, responseType, connectTimeout, readTimeout);
+        return request(uri, "GET", socketFactory, hostnameVerifier, authorization, null, null, responseType, connectTimeout, readTimeout, true);
+    }
+
+    /**
+     * Perform HTTP GET request and return the response in the specified type.
+     *
+     * @param uri The target url
+     * @param socketFactory Socket factory to use with https:// url
+     * @param hostnameVerifier HostnameVerifier to use with https:// url
+     * @param authorization The Authorization header value
+     * @param responseType The type to which to convert the response (String or one of the Jackson Mapper types)
+     * @param connectTimeout Connect timeout in seconds
+     * @param readTimeout Read timeout in seconds
+     * @param includeAcceptHeader Determines if <code>Accept application/json</code> is sent to the remote server.
+     * @return The response as specified by the <code>responseType</code>.
+     * @param <T> Generic type of the <code>responseType</code>
+     * @throws IOException A connection, timeout, or network exception that occurs while performing the request
+     * @throws HttpException A runtime exception when an HTTP response status signals a failed request
+     */
+    public static <T> T get(URI uri, SSLSocketFactory socketFactory, HostnameVerifier hostnameVerifier, String authorization, Class<T> responseType, int connectTimeout, int readTimeout, boolean includeAcceptHeader) throws IOException {
+        return request(uri, "GET", socketFactory, hostnameVerifier, authorization, null, null, responseType, connectTimeout, readTimeout, includeAcceptHeader);
     }
 
     /**
@@ -248,7 +268,7 @@ public class HttpUtil {
      * @throws HttpException A runtime exception when an HTTP response status signals a failed request
      */
     public static <T> T post(URI uri, SSLSocketFactory socketFactory, HostnameVerifier verifier, String authorization, String contentType, String body, Class<T> responseType, int connectTimeout, int readTimeout) throws IOException {
-        return request(uri, "POST", socketFactory, verifier, authorization, contentType, body, responseType, connectTimeout, readTimeout);
+        return request(uri, "POST", socketFactory, verifier, authorization, contentType, body, responseType, connectTimeout, readTimeout, true);
     }
 
     /**
@@ -311,7 +331,7 @@ public class HttpUtil {
      * @throws HttpException A runtime exception when an HTTP response status signals a failed request
      */
     public static void put(URI uri, SSLSocketFactory socketFactory, HostnameVerifier verifier, String authorization, String contentType, String body, int connectTimeout, int readTimeout) throws IOException {
-        request(uri, "PUT", socketFactory, verifier, authorization, contentType, body, null, connectTimeout, readTimeout);
+        request(uri, "PUT", socketFactory, verifier, authorization, contentType, body, null, connectTimeout, readTimeout, true);
     }
 
     /**
@@ -323,7 +343,7 @@ public class HttpUtil {
      * @throws HttpException A runtime exception when an HTTP response status signals a failed request
      */
     public static void delete(URI uri, String authorization) throws IOException {
-        request(uri, "DELETE", null, null, authorization, null, null, null, DEFAULT_CONNECT_TIMEOUT, DEFAULT_READ_TIMEOUT);
+        request(uri, "DELETE", null, null, authorization, null, null, null, DEFAULT_CONNECT_TIMEOUT, DEFAULT_READ_TIMEOUT, true);
     }
 
     /**
@@ -337,7 +357,7 @@ public class HttpUtil {
      * @throws HttpException A runtime exception when an HTTP response status signals a failed request
      */
     public static void delete(URI uri, SSLSocketFactory socketFactory, HostnameVerifier verifier, String authorization) throws IOException {
-        request(uri, "DELETE", socketFactory, verifier, authorization, null, null, null, DEFAULT_CONNECT_TIMEOUT, DEFAULT_READ_TIMEOUT);
+        request(uri, "DELETE", socketFactory, verifier, authorization, null, null, null, DEFAULT_CONNECT_TIMEOUT, DEFAULT_READ_TIMEOUT, true);
     }
 
     /**
@@ -353,7 +373,7 @@ public class HttpUtil {
      * @throws HttpException A runtime exception when an HTTP response status signals a failed request
      */
     public static void delete(URI uri, SSLSocketFactory socketFactory, HostnameVerifier verifier, String authorization, int connectTimeout, int readTimeout) throws IOException {
-        request(uri, "DELETE", socketFactory, verifier, authorization, null, null, null, connectTimeout, readTimeout);
+        request(uri, "DELETE", socketFactory, verifier, authorization, null, null, null, connectTimeout, readTimeout, true);
     }
 
     /**
@@ -375,7 +395,7 @@ public class HttpUtil {
      * @throws HttpException A runtime exception when an HTTP response status signals a failed request
      */
     public static <T> T request(URI uri, SSLSocketFactory socketFactory, HostnameVerifier hostnameVerifier, String authorization, String contentType, String body, Class<T> responseType) throws IOException {
-        return request(uri, null, socketFactory, hostnameVerifier, authorization, contentType, body, responseType, DEFAULT_CONNECT_TIMEOUT, DEFAULT_READ_TIMEOUT);
+        return request(uri, null, socketFactory, hostnameVerifier, authorization, contentType, body, responseType, DEFAULT_CONNECT_TIMEOUT, DEFAULT_READ_TIMEOUT, true);
     }
 
     /**
@@ -395,7 +415,7 @@ public class HttpUtil {
      * @throws HttpException A runtime exception when an HTTP response status signals a failed request
      */
     public static <T> T request(URI uri, String method, SSLSocketFactory socketFactory, HostnameVerifier hostnameVerifier, String authorization, String contentType, String body, Class<T> responseType) throws IOException {
-        return request(uri, method, socketFactory, hostnameVerifier, authorization, contentType, body, responseType, DEFAULT_CONNECT_TIMEOUT, DEFAULT_READ_TIMEOUT);
+        return request(uri, method, socketFactory, hostnameVerifier, authorization, contentType, body, responseType, DEFAULT_CONNECT_TIMEOUT, DEFAULT_READ_TIMEOUT, true);
     }
 
     /**
@@ -413,13 +433,14 @@ public class HttpUtil {
      * @param readTimeout Read timeout in seconds
      * @return The response as specified by the <code>responseType</code>.
      * @param <T> Generic type of the <code>responseType</code>
+     * @param includeAcceptHeader Determines if <code>Accept application/json</code> is sent to the remote server.
      * @throws IOException A connection, timeout, or network exception that occurs while performing the request
      * @throws HttpException A runtime exception when an HTTP response status signals a failed request
      */
     // Suppressed because of Spotbugs Java 11 bug - https://github.com/spotbugs/spotbugs/issues/756
     @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
     public static <T> T request(URI uri, String method, SSLSocketFactory socketFactory, HostnameVerifier hostnameVerifier, String authorization,
-                                String contentType, String body, Class<T> responseType, int connectTimeout, int readTimeout) throws IOException {
+                                String contentType, String body, Class<T> responseType, int connectTimeout, int readTimeout, boolean includeAcceptHeader) throws IOException {
         HttpURLConnection con;
         try {
             con = (HttpURLConnection) uri.toURL().openConnection();
@@ -443,7 +464,11 @@ public class HttpUtil {
         if (authorization != null) {
             con.setRequestProperty("Authorization", authorization);
         }
-        con.setRequestProperty("Accept", "application/json");
+
+        if (includeAcceptHeader) {
+            con.setRequestProperty("Accept", "application/json");
+        }
+
         if (body != null && body.length() > 0) {
             if (contentType == null) {
                 throw new IllegalArgumentException("contentType must be set when body is not null");

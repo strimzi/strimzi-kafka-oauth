@@ -394,6 +394,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         int jwksMinPauseSeconds = config.getValueAsInt(ServerConfig.OAUTH_JWKS_REFRESH_MIN_PAUSE_SECONDS, 1);
         boolean failFast = config.getValueAsBoolean(ServerConfig.OAUTH_FAIL_FAST, true);
         boolean jwksIgnoreKeyUse = config.getValueAsBoolean(ServerConfig.OAUTH_JWKS_IGNORE_KEY_USE, false);
+        boolean includeAcceptHeader = config.getValueAsBoolean(ServerConfig.OAUTH_INCLUDE_ACCEPT_HEADER, true);
 
         ValidatorKey vkey = new ValidatorKey.JwtValidatorKey(
                 validIssuerUri,
@@ -442,7 +443,8 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                 connectTimeout,
                 readTimeout,
                 enableMetrics,
-                failFast);
+                failFast,
+                includeAcceptHeader);
 
         ConfigurationKey confKey = configId != null ? new ConfigurationKey(configId, vkey) : new ConfigurationKey(vkey.getConfigIdHash(), vkey);
         validator = Services.getInstance().getValidators().get(confKey, factory);
