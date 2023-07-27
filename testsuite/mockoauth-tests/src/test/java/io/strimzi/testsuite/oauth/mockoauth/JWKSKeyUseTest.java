@@ -93,6 +93,7 @@ public class JWKSKeyUseTest {
                 60,
                 60,
                 true,
+                true,
                 true);
     }
 }
