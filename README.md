@@ -1485,3 +1485,7 @@ The JWT tokens are signed by the authorization server when they are issued. The 
 The client may have obtained a new access token, but the Kafka broker has not yet refreshed the public keys from JWKS endpoint resulting in a mismatch. The Kafka Broker will automatically refresh JWT keys if it encounters an unknown `kid`, and the problem will self-correct in this case, you may just need to repeat your request a few times.
 
 It can also happen the other way around. Your existing client may still use the refresh token or the access token issued by the previous authorization server instance while the Kafka broker has already refreshed the keys from JWKS endpoint - resulting in a mismatch between the private key used by authorization server to sign the token, and the published public keys (JWKS endpoint). Since the problem is on the client you may need to configure your client with a newly obtained refresh token, or access token. If you configure your client with clientId and secret, it should autocorrect by itself, you just need to restart it.
+
+### HTTP 406: Not Acceptable errors.
+
+For certain servers setting the `Accept` header on outbound requests to `application/json` can cause the identity provider to reject the request. If that is an issue, you can set `oauth.include.accept.header` to `false` and remove the `Accept` header from outbound requests made by the Kafka server or client.  

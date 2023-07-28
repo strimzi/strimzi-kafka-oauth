@@ -247,7 +247,7 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
                 checkUsernameMatch = true;
             } else if (tokenEndpointUri != null) {
                 accessToken = OAuthAuthenticator.loginWithClientSecret(tokenEndpointUri, getSocketFactory(), getVerifier(),
-                        username, password, isJwt(), getPrincipalExtractor(), scope, audience, getConnectTimeout(), getReadTimeout(), authMetrics, getRetries(), getRetryPauseMillis())
+                        username, password, isJwt(), getPrincipalExtractor(), scope, audience, getConnectTimeout(), getReadTimeout(), authMetrics, getRetries(), getRetryPauseMillis(), includeAcceptHeader())
                         .token();
             } else {
                 throw new ValidationException("Empty password where access token was expected");

@@ -931,7 +931,8 @@ public class KeycloakAuthorizerTest {
                 60,
                 60,
                 retries,
-                0);
+                0,
+                true);
     }
 
     private void logStart(String msg) {

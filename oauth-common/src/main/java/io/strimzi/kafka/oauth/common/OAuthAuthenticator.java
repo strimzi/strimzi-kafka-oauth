@@ -72,6 +72,7 @@ public class OAuthAuthenticator {
      * @param isJwt If the returned token is expected to be a JWT token
      * @param principalExtractor A PrincipalExtractor to use to determine the principal (user id)
      * @param scope A scope to request when authenticating
+     * @param includeAcceptHeader Should we skip sending the Accept header when making outbound http requests
      * @return A TokenInfo with access token and information extracted from it
      * @throws IOException If the request to the authorization server has failed
      * @throws IllegalStateException If the response from the authorization server could not be handled
@@ -79,10 +80,10 @@ public class OAuthAuthenticator {
     public static TokenInfo loginWithClientSecret(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
                                                   HostnameVerifier hostnameVerifier,
                                                   String clientId, String clientSecret, boolean isJwt,
-                                                  PrincipalExtractor principalExtractor, String scope) throws IOException {
+                                                  PrincipalExtractor principalExtractor, String scope, boolean includeAcceptHeader) throws IOException {
 
         return loginWithClientSecret(tokenEndpointUrl, socketFactory, hostnameVerifier,
-                clientId, clientSecret, isJwt, principalExtractor, scope, null, HttpUtil.DEFAULT_CONNECT_TIMEOUT, HttpUtil.DEFAULT_READ_TIMEOUT, null, 0, 0);
+                clientId, clientSecret, isJwt, principalExtractor, scope, null, HttpUtil.DEFAULT_CONNECT_TIMEOUT, HttpUtil.DEFAULT_READ_TIMEOUT, null, 0, 0, includeAcceptHeader);
     }
 
     /**
@@ -98,6 +99,7 @@ public class OAuthAuthenticator {
      * @param principalExtractor A PrincipalExtractor to use to determine the principal (user id)
      * @param scope A scope to request when authenticating
      * @param audience An 'audience' attribute to set on the request when authenticating
+     * @param includeAcceptHeader Should we skip sending the Accept header when making outbound http requests
      * @return A TokenInfo with access token and information extracted from it
      * @throws IOException If the request to the authorization server has failed
      * @throws IllegalStateException If the response from the authorization server could not be handled
@@ -105,10 +107,10 @@ public class OAuthAuthenticator {
     public static TokenInfo loginWithClientSecret(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
                                                   HostnameVerifier hostnameVerifier,
                                                   String clientId, String clientSecret, boolean isJwt,
-                                                  PrincipalExtractor principalExtractor, String scope, String audience) throws IOException {
+                                                  PrincipalExtractor principalExtractor, String scope, String audience, boolean includeAcceptHeader) throws IOException {
 
         return loginWithClientSecret(tokenEndpointUrl, socketFactory, hostnameVerifier,
-                clientId, clientSecret, isJwt, principalExtractor, scope, audience, HttpUtil.DEFAULT_CONNECT_TIMEOUT, HttpUtil.DEFAULT_READ_TIMEOUT, null, 0, 0);
+                clientId, clientSecret, isJwt, principalExtractor, scope, audience, HttpUtil.DEFAULT_CONNECT_TIMEOUT, HttpUtil.DEFAULT_READ_TIMEOUT, null, 0, 0, includeAcceptHeader);
     }
 
     /**
@@ -129,6 +131,7 @@ public class OAuthAuthenticator {
      * @param metrics A MetricsHandler object to receive metrics collection callbacks
      * @param retries A maximum number of retries if the request fails due to network, or unexpected response status
      * @param retryPauseMillis A pause between consecutive requests
+     * @param includeAcceptHeader Should we skip sending the Accept header when making outbound http requests
      * @return A TokenInfo with access token and information extracted from it
      * @throws IOException If the request to the authorization server has failed
      * @throws IllegalStateException If the response from the authorization server could not be handled
@@ -138,7 +141,7 @@ public class OAuthAuthenticator {
                                                   HostnameVerifier hostnameVerifier,
                                                   String clientId, String clientSecret, boolean isJwt,
                                                   PrincipalExtractor principalExtractor, String scope, String audience,
-                                                  int connectTimeout, int readTimeout, MetricsHandler metrics, int retries, long retryPauseMillis) throws IOException {
+                                                  int connectTimeout, int readTimeout, MetricsHandler metrics, int retries, long retryPauseMillis, boolean includeAcceptHeader) throws IOException {
         if (log.isDebugEnabled()) {
             log.debug("loginWithClientSecret() - tokenEndpointUrl: {}, clientId: {}, clientSecret: {}, scope: {}, audience: {}, connectTimeout: {}, readTimeout: {}, retries: {}, retryPauseMillis: {}",
                     tokenEndpointUrl, clientId, mask(clientSecret), scope, audience, connectTimeout, readTimeout, retries, retryPauseMillis);
@@ -161,7 +164,7 @@ public class OAuthAuthenticator {
             body.append("&audience=").append(urlencode(audience));
         }
 
-        return post(tokenEndpointUrl, socketFactory, hostnameVerifier, authorization, body.toString(), isJwt, principalExtractor, connectTimeout, readTimeout, metrics, retries, retryPauseMillis);
+        return post(tokenEndpointUrl, socketFactory, hostnameVerifier, authorization, body.toString(), isJwt, principalExtractor, connectTimeout, readTimeout, metrics, retries, retryPauseMillis, includeAcceptHeader);
     }
 
     /**
@@ -179,6 +182,7 @@ public class OAuthAuthenticator {
      * @param principalExtractor A PrincipalExtractor to use to determine the principal (user id)
      * @param scope A scope to request when authenticating
      * @param audience An 'audience' attribute to set on the request when authenticating
+     * @param includeAcceptHeader Should we skip sending the Accept header when making outbound http requests
      * @return A TokenInfo with access token and information extracted from it
      * @throws IOException If the request to the authorization server has failed
      * @throws IllegalStateException If the response from the authorization server could not be handled
@@ -187,10 +191,10 @@ public class OAuthAuthenticator {
                                               HostnameVerifier hostnameVerifier,
                                               String username, String password,
                                               String clientId, String clientSecret, boolean isJwt,
-                                              PrincipalExtractor principalExtractor, String scope, String audience) throws IOException {
+                                              PrincipalExtractor principalExtractor, String scope, String audience, boolean includeAcceptHeader) throws IOException {
 
         return loginWithPassword(tokenEndpointUrl, socketFactory, hostnameVerifier,
-                username, password, clientId, clientSecret, isJwt, principalExtractor, scope, audience, HttpUtil.DEFAULT_CONNECT_TIMEOUT, HttpUtil.DEFAULT_READ_TIMEOUT, null, 0, 0);
+                username, password, clientId, clientSecret, isJwt, principalExtractor, scope, audience, HttpUtil.DEFAULT_CONNECT_TIMEOUT, HttpUtil.DEFAULT_READ_TIMEOUT, null, 0, 0, includeAcceptHeader);
     }
 
     /**
@@ -212,6 +216,7 @@ public class OAuthAuthenticator {
      * @param readTimeout A read timeout in seconds
      * @param retries A maximum number of retries if the request fails due to network, or unexpected response status
      * @param retryPauseMillis A pause between consecutive requests
+     * @param includeAcceptHeader Should we skip sending the Accept header when making outbound http requests
      * @return A TokenInfo with access token and information extracted from it
      * @throws IOException If the request to the authorization server has failed
      * @throws IllegalStateException If the response from the authorization server could not be handled
@@ -220,10 +225,10 @@ public class OAuthAuthenticator {
                                               HostnameVerifier hostnameVerifier,
                                               String username, String password,
                                               String clientId, String clientSecret, boolean isJwt,
-                                              PrincipalExtractor principalExtractor, String scope, String audience, int connectTimeout, int readTimeout, int retries, long retryPauseMillis) throws IOException {
+                                              PrincipalExtractor principalExtractor, String scope, String audience, int connectTimeout, int readTimeout, int retries, long retryPauseMillis, boolean includeAcceptHeader) throws IOException {
 
         return loginWithPassword(tokenEndpointUrl, socketFactory, hostnameVerifier,
-                username, password, clientId, clientSecret, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout, null, retries, retryPauseMillis);
+                username, password, clientId, clientSecret, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout, null, retries, retryPauseMillis, includeAcceptHeader);
     }
 
     /**
@@ -246,6 +251,7 @@ public class OAuthAuthenticator {
      * @param metrics A MetricsHandler object to receive metrics collection callbacks
      * @param retries A maximum number of retries if the request fails due to network, or unexpected response status
      * @param retryPauseMillis A pause between consecutive requests
+     * @param includeAcceptHeader Should we skip sending the Accept header when making outbound http requests
      * @return A TokenInfo with access token and information extracted from it
      * @throws IOException If the request to the authorization server has failed
      * @throws IllegalStateException If the response from the authorization server could not be handled
@@ -256,7 +262,7 @@ public class OAuthAuthenticator {
                                                   String username, String password,
                                                   String clientId, String clientSecret, boolean isJwt,
                                                   PrincipalExtractor principalExtractor, String scope, String audience,
-                                                  int connectTimeout, int readTimeout, MetricsHandler metrics, int retries, long retryPauseMillis) throws IOException {
+                                                  int connectTimeout, int readTimeout, MetricsHandler metrics, int retries, long retryPauseMillis, boolean includeAcceptHeader) throws IOException {
 
         if (log.isDebugEnabled()) {
             log.debug("loginWithPassword() - tokenEndpointUrl: {}, username: {}, password: {}, clientId: {}, clientSecret: {}, scope: {}, audience: {}, connectTimeout: {}, readTimeout: {}, retries: {}, retryPauseMillis: {}",
@@ -287,7 +293,7 @@ public class OAuthAuthenticator {
             body.append("&audience=").append(urlencode(audience));
         }
 
-        return post(tokenEndpointUrl, socketFactory, hostnameVerifier, authorization, body.toString(), isJwt, principalExtractor, connectTimeout, readTimeout, metrics, retries, retryPauseMillis);
+        return post(tokenEndpointUrl, socketFactory, hostnameVerifier, authorization, body.toString(), isJwt, principalExtractor, connectTimeout, readTimeout, metrics, retries, retryPauseMillis, includeAcceptHeader);
     }
 
     /**
@@ -303,6 +309,7 @@ public class OAuthAuthenticator {
      * @param isJwt If the returned token is expected to be a JWT token
      * @param principalExtractor A PrincipalExtractor to use to determine the principal (user id)
      * @param scope A scope to request when authenticating
+     * @param includeAcceptHeader Should we skip sending the Accept header when making outbound http requests
      * @return A TokenInfo with access token and information extracted from it
      * @throws IOException If the request to the authorization server has failed
      * @throws IllegalStateException If the response from the authorization server could not be handled
@@ -310,10 +317,10 @@ public class OAuthAuthenticator {
     public static TokenInfo loginWithRefreshToken(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
                                                   HostnameVerifier hostnameVerifier, String refreshToken,
                                                   String clientId, String clientSecret, boolean isJwt,
-                                                  PrincipalExtractor principalExtractor, String scope) throws IOException {
+                                                  PrincipalExtractor principalExtractor, String scope, boolean includeAcceptHeader) throws IOException {
 
         return loginWithRefreshToken(tokenEndpointUrl, socketFactory, hostnameVerifier,
-                refreshToken, clientId, clientSecret, isJwt, principalExtractor, scope, null);
+                refreshToken, clientId, clientSecret, isJwt, principalExtractor, scope, null, includeAcceptHeader);
     }
 
     /**
@@ -330,6 +337,7 @@ public class OAuthAuthenticator {
      * @param principalExtractor A PrincipalExtractor to use to determine the principal (user id)
      * @param scope A scope to request when authenticating
      * @param audience  An 'audience' attribute to set on the request when authenticating
+     * @param includeAcceptHeader Should we skip sending the Accept header when making outbound http requests
      * @return A TokenInfo with access token and information extracted from it
      * @throws IOException If the request to the authorization server has failed
      * @throws IllegalStateException If the response from the authorization server could not be handled
@@ -337,9 +345,9 @@ public class OAuthAuthenticator {
     public static TokenInfo loginWithRefreshToken(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
                                                   HostnameVerifier hostnameVerifier, String refreshToken,
                                                   String clientId, String clientSecret, boolean isJwt,
-                                                  PrincipalExtractor principalExtractor, String scope, String audience) throws IOException {
+                                                  PrincipalExtractor principalExtractor, String scope, String audience, boolean includeAcceptHeader) throws IOException {
         return loginWithRefreshToken(tokenEndpointUrl, socketFactory, hostnameVerifier,
-                refreshToken, clientId, clientSecret, isJwt, principalExtractor, scope, audience, HttpUtil.DEFAULT_CONNECT_TIMEOUT, HttpUtil.DEFAULT_READ_TIMEOUT, 0, 0);
+                refreshToken, clientId, clientSecret, isJwt, principalExtractor, scope, audience, HttpUtil.DEFAULT_CONNECT_TIMEOUT, HttpUtil.DEFAULT_READ_TIMEOUT, 0, 0, includeAcceptHeader);
     }
 
     /**
@@ -358,6 +366,7 @@ public class OAuthAuthenticator {
      * @param readTimeout A read timeout in seconds
      * @param retries A maximum number of retries if the request fails due to network, or unexpected response status
      * @param retryPauseMillis A pause between consecutive requests
+     * @param includeAcceptHeader Should we skip sending the Accept header when making outbound http requests
      * @return A TokenInfo with access token and information extracted from it
      * @throws IOException If the request to the authorization server has failed
      * @throws IllegalStateException If the response from the authorization server could not be handled
@@ -366,8 +375,8 @@ public class OAuthAuthenticator {
                                                   HostnameVerifier hostnameVerifier, String refreshToken,
                                                   String clientId, String clientSecret, boolean isJwt,
                                                   PrincipalExtractor principalExtractor, String scope, String audience,
-                                                  int connectTimeout, int readTimeout, int retries, long retryPauseMillis) throws IOException {
-        return loginWithRefreshToken(tokenEndpointUrl, socketFactory, hostnameVerifier, refreshToken, clientId, clientSecret, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout, null, retries, retryPauseMillis);
+                                                  int connectTimeout, int readTimeout, int retries, long retryPauseMillis, boolean includeAcceptHeader) throws IOException {
+        return loginWithRefreshToken(tokenEndpointUrl, socketFactory, hostnameVerifier, refreshToken, clientId, clientSecret, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout, null, retries, retryPauseMillis, includeAcceptHeader);
     }
 
     /**
@@ -387,6 +396,7 @@ public class OAuthAuthenticator {
      * @param metrics A MetricsHandler object to receive metrics collection callbacks
      * @param retries A maximum number of retries if the request fails due to network, or unexpected response status
      * @param retryPauseMillis A pause between consecutive requests
+     * @param includeAcceptHeader Should we skip sending the Accept header when making outbound http requests
      * @return A TokenInfo with access token and information extracted from it
      * @throws IOException If the request to the authorization server has failed
      * @throws IllegalStateException If the response from the authorization server could not be handled
@@ -395,10 +405,10 @@ public class OAuthAuthenticator {
                                                   HostnameVerifier hostnameVerifier, String refreshToken,
                                                   String clientId, String clientSecret, boolean isJwt,
                                                   PrincipalExtractor principalExtractor, String scope, String audience,
-                                                  int connectTimeout, int readTimeout, MetricsHandler metrics, int retries, long retryPauseMillis) throws IOException {
+                                                  int connectTimeout, int readTimeout, MetricsHandler metrics, int retries, long retryPauseMillis, boolean includeAcceptHeader) throws IOException {
         if (log.isDebugEnabled()) {
-            log.debug("loginWithRefreshToken() - tokenEndpointUrl: {}, refreshToken: {}, clientId: {}, clientSecret: {}, scope: {}, audience: {}, connectTimeout: {}, readTimeout: {}, retries: {}, retryPauseMillis: {}",
-                    tokenEndpointUrl, refreshToken, clientId, mask(clientSecret), scope, audience, connectTimeout, readTimeout, retries, retryPauseMillis);
+            log.debug("loginWithRefreshToken() - tokenEndpointUrl: {}, refreshToken: {}, clientId: {}, clientSecret: {}, scope: {}, audience: {}, connectTimeout: {}, readTimeout: {}, retries: {}, retryPauseMillis: {}, includeAcceptHeader: {}",
+                    tokenEndpointUrl, refreshToken, clientId, mask(clientSecret), scope, audience, connectTimeout, readTimeout, retries, retryPauseMillis, includeAcceptHeader);
         }
 
         if (refreshToken == null) {
@@ -420,12 +430,12 @@ public class OAuthAuthenticator {
             body.append("&audience=").append(urlencode(audience));
         }
 
-        return post(tokenEndpointUrl, socketFactory, hostnameVerifier, authorization, body.toString(), isJwt, principalExtractor, connectTimeout, readTimeout, metrics, retries, retryPauseMillis);
+        return post(tokenEndpointUrl, socketFactory, hostnameVerifier, authorization, body.toString(), isJwt, principalExtractor, connectTimeout, readTimeout, metrics, retries, retryPauseMillis, includeAcceptHeader);
     }
 
     private static TokenInfo post(URI tokenEndpointUri, SSLSocketFactory socketFactory, HostnameVerifier hostnameVerifier,
                                   String authorization, String body, boolean isJwt, PrincipalExtractor principalExtractor,
-                                  int connectTimeout, int readTimeout, MetricsHandler metrics, int retries, long retryPauseMillis) throws IOException {
+                                  int connectTimeout, int readTimeout, MetricsHandler metrics, int retries, long retryPauseMillis, boolean includeAcceptHeader) throws IOException {
 
         JsonNode result;
         try {
@@ -438,7 +448,8 @@ public class OAuthAuthenticator {
                             body,
                             JsonNode.class,
                             connectTimeout,
-                            readTimeout)
+                            readTimeout,
+                            includeAcceptHeader)
             );
 
         } catch (Throwable e) {

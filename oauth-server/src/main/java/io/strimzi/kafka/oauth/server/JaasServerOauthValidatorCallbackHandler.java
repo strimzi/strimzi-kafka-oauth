@@ -214,6 +214,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
     private long retryPauseMillis;
 
     private boolean enableMetrics;
+    private boolean includeAcceptHeader;
 
     private OAuthMetrics metrics;
     protected SensorKeyProducer validationSensorKeyProducer;
@@ -256,6 +257,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
         boolean checkTokenType = isCheckAccessTokenType(config);
         boolean checkAudience = config.getValueAsBoolean(ServerConfig.OAUTH_CHECK_AUDIENCE, false);
+        includeAcceptHeader = config.getValueAsBoolean(Config.OAUTH_INCLUDE_ACCEPT_HEADER, true);
 
         String usernameClaim = config.getValue(Config.OAUTH_USERNAME_CLAIM);
         String fallbackUsernameClaim = config.getValue(Config.OAUTH_FALLBACK_USERNAME_CLAIM);
@@ -328,6 +330,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         String introspectionEndpoint = config.getValue(ServerConfig.OAUTH_INTROSPECTION_ENDPOINT_URI);
         String userInfoEndpoint = config.getValue(ServerConfig.OAUTH_USERINFO_ENDPOINT_URI);
         String validTokenType = config.getValue(ServerConfig.OAUTH_VALID_TOKEN_TYPE);
+        boolean includeAcceptHeader = config.getValueAsBoolean(Config.OAUTH_INCLUDE_ACCEPT_HEADER, true);
 
         ValidatorKey vkey = new ValidatorKey.IntrospectionValidatorKey(
                 validIssuerUri,
@@ -375,7 +378,8 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                 readTimeout,
                 enableMetrics,
                 retries,
-                retryPauseMillis);
+                retryPauseMillis,
+                includeAcceptHeader);
 
         ConfigurationKey confKey = configId != null ? new ConfigurationKey(configId, vkey) : new ConfigurationKey(vkey.getConfigIdHash(), vkey);
         validator = Services.getInstance().getValidators().get(confKey, factory);
@@ -394,7 +398,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         int jwksMinPauseSeconds = config.getValueAsInt(ServerConfig.OAUTH_JWKS_REFRESH_MIN_PAUSE_SECONDS, 1);
         boolean failFast = config.getValueAsBoolean(ServerConfig.OAUTH_FAIL_FAST, true);
         boolean jwksIgnoreKeyUse = config.getValueAsBoolean(ServerConfig.OAUTH_JWKS_IGNORE_KEY_USE, false);
-        boolean includeAcceptHeader = config.getValueAsBoolean(ServerConfig.OAUTH_INCLUDE_ACCEPT_HEADER, true);
+        boolean includeAcceptHeader = config.getValueAsBoolean(Config.OAUTH_INCLUDE_ACCEPT_HEADER, true);
 
         ValidatorKey vkey = new ValidatorKey.JwtValidatorKey(
                 validIssuerUri,
@@ -743,6 +747,10 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
     protected long getRetryPauseMillis() {
         return retryPauseMillis;
+    }
+
+    protected Boolean includeAcceptHeader() {
+        return includeAcceptHeader;
     }
 
     private void addValidationMetricSuccessTime(long startTimeMs) {

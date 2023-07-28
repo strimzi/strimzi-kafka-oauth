@@ -262,13 +262,14 @@ public class HttpUtil {
      * @param responseType The type to which to convert the response (String or one of the Jackson Mapper types)
      * @param connectTimeout Connect timeout in seconds
      * @param readTimeout Read timeout in seconds
+     * @param includeAcceptHeader TODO
      * @return The response as specified by the <code>responseType</code>.
      * @param <T> Generic type of the <code>responseType</code>
      * @throws IOException A connection, timeout, or network exception that occurs while performing the request
      * @throws HttpException A runtime exception when an HTTP response status signals a failed request
      */
-    public static <T> T post(URI uri, SSLSocketFactory socketFactory, HostnameVerifier verifier, String authorization, String contentType, String body, Class<T> responseType, int connectTimeout, int readTimeout) throws IOException {
-        return request(uri, "POST", socketFactory, verifier, authorization, contentType, body, responseType, connectTimeout, readTimeout, true);
+    public static <T> T post(URI uri, SSLSocketFactory socketFactory, HostnameVerifier verifier, String authorization, String contentType, String body, Class<T> responseType, int connectTimeout, int readTimeout, boolean includeAcceptHeader) throws IOException {
+        return request(uri, "POST", socketFactory, verifier, authorization, contentType, body, responseType, connectTimeout, readTimeout, includeAcceptHeader);
     }
 
     /**

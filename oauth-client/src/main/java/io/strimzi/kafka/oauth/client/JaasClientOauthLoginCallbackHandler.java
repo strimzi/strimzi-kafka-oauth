@@ -82,6 +82,7 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
     private SensorKeyProducer tokenSensorKeyProducer;
 
     private final ClientMetricsHandler authenticatorMetrics = new ClientMetricsHandler();
+    private boolean includeAcceptHeader;
 
     @Override
     public void configure(Map<String, ?> configs, String saslMechanism, List<AppConfigurationEntry> jaasConfigEntries) {
@@ -125,6 +126,7 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
         readTimeout = getReadTimeout(config);
         retries = getHttpRetries(config);
         retryPauseMillis = getHttpRetryPauseMillis(config, retries);
+        includeAcceptHeader = config.getValueAsBoolean(Config.OAUTH_INCLUDE_ACCEPT_HEADER, true);
         checkConfiguration();
 
         principalExtractor = new PrincipalExtractor(
@@ -274,11 +276,11 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
                 // we could check if it's a JWT - in that case we could check if it's expired
                 result = loginWithAccessToken(token, isJwt, principalExtractor);
             } else if (refreshToken != null) {
-                result = loginWithRefreshToken(tokenEndpoint, socketFactory, hostnameVerifier, refreshToken, clientId, clientSecret, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout, authenticatorMetrics, retries, retryPauseMillis);
+                result = loginWithRefreshToken(tokenEndpoint, socketFactory, hostnameVerifier, refreshToken, clientId, clientSecret, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout, authenticatorMetrics, retries, retryPauseMillis, includeAcceptHeader);
             } else if (username != null) {
-                result = loginWithPassword(tokenEndpoint, socketFactory, hostnameVerifier, username, password, clientId, clientSecret, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout, authenticatorMetrics, retries, retryPauseMillis);
+                result = loginWithPassword(tokenEndpoint, socketFactory, hostnameVerifier, username, password, clientId, clientSecret, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout, authenticatorMetrics, retries, retryPauseMillis, includeAcceptHeader);
             } else if (clientSecret != null) {
-                result = loginWithClientSecret(tokenEndpoint, socketFactory, hostnameVerifier, clientId, clientSecret, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout, authenticatorMetrics, retries, retryPauseMillis);
+                result = loginWithClientSecret(tokenEndpoint, socketFactory, hostnameVerifier, clientId, clientSecret, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout, authenticatorMetrics, retries, retryPauseMillis, includeAcceptHeader);
             } else {
                 throw new IllegalStateException("Invalid oauth client configuration - no credentials");
             }

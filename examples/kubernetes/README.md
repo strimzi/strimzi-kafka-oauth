@@ -37,7 +37,7 @@ They assume Keycloak is used as an authorization server, with properly configure
 
 * `kafka-oauth-single-authz-service-accounts.yaml`
 
-  A single node Kafka cluster using [service account tokens](https://kubernetes.io/docs/reference/access-authn-authz/authentication/#service-account-tokens) for authorization and the `simple` authorizer.
+  A single node Kafka cluster using [service account tokens](https://kubernetes.io/docs/reference/access-authn-authz/authentication/#service-account-tokens) for authentication and the `simple` authorizer.
   It requires that the `kube-root-ca.crt` be copied from its ConfigMap to a Secret:
     
       kubectl get configmap/kube-root-ca.crt -o=json | jq -r '.data."ca.crt"' | kubectl create secret generic kube-root-ca --from-file=ca.crt=/dev/stdin

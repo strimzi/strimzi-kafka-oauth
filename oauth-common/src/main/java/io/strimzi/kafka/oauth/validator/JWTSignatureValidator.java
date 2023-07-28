@@ -116,7 +116,7 @@ public class JWTSignatureValidator implements TokenValidator {
      * @param readTimeoutSeconds The maximum time to wait for response from authorization server after connection has been established and request sent (in seconds)
      * @param enableMetrics The switch that enables metrics collection
      * @param failFast Should exception be thrown during initialisation if unable to retrieve JWKS keys
-     * @param includeAcceptHeader Should we skip sending the Accept header when requesting JWKS keys
+     * @param includeAcceptHeader Should we skip sending the Accept header when making outbound http requests
      */
     @SuppressWarnings("checkstyle:ParameterNumber")
     public JWTSignatureValidator(String validatorId,

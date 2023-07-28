@@ -98,7 +98,8 @@ public class Common {
                 true,
                 new PrincipalExtractor(),
                 "all",
-                null);
+                null,
+                true);
 
         return tokenInfo.token();
     }
