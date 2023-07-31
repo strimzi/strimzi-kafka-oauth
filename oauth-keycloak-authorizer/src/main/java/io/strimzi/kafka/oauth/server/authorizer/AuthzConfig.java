@@ -110,7 +110,7 @@ public class AuthzConfig extends Config {
     public static final String STRIMZI_AUTHORIZATION_REUSE_GRANTS = "strimzi.authorization.reuse.grants";
 
     /**
-     * Reuse cached grants for the same principal (user id) possibly fetched by another session using a different access token.
+     * Disable sending the <code>Accept</code> header to the upstream server.
      */
     public static final String STRIMZI_OAUTH_INCLUDE_ACCEPT_HEADER = "strimzi.oauth.include.accept.header";
 

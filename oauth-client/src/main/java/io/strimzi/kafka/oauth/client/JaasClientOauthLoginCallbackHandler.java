@@ -166,7 +166,8 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
                     + "\n    readTimeout: " + readTimeout
                     + "\n    retries: " + retries
                     + "\n    retryPauseMillis: " + retryPauseMillis
-                    + "\n    enableMetrics: " + enableMetrics);
+                    + "\n    enableMetrics: " + enableMetrics
+                    + "\n    includeAcceptHeader: " + includeAcceptHeader);
         }
     }
 
