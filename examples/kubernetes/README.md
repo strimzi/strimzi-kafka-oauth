@@ -35,13 +35,6 @@ They assume Keycloak is used as an authorization server, with properly configure
   A single node Kafka cluster with OAuth 2 authentication with OAuth metrics enabled.
   See [README-metrics.md]() for how to setup this example.
 
-* `kafka-oauth-single-authz-service-accounts.yaml`
-
-  A single node Kafka cluster using [service account tokens](https://kubernetes.io/docs/reference/access-authn-authz/authentication/#service-account-tokens) for authentication and the `simple` authorizer.
-  It requires that the `kube-root-ca.crt` be copied from its ConfigMap to a Secret:
-    
-      kubectl get configmap/kube-root-ca.crt -o=json | jq -r '.data."ca.crt"' | kubectl create secret generic kube-root-ca --from-file=ca.crt=/dev/stdin
-
 ### Deploying Keycloak and accessing the Keycloak Admin Console
 
 Before deploying any of the Kafka cluster definitions, you need to deploy a Keycloak instance, and configure the realms with the necessary client definitions.
