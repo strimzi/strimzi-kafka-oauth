@@ -13,6 +13,7 @@ import io.strimzi.kafka.oauth.common.PrincipalExtractor;
 import io.strimzi.kafka.oauth.common.SSLUtil;
 import io.strimzi.kafka.oauth.common.TimeUtil;
 import io.strimzi.kafka.oauth.common.TokenInfo;
+import io.strimzi.testsuite.oauth.common.TestUtil;
 import io.strimzi.testsuite.oauth.mockoauth.metrics.Metrics;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -26,6 +27,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -217,6 +219,17 @@ public class Common {
             return path.resolve("testsuite/mockoauth-tests").toAbsolutePath().toString();
         }
         return cwd;
+    }
+
+    static void checkLog(LogLineReader logReader, String... args) throws IOException {
+        if (args.length % 2 != 0) {
+            throw new IllegalArgumentException("Args should be in pairs but there is an odd number of them.");
+        }
+        List<String> lines = logReader.readNext();
+
+        for (int i = 0; i < args.length; i += 2) {
+            Assert.assertEquals(args[i] + " =~ " + args[i + 1], 1, TestUtil.countLogForRegex(lines, args[i] + ":.*" + args[i + 1]));
+        }
     }
 
     static class MockBearerTokenWithPayload implements BearerTokenWithPayload {

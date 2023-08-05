@@ -234,6 +234,7 @@ public class KeycloakRBACAuthorizer implements Authorizer {
                     + "\n    readTimeoutSeconds: " + configuration.getReadTimeoutSeconds()
                     + "\n    enableMetrics: " + configuration.isEnableMetrics()
                     + "\n    gcPeriodSeconds: " + configuration.getGcPeriodSeconds()
+                    + "\n    includeAcceptHeader: " + configuration.getIncludeAcceptHeader()
             );
         }
     }
@@ -550,7 +551,7 @@ public class KeycloakRBACAuthorizer implements Authorizer {
 
         try {
             response = post(configuration.getTokenEndpointUrl(), socketFactory, hostnameVerifier, authorization,
-                    "application/x-www-form-urlencoded", body.toString(), JsonNode.class, configuration.getConnectTimeoutSeconds(), configuration.getReadTimeoutSeconds(), configuration.includeAcceptHeader());
+                    "application/x-www-form-urlencoded", body.toString(), JsonNode.class, configuration.getConnectTimeoutSeconds(), configuration.getReadTimeoutSeconds(), configuration.getIncludeAcceptHeader());
             addGrantsHttpMetricSuccessTime(startTime);
         } catch (HttpException e) {
             addGrantsHttpMetricErrorTime(e, startTime);

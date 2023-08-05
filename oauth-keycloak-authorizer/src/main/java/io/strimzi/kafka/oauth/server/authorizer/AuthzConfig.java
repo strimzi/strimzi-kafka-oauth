@@ -112,7 +112,7 @@ public class AuthzConfig extends Config {
     /**
      * Disable sending the <code>Accept</code> header to the upstream server.
      */
-    public static final String STRIMZI_OAUTH_INCLUDE_ACCEPT_HEADER = "strimzi.oauth.include.accept.header";
+    public static final String STRIMZI_AUTHORIZATION_INCLUDE_ACCEPT_HEADER = "strimzi.authorization.include.accept.header";
 
 
     /**
