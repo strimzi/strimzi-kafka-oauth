@@ -102,7 +102,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
      * @param enableMetrics The switch that enables metrics collection
      * @param retries Maximum number of retries if request to the authorization server fails (0 means no retries)
      * @param retryPauseMillis Time to pause before retrying the request to the authorization server
-     * @param includeAcceptHeader Should we skip sending the Accept header when making outbound http requests
+     * @param includeAcceptHeader Should we send the Accept header when making outbound http requests
      */
     @SuppressWarnings("checkstyle:ParameterNumber")
     public OAuthIntrospectionValidator(String id,

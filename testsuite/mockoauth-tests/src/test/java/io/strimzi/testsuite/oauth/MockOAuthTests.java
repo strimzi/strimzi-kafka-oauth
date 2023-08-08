@@ -6,6 +6,7 @@ package io.strimzi.testsuite.oauth;
 
 import io.strimzi.testsuite.oauth.common.TestContainersLogCollector;
 import io.strimzi.testsuite.oauth.common.TestContainersWatcher;
+import io.strimzi.testsuite.oauth.mockoauth.JaasServerConfigTest;
 import io.strimzi.testsuite.oauth.mockoauth.metrics.MetricsTest;
 import io.strimzi.testsuite.oauth.mockoauth.ConnectTimeoutTests;
 import io.strimzi.testsuite.oauth.mockoauth.JWKSKeyUseTest;
@@ -67,6 +68,9 @@ public class MockOAuthTests {
 
             logStart("JaasClientConfigTest :: Client Configuration Tests");
             new JaasClientConfigTest().doTest();
+
+            logStart("JaasServerConfigTest :: Server Configuration Tests");
+            new JaasServerConfigTest().doTest();
 
             logStart("PasswordAuthTest :: Password Grant Tests");
             new PasswordAuthTest().doTest();
