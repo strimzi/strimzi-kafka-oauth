@@ -5,6 +5,7 @@
 package io.strimzi.testsuite.oauth.mockoauth;
 
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
+import io.strimzi.kafka.oauth.common.Config;
 import io.strimzi.kafka.oauth.common.ConfigException;
 import io.strimzi.kafka.oauth.common.OAuthAuthenticator;
 import io.strimzi.kafka.oauth.common.PrincipalExtractor;
@@ -59,6 +60,7 @@ import java.util.stream.Collectors;
 import static io.strimzi.testsuite.oauth.common.TestUtil.checkLogForRegex;
 import static io.strimzi.testsuite.oauth.mockoauth.Common.addGrantsForToken;
 import static io.strimzi.testsuite.oauth.mockoauth.Common.changeAuthServerMode;
+import static io.strimzi.testsuite.oauth.mockoauth.Common.checkLog;
 import static io.strimzi.testsuite.oauth.mockoauth.Common.createOAuthClient;
 import static io.strimzi.testsuite.oauth.mockoauth.Common.createOAuthUser;
 import static org.mockito.Mockito.mock;
@@ -435,28 +437,28 @@ public class KeycloakAuthorizerTest {
             authorizer.configure(config);
         }
 
-        List<String> lines = logReader.readNext();
-
         // Check the defaults
-        Assert.assertEquals("tokenEndpointUri: https://mockoauth:8090/grants", 1, TestUtil.countLogForRegex(lines, "tokenEndpointUri: https://mockoauth:8090/grants"));
-        Assert.assertEquals("clientId: kafka", 1, TestUtil.countLogForRegex(lines, "clientId: kafka"));
-        Assert.assertEquals("sslSocketFactory: null", 1, TestUtil.countLogForRegex(lines, "sslSocketFactory: null"));
-        Assert.assertEquals("hostnameVerifier: null", 1, TestUtil.countLogForRegex(lines, "hostnameVerifier: null"));
-        Assert.assertEquals("clusterName: kafka-cluster", 1, TestUtil.countLogForRegex(lines, "clusterName: kafka-cluster"));
-        Assert.assertEquals("delegateToKafkaACL: false", 1, TestUtil.countLogForRegex(lines, "delegateToKafkaACL: false"));
-        Assert.assertEquals("superUsers: []", 1, TestUtil.countLogForRegex(lines, "superUsers: \\[\\]"));
-        Assert.assertEquals("grantsRefreshPeriodSeconds: 60", 1, TestUtil.countLogForRegex(lines, "grantsRefreshPeriodSeconds: 60"));
-        Assert.assertEquals("grantsRefreshPoolSize: 5", 1, TestUtil.countLogForRegex(lines, "grantsRefreshPoolSize: 5"));
-        Assert.assertEquals("grantsMaxIdleTimeSeconds: 300", 1, TestUtil.countLogForRegex(lines, "grantsMaxIdleTimeSeconds: 300"));
-        Assert.assertEquals("httpRetries: 0", 1, TestUtil.countLogForRegex(lines, "httpRetries: 0"));
-        Assert.assertEquals("reuseGrants: true", 1, TestUtil.countLogForRegex(lines, "reuseGrants: true"));
-        Assert.assertEquals("connectTimeoutSeconds: 60", 1, TestUtil.countLogForRegex(lines, "connectTimeoutSeconds: 60"));
-        Assert.assertEquals("readTimeoutSeconds: 60", 1, TestUtil.countLogForRegex(lines, "readTimeoutSeconds: 60"));
-        Assert.assertEquals("enableMetrics: false", 1, TestUtil.countLogForRegex(lines, "enableMetrics: false"));
-        Assert.assertEquals("gcPeriodSeconds: 300", 1, TestUtil.countLogForRegex(lines, "gcPeriodSeconds: 300"));
+        checkLog(logReader, "tokenEndpointUri", "https://mockoauth:8090/grants",
+            "clientId", "kafka",
+            "sslSocketFactory", "null",
+            "hostnameVerifier", "null",
+            "clusterName", "kafka-cluster",
+            "delegateToKafkaACL", "false",
+            "superUsers", "\\[\\]",
+            "grantsRefreshPeriodSeconds", "60",
+            "grantsRefreshPoolSize", "5",
+            "grantsMaxIdleTimeSeconds", "300",
+            "httpRetries", "0",
+            "reuseGrants", "true",
+            "connectTimeoutSeconds", "60",
+            "readTimeoutSeconds", "60",
+            "enableMetrics", "false",
+            "gcPeriodSeconds", "300",
+            "includeAcceptHeader", "true"
+        );
+
 
         // Custom config
-
         config.put(AuthzConfig.STRIMZI_AUTHORIZATION_KAFKA_CLUSTER_NAME, "cluster1");
         config.put("super.users", "User:admin;User:service-account-kafka");
         config.put(AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_REFRESH_PERIOD_SECONDS, "180");
@@ -468,6 +470,7 @@ public class KeycloakAuthorizerTest {
         config.put(AuthzConfig.STRIMZI_AUTHORIZATION_READ_TIMEOUT_SECONDS, "15");
         config.put(AuthzConfig.STRIMZI_AUTHORIZATION_ENABLE_METRICS, "true");
         config.put(AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_GC_PERIOD_SECONDS, "60");
+        config.put(AuthzConfig.STRIMZI_AUTHORIZATION_INCLUDE_ACCEPT_HEADER, "false");
 
         try (KeycloakAuthorizer authorizer = new KeycloakAuthorizer()) {
             try {
@@ -483,19 +486,35 @@ public class KeycloakAuthorizerTest {
             authorizer.configure(config);
         }
 
-        lines = logReader.readNext();
+        checkLog(logReader, "clusterName", "cluster1",
+                "superUsers", "\\['User:admin', 'User:service-account-kafka'\\]",
+                "grantsRefreshPeriodSeconds", "180",
+                "grantsRefreshPoolSize", "3",
+                "grantsMaxIdleTimeSeconds", "30",
+                "httpRetries", "2",
+                "reuseGrants", "false",
+                "connectTimeoutSeconds", "15",
+                "readTimeoutSeconds", "15",
+                "enableMetrics", "true",
+                "gcPeriodSeconds", "60",
+                "includeAcceptHeader", "false"
+        );
 
-        Assert.assertEquals("clusterName: cluster1", 1, TestUtil.countLogForRegex(lines, "clusterName: cluster1"));
-        Assert.assertEquals("superUsers: ['User:admin', 'User:service-account-kafka']", 1, TestUtil.countLogForRegex(lines, "superUsers: \\['User:admin', 'User:service-account-kafka'\\]"));
-        Assert.assertEquals("grantsRefreshPeriodSeconds: 180", 1, TestUtil.countLogForRegex(lines, "grantsRefreshPeriodSeconds: 180"));
-        Assert.assertEquals("grantsRefreshPoolSize: 3", 1, TestUtil.countLogForRegex(lines, "grantsRefreshPoolSize: 3"));
-        Assert.assertEquals("grantsMaxIdleTimeSeconds: 30", 1, TestUtil.countLogForRegex(lines, "grantsMaxIdleTimeSeconds: 30"));
-        Assert.assertEquals("httpRetries: 2", 1, TestUtil.countLogForRegex(lines, "httpRetries: 2"));
-        Assert.assertEquals("reuseGrants: false", 1, TestUtil.countLogForRegex(lines, "reuseGrants: false"));
-        Assert.assertEquals("connectTimeoutSeconds: 15", 1, TestUtil.countLogForRegex(lines, "connectTimeoutSeconds: 15"));
-        Assert.assertEquals("readTimeoutSeconds: 15", 1, TestUtil.countLogForRegex(lines, "readTimeoutSeconds: 15"));
-        Assert.assertEquals("enableMetrics: true", 1, TestUtil.countLogForRegex(lines, "enableMetrics: true"));
-        Assert.assertEquals("gcPeriodSeconds: 60", 1, TestUtil.countLogForRegex(lines, "gcPeriodSeconds: 60"));
+
+        // test OAUTH_INCLUDE_ACCEPT_HEADER fallback
+        config.remove(AuthzConfig.STRIMZI_AUTHORIZATION_INCLUDE_ACCEPT_HEADER);
+        System.setProperty(Config.OAUTH_INCLUDE_ACCEPT_HEADER, "false");
+
+        TestAuthzUtil.clearKeycloakAuthorizerService();
+        try (KeycloakAuthorizer authorizer = new KeycloakAuthorizer()) {
+            authorizer.configure(config);
+        }
+
+        checkLog(logReader, "clusterName", "cluster1",
+                "includeAcceptHeader", "false"
+        );
+
+        System.clearProperty(Config.OAUTH_INCLUDE_ACCEPT_HEADER);
 
 
         // test gcPeriodSeconds set to 0
@@ -506,10 +525,9 @@ public class KeycloakAuthorizerTest {
             authorizer.configure(config);
         }
 
-        lines = logReader.readNext();
-
-        Assert.assertEquals("gcPeriodSeconds invalid value: 0", 1, TestUtil.countLogForRegex(lines, "'strimzi.authorization.grants.gc.period.seconds' set to invalid value: 0, using the default value: 300 seconds"));
-        Assert.assertEquals("gcPeriodSeconds: 300", 1, TestUtil.countLogForRegex(lines, "gcPeriodSeconds: 300"));
+        checkLog(logReader,
+                "'strimzi.authorization.grants.gc.period.seconds' set to invalid value", "0, using the default value: 300 seconds",
+                "gcPeriodSeconds", "300");
 
         TestAuthzUtil.clearKeycloakAuthorizerService();
     }
@@ -881,26 +899,24 @@ public class KeycloakAuthorizerTest {
     }
 
     private HashMap<String, String> configureAuthorizer() {
-        return configureAuthorizer(CLIENT_SRV, CLIENT_SRV_SECRET, TRUSTSTORE_PATH, TRUSTSTORE_PASS);
+        return configureAuthorizer(CLIENT_SRV, TRUSTSTORE_PATH, TRUSTSTORE_PASS);
     }
 
-    static HashMap<String, String> configureAuthorizer(String clientSrv, String clientSrvSecret, String trustStorePath, String trustsStorePass) {
+    static HashMap<String, String> configureAuthorizer(String clientSrv, String trustStorePath, String trustsStorePass) {
         HashMap<String, String> props = new HashMap<>();
-        props.put("strimzi.authorization.ssl.truststore.location", trustStorePath);
-        props.put("strimzi.authorization.ssl.truststore.password", trustsStorePass);
-        props.put("strimzi.authorization.ssl.truststore.type", "pkcs12");
-
-        props.put("strimzi.authorization.enable.metrics", "true");
-        props.put("strimzi.authorization.token.endpoint.uri", "https://mockoauth:8090/grants");
-        props.put("strimzi.authorization.client.id", clientSrv);
-        props.put("strimzi.authorization.client.secret", clientSrvSecret);
-        props.put("strimzi.authorization.kafka.cluster.name", "my-cluster");
-        props.put("strimzi.authorization.delegate.to.kafka.acl", "false");
-        props.put("strimzi.authorization.read.timeout.seconds", "45");
-        props.put("strimzi.authorization.connect.timeout.seconds", "10");
-        props.put("strimzi.authorization.grants.refresh.pool.size", "2");
-        props.put("strimzi.authorization.grants.refresh.period.seconds", "60");
-        props.put("strimzi.authorization.http.retries", "1");
+        props.put(AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_LOCATION, trustStorePath);
+        props.put(AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_PASSWORD, trustsStorePass);
+        props.put(AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_TYPE, "pkcs12");
+        props.put(AuthzConfig.STRIMZI_AUTHORIZATION_ENABLE_METRICS, "true");
+        props.put(AuthzConfig.STRIMZI_AUTHORIZATION_TOKEN_ENDPOINT_URI, "https://mockoauth:8090/grants");
+        props.put(AuthzConfig.STRIMZI_AUTHORIZATION_CLIENT_ID, clientSrv);
+        props.put(AuthzConfig.STRIMZI_AUTHORIZATION_KAFKA_CLUSTER_NAME, "my-cluster");
+        props.put(AuthzConfig.STRIMZI_AUTHORIZATION_DELEGATE_TO_KAFKA_ACL, "false");
+        props.put(AuthzConfig.STRIMZI_AUTHORIZATION_READ_TIMEOUT_SECONDS, "45");
+        props.put(AuthzConfig.STRIMZI_AUTHORIZATION_CONNECT_TIMEOUT_SECONDS, "10");
+        props.put(AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_REFRESH_POOL_SIZE, "2");
+        props.put(AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_REFRESH_PERIOD_SECONDS, "60");
+        props.put(AuthzConfig.STRIMZI_AUTHORIZATION_HTTP_RETRIES, "1");
         props.put("super.users", "User:admin;User:service-account-kafka");
         props.put("principal.builder.class", "io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder");
         return props;
@@ -931,7 +947,8 @@ public class KeycloakAuthorizerTest {
                 60,
                 60,
                 retries,
-                0);
+                0,
+                true);
     }
 
     private void logStart(String msg) {

@@ -35,7 +35,6 @@ They assume Keycloak is used as an authorization server, with properly configure
   A single node Kafka cluster with OAuth 2 authentication with OAuth metrics enabled.
   See [README-metrics.md]() for how to setup this example.
 
-
 ### Deploying Keycloak and accessing the Keycloak Admin Console
 
 Before deploying any of the Kafka cluster definitions, you need to deploy a Keycloak instance, and configure the realms with the necessary client definitions.

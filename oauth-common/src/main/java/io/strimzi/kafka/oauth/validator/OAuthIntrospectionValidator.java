@@ -78,6 +78,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
     private final MetricsHandler userInfoMetricsHandler;
     private final SensorKeyProducer introspectHttpSensorKeyProducer;
     private final SensorKeyProducer userInfoHttpSensorKeyProducer;
+    private final boolean includeAcceptHeader;
 
     /**
      * Create a new instance.
@@ -101,6 +102,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
      * @param enableMetrics The switch that enables metrics collection
      * @param retries Maximum number of retries if request to the authorization server fails (0 means no retries)
      * @param retryPauseMillis Time to pause before retrying the request to the authorization server
+     * @param includeAcceptHeader Should we send the Accept header when making outbound http requests
      */
     @SuppressWarnings("checkstyle:ParameterNumber")
     public OAuthIntrospectionValidator(String id,
@@ -121,7 +123,8 @@ public class OAuthIntrospectionValidator implements TokenValidator {
                                        int readTimeoutSeconds,
                                        boolean enableMetrics,
                                        int retries,
-                                       long retryPauseMillis) {
+                                       long retryPauseMillis,
+                                       boolean includeAcceptHeader) {
 
         this.validatorId = checkValidatorId(id);
 
@@ -159,6 +162,8 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         introspectHttpSensorKeyProducer = new IntrospectHttpSensorKeyProducer(validatorId, introspectionURI);
         userInfoHttpSensorKeyProducer = userInfoURI != null ? new UserInfoHttpSensorKeyProducer(validatorId, userInfoURI) : null;
 
+        this.includeAcceptHeader = includeAcceptHeader;
+
         if (log.isDebugEnabled()) {
             log.debug("Configured OAuthIntrospectionValidator:"
                     + "\n    id: " + id
@@ -180,6 +185,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
                     + "\n    enableMetrics: " + enableMetrics
                     + "\n    retries: " + retries
                     + "\n    retryPauseMillis: " + retryPauseMillis
+                    + "\n    includeAcceptHeader: " + includeAcceptHeader
             );
         }
     }
@@ -290,7 +296,8 @@ public class OAuthIntrospectionValidator implements TokenValidator {
                             body.toString(),
                             JsonNode.class,
                             connectTimeoutSeconds,
-                            readTimeoutSeconds)
+                            readTimeoutSeconds,
+                            includeAcceptHeader)
             );
         } catch (Throwable e) {
             Throwable cause = e;
@@ -380,7 +387,8 @@ public class OAuthIntrospectionValidator implements TokenValidator {
                             authorization,
                             JsonNode.class,
                             connectTimeoutSeconds,
-                            readTimeoutSeconds)
+                            readTimeoutSeconds,
+                            includeAcceptHeader)
             );
 
         } catch (Throwable e) {

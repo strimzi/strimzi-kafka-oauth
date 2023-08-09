@@ -34,6 +34,7 @@ public class ValidatorKey {
     private final int connectTimeout;
     private final int readTimeout;
     private final boolean enableMetrics;
+    private final boolean includeAcceptHeader;
 
     private final String configIdHash;
 
@@ -53,7 +54,8 @@ public class ValidatorKey {
             boolean hasHostnameVerifier,
             int connectTimeout,
             int readTimeout,
-            boolean enableMetrics) {
+            boolean enableMetrics,
+            boolean includeAcceptHeader) {
 
         this.validIssuerUri = validIssuerUri;
         this.audience = audience;
@@ -71,6 +73,7 @@ public class ValidatorKey {
         this.connectTimeout = connectTimeout;
         this.readTimeout = readTimeout;
         this.enableMetrics = enableMetrics;
+        this.includeAcceptHeader = includeAcceptHeader;
 
         this.configIdHash = IOUtil.hashForObjects(validIssuerUri,
                 audience,
@@ -87,7 +90,8 @@ public class ValidatorKey {
                 hasHostnameVerifier,
                 connectTimeout,
                 readTimeout,
-                enableMetrics);
+                enableMetrics,
+                includeAcceptHeader);
     }
 
     @Override
@@ -110,7 +114,8 @@ public class ValidatorKey {
                 Objects.equals(sslRandom, that.sslRandom) &&
                 Objects.equals(connectTimeout, that.connectTimeout) &&
                 Objects.equals(readTimeout, that.readTimeout) &&
-                Objects.equals(enableMetrics, that.enableMetrics);
+                Objects.equals(enableMetrics, that.enableMetrics) &&
+                Objects.equals(includeAcceptHeader, that.includeAcceptHeader);
     }
 
     @Override
@@ -130,7 +135,8 @@ public class ValidatorKey {
                 hasHostnameVerifier,
                 connectTimeout,
                 readTimeout,
-                enableMetrics);
+                enableMetrics,
+                includeAcceptHeader);
     }
 
     /**
@@ -183,6 +189,7 @@ public class ValidatorKey {
          * @param readTimeout readTimeout
          * @param enableMetrics enableMetrics
          * @param failFast failFast
+         * @param includeAcceptHeader includeAcceptHeader
          */
         @SuppressWarnings("checkstyle:parameternumber")
         public JwtValidatorKey(String validIssuerUri,
@@ -208,7 +215,8 @@ public class ValidatorKey {
                                int connectTimeout,
                                int readTimeout,
                                boolean enableMetrics,
-                               boolean failFast) {
+                               boolean failFast,
+                               boolean includeAcceptHeader) {
 
             super(validIssuerUri,
                     audience,
@@ -225,7 +233,8 @@ public class ValidatorKey {
                     hasHostnameVerifier,
                     connectTimeout,
                     readTimeout,
-                    enableMetrics);
+                    enableMetrics,
+                    includeAcceptHeader);
             this.jwksEndpointUri = jwksEndpointUri;
             this.jwksRefreshSeconds = jwksRefreshSeconds;
             this.jwksExpirySeconds = jwksExpirySeconds;
@@ -317,6 +326,7 @@ public class ValidatorKey {
          * @param enableMetrics enableMetrics
          * @param retries retries
          * @param retryPauseMillis retryPauseMillis
+         * @param includeAcceptHeader includeAcceptHeader
          */
         @SuppressWarnings("checkstyle:parameternumber")
         public IntrospectionValidatorKey(String validIssuerUri,
@@ -342,7 +352,8 @@ public class ValidatorKey {
                                   int readTimeout,
                                   boolean enableMetrics,
                                   int retries,
-                                  long retryPauseMillis) {
+                                  long retryPauseMillis,
+                                  boolean includeAcceptHeader) {
 
             super(validIssuerUri,
                     audience,
@@ -359,7 +370,8 @@ public class ValidatorKey {
                     hasHostnameVerifier,
                     connectTimeout,
                     readTimeout,
-                    enableMetrics);
+                    enableMetrics,
+                    includeAcceptHeader);
             this.introspectionEndpoint = introspectionEndpoint;
             this.userInfoEndpoint = userInfoEndpoint;
             this.validTokenType = validTokenType;

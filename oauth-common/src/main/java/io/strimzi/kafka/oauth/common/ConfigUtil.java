@@ -139,4 +139,22 @@ public class ConfigUtil {
         }
         return result;
     }
+
+    /**
+     * Resolve the configuration value for the key as a string.
+     * If the key is not present, fallback to using a secondary key.
+     *
+     * @param c the Config object
+     * @param key the configuration key
+     * @param fallbackKey the fallback key
+     * @param defautValue the default value
+     * @return Configured value as String
+     */
+    public static Boolean getDefaultBooleanConfigWithFallbackLookup(Config c, String key, String fallbackKey, boolean defautValue) {
+        String result = c.getValue(key);
+        if (result == null) {
+            return c.getValueAsBoolean(fallbackKey, defautValue);
+        }
+        return c.getValueAsBoolean(key, defautValue);
+    }
 }

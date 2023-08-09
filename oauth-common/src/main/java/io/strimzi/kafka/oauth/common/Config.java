@@ -78,6 +78,11 @@ public class Config {
     /** The name of 'oauth.enable.metrics' config option  */
     public static final String OAUTH_ENABLE_METRICS = "oauth.enable.metrics";
 
+    /**
+     * Whether http requests should include "application/json" when being sent to the upstream OIDC server.
+     */
+    public static final String OAUTH_INCLUDE_ACCEPT_HEADER = "oauth.include.accept.header";
+
     /** The name of 'oauth.tokens.not.jwt' config option  */
     @Deprecated
     public static final String OAUTH_TOKENS_NOT_JWT = "oauth.tokens.not.jwt";

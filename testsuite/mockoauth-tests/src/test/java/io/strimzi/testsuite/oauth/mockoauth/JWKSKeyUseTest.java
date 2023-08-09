@@ -53,7 +53,8 @@ public class JWKSKeyUseTest {
                 true,
                 null,
                 null,
-                null);
+                null,
+                true);
 
         TokenIntrospection.debugLogJWT(log, tokenInfo.token());
 
@@ -92,6 +93,7 @@ public class JWKSKeyUseTest {
                 null,
                 60,
                 60,
+                true,
                 true,
                 true);
     }

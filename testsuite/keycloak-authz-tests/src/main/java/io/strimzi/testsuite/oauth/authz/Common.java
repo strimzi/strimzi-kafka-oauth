@@ -93,9 +93,9 @@ public class Common {
 
     void authenticateAllActors() throws IOException {
         tokens.put(TEAM_A_CLIENT, loginWithClientSecret(URI.create(TOKEN_ENDPOINT_URI), null, null,
-                TEAM_A_CLIENT, TEAM_A_CLIENT + "-secret", true, null, null).token());
+                TEAM_A_CLIENT, TEAM_A_CLIENT + "-secret", true, null, null, true).token());
         tokens.put(TEAM_B_CLIENT, loginWithClientSecret(URI.create(TOKEN_ENDPOINT_URI), null, null,
-                TEAM_B_CLIENT, TEAM_B_CLIENT + "-secret", true, null, null).token());
+                TEAM_B_CLIENT, TEAM_B_CLIENT + "-secret", true, null, null, true).token());
         tokens.put(BOB, loginWithUsernamePassword(URI.create(TOKEN_ENDPOINT_URI),
                 BOB, BOB + "-password", "kafka-cli"));
         tokens.put(ZERO, loginWithUsernamePassword(URI.create(TOKEN_ENDPOINT_URI),

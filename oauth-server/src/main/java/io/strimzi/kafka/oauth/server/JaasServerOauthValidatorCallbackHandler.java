@@ -165,6 +165,7 @@ import static io.strimzi.kafka.oauth.common.TokenIntrospection.debugLogJWT;
  * For example, when configuring fast local token validation the JWKS endpoint is contacted during startup to retrieve the signing keys.
  * If that fails, the Kafka broker shuts down with an error. By setting this to <em>false</em> the Kafka broker will not shutdown, and the validator will keep trying to fetch the JWKS keys. Default value is <em>true</em>.</li>
  * <li><em>oauth.enable.metrics</em> Enable the OAuth metrics. Default value is <em>false</em>.</li>
+ * <li><em>oauth.include.accept.header</em> Configure whether 'Accept: application/json' header is included in the requests to the authorization server. Default value is <em>true</em>.</li>
  * </ul>
  * <p>
  * TLS <em>sasl.jaas.config</em> configuration for TLS connectivity with the authorization server:
@@ -214,6 +215,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
     private long retryPauseMillis;
 
     private boolean enableMetrics;
+    private boolean includeAcceptHeader;
 
     private OAuthMetrics metrics;
     protected SensorKeyProducer validationSensorKeyProducer;
@@ -256,6 +258,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
         boolean checkTokenType = isCheckAccessTokenType(config);
         boolean checkAudience = config.getValueAsBoolean(ServerConfig.OAUTH_CHECK_AUDIENCE, false);
+        includeAcceptHeader = config.getValueAsBoolean(Config.OAUTH_INCLUDE_ACCEPT_HEADER, true);
 
         String usernameClaim = config.getValue(Config.OAUTH_USERNAME_CLAIM);
         String fallbackUsernameClaim = config.getValue(Config.OAUTH_FALLBACK_USERNAME_CLAIM);
@@ -295,14 +298,14 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
             String effectiveConfigId = setupJWKSValidator(configId, jwksUri, validIssuerUri, checkTokenType,
                     usernameClaim, fallbackUsernameClaim, fallbackUsernamePrefix,
                     groupQuery, groupDelimiter, audience, customClaimCheck,
-                    sslTruststore, sslPassword, sslType, sslRnd);
+                    sslTruststore, sslPassword, sslType, sslRnd, includeAcceptHeader);
 
             URI jwksEndpointUri = config.getValueAsURI(ServerConfig.OAUTH_JWKS_ENDPOINT_URI);
             validationSensorKeyProducer = new JwksValidationSensorKeyProducer(effectiveConfigId, saslMechanism, jwksEndpointUri);
         } else {
             String effectiveConfigId = setupIntrospectionValidator(configId, validIssuerUri, usernameClaim, fallbackUsernameClaim, fallbackUsernamePrefix,
                     groupQuery, groupDelimiter, clientId, clientSecret, audience, customClaimCheck,
-                    sslTruststore, sslPassword, sslType, sslRnd);
+                    sslTruststore, sslPassword, sslType, sslRnd, includeAcceptHeader);
 
             URI introspectionUri = config.getValueAsURI(ServerConfig.OAUTH_INTROSPECTION_ENDPOINT_URI);
             validationSensorKeyProducer = new IntrospectValidationSensorKeyProducer(effectiveConfigId, saslMechanism, introspectionUri);
@@ -323,7 +326,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
     @SuppressWarnings("checkstyle:ParameterNumber")
     private String setupIntrospectionValidator(String configId, String validIssuerUri, String usernameClaim, String fallbackUsernameClaim, String fallbackUsernamePrefix,
                                              String groupQuery, String groupDelimiter, String clientId, String clientSecret, String audience, String customClaimCheck,
-                                             String sslTruststore, String sslPassword, String sslType, String sslRnd) {
+                                             String sslTruststore, String sslPassword, String sslType, String sslRnd, boolean includeAcceptHeader) {
 
         String introspectionEndpoint = config.getValue(ServerConfig.OAUTH_INTROSPECTION_ENDPOINT_URI);
         String userInfoEndpoint = config.getValue(ServerConfig.OAUTH_USERINFO_ENDPOINT_URI);
@@ -352,7 +355,8 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                 readTimeout,
                 enableMetrics,
                 retries,
-                retryPauseMillis);
+                retryPauseMillis,
+                includeAcceptHeader);
 
         String effectiveConfigId = configId != null ? configId : vkey.getConfigIdHash();
 
@@ -375,7 +379,8 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                 readTimeout,
                 enableMetrics,
                 retries,
-                retryPauseMillis);
+                retryPauseMillis,
+                includeAcceptHeader);
 
         ConfigurationKey confKey = configId != null ? new ConfigurationKey(configId, vkey) : new ConfigurationKey(vkey.getConfigIdHash(), vkey);
         validator = Services.getInstance().getValidators().get(confKey, factory);
@@ -387,7 +392,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
     private String setupJWKSValidator(String configId, String jwksUri, String validIssuerUri, boolean checkTokenType,
                                     String usernameClaim, String fallbackUsernameClaim, String fallbackUsernamePrefix,
                                     String groupQuery, String groupDelimiter, String audience, String customClaimCheck,
-                                    String sslTruststore, String sslPassword, String sslType, String sslRnd) {
+                                    String sslTruststore, String sslPassword, String sslType, String sslRnd, boolean includeAcceptHeader) {
 
         int jwksRefreshSeconds = config.getValueAsInt(ServerConfig.OAUTH_JWKS_REFRESH_SECONDS, 300);
         int jwksExpirySeconds = config.getValueAsInt(ServerConfig.OAUTH_JWKS_EXPIRY_SECONDS, 360);
@@ -418,7 +423,8 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                 connectTimeout,
                 readTimeout,
                 enableMetrics,
-                failFast
+                failFast,
+                includeAcceptHeader
         );
 
         String effectiveConfigId = configId != null ? configId : vkey.getConfigIdHash();
@@ -442,7 +448,8 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                 connectTimeout,
                 readTimeout,
                 enableMetrics,
-                failFast);
+                failFast,
+                includeAcceptHeader);
 
         ConfigurationKey confKey = configId != null ? new ConfigurationKey(configId, vkey) : new ConfigurationKey(vkey.getConfigIdHash(), vkey);
         validator = Services.getInstance().getValidators().get(confKey, factory);
@@ -741,6 +748,10 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
     protected long getRetryPauseMillis() {
         return retryPauseMillis;
+    }
+
+    protected Boolean includeAcceptHeader() {
+        return includeAcceptHeader;
     }
 
     private void addValidationMetricSuccessTime(long startTimeMs) {

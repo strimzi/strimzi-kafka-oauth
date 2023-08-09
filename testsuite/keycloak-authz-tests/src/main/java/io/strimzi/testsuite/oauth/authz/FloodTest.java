@@ -159,7 +159,7 @@ public class FloodTest extends Common {
         String secret = clientId + "-secret";
 
         tokens.put(clientId, loginWithClientSecret(URI.create(TOKEN_ENDPOINT_URI), null, null,
-                clientId, secret, true, null, null).token());
+                clientId, secret, true, null, null, true).token());
     }
 
 

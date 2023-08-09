@@ -66,7 +66,8 @@ public class PasswordAuthTest {
                 true,
                 null,
                 null,
-                null);
+                null,
+                true);
 
         String token = tokenInfo.token();
         Assert.assertNotNull(token);
@@ -121,7 +122,8 @@ public class PasswordAuthTest {
                 true,
                 null,
                 null,
-                null);
+                null,
+                true);
 
         token = tokenInfo.token();
         Assert.assertNotNull(token);

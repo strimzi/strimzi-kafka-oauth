@@ -53,6 +53,7 @@ import static io.strimzi.kafka.oauth.server.authorizer.AuthzConfig.STRIMZI_AUTHO
 import static io.strimzi.kafka.oauth.server.authorizer.AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_PASSWORD;
 import static io.strimzi.kafka.oauth.server.authorizer.AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_TYPE;
 import static io.strimzi.kafka.oauth.server.authorizer.AuthzConfig.STRIMZI_AUTHORIZATION_TOKEN_ENDPOINT_URI;
+import static io.strimzi.kafka.oauth.server.authorizer.AuthzConfig.STRIMZI_AUTHORIZATION_INCLUDE_ACCEPT_HEADER;
 
 /**
  * The classes used to parse and store Authorizer configuration.
@@ -92,6 +93,7 @@ public class Configuration {
     private URI tokenEndpointUrl;
     private int connectTimeoutSeconds;
     private int readTimeoutSeconds;
+    private boolean includeAcceptHeader;
 
     /**
      * Create a new Configuration instance
@@ -151,6 +153,7 @@ public class Configuration {
 
         reuseGrants = authzConfig.getValueAsBoolean(STRIMZI_AUTHORIZATION_REUSE_GRANTS, true);
 
+        includeAcceptHeader = ConfigUtil.getDefaultBooleanConfigWithFallbackLookup(authzConfig, STRIMZI_AUTHORIZATION_INCLUDE_ACCEPT_HEADER, Config.OAUTH_INCLUDE_ACCEPT_HEADER, true);
         configureHttpRetries(authzConfig);
 
         configureMetrics(authzConfig);
@@ -305,7 +308,9 @@ public class Configuration {
             STRIMZI_AUTHORIZATION_READ_TIMEOUT_SECONDS,
             OAUTH_READ_TIMEOUT_SECONDS,
             STRIMZI_AUTHORIZATION_ENABLE_METRICS,
-            OAUTH_ENABLE_METRICS
+            OAUTH_ENABLE_METRICS,
+            STRIMZI_AUTHORIZATION_INCLUDE_ACCEPT_HEADER,
+            Config.OAUTH_INCLUDE_ACCEPT_HEADER
         };
 
         // Copy over the keys
@@ -420,6 +425,10 @@ public class Configuration {
         return configMap;
     }
 
+    boolean getIncludeAcceptHeader() {
+        return includeAcceptHeader;
+    }
+
     private static class Log {
         Level level;
         String message;
@@ -455,6 +464,7 @@ public class Configuration {
                 enableMetrics == that.enableMetrics &&
                 connectTimeoutSeconds == that.connectTimeoutSeconds &&
                 readTimeoutSeconds == that.readTimeoutSeconds &&
+                includeAcceptHeader == that.includeAcceptHeader &&
                 Objects.equals(clientId, that.clientId) &&
                 Objects.equals(clusterName, that.clusterName) &&
                 Objects.equals(truststore, that.truststore) &&
@@ -489,6 +499,7 @@ public class Configuration {
                 enableMetrics,
                 tokenEndpointUrl,
                 connectTimeoutSeconds,
-                readTimeoutSeconds);
+                readTimeoutSeconds,
+                includeAcceptHeader);
     }
 }

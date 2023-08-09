@@ -12,7 +12,7 @@ The result is that the most recent Strimzi Kafka OAuth jars and their dependenci
 Building
 --------
 
-Use `docker build` to build the image:
+Run `mvn install` then, use `docker build` to build the image:
 
     docker build -t strimzi/kafka:latest-kafka-3.3.2-oauth .
 
@@ -69,9 +69,13 @@ You need to retag the built image before so you can push it to Docker Registry:
 Actually, Kubernetes Kind supports an even simpler option how to make an image available to Kubernetes:
 
     kind load docker-image strimzi/kafka:latest-kafka-3.3.2-oauth 
+    
+If you're using minikube, you'll need to run `minikube docker-env` before building the image.
 
 Deploying
 ---------
+
+## Via the Strimzi Repository
 
 In order for the operator to use your Kafka image, you have to replace the Kafka image coordinates in `packaging/install/cluster-operator/060-Deployment-strimzi-cluster-operator.yaml` in your `strimzi-kafka-operator` project.
 
@@ -88,3 +92,15 @@ It's best to check the `060-Deployment-strimzi-cluster-operator.yaml` file manua
 
 You can now deploy Strimzi Kafka Operator following instructions in [HACKING.md](../../../HACKING.md)
 
+## Via Helm
+
+You can also run the operator via its Helm chart and set the `kafka.image.registry` property to your local registry. As an example, if you've built and tagged the image as `local.dev/strimzi/kafka:0.36.0-kafka-3.5.0 `. You can run it using the operator as:
+
+    helm repo add strimzi https://strimzi.io/charts/ --force-update
+    helm upgrade -i -n strimzi strimzi strimzi/strimzi-kafka-operator \
+      --version 0.36.0 \
+      --set watchNamespaces="{default}" \
+      --set generateNetworkPolicy=false \
+      --set kafka.image.registry="local.dev" \
+      --wait \
+      --create-namespace

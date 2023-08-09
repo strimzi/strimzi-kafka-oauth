@@ -92,6 +92,7 @@ public class JWTSignatureValidator implements TokenValidator {
     private final boolean enableMetrics;
     private final OAuthMetrics metrics;
     private final SensorKeyProducer jwksHttpSensorKeyProducer;
+    private final boolean includeAcceptHeader;
 
     /**
      * Create a new instance.
@@ -115,6 +116,7 @@ public class JWTSignatureValidator implements TokenValidator {
      * @param readTimeoutSeconds The maximum time to wait for response from authorization server after connection has been established and request sent (in seconds)
      * @param enableMetrics The switch that enables metrics collection
      * @param failFast Should exception be thrown during initialisation if unable to retrieve JWKS keys
+     * @param includeAcceptHeader Should we send the Accept header when making outbound http requests
      */
     @SuppressWarnings("checkstyle:ParameterNumber")
     public JWTSignatureValidator(String validatorId,
@@ -135,7 +137,8 @@ public class JWTSignatureValidator implements TokenValidator {
                                  int connectTimeoutSeconds,
                                  int readTimeoutSeconds,
                                  boolean enableMetrics,
-                                 boolean failFast) {
+                                 boolean failFast,
+                                 boolean includeAcceptHeader) {
 
         if (validatorId == null) {
             throw new IllegalArgumentException("validatorId == null");
@@ -188,6 +191,8 @@ public class JWTSignatureValidator implements TokenValidator {
         this.enableMetrics = enableMetrics;
         this.ignoreKeyUse = ignoreKeyUse;
 
+        this.includeAcceptHeader = includeAcceptHeader;
+
         try {
             metrics = enableMetrics ? Services.getInstance().getMetrics() : null;
             jwksHttpSensorKeyProducer = new JwksHttpSensorKeyProducer(validatorId, keysUri);
@@ -217,7 +222,8 @@ public class JWTSignatureValidator implements TokenValidator {
                         + "\n    connectTimeoutSeconds: " + connectTimeoutSeconds
                         + "\n    readTimeoutSeconds: " + readTimeoutSeconds
                         + "\n    enableMetrics: " + enableMetrics
-                        + "\n    failFast: " + failFast);
+                        + "\n    failFast: " + failFast
+                        + "\n    includeAcceptHeader: " + includeAcceptHeader);
             }
         }
     }
@@ -332,7 +338,7 @@ public class JWTSignatureValidator implements TokenValidator {
     private void fetchKeys() {
         long requestStartTime = System.currentTimeMillis();
         try {
-            String response = HttpUtil.get(keysUri, socketFactory, hostnameVerifier, null, String.class, connectTimeout, readTimeout);
+            String response = HttpUtil.get(keysUri, socketFactory, hostnameVerifier, null, String.class, connectTimeout, readTimeout, includeAcceptHeader);
             addJwksHttpMetricSuccessTime(requestStartTime);
 
             Map<String, PublicKey> newCache = new HashMap<>();
