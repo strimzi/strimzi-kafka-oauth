@@ -100,6 +100,9 @@ public class JaasClientConfigTest {
             "scope", "scope",
             "audience", "audience",
             "isJwt", "false",
+            "usernameClaim", "username-claim",
+            "fallbackUsernameClaim", "fallback-username-claim",
+            "fallbackUsernamePrefix", "username-prefix",
             "maxTokenExpirySeconds", "300",
             "connectTimeout", "20",
             "readTimeout", "25",
@@ -107,9 +110,6 @@ public class JaasClientConfigTest {
             "retryPauseMillis", "500",
             "enableMetrics", "true",
             "includeAcceptHeader", "false");
-
-        // TODO: add usernameClaim, fallbackUserNameClaim and fallbackUserNamePrefix check when fixed
-        //"principalExtractor", "PrincipalExtractor {usernameClaim: io.strimzi.kafka.oauth.common.PrincipalExtractor$Extractor@28486680, fallbackUsernameClaim: io.strimzi.kafka.oauth.common.PrincipalExtractor$Extractor@4d7e7435, fallbackUsernamePrefix: null}",
 
 
         // we could not check tokenEndpointUri and token in the same run

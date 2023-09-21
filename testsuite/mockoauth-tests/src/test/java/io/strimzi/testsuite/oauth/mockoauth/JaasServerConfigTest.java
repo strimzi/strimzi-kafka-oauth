@@ -32,6 +32,8 @@ public class JaasServerConfigTest {
         attrs.put(ServerConfig.OAUTH_JWKS_ENDPOINT_URI, "https://sso/jwks");
         attrs.put(ServerConfig.OAUTH_FAIL_FAST, "false");
         attrs.put(ServerConfig.OAUTH_USERNAME_CLAIM, "username-claim");
+        attrs.put(ServerConfig.OAUTH_FALLBACK_USERNAME_CLAIM, "fallback-username-claim");
+        attrs.put(ServerConfig.OAUTH_FALLBACK_USERNAME_PREFIX, "fallback-username-prefix");
         attrs.put(ServerConfig.OAUTH_GROUPS_CLAIM, "$.groups");
         attrs.put(ServerConfig.OAUTH_GROUPS_CLAIM_DELIMITER, ",");
         attrs.put(ServerConfig.OAUTH_CLIENT_ID, "client-id");
@@ -67,6 +69,9 @@ public class JaasServerConfigTest {
         Common.checkLog(logReader, "JWTSignatureValidator", "",
             "validatorId", "config-id",
             "keysEndpointUri", "https://sso/jwks",
+            "usernameClaim", "username-claim",
+            "fallbackUsernameClaim", "fallback-username-claim",
+            "fallbackUsernamePrefix", "username-prefix",
             "groupsClaimQuery", "\\$\\.groups",
             "groupsClaimDelimiter", ",",
             "validIssuerUri", "https://sso",
@@ -134,6 +139,9 @@ public class JaasServerConfigTest {
             "clientId", "client-id",
             "clientSecret", "c\\*\\*",
             "audience", "client-id",
+            "usernameClaim", "username-claim",
+            "fallbackUsernameClaim", "fallback-username-claim",
+            "fallbackUsernamePrefix", "username-prefix",
             "customClaimCheck", "@\\.aud anyof \\['kafka', 'something'\\]",
             "connectTimeoutSeconds", "10",
             "readTimeoutSeconds", "10",
@@ -142,7 +150,5 @@ public class JaasServerConfigTest {
             "retryPauseMillis", "500",
             "includeAcceptHeader", "false"
         );
-
-        //principalExtractor: PrincipalExtractor {usernameClaim: io.strimzi.kafka.oauth.common.PrincipalExtractor$Extractor@3bde62ff, fallbackUsernameClaim: io.strimzi.kafka.oauth.common.PrincipalExtractor$Extractor@523424b5, fallbackUsernamePrefix: fallback-username-prefix}
     }
 }
