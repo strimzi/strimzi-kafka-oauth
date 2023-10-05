@@ -24,6 +24,7 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithClientSe
 import static io.strimzi.testsuite.oauth.auth.Common.buildProducerConfigOAuthBearer;
 import static io.strimzi.testsuite.oauth.auth.Common.buildProducerConfigPlain;
 import static io.strimzi.testsuite.oauth.common.TestUtil.getContainerLogsForString;
+import static io.strimzi.testsuite.oauth.common.TestUtil.getRootCause;
 
 public class ErrorReportingTests {
 
@@ -463,7 +464,7 @@ public class ErrorReportingTests {
         } catch (Exception e) {
             long diff = System.currentTimeMillis() - start;
             Assert.assertTrue("is instanceof KafkaException", e instanceof KafkaException);
-            Assert.assertTrue("Failed due to LoginException", e.getCause().toString().contains("LoginException"));
+            Assert.assertTrue("Failed due to LoginException", getRootCause(e).toString().contains("LoginException"));
             Assert.assertTrue("Unexpected diff: " + diff, diff > timeout * 1000 && diff < timeout * 1000 + 1000);
         }
     }

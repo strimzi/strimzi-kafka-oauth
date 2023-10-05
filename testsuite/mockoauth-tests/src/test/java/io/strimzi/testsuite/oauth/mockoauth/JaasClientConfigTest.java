@@ -23,6 +23,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 
+import static io.strimzi.testsuite.oauth.common.TestUtil.getRootCause;
+
 
 public class JaasClientConfigTest {
 
@@ -305,7 +307,7 @@ public class JaasClientConfigTest {
         Throwable cause = e.getCause();
         Assert.assertEquals("is a KafkaException", KafkaException.class, e.getClass());
 
-        Throwable nestedCause = cause.getCause();
+        Throwable nestedCause = getRootCause(cause);
         Assert.assertEquals("is a ConfigException", ConfigException.class, nestedCause.getClass());
         Assert.assertTrue("Contains '" + message + "'", nestedCause.getMessage().contains(message));
     }
@@ -314,7 +316,7 @@ public class JaasClientConfigTest {
         Throwable cause = e.getCause();
         Assert.assertEquals("is a KafkaException", KafkaException.class, e.getClass());
 
-        Throwable nestedCause = cause.getCause();
+        Throwable nestedCause = getRootCause(cause);
         Assert.assertEquals("is a LoginException", LoginException.class, nestedCause.getClass());
     }
 

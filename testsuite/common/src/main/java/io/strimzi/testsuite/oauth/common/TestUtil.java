@@ -120,4 +120,12 @@ public class TestUtil {
         }
         return count;
     }
+
+    public static Throwable getRootCause(Throwable e) {
+        Throwable cause = e;
+        while (cause != null && cause.getCause() != null) {
+            cause = cause.getCause();
+        }
+        return cause == e ? null : cause;
+    }
 }
