@@ -21,6 +21,7 @@ import java.util.concurrent.ExecutionException;
 import static io.strimzi.testsuite.oauth.common.TestUtil.getContainerLogsForString;
 import static io.strimzi.testsuite.oauth.mockoauth.Common.buildProducerConfigOAuthBearer;
 import static io.strimzi.testsuite.oauth.mockoauth.Common.changeAuthServerMode;
+import static io.strimzi.testsuite.oauth.common.TestUtil.getRootCause;
 
 public class ConnectTimeoutTests {
 
@@ -98,7 +99,7 @@ public class ConnectTimeoutTests {
         } catch (Exception e) {
             long diff = System.currentTimeMillis() - start;
             Assert.assertTrue("is instanceof KafkaException", e instanceof KafkaException);
-            Assert.assertTrue("Failed due to LoginException", e.getCause().toString().contains("LoginException"));
+            Assert.assertTrue("Failed due to LoginException", getRootCause(e).toString().contains("LoginException"));
             Assert.assertTrue("Unexpected diff: " + diff, diff > timeoutOverride * 1000 && diff < timeoutOverride * 1000 + 1000);
         } finally {
             changeAuthServerMode("token", "mode_200");

@@ -23,6 +23,7 @@ import static io.strimzi.testsuite.oauth.mockoauth.Common.buildProducerConfigOAu
 import static io.strimzi.testsuite.oauth.mockoauth.Common.buildProducerConfigPlain;
 import static io.strimzi.testsuite.oauth.mockoauth.Common.changeAuthServerMode;
 import static io.strimzi.testsuite.oauth.mockoauth.Common.createOAuthClient;
+import static io.strimzi.testsuite.oauth.common.TestUtil.getRootCause;
 import static io.strimzi.testsuite.oauth.mockoauth.Common.loginWithClientSecret;
 
 public class RetriesTests {
@@ -123,7 +124,7 @@ public class RetriesTests {
             // get the exception
 
             Assert.assertTrue("is instanceof KafkaException", e instanceof KafkaException);
-            Assert.assertTrue("Failed due to LoginException", e.getCause().toString().contains("LoginException"));
+            Assert.assertTrue("Failed due to LoginException", getRootCause(e).toString().contains("LoginException"));
         }
 
         // repeat, it should succeed
