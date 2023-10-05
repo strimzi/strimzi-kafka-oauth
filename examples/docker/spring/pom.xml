@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.5.13</version>
+        <version>2.6.15</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
 
@@ -21,7 +21,7 @@
         <plugins.resources.version>3.1.0</plugins.resources.version>
         <fabric8-docker-plugin.version>0.40.2</fabric8-docker-plugin.version>
 
-        <spring.boot.oauth.version>2.5.13</spring.boot.oauth.version>
+        <spring.boot.oauth.version>2.6.8</spring.boot.oauth.version>
     </properties>
 
     <licenses>
