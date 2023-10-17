@@ -18,10 +18,12 @@ import org.apache.kafka.common.security.auth.AuthenticationContext;
 import org.apache.kafka.common.security.auth.KafkaPrincipal;
 import org.apache.kafka.common.security.auth.SaslAuthenticationContext;
 import org.apache.kafka.common.security.authenticator.DefaultKafkaPrincipalBuilder;
+import org.apache.kafka.common.security.kerberos.KerberosShortNamer;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule;
 import org.apache.kafka.common.security.oauthbearer.internals.OAuthBearerSaslServer;
 import org.apache.kafka.common.security.plain.internals.PlainSaslServer;
 
+import javax.security.auth.kerberos.KerberosPrincipal;
 import javax.security.sasl.SaslServer;
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -51,7 +53,8 @@ import java.util.Map;
  */
 public class OAuthKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder implements Configurable {
 
-    private static final SetAccessibleAction SET_PRINCIPAL_MAPPER = SetAccessibleAction.newInstance();
+    private static final SetAccessibleAction SET_PRINCIPAL_MAPPER = SetAccessibleAction.newInstance("sslPrincipalMapper");
+    private static final SetAccessibleAction SET_KERBEROS_SHORT_NAMER = SetAccessibleAction.newInstance("kerberosShortNamer");
 
     private static final int OAUTH_DATA_TAG = 575;
 
@@ -74,9 +77,9 @@ public class OAuthKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder imp
             field.set(target, value);
         }
 
-        static SetAccessibleAction newInstance() {
+        static SetAccessibleAction newInstance(String fieldName) {
             try {
-                return new SetAccessibleAction(DefaultKafkaPrincipalBuilder.class.getDeclaredField("sslPrincipalMapper"));
+                return new SetAccessibleAction(DefaultKafkaPrincipalBuilder.class.getDeclaredField(fieldName));
             } catch (NoSuchFieldException e) {
                 throw new IllegalStateException("Failed to install OAuthKafkaPrincipalBuilder. This Kafka version does not seem to be supported", e);
             }
@@ -91,11 +94,20 @@ public class OAuthKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder imp
         super(null, null);
     }
 
+
+
     @Override
     public void configure(Map<String, ?> configs) {
 
         Object sslPrincipalMappingRules = configs.get(BrokerSecurityConfigs.SSL_PRINCIPAL_MAPPING_RULES_CONFIG);
         Object sslPrincipalMapper;
+
+
+        @SuppressWarnings("unchecked")
+        List<String> principalToLocalRules = (List<String>) configs.get(BrokerSecurityConfigs.SASL_KERBEROS_PRINCIPAL_TO_LOCAL_RULES_CONFIG);
+        String defaultRealm;
+        Object kerberosShortNamer;
+
 
         try {
             Class<?> clazz = Class.forName("org.apache.kafka.common.security.ssl.SslPrincipalMapper");
@@ -119,6 +131,18 @@ public class OAuthKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder imp
             // into this class and extend it
 
             SET_PRINCIPAL_MAPPER.invoke(this, sslPrincipalMapper);
+
+            try {
+                defaultRealm = new KerberosPrincipal("tmp", 1).getRealm();
+            } catch (Exception ex) {
+                defaultRealm = "";
+            }
+
+            if (principalToLocalRules != null) {
+                kerberosShortNamer = KerberosShortNamer.fromUnparsedRules(defaultRealm, principalToLocalRules);
+                SET_KERBEROS_SHORT_NAMER.invoke(this, kerberosShortNamer);
+            }
+
 
         } catch (RuntimeException
                 | ClassNotFoundException
