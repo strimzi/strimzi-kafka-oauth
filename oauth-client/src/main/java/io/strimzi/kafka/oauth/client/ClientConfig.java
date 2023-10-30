@@ -17,9 +17,19 @@ public class ClientConfig extends Config {
     public static final String OAUTH_ACCESS_TOKEN = "oauth.access.token";
 
     /**
+     * "oauth.access.token.location"
+     */
+    public static final String OAUTH_ACCESS_TOKEN_LOCATION = "oauth.access.token.location";
+
+    /**
      * "oauth.refresh.token"
      */
     public static final String OAUTH_REFRESH_TOKEN = "oauth.refresh.token";
+
+    /**
+     * "oauth.refresh.token.location"
+     */
+    public static final String OAUTH_REFRESH_TOKEN_LOCATION = "oauth.refresh.token.location";
 
     /**
      * "oauth.token.endpoint.uri"
@@ -40,6 +50,21 @@ public class ClientConfig extends Config {
      * "oauth.password.grant.password"
      */
     public static final String OAUTH_PASSWORD_GRANT_PASSWORD = "oauth.password.grant.password";
+
+    /**
+     * "oauth.client.assertion"
+     */
+    public static final String OAUTH_CLIENT_ASSERTION = "oauth.client.assertion";
+
+    /**
+     * "oauth.client.assertion.location"
+     */
+    public static final String OAUTH_CLIENT_ASSERTION_LOCATION = "oauth.client.assertion.location";
+
+    /**
+     * "oauth.client.assertion.type"
+     */
+    public static final String OAUTH_CLIENT_ASSERTION_TYPE = "oauth.client.assertion.type";
 
     /**
      * Create a new instance

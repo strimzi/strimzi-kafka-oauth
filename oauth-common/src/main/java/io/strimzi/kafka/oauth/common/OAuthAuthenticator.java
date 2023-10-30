@@ -169,6 +169,90 @@ public class OAuthAuthenticator {
 
     /**
      * Obtain an access token wrapped into TokenInfo by authenticating to the authorization server's token endpoint
+     * using client_credentials grant with client assertion (clientId + assertion + assertion type),
+     * and connect and read timeouts of 60 seconds.
+     *
+     * @param tokenEndpointUrl A token endpoint url
+     * @param socketFactory A socket factory to use with 'https'
+     * @param hostnameVerifier A hostname verifier to use with 'https'
+     * @param clientId A client id
+     * @param clientAssertion A client assertion
+     * @param clientAssertionType A client assertion type
+     * @param isJwt If the returned token is expected to be a JWT token
+     * @param principalExtractor A PrincipalExtractor to use to determine the principal (user id)
+     * @param scope A scope to request when authenticating
+     * @param audience An 'audience' attribute to set on the request when authenticating
+     * @param includeAcceptHeader Should we skip sending the Accept header when making outbound http requests
+     * @return A TokenInfo with access token and information extracted from it
+     * @throws IOException If the request to the authorization server has failed
+     * @throws IllegalStateException If the response from the authorization server could not be handled
+     */
+    @SuppressWarnings("checkstyle:ParameterNumber")
+    public static TokenInfo loginWithClientAssertion(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
+                                                     HostnameVerifier hostnameVerifier,
+                                                     String clientId, String clientAssertion, String clientAssertionType, boolean isJwt,
+                                                     PrincipalExtractor principalExtractor, String scope, String audience, boolean includeAcceptHeader) throws IOException {
+
+        return loginWithClientAssertion(tokenEndpointUrl, socketFactory, hostnameVerifier,
+                clientId, clientAssertion, clientAssertionType, isJwt, principalExtractor, scope, audience, HttpUtil.DEFAULT_CONNECT_TIMEOUT, HttpUtil.DEFAULT_READ_TIMEOUT, null, 0, 0, includeAcceptHeader);
+    }
+
+    /**
+     * Obtain an access token wrapped into TokenInfo by authenticating to the authorization server's token endpoint
+     * using client_credentials grant with client assertion (clientId + assertion + assertion type).
+     *
+     * @param tokenEndpointUrl A token endpoint url
+     * @param socketFactory A socket factory to use with 'https'
+     * @param hostnameVerifier A hostname verifier to use with 'https'
+     * @param clientId A client id
+     * @param clientAssertion A client assertion
+     * @param clientAssertionType A client assertion type
+     * @param isJwt If the returned token is expected to be a JWT token
+     * @param principalExtractor A PrincipalExtractor to use to determine the principal (user id)
+     * @param scope A scope to request when authenticating
+     * @param audience An 'audience' attribute to set on the request when authenticating
+     * @param connectTimeout A connect timeout in seconds
+     * @param readTimeout A read timeout in seconds
+     * @param metrics A MetricsHandler object to receive metrics collection callbacks
+     * @param retries A maximum number of retries if the request fails due to network, or unexpected response status
+     * @param retryPauseMillis A pause between consecutive requests
+     * @param includeAcceptHeader Should we skip sending the Accept header when making outbound http requests
+     * @return A TokenInfo with access token and information extracted from it
+     * @throws IOException If the request to the authorization server has failed
+     * @throws IllegalStateException If the response from the authorization server could not be handled
+     */
+     @SuppressWarnings("checkstyle:ParameterNumber")
+    public static TokenInfo loginWithClientAssertion(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
+                                                     HostnameVerifier hostnameVerifier,
+                                                     String clientId, String clientAssertion, String clientAssertionType, boolean isJwt,
+                                                     PrincipalExtractor principalExtractor, String scope, String audience,
+                                                     int connectTimeout, int readTimeout, MetricsHandler metrics, int retries, long retryPauseMillis, boolean includeAcceptHeader) throws IOException {
+        if (log.isDebugEnabled()) {
+            log.debug("loginWithClientAssertion() - tokenEndpointUrl: {}, clientId: {}, clientAssertion: {}, clientAssertionType: {}, scope: {}, audience: {}, connectTimeout: {}, readTimeout: {}, retries: {}, retryPauseMillis: {}",
+                    tokenEndpointUrl, clientId, mask(clientAssertion), clientAssertionType, scope, audience, connectTimeout, readTimeout, retries, retryPauseMillis);
+        }
+
+        if (clientId == null) {
+            throw new IllegalArgumentException("No clientId specified");
+        }
+
+        StringBuilder body = new StringBuilder("grant_type=client_credentials")
+                .append("&client_id=").append(urlencode(clientId))
+                .append("&client_assertion=").append(urlencode(clientAssertion))
+                .append("&client_assertion_type=").append(urlencode(clientAssertionType));
+
+        if (scope != null) {
+            body.append("&scope=").append(urlencode(scope));
+        }
+        if (audience != null) {
+            body.append("&audience=").append(urlencode(audience));
+        }
+
+        return post(tokenEndpointUrl, socketFactory, hostnameVerifier, null, body.toString(), isJwt, principalExtractor, connectTimeout, readTimeout, metrics, retries, retryPauseMillis, includeAcceptHeader);
+    }
+
+    /**
+     * Obtain an access token wrapped into TokenInfo by authenticating to the authorization server's token endpoint
      * using password grant (username + password), and connect and read timeouts of 60 seconds.
      *
      * @param tokenEndpointUrl A token endpoint url

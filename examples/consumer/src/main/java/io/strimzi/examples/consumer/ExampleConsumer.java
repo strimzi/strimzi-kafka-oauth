@@ -52,8 +52,9 @@ public class ExampleConsumer {
 
         defaults.setProperty(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, tokenEndpointUri);
 
-        //  By defaut this client uses preconfigured clientId and secret to authenticate.
-        //  You can set OAUTH_ACCESS_TOKEN or OAUTH_REFRESH_TOKEN to override default authentication.
+        //  By default, this client uses preconfigured clientId and secret to authenticate.
+        //  You can set OAUTH_ACCESS_TOKEN(_LOCATION) or OAUTH_REFRESH_TOKEN(_LOCATION)
+        //  or OAUTH_CLIENT_ASSERTION(_LOCATION) to override default authentication behavior.
         //
         //  If access token is configured, it is passed directly to Kafka broker
         //  If refresh token is configured, it is used in conjunction with clientId and secret
@@ -64,7 +65,12 @@ public class ExampleConsumer {
 
         if (accessToken == null) {
             defaults.setProperty(Config.OAUTH_CLIENT_ID, "kafka-consumer-client");
+
+            // use a secret for client_credentials authentication
             defaults.setProperty(Config.OAUTH_CLIENT_SECRET, "kafka-consumer-client-secret");
+
+            // use private_key_jwt for client_credentials authentication
+            //defaults.setProperty(ClientConfig.OAUTH_CLIENT_ASSERTION, "jwt-signed-by-trusted-key");
         }
 
         // Use 'preferred_username' rather than 'sub' for principal name

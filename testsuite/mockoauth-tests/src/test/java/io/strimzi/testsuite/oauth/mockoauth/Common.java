@@ -178,6 +178,13 @@ public class Common {
                 "{\"clientId\": \"" + clientId + "\", \"secret\": \"" + secret + "\"}", String.class);
     }
 
+    public static void createOAuthClientWithAssertion(String clientId, String clientAssertion) throws IOException {
+        HttpUtil.post(URI.create("http://mockoauth:8091/admin/clients"),
+                null,
+                "application/json",
+                "{\"clientId\": \"" + clientId + "\", \"clientAssertion\": \"" + clientAssertion + "\"}", String.class);
+    }
+
     public static void createOAuthUser(String username, String password) throws IOException {
         HttpUtil.post(URI.create("http://mockoauth:8091/admin/users"),
                 null,
