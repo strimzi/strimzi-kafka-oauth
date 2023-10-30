@@ -2,7 +2,7 @@
 set -e
 
 clearDockerEnv() {
-  docker rm -f kafka zookeeper keycloak keycloak-import hydra hydra-import hydra-jwt hydra-jwt-import || true
+  docker rm -f kafka zookeeper keycloak keycloak-import hydra hydra-import hydra-jwt hydra-jwt-import kerberos || true
   DOCKER_TEST_NETWORKS=$(docker network ls | grep test | awk '{print $1}')
   [ "$DOCKER_TEST_NETWORKS" != "" ] && docker network rm $DOCKER_TEST_NETWORKS
 }

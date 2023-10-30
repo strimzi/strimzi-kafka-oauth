@@ -16,6 +16,7 @@ import io.strimzi.testsuite.oauth.mockoauth.JaasClientConfigTest;
 import io.strimzi.testsuite.oauth.mockoauth.KeycloakAuthorizerTest;
 import io.strimzi.testsuite.oauth.mockoauth.PasswordAuthTest;
 import io.strimzi.testsuite.oauth.mockoauth.RetriesTests;
+import io.strimzi.testsuite.oauth.mockoauth.KerberosListenerTest;
 
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -40,9 +41,11 @@ public class MockOAuthTests {
     @ClassRule
     public static TestContainersWatcher environment =
             new TestContainersWatcher(new File("docker-compose.yml"))
-                    .withServices("mockoauth", "kafka", "zookeeper")
+                    .withServices("mockoauth", "kerberos", "kafka", "zookeeper")
                     .waitingFor("mockoauth", Wait.forLogMessage(".*Succeeded in deploying verticle.*", 1)
                             .withStartupTimeout(Duration.ofSeconds(180)))
+                    .waitingFor("kerberos", Wait.forLogMessage(".*commencing operation.*", 1)
+                            .withStartupTimeout(Duration.ofSeconds(45)))
                     .waitingFor("kafka", Wait.forLogMessage(".*started \\(kafka.server.KafkaServer\\).*", 1)
                             .withStartupTimeout(Duration.ofSeconds(180)));
 
@@ -94,6 +97,9 @@ public class MockOAuthTests {
 
             logStart("ClientAssertionAuthTest :: Client Assertion Tests");
             new ClientAssertionAuthTest().doTest();
+
+            logStart("KerberosTests :: Test authentication with Kerberos");
+            new KerberosListenerTest().doTests();
 
         } catch (Throwable e) {
             log.error("Exception has occurred: ", e);
