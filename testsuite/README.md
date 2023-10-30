@@ -20,6 +20,7 @@ Then, you have to add some entries to your `/etc/hosts` file:
     127.0.0.1            hydra-jwt
     127.0.0.1            kafka
     127.0.0.1            mockoauth
+    127.0.0.1			 kerberos
 
 That's needed for host resolution, because Kafka brokers and Kafka clients connecting to Keycloak / Hydra have to use the 
 same hostname to ensure compatibility of generated access tokens.
