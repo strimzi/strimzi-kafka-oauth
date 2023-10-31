@@ -13,6 +13,7 @@ jobs:
         - hydra
         - hydra-jwt
         - mockoauth
+        - kerberos
       apt:
         packages:
         - maven
@@ -26,6 +27,7 @@ jobs:
         - hydra
         - hydra-jwt
         - mockoauth
+        - kerberos
       apt:
         packages:
         - maven
@@ -43,6 +45,7 @@ addons:
   - hydra
   - hydra-jwt
   - mockoauth
+  - kerberos
 env:
   global:
   - PULL_REQUEST=${TRAVIS_PULL_REQUEST}
