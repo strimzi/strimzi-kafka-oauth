@@ -10,13 +10,29 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+/**
+ * A contract for a class that provides a token
+ */
 public interface TokenProvider {
 
+    /**
+     * Get a token
+     *
+     * @return A token
+     */
     String token();
 
+    /**
+     * A TokenProvider that contains an immutable token that is returned every time a {@link StaticTokenProvider#token()} method is called.
+     */
     class StaticTokenProvider implements TokenProvider {
         private final String token;
 
+        /**
+         * Create a new instance with a token that never changes
+         *
+         * @param token A token
+         */
         public StaticTokenProvider(final String token) {
             this.token = token;
         }
@@ -27,9 +43,18 @@ public interface TokenProvider {
         }
     }
 
+    /**
+     * A TokenProvider that uses a file as a token source.
+     * The content of the file is fully read and returned every time a {@link FileBasedTokenProvider#token()} method is called.
+     */
     class FileBasedTokenProvider implements TokenProvider {
         private final Path filePath;
 
+        /**
+         * Create a new instance that refers to a specified file as a token source.
+         *
+         * @param tokenFilePath A path to a file containing a token
+         */
         public FileBasedTokenProvider(final String tokenFilePath) {
             this.filePath = Paths.get(tokenFilePath);
             if (!filePath.toFile().exists()) {

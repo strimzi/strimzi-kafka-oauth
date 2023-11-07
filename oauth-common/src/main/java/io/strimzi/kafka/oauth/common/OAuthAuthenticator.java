@@ -221,7 +221,7 @@ public class OAuthAuthenticator {
      * @throws IOException If the request to the authorization server has failed
      * @throws IllegalStateException If the response from the authorization server could not be handled
      */
-     @SuppressWarnings("checkstyle:ParameterNumber")
+    @SuppressWarnings("checkstyle:ParameterNumber")
     public static TokenInfo loginWithClientAssertion(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
                                                      HostnameVerifier hostnameVerifier,
                                                      String clientId, String clientAssertion, String clientAssertionType, boolean isJwt,
