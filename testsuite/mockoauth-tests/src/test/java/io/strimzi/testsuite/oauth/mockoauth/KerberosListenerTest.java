@@ -33,24 +33,15 @@ public class KerberosListenerTest {
 
     public void doTests() throws Exception {
 
-        //File krb5 = new File("../docker/kerberos/krb5.conf");
-        //Assert.assertTrue(krb5.exists());
-        //Assert.assertTrue(krb5.canRead());
-
         File keyTab = new File("../docker/kerberos/keys/kafka_client.keytab");
         Assert.assertTrue(keyTab.exists());
         Assert.assertTrue(keyTab.canRead());
-
-        //System.out.println(krb5.getAbsolutePath());
-        //System.setProperty("java.security.krb5.conf", krb5.getAbsolutePath());
-        System.out.println(System.getProperty("java.security.krb5.conf"));
 
         Properties props = new Properties();
         props.put("security.protocol", "SASL_PLAINTEXT");
         props.put("sasl.kerberos.service.name", "kafka");
         props.put("sasl.jaas.config", "com.sun.security.auth.module.Krb5LoginModule required useKeyTab=true storeKey=true keyTab='../docker/kerberos/keys/kafka_client.keytab' principal='kafka/client@KERBEROS';");
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "kafka:9099");
-
 
         Admin admin = Admin.create(props);
         CreateTopicsResult result = admin.createTopics(Collections.singleton(new NewTopic(TOPIC_NAME, (short) 1, (short) 1)));
