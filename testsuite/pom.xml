@@ -292,7 +292,7 @@
                     <systemPropertyVariables>
                         <KAFKA_DOCKER_IMAGE>${kafka.docker.image}</KAFKA_DOCKER_IMAGE>
                     </systemPropertyVariables>
-					<argLine>-Djava.security.krb5.conf=${project.basedir}/../docker/kerberos/krb5.conf</argLine>
+                    <argLine>-Djava.security.krb5.conf=${project.basedir}/../docker/kerberos/krb5.conf</argLine>
                 </configuration>
 
             </plugin>
