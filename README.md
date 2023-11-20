@@ -933,7 +933,7 @@ The first is to specify Client Credentials. This requires that a client is confi
 This is achieved by specifying the following:
 - `oauth.client.id` (e.g.: "my-client")
 
-together with one of authentication options below 
+together with one of authentication options below.
 
 When client starts to establish the connection with the Kafka Broker it will first obtain an access token from the configured Token Endpoint, authenticating with the configured client ID and configured authentication option using client_credentials grant type.
 
@@ -953,11 +953,11 @@ or pointing to a file on the filesystem
 
 - `oauth.client.assertion.location`
 
-the exact type of the token must also be communicated to the token endpoint and defaults to `urn:ietf:params:oauth:client-assertion-type:jwt-bearer`. 
+the exact type of the token must also be communicated to the token endpoint and defaults to `urn:ietf:params:oauth:client-assertion-type:jwt-bearer` (which is specified in RFC-7523). 
 
 This can be overridden using property
 
--  `oauth.client.assertion.type` (i.e. use `urn:ietf:params:oauth:client-assertion-type:saml2-bearer` for SAML 2 tokens)
+-  `oauth.client.assertion.type` (i.e. use `urn:ietf:params:oauth:client-assertion-type:saml2-bearer`, specified in RFC-7522, for SAML 2 tokens)
 
 #### Refresh Token
 
