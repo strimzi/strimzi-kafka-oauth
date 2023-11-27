@@ -182,19 +182,24 @@ public class OAuthAuthenticator {
      * @param principalExtractor A PrincipalExtractor to use to determine the principal (user id)
      * @param scope A scope to request when authenticating
      * @param audience An 'audience' attribute to set on the request when authenticating
-     * @param includeAcceptHeader Should we skip sending the Accept header when making outbound http requests
      * @return A TokenInfo with access token and information extracted from it
      * @throws IOException If the request to the authorization server has failed
      * @throws IllegalStateException If the response from the authorization server could not be handled
      */
     @SuppressWarnings("checkstyle:ParameterNumber")
-    public static TokenInfo loginWithClientAssertion(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
+    public static TokenInfo loginWithClientAssertion(URI tokenEndpointUrl,
+                                                     SSLSocketFactory socketFactory,
                                                      HostnameVerifier hostnameVerifier,
-                                                     String clientId, String clientAssertion, String clientAssertionType, boolean isJwt,
-                                                     PrincipalExtractor principalExtractor, String scope, String audience, boolean includeAcceptHeader) throws IOException {
+                                                     String clientId,
+                                                     String clientAssertion,
+                                                     String clientAssertionType,
+                                                     boolean isJwt,
+                                                     PrincipalExtractor principalExtractor,
+                                                     String scope,
+                                                     String audience) throws IOException {
 
         return loginWithClientAssertion(tokenEndpointUrl, socketFactory, hostnameVerifier,
-                clientId, clientAssertion, clientAssertionType, isJwt, principalExtractor, scope, audience, HttpUtil.DEFAULT_CONNECT_TIMEOUT, HttpUtil.DEFAULT_READ_TIMEOUT, null, 0, 0, includeAcceptHeader);
+                clientId, clientAssertion, clientAssertionType, isJwt, principalExtractor, scope, audience, HttpUtil.DEFAULT_CONNECT_TIMEOUT, HttpUtil.DEFAULT_READ_TIMEOUT, null, 0, 0, true);
     }
 
     /**
@@ -222,11 +227,22 @@ public class OAuthAuthenticator {
      * @throws IllegalStateException If the response from the authorization server could not be handled
      */
     @SuppressWarnings("checkstyle:ParameterNumber")
-    public static TokenInfo loginWithClientAssertion(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
+    public static TokenInfo loginWithClientAssertion(URI tokenEndpointUrl,
+                                                     SSLSocketFactory socketFactory,
                                                      HostnameVerifier hostnameVerifier,
-                                                     String clientId, String clientAssertion, String clientAssertionType, boolean isJwt,
-                                                     PrincipalExtractor principalExtractor, String scope, String audience,
-                                                     int connectTimeout, int readTimeout, MetricsHandler metrics, int retries, long retryPauseMillis, boolean includeAcceptHeader) throws IOException {
+                                                     String clientId,
+                                                     String clientAssertion,
+                                                     String clientAssertionType,
+                                                     boolean isJwt,
+                                                     PrincipalExtractor principalExtractor,
+                                                     String scope,
+                                                     String audience,
+                                                     int connectTimeout,
+                                                     int readTimeout,
+                                                     MetricsHandler metrics,
+                                                     int retries,
+                                                     long retryPauseMillis,
+                                                     boolean includeAcceptHeader) throws IOException {
         if (log.isDebugEnabled()) {
             log.debug("loginWithClientAssertion() - tokenEndpointUrl: {}, clientId: {}, clientAssertion: {}, clientAssertionType: {}, scope: {}, audience: {}, connectTimeout: {}, readTimeout: {}, retries: {}, retryPauseMillis: {}",
                     tokenEndpointUrl, clientId, mask(clientAssertion), clientAssertionType, scope, audience, connectTimeout, readTimeout, retries, retryPauseMillis);

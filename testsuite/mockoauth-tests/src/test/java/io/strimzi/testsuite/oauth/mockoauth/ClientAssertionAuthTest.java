@@ -31,6 +31,7 @@ public class ClientAssertionAuthTest {
 
         changeAuthServerMode("token", "MODE_200");
         changeAuthServerMode("introspect", "MODE_200");
+        changeAuthServerMode("jwks", "MODE_200");
 
         // create a client for resource server
         String clientSrv = "appserver";
@@ -61,8 +62,10 @@ public class ClientAssertionAuthTest {
                     null);
 
             Assert.fail("Should have failed with 401");
-        } catch (HttpException e) {
-            Assert.assertEquals("Expected status 401", 401, e.getStatus());
+        } catch (Exception e) {
+            Throwable cause = e.getCause();
+            Assert.assertTrue("Cause is HttpException", cause instanceof HttpException);
+            Assert.assertEquals("Expected status 401", 401, ((HttpException) cause).getStatus());
         }
 
         // Use client_credentials to authenticate with correct client_assertion
