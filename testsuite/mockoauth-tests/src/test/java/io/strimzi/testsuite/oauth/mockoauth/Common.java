@@ -106,9 +106,26 @@ public class Common {
         return tokenInfo.token();
     }
 
+    static String loginWithUsernameForRefreshToken(String tokenEndpointUri, String username, String password, String clientId, String truststorePath, String truststorePass) throws IOException {
+
+        JsonNode result = HttpUtil.post(URI.create(tokenEndpointUri),
+                SSLUtil.createSSLFactory(truststorePath, null, truststorePass, null, null),
+                null,
+                null,
+                WWW_FORM_CONTENT_TYPE,
+                "grant_type=password&username=" + username + "&password=" + password + "&client_id=" + clientId,
+                JsonNode.class);
+
+        JsonNode token = result.get("refresh_token");
+        if (token == null) {
+            throw new IllegalStateException("Invalid response from authorization server: no refresh_token");
+        }
+        return token.asText();
+    }
+
     /**
      * Get response from prometheus endpoint as a map of key:value pairs
-     * We expect the response to be a 'well formed' key=value document in the sense that each line contains a '=' sign
+     * We expect the response to be a 'well-formed' key=value document in the sense that each line contains a '=' sign
      *
      * @param metricsEndpointUri The endpoint used to fetch metrics
      * @return Metrics object

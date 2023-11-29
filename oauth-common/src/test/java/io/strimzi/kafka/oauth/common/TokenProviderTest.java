@@ -17,7 +17,7 @@ public class TokenProviderTest {
     @Test
     public void testStaticTokenProvider() {
 
-        final TokenProvider staticTokenProvider = new TokenProvider.StaticTokenProvider("test-token");
+        final TokenProvider staticTokenProvider = new StaticTokenProvider("test-token");
 
         Assert.assertEquals(staticTokenProvider.token(), "test-token");
     }
@@ -27,7 +27,7 @@ public class TokenProviderTest {
         final File tempFile = File.createTempFile("test-token-", ".jwt");
         Files.write(tempFile.toPath(), "some-test-value".getBytes(StandardCharsets.UTF_8));
 
-        final TokenProvider fileBasedTokenProvider = new TokenProvider.FileBasedTokenProvider(tempFile.getPath());
+        final TokenProvider fileBasedTokenProvider = new FileBasedTokenProvider(tempFile.getPath());
 
         final String tokenValueFromFile = fileBasedTokenProvider.token();
         final boolean delete = tempFile.delete();
@@ -39,11 +39,11 @@ public class TokenProviderTest {
     @Test
     public void testFileBasedTokenProvider_fileDoesNotExist() {
         try {
-            final TokenProvider fileBasedTokenProvider = new TokenProvider.FileBasedTokenProvider("/invalid-file-path");
+            final TokenProvider fileBasedTokenProvider = new FileBasedTokenProvider("/invalid-file-path");
             Assert.fail("failed to test for file type");
 
         } catch (IllegalArgumentException e) {
-            Assert.assertEquals("file '/invalid-file-path' does not exist!", e.getMessage());
+            Assert.assertEquals("No such file: /invalid-file-path", e.getMessage());
         }
     }
 
@@ -51,11 +51,11 @@ public class TokenProviderTest {
     public void testFileBasedTokenProvider_fileIsDir() {
         String tempDir = new File(System.getProperty("java.io.tmpdir")).getAbsolutePath();
         try {
-            final TokenProvider fileBasedTokenProvider = new TokenProvider.FileBasedTokenProvider(tempDir);
+            final TokenProvider fileBasedTokenProvider = new FileBasedTokenProvider(tempDir);
             Assert.fail("failed to test for file existence");
 
         } catch (IllegalArgumentException e) {
-            Assert.assertEquals("'" + tempDir + "' does not point to a file!", e.getMessage());
+            Assert.assertEquals("File is not a regular file: " + tempDir, e.getMessage());
         }
     }
 
@@ -64,7 +64,7 @@ public class TokenProviderTest {
         final File tempFile = File.createTempFile("test-token-", ".jwt");
         Files.write(tempFile.toPath(), "some-test-value".getBytes(StandardCharsets.UTF_8));
 
-        final TokenProvider fileBasedTokenProvider = new TokenProvider.FileBasedTokenProvider(tempFile.getPath());
+        final TokenProvider fileBasedTokenProvider = new FileBasedTokenProvider(tempFile.getPath());
 
         final boolean delete = tempFile.delete();
         Assert.assertTrue(delete);

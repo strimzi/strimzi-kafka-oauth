@@ -9,7 +9,13 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermission;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
+import java.util.Set;
 import java.util.zip.CRC32;
 
 /**
@@ -114,5 +120,33 @@ public class IOUtil {
         byte[] bytes = content.getBytes(StandardCharsets.UTF_8);
         crc.update(bytes, 0, bytes.length);
         return crc.getValue();
+    }
+
+
+    /**
+     * Check that there are zero permissions for group and others
+     *
+     * @param file Path object representing an existing file to check file permissions for
+     * @return <code>true</code> if file permissions limit access to this file to the owner
+     * @throws IllegalArgumentException if file doesn't exist or is not a regular file (not a directory)
+     * @throws UnsupportedOperationException if filesystem doesn't support POSIX file permissions
+     * @throws IOException if an I/O error occurs
+     */
+    public static boolean isFileAccessLimitedToOwner(Path file) throws IOException {
+        if (!Files.exists(file)) {
+            throw new IllegalArgumentException("No such file: " + file.toAbsolutePath());
+        }
+        if (!Files.isRegularFile(file)) {
+            throw new IllegalArgumentException("File is not a regular file: " + file.toAbsolutePath());
+        }
+
+        Set<PosixFilePermission> perms = Files.getPosixFilePermissions(file);
+        List<PosixFilePermission> disallowed = Arrays.asList(
+                PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_WRITE, PosixFilePermission.GROUP_EXECUTE,
+                PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_WRITE, PosixFilePermission.OTHERS_EXECUTE);
+
+        // afterwards 'perms' will only contain disallowed permissions if any are present
+        perms.retainAll(disallowed);
+        return perms.isEmpty();
     }
 }

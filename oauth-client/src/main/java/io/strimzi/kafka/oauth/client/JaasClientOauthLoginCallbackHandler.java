@@ -13,8 +13,8 @@ import io.strimzi.kafka.oauth.common.MetricsHandler;
 import io.strimzi.kafka.oauth.common.PrincipalExtractor;
 import io.strimzi.kafka.oauth.common.TokenInfo;
 import io.strimzi.kafka.oauth.common.TokenProvider;
-import io.strimzi.kafka.oauth.common.TokenProvider.FileBasedTokenProvider;
-import io.strimzi.kafka.oauth.common.TokenProvider.StaticTokenProvider;
+import io.strimzi.kafka.oauth.common.FileBasedTokenProvider;
+import io.strimzi.kafka.oauth.common.StaticTokenProvider;
 import io.strimzi.kafka.oauth.metrics.SensorKeyProducer;
 import io.strimzi.kafka.oauth.services.OAuthMetrics;
 import io.strimzi.kafka.oauth.services.Services;
@@ -104,13 +104,14 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
 
         final String token = config.getValue(ClientConfig.OAUTH_ACCESS_TOKEN);
         final String tokenLocation = config.getValue(ClientConfig.OAUTH_ACCESS_TOKEN_LOCATION);
-        tokenProvider = createProvider(token, tokenLocation);
+        tokenProvider = configureAccessTokenProvider(token, tokenLocation);
 
         if (token == null && tokenLocation == null) {
             String endpoint = config.getValue(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI);
 
             if (endpoint == null) {
-                throw new ConfigException("Access token not specified ('" + ClientConfig.OAUTH_ACCESS_TOKEN + "'). OAuth token endpoint ('" + ClientConfig.OAUTH_TOKEN_ENDPOINT_URI + "') should then be set.");
+                throw new ConfigException("Access token not specified ('" + ClientConfig.OAUTH_ACCESS_TOKEN + "' or '"
+                        + ClientConfig.OAUTH_ACCESS_TOKEN_LOCATION + "'). OAuth token endpoint ('" + ClientConfig.OAUTH_TOKEN_ENDPOINT_URI + "') should then be set.");
             }
 
             try {
@@ -122,14 +123,15 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
 
         final String refreshToken = config.getValue(ClientConfig.OAUTH_REFRESH_TOKEN);
         final String refreshTokenLocation = config.getValue(ClientConfig.OAUTH_REFRESH_TOKEN_LOCATION);
-        refreshTokenProvider = createProvider(refreshToken, refreshTokenLocation);
+        refreshTokenProvider = configureRefreshTokenProvider(refreshToken, refreshTokenLocation);
 
         clientId = config.getValue(Config.OAUTH_CLIENT_ID);
         clientSecret = config.getValue(Config.OAUTH_CLIENT_SECRET);
 
         final String clientAssertion = config.getValue(ClientConfig.OAUTH_CLIENT_ASSERTION);
         final String clientAssertionLocation = config.getValue(ClientConfig.OAUTH_CLIENT_ASSERTION_LOCATION);
-        clientAssertionProvider = createProvider(clientAssertion, clientAssertionLocation);
+        clientAssertionProvider = configureClientAssertionTokenProvider(clientAssertion, clientAssertionLocation);
+
         clientAssertionType = config.getValue(ClientConfig.OAUTH_CLIENT_ASSERTION_TYPE, "urn:ietf:params:oauth:client-assertion-type:jwt-bearer");
 
         username = config.getValue(ClientConfig.OAUTH_PASSWORD_GRANT_USERNAME);
@@ -193,6 +195,48 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
         }
     }
 
+    private TokenProvider configureAccessTokenProvider(String token, String tokenLocation) {
+        String tokenIgnoredMessage = "Access token location is configured ('" + ClientConfig.OAUTH_ACCESS_TOKEN_LOCATION +
+                "'), access token will be ignored ('" + ClientConfig.OAUTH_ACCESS_TOKEN + "').";
+        String noSuchFileMessage = "Specified access token location is invalid ('" + ClientConfig.OAUTH_ACCESS_TOKEN_LOCATION + "')";
+
+        return configureAnyTokenProvider(token, tokenLocation, tokenIgnoredMessage, noSuchFileMessage);
+    }
+
+    private TokenProvider configureRefreshTokenProvider(String token, String tokenLocation) {
+        String tokenIgnoredMessage = "Refresh token location is configured ('" + ClientConfig.OAUTH_REFRESH_TOKEN_LOCATION +
+                "'), refresh token will be ignored ('" + ClientConfig.OAUTH_REFRESH_TOKEN + "').";
+        String noSuchFileMessage = "Specified refresh token location is invalid ('" + ClientConfig.OAUTH_REFRESH_TOKEN_LOCATION + "')";
+
+        return configureAnyTokenProvider(token, tokenLocation, tokenIgnoredMessage, noSuchFileMessage);
+    }
+
+    private TokenProvider configureClientAssertionTokenProvider(String token, String tokenLocation) {
+        String tokenIgnoredMessage = "Client assertion location is configured ('" + ClientConfig.OAUTH_CLIENT_ASSERTION_LOCATION +
+                "'), client assertion will be ignored ('" + ClientConfig.OAUTH_CLIENT_ASSERTION + "').";
+        String noSuchFileMessage = "Specified client assertion location is invalid ('" + ClientConfig.OAUTH_CLIENT_ASSERTION_LOCATION + "')";
+
+        return configureAnyTokenProvider(token, tokenLocation, tokenIgnoredMessage, noSuchFileMessage);
+    }
+
+    private TokenProvider configureAnyTokenProvider(String token, String tokenLocation, String tokenIgnoredMessage, String noSuchFileMessage) {
+        if (tokenLocation != null) {
+            try {
+                if (token != null) {
+                    LOG.warn(tokenIgnoredMessage);
+                }
+                return new FileBasedTokenProvider(tokenLocation);
+
+            } catch (IllegalArgumentException e) {
+                throw new ConfigException(noSuchFileMessage + ": " + e.getMessage());
+            }
+        }
+        if (token != null) {
+            return new StaticTokenProvider(token);
+        }
+        return null;
+    }
+
     private int getHttpRetries(ClientConfig config) {
         int retries = config.getValueAsInt(Config.OAUTH_HTTP_RETRIES, 0);
         if (retries < 0) {
@@ -213,15 +257,6 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
             }
         }
         return retryPauseMillis;
-    }
-
-    private TokenProvider createProvider(final String token, final String tokenLocation) {
-        if (tokenLocation != null) {
-            return new FileBasedTokenProvider(tokenLocation);
-        } else if (token != null) {
-            return new StaticTokenProvider(token);
-        }
-        return null;
     }
 
     private void checkConfiguration() {

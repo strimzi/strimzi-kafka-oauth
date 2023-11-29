@@ -141,6 +141,7 @@ public class MockOAuthServerMainVerticle extends AbstractVerticle {
 
     private final Map<String, String> clients = new HashMap<>();
     private final Map<String, UserInfo> users = new HashMap<>();
+    private final Map<String, RefreshTokenInfo> refreshTokens = new HashMap<>();
     private final Set<String> revokedTokens = new HashSet<>();
 
     private final Map<String, JsonArray> grants = new HashMap<>();
@@ -300,6 +301,14 @@ public class MockOAuthServerMainVerticle extends AbstractVerticle {
 
     Map<String, UserInfo> getUsers() {
         return Collections.unmodifiableMap(users);
+    }
+
+    void createRefreshToken(String token, RefreshTokenInfo info) {
+        refreshTokens.put(token, info);
+    }
+
+    Map<String, RefreshTokenInfo> getRefreshTokens() {
+        return Collections.unmodifiableMap(refreshTokens);
     }
 
     void revokeToken(String token) {

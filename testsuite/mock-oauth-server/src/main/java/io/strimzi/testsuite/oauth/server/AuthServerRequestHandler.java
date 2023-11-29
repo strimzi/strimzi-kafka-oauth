@@ -38,6 +38,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import static io.netty.handler.codec.http.HttpResponseStatus.SERVICE_UNAVAILABLE;
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
+import static io.strimzi.kafka.oauth.common.IOUtil.randomHexString;
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.base64decode;
 import static io.strimzi.kafka.oauth.common.TokenInfo.EXP;
 import static io.strimzi.kafka.oauth.common.TokenInfo.ISS;
@@ -255,6 +256,7 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
             MultiMap form = req.formAttributes();
             log.info(form.toString());
 
+            // grant_type is required
             String grantType = form.get("grant_type");
             if (grantType == null) {
                 sendResponse(req, BAD_REQUEST);
@@ -266,9 +268,11 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
             String username = null;
 
             // clientId should be passed via Authorization header
+            // and should have a secret matching the stored client record
             String clientId = authorizeClient(authorization);
 
             // or via the body together with its assertion
+            // and should match client assertion in the stored client record and assertion type
             if (clientId == null) {
                 final String clientIdFromForm = form.get("client_id");
                 final String clientAssertion = form.get("client_assertion");
@@ -276,18 +280,26 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
                 clientId = authorizeClientUsingAssertion(clientIdFromForm, clientAssertion, clientAssertionType);
             }
 
-            // if password auth rather than client_credentials, also make sure the username and password are a match
-            if (clientId != null && "password".equals(grantType)) {
+            if ("password".equals(grantType)) {
+                // if it's a password auth, also make sure the username and password are a match
                 username = authorizeUser(form.get("username"), form.get("password"));
+                if (username != null && clientId == null) {
+                    clientId = form.get("client_id");
+                }
+            } else if ("refresh_token".equals(grantType)) {
+                // if it's a refresh_token auth, make sure the refresh_token has been issued by us
+                // and that clientId matches (if clientId not available at this point
+                RefreshTokenInfo refreshTokenInfo = verticle.getRefreshTokens().get(form.get("refresh_token"));
+                if (clientId == null) {
+                    clientId = form.get("client_id");
+                }
+                if (processUnauthorizedRefreshToken(req, clientId, refreshTokenInfo)) {
+                    return;
+                }
+                username = refreshTokenInfo.username;
             }
 
-            if (!("client_credentials".equals(grantType) || "password".equals(grantType)) || clientId == null) {
-                sendResponse(req, UNAUTHORIZED);
-                return;
-            }
-
-            if ("password".equals(grantType) && username == null) {
-                sendResponse(req, UNAUTHORIZED);
+            if (processUnauthorized(req, grantType, username, clientId)) {
                 return;
             }
 
@@ -297,9 +309,10 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
                 long expiresIn = userInfo != null && userInfo.expiresIn != null ? userInfo.expiresIn : EXPIRES_IN_SECONDS;
 
                 String accessToken = createSignedAccessToken(clientId, username, expiresIn);
-
+                String refreshToken = createRefreshToken(clientId, username);
                 JsonObject result = new JsonObject();
                 result.put("access_token", accessToken);
+                result.put("refresh_token", refreshToken);
                 result.put("expires_in", expiresIn);
                 result.put("scope", "all");
 
@@ -310,6 +323,37 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
                 handleFailure(req, t, log);
             }
         });
+    }
+
+    private boolean processUnauthorized(HttpServerRequest req, String grantType, String username, String clientId) {
+        if (!supportedGrantType(grantType, clientId)) {
+            sendResponse(req, UNAUTHORIZED);
+            return true;
+        }
+
+        if ("password".equals(grantType) && username == null) {
+            sendResponse(req, UNAUTHORIZED);
+            return true;
+        }
+        return false;
+    }
+
+    private static boolean processUnauthorizedRefreshToken(HttpServerRequest req, String clientId, RefreshTokenInfo refreshTokenInfo) {
+        if (refreshTokenInfo == null) {
+            sendResponse(req, UNAUTHORIZED);
+            return true;
+        } else {
+            if (!refreshTokenInfo.clientId.equals(clientId)) {
+                sendResponse(req, UNAUTHORIZED);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean supportedGrantType(String grantType, String clientId) {
+        return clientId != null &&
+                ("client_credentials".equals(grantType) || "password".equals(grantType) || "refresh_token".equals(grantType));
     }
 
     private void processIntrospectRequest(HttpServerRequest req) {
@@ -496,6 +540,22 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
         return signedJWT.serialize();
     }
 
+    /**
+     * This method creates opaque refresh tokens that never expire
+     *
+     * @param clientId clientId for the client
+     * @param username username of the user
+     * @return A refresh token
+     */
+    private String createRefreshToken(String clientId, String username) {
+        // create a random string and store it
+        String refreshToken = randomHexString(32);
+
+        // This is essentially a memory leak as refresh tokens are only ever added, never removed
+        verticle.createRefreshToken(refreshToken, new RefreshTokenInfo(clientId, username));
+        return refreshToken;
+    }
+
     private String authorizeClient(String authorization) {
         if (authorization == null || !authorization.startsWith("Basic ")) {
             return null;
@@ -524,6 +584,9 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
             return null;
         }
         if (!clientAssertion.equals(verticle.getClients().get(clientId))) {
+            return null;
+        }
+        if (!"urn:ietf:params:oauth:client-assertion-type:jwt-bearer".equals(clientAssertionType)) {
             return null;
         }
         return clientId;
