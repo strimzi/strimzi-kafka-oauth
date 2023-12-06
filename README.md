@@ -953,7 +953,9 @@ or pointing to a file on the filesystem
 
 - `oauth.client.assertion.location`
 
-the exact type of the token must also be communicated to the token endpoint and defaults to `urn:ietf:params:oauth:client-assertion-type:jwt-bearer` (which is specified in RFC-7523). 
+The file contains secrets in plain text and should have proper permissions set - not readable by others.
+
+The exact type of the token must also be communicated to the token endpoint and defaults to `urn:ietf:params:oauth:client-assertion-type:jwt-bearer` (which is specified in RFC-7523). 
 
 This can be overridden using property
 
@@ -968,6 +970,8 @@ The second way is to manually obtain and set a refresh token either directly thr
 or pointing to a file on the filesystem
 
 - `oauth.refresh.token.location`
+
+The file contains secrets in plain text and should have proper permissions set - not readable by others.
 
 When using this approach you are not limited to OAuth2 client_credentials grant type for obtaining a token.
 You can use a password grant type and authenticate as an individual user, rather than a client application.
@@ -984,6 +988,8 @@ The third way is to manually obtain and set an access token either directly thro
 or pointing to a file on the filesystem
 
 - `oauth.access.token.location`
+
+The file contains secrets in plain text and should have proper permissions set - not readable by others.
 
 Access tokens are supposed to be short-lived in order to prevent unauthorized access if the token leaks.
 It is up to you, your environment, and how you plan to run your Kafka client application to consider if using long-lived access tokens is appropriate.
