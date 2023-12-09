@@ -16,9 +16,7 @@ public class TokenProviderTest {
 
     @Test
     public void testStaticTokenProvider() {
-
         final TokenProvider staticTokenProvider = new StaticTokenProvider("test-token");
-
         Assert.assertEquals(staticTokenProvider.token(), "test-token");
     }
 
@@ -37,21 +35,21 @@ public class TokenProviderTest {
     }
 
     @Test
-    public void testFileBasedTokenProvider_fileDoesNotExist() {
+    public void testFileBasedTokenProviderWhenFileDoesNotExist() {
         try {
-            final TokenProvider fileBasedTokenProvider = new FileBasedTokenProvider("/invalid-file-path");
+            new FileBasedTokenProvider("invalid-file-path");
             Assert.fail("failed to test for file type");
 
         } catch (IllegalArgumentException e) {
-            Assert.assertEquals("No such file: /invalid-file-path", e.getMessage());
+            Assert.assertTrue("No such file ...", e.getMessage().contains("No such file"));
         }
     }
 
     @Test
-    public void testFileBasedTokenProvider_fileIsDir() {
+    public void testFileBasedTokenProviderWhenFileIsDir() {
         String tempDir = new File(System.getProperty("java.io.tmpdir")).getAbsolutePath();
         try {
-            final TokenProvider fileBasedTokenProvider = new FileBasedTokenProvider(tempDir);
+            new FileBasedTokenProvider(tempDir);
             Assert.fail("failed to test for file existence");
 
         } catch (IllegalArgumentException e) {
@@ -60,7 +58,7 @@ public class TokenProviderTest {
     }
 
     @Test
-    public void testFileBasedTokenProvider_fileRemoved() throws IOException {
+    public void testFileBasedTokenProviderWhenFileRemoved() throws IOException {
         final File tempFile = File.createTempFile("test-token-", ".jwt");
         Files.write(tempFile.toPath(), "some-test-value".getBytes(StandardCharsets.UTF_8));
 

@@ -9,9 +9,15 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.AclEntry;
+import java.nio.file.attribute.AclEntryType;
+import java.nio.file.attribute.AclFileAttributeView;
 import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.UserPrincipal;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
@@ -122,14 +128,16 @@ public class IOUtil {
         return crc.getValue();
     }
 
-
     /**
-     * Check that there are zero permissions for group and others
+     * Check that there are minimal permissions on the file (owner access only)
+     * <p>
+     * In POSIX compatible environment there should be no permissions for group and other users.
+     * In ACL compatible environment there should be no permissions for anyone other than current user, Administrators or SYSTEM.
      *
      * @param file Path object representing an existing file to check file permissions for
      * @return <code>true</code> if file permissions limit access to this file to the owner
      * @throws IllegalArgumentException if file doesn't exist or is not a regular file (not a directory)
-     * @throws UnsupportedOperationException if filesystem doesn't support POSIX file permissions
+     * @throws UnsupportedOperationException if filesystem doesn't support POSIX or ACL file permissions
      * @throws IOException if an I/O error occurs
      */
     public static boolean isFileAccessLimitedToOwner(Path file) throws IOException {
@@ -140,13 +148,39 @@ public class IOUtil {
             throw new IllegalArgumentException("File is not a regular file: " + file.toAbsolutePath());
         }
 
-        Set<PosixFilePermission> perms = Files.getPosixFilePermissions(file);
-        List<PosixFilePermission> disallowed = Arrays.asList(
-                PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_WRITE, PosixFilePermission.GROUP_EXECUTE,
-                PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_WRITE, PosixFilePermission.OTHERS_EXECUTE);
+        FileSystem fs = FileSystems.getDefault();
 
-        // afterwards 'perms' will only contain disallowed permissions if any are present
-        perms.retainAll(disallowed);
-        return perms.isEmpty();
+        Set<String> supportedViews = fs.supportedFileAttributeViews();
+        if (supportedViews.contains("posix")) {
+            Set<PosixFilePermission> perms = Files.getPosixFilePermissions(file);
+            List<PosixFilePermission> disallowed = Arrays.asList(
+                    PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_WRITE, PosixFilePermission.GROUP_EXECUTE,
+                    PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_WRITE, PosixFilePermission.OTHERS_EXECUTE);
+
+            // afterwards 'perms' will only contain disallowed permissions if any are present
+            perms.retainAll(disallowed);
+            return perms.isEmpty();
+
+        } else if (supportedViews.contains("acl")) {
+            AclFileAttributeView view = Files.getFileAttributeView(file, AclFileAttributeView.class);
+            UserPrincipal owner = view.getOwner();
+            List<AclEntry> acl = view.getAcl();
+            for (AclEntry entry : acl) {
+                String permissionName = entry.principal().getName();
+                if ("BUILTIN\\Administrators".equals(permissionName)
+                        || "NT AUTHORITY\\SYSTEM".equals(permissionName)
+                        || owner.getName().equals(permissionName)) {
+                    continue;
+                }
+
+                // No other ALLOW permission should be present
+                if (AclEntryType.ALLOW.equals(entry.type())) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        throw new RuntimeException("Not a POSIX or ACL compatible filesystem: " + fs);
     }
 }

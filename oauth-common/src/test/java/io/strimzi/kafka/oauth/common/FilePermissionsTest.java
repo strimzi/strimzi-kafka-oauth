@@ -16,29 +16,44 @@ import java.nio.file.Paths;
 import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
-import java.util.Arrays;
+import java.nio.file.attribute.AclEntry;
+import java.nio.file.attribute.AclEntryType;
+import java.nio.file.attribute.AclFileAttributeView;
+import java.nio.file.attribute.UserPrincipal;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Set;
+
+import static io.strimzi.kafka.oauth.common.IOUtil.isFileAccessLimitedToOwner;
 
 public class FilePermissionsTest {
 
     @Test
-    public void filePermissionCheckTest() throws IOException {
+    public void filePermissionCheckTest() throws Exception {
         // if file does not exist there is nothing to check
         String filePath = "target/test1.txt";
         Path file = Paths.get(filePath);
         Assert.assertFalse("File should not yet exist", Files.exists(file));
 
         try {
-            // Create a file
-            createFile(file, false);
-            Assert.assertFalse("File should be accessible to group and others", checkFileAccessLimitedToOwner(file));
+            FileSystem fs = FileSystems.getDefault();
+            Set<String> supportedViews = fs.supportedFileAttributeViews();
+            if (supportedViews.contains("posix")) {
+                // This part of the test only works in posix compatible environment
+                // Create a file
+                createFile(file, false);
+                Assert.assertFalse("File should be accessible to group and others", isFileAccessLimitedToOwner(file));
 
-            Files.delete(file);
+                Files.delete(file);
+            }
+
             createFile(file, true);
-            Assert.assertTrue("File should not be accessible to group and others", checkFileAccessLimitedToOwner(file));
+            Assert.assertTrue("File should NOT be accessible to group and others", isFileAccessLimitedToOwner(file));
         } finally {
-            Files.delete(file);
+            try {
+                Files.delete(file);
+            } catch (Exception ignored) {
+            }
         }
     }
 
@@ -46,40 +61,35 @@ public class FilePermissionsTest {
         FileSystem fs = FileSystems.getDefault();
         Set<String> supportedViews = fs.supportedFileAttributeViews();
         if (supportedViews.contains("posix")) {
+            // Unix environment
             FileAttribute<Set<PosixFilePermission>> fileAttrs = PosixFilePermissions.asFileAttribute(
-                            PosixFilePermissions.fromString(isPrivate ? "rw-------" : "rw-r--r--"));
+                    PosixFilePermissions.fromString(isPrivate ? "rw-------" : "rw-r--r--"));
 
             Files.createFile(file, fileAttrs);
+
+        } else if (supportedViews.contains("acl")) {
+            // Windows environment
+            Files.createFile(file);
+
+            if (isPrivate) {
+                AclFileAttributeView view = Files.getFileAttributeView(file, AclFileAttributeView.class);
+                UserPrincipal owner = view.getOwner();
+                List<AclEntry> acl = view.getAcl();
+
+                ListIterator<AclEntry> it = acl.listIterator();
+                while (it.hasNext()) {
+                    AclEntry entry = it.next();
+                    if ("BUILTIN\\Administrators".equals(entry.principal().getName())
+                            || "NT AUTHORITY\\SYSTEM".equals(entry.principal().getName())
+                            || (owner.getName().equals(entry.principal().getName()) && AclEntryType.ALLOW == entry.type())) {
+                        continue;
+                    }
+                    it.remove();
+                }
+                view.setAcl(acl);
+            }
         } else {
-            throw new RuntimeException("Not a POSIX compatible filesystem: " + fs);
+            throw new RuntimeException("Not a POSIX or ACL compatible filesystem: " + fs);
         }
-    }
-
-
-    /**
-     * Check that there are zero permissions for group and others
-     *
-     * @param file Path object representing an existing file to check file permissions for
-     * @return <code>true</code> if file permissions limit access to this file to the owner
-     * @throws IllegalArgumentException if file doesn't exist or is not a regular file (not a directory)
-     * @throws UnsupportedOperationException if filesystem doesn't support POSIX file permissions
-     * @throws IOException if an I/O error occurs
-     */
-    public static boolean checkFileAccessLimitedToOwner(Path file) throws IOException {
-        if (!Files.exists(file)) {
-            throw new IllegalArgumentException("No such file: " + file.toAbsolutePath());
-        }
-        if (!Files.isRegularFile(file)) {
-            throw new IllegalArgumentException("File is not a regular file: " + file.toAbsolutePath());
-        }
-
-        Set<PosixFilePermission> perms = Files.getPosixFilePermissions(file);
-        List<PosixFilePermission> disallowed = Arrays.asList(
-                PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_WRITE, PosixFilePermission.GROUP_EXECUTE,
-                PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_WRITE, PosixFilePermission.OTHERS_EXECUTE);
-
-        // afterwards 'perms' will only contain disallowed permissions if any are present
-        perms.retainAll(disallowed);
-        return perms.isEmpty();
     }
 }
