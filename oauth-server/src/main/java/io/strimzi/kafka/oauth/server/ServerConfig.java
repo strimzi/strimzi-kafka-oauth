@@ -110,6 +110,16 @@ public class ServerConfig extends Config {
     public static final String OAUTH_VALIDATION_SKIP_TYPE_CHECK = "oauth.validation.skip.type.check";
 
     /**
+     * "oauth.server.bearer.token"
+     */
+    public static final String OAUTH_SERVER_BEARER_TOKEN = "oauth.server.bearer.token";
+
+    /**
+     * "oauth.server.bearer.token.location"
+     */
+    public static final String OAUTH_SERVER_BEARER_TOKEN_LOCATION = "oauth.server.bearer.token.location";
+
+    /**
      * Create a new instance
      */
     public ServerConfig() {

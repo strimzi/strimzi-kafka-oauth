@@ -8,6 +8,10 @@ import java.util.Locale;
 
 enum Mode {
     MODE_200,
+    /** Used by jwks endpoint, which by default does not require 'Authorization' header, but requires it if this mode is enabled*/
+    MODE_200_PROTECTED,
+    /** Used by introspection endpoint, which by default requires 'Authorization' header, but not if this mode is enabled */
+    MODE_200_UNPROTECTED,
     MODE_400,
     MODE_401,
     MODE_403,

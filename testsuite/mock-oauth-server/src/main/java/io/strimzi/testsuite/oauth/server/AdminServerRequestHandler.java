@@ -269,16 +269,22 @@ public class AdminServerRequestHandler implements Handler<HttpServerRequest> {
 
                     String secret = json.getString("secret");
                     String clientAssertion = json.getString("clientAssertion");
-                    if (secret == null) {
-                        if (clientAssertion == null) {
-                            sendResponse(req, BAD_REQUEST, "Required attribute 'secret' is null or missing.");
-                            return;
-                        } else {
-                            secret = clientAssertion;
+                    String bearerToken = json.getString("bearerToken");
+
+                    if (bearerToken != null) {
+                        verticle.createOrUpdateClient(clientId, bearerToken);
+                    } else {
+                        if (secret == null) {
+                            if (clientAssertion == null) {
+                                sendResponse(req, BAD_REQUEST, "One of ['bearerToken', 'secret'] attributes has to be set.");
+                                return;
+                            } else {
+                                secret = clientAssertion;
+                            }
                         }
+                        verticle.createOrUpdateClient(clientId, secret);
                     }
 
-                    verticle.createOrUpdateClient(clientId, secret);
                     sendResponse(req, OK);
 
                 } catch (Exception e) {

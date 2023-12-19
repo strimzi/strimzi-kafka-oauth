@@ -12,6 +12,7 @@ import io.strimzi.kafka.oauth.common.MetricsHandler;
 import io.strimzi.kafka.oauth.common.PrincipalExtractor;
 import io.strimzi.kafka.oauth.common.TimeUtil;
 import io.strimzi.kafka.oauth.common.TokenInfo;
+import io.strimzi.kafka.oauth.common.TokenProvider;
 import io.strimzi.kafka.oauth.jsonpath.JsonPathFilterQuery;
 import io.strimzi.kafka.oauth.jsonpath.JsonPathQuery;
 import io.strimzi.kafka.oauth.metrics.IntrospectHttpSensorKeyProducer;
@@ -59,6 +60,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
     private final String validTokenType;
     private final String clientId;
     private final String clientSecret;
+    private final TokenProvider bearerTokenProvider;
     private final String audience;
     private final JsonPathFilterQuery customClaimMatcher;
     private final SSLSocketFactory socketFactory;
@@ -84,6 +86,9 @@ public class OAuthIntrospectionValidator implements TokenValidator {
      * Create a new instance.
      *
      * @param id A unique id to associate with this validator for the purpose of validator lifecycle and metrics tracking
+     * @param clientId The clientId of the OAuth2 client representing this Kafka broker - used to authenticate to the introspection endpoint using Basic authentication
+     * @param clientSecret The secret of the OAuth2 client representing this Kafka broker - used to authenticate to the introspection endpoint using Basic authentication
+     * @param bearerTokenProvider The provider of the bearer token as an alternative to clientId and secret of the OAuth2 client representing this Kafka broker - used to authenticate to the introspection endpoint using Bearer authentication
      * @param introspectionEndpointUri The introspection endpoint url at the authorization server
      * @param socketFactory The optional SSL socket factory to use when establishing the connection to authorization server
      * @param verifier The optional hostname verifier used to validate the TLS certificate by the authorization server
@@ -93,8 +98,6 @@ public class OAuthIntrospectionValidator implements TokenValidator {
      * @param issuerUri The required value of the 'iss' claim in the introspection endpoint response
      * @param userInfoUri The optional user info endpoint url at the authorization server, used as a failover when user id can't be extracted from the introspection endpoint response
      * @param validTokenType The optional token type enforcement - only the specified token type is accepted as valid
-     * @param clientId The clientId of the OAuth2 client representing this Kafka broker - needed to authenticate to the introspection endpoint
-     * @param clientSecret The secret of the OAuth2 client representing this Kafka broker - needed to authenticate to the introspection endpoint
      * @param audience The optional audience check. If specified, the 'aud' attribute of the introspection endpoint response needs to contain the configured clientId
      * @param customClaimCheck The optional JSONPath filter query for additional custom attribute checking
      * @param connectTimeoutSeconds The maximum time to wait for connection to authorization server to be established (in seconds)
@@ -106,6 +109,9 @@ public class OAuthIntrospectionValidator implements TokenValidator {
      */
     @SuppressWarnings("checkstyle:ParameterNumber")
     public OAuthIntrospectionValidator(String id,
+                                       String clientId,
+                                       String clientSecret,
+                                       TokenProvider bearerTokenProvider,
                                        String introspectionEndpointUri,
                                        SSLSocketFactory socketFactory,
                                        HostnameVerifier verifier,
@@ -115,8 +121,6 @@ public class OAuthIntrospectionValidator implements TokenValidator {
                                        String issuerUri,
                                        String userInfoUri,
                                        String validTokenType,
-                                       String clientId,
-                                       String clientSecret,
                                        String audience,
                                        String customClaimCheck,
                                        int connectTimeoutSeconds,
@@ -146,6 +150,10 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         this.validTokenType = validTokenType;
         this.clientId = clientId;
         this.clientSecret = clientSecret;
+        this.bearerTokenProvider = bearerTokenProvider;
+
+        checkAuthorizationOptions(clientId, bearerTokenProvider);
+
         this.audience = audience;
         this.customClaimMatcher = parseCustomClaimCheck(customClaimCheck);
 
@@ -166,33 +174,40 @@ public class OAuthIntrospectionValidator implements TokenValidator {
 
         if (log.isDebugEnabled()) {
             log.debug("Configured OAuthIntrospectionValidator:"
-                    + "\n    id: " + id
-                    + "\n    introspectionEndpointUri: " + introspectionURI
-                    + "\n    sslSocketFactory: " + socketFactory
-                    + "\n    hostnameVerifier: " + hostnameVerifier
-                    + "\n    principalExtractor: " + principalExtractor
-                    + "\n    groupsClaimQuery: " + groupsClaimQuery
-                    + "\n    groupsClaimDelimiter: " + groupsClaimDelimiter
-                    + "\n    validIssuerUri: " + validIssuerURI
-                    + "\n    userInfoUri: " + userInfoURI
-                    + "\n    validTokenType: " + validTokenType
-                    + "\n    clientId: " + clientId
-                    + "\n    clientSecret: " + mask(clientSecret)
-                    + "\n    audience: " + audience
-                    + "\n    customClaimCheck: " + customClaimCheck
-                    + "\n    connectTimeoutSeconds: " + connectTimeoutSeconds
-                    + "\n    readTimeoutSeconds: " + readTimeoutSeconds
-                    + "\n    enableMetrics: " + enableMetrics
-                    + "\n    retries: " + retries
-                    + "\n    retryPauseMillis: " + retryPauseMillis
-                    + "\n    includeAcceptHeader: " + includeAcceptHeader
+                    + "\n\t  id: " + id
+                    + "\n\t  introspectionEndpointUri: " + introspectionURI
+                    + "\n\t  sslSocketFactory: " + socketFactory
+                    + "\n\t  hostnameVerifier: " + hostnameVerifier
+                    + "\n\t  principalExtractor: " + principalExtractor
+                    + "\n\t  groupsClaimQuery: " + groupsClaimQuery
+                    + "\n\t  groupsClaimDelimiter: " + groupsClaimDelimiter
+                    + "\n\t  validIssuerUri: " + validIssuerURI
+                    + "\n\t  userInfoUri: " + userInfoURI
+                    + "\n\t  validTokenType: " + validTokenType
+                    + "\n\t  clientId: " + clientId
+                    + "\n\t  clientSecret: " + mask(clientSecret)
+                    + "\n\t  bearerTokenProvider: " + bearerTokenProvider
+                    + "\n\t  audience: " + audience
+                    + "\n\t  customClaimCheck: " + customClaimCheck
+                    + "\n\t  connectTimeoutSeconds: " + connectTimeoutSeconds
+                    + "\n\t  readTimeoutSeconds: " + readTimeoutSeconds
+                    + "\n\t  enableMetrics: " + enableMetrics
+                    + "\n\t  retries: " + retries
+                    + "\n\t  retryPauseMillis: " + retryPauseMillis
+                    + "\n\t  includeAcceptHeader: " + includeAcceptHeader
             );
+        }
+    }
+
+    private static void checkAuthorizationOptions(String clientId, TokenProvider bearerTokenProvider) {
+        if (clientId != null && bearerTokenProvider != null) {
+            throw new IllegalArgumentException("Can't use both clientId and bearerToken");
         }
     }
 
     private HostnameVerifier checkHostnameVerifier(HostnameVerifier verifier) {
         if (verifier != null && !"https".equals(introspectionURI.getScheme())) {
-            throw new IllegalArgumentException("Certificate hostname verifier set but keysEndpointUri not 'https'");
+            throw new IllegalArgumentException("Certificate hostname verifier set but introspectionEndpointUri not 'https'");
         }
         return verifier;
     }
@@ -208,7 +223,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         return null;
     }
 
-    private String checkIssuerUri(String issuerUri) {
+    private static String checkIssuerUri(String issuerUri) {
         if (issuerUri != null) {
             try {
                 new URI(issuerUri);
@@ -248,7 +263,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
     private JsonPathFilterQuery parseCustomClaimCheck(String customClaimCheck) {
         if (customClaimCheck != null) {
             String query = customClaimCheck.trim();
-            if (query.length() == 0) {
+            if (query.isEmpty()) {
                 throw new IllegalArgumentException("Value of customClaimCheck is empty");
             }
             return JsonPathFilterQuery.parse(query);
@@ -259,7 +274,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
     private JsonPathQuery parseGroupsQuery(String groupsQuery) {
         if (groupsQuery != null) {
             String query = groupsQuery.trim();
-            if (query.length() == 0) {
+            if (query.isEmpty()) {
                 throw new IllegalArgumentException("Value of groupsClaimQuery is empty");
             }
             return JsonPathQuery.parse(query);
@@ -269,7 +284,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
 
     private String parseGroupsDelimiter(String groupsDelimiter) {
         if (groupsDelimiter != null) {
-            if (groupsDelimiter.length() == 0) {
+            if (groupsDelimiter.isEmpty()) {
                 throw new IllegalArgumentException("Value of groupsClaimDelimiter is empty");
             }
         }
@@ -279,9 +294,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
     @SuppressWarnings({"checkstyle:NPathComplexity", "checkstyle:CyclomaticComplexity"})
     public TokenInfo validate(String token) {
 
-        String authorization = clientSecret != null ?
-                "Basic " + base64encode(clientId + ':' + clientSecret) :
-                null;
+        String authorization = generateAuthorizationHeader();
 
         StringBuilder body = new StringBuilder("token=").append(token);
 
@@ -362,6 +375,16 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         String scopes = value != null ? String.join(" ", JSONUtil.asListOfString(value)) : null;
 
         return new TokenInfo(token, scopes, principal, groups, iat, expiresMillis);
+    }
+
+    private String generateAuthorizationHeader() {
+        String authorization = null;
+        if (bearerTokenProvider != null) {
+            authorization = "Bearer " + bearerTokenProvider.token();
+        } else if (clientId != null) {
+            authorization = "Basic " + base64encode(clientId + ':' + clientSecret);
+        }
+        return authorization;
     }
 
     private Set<String> extractGroupsFromResponse(JsonNode userInfoJson) {
@@ -454,6 +477,11 @@ public class OAuthIntrospectionValidator implements TokenValidator {
     @Override
     public String getValidatorId() {
         return validatorId;
+    }
+
+    @Override
+    public void close() {
+        // nothing to do
     }
 
     class IntrospectMetricsHandler implements MetricsHandler {

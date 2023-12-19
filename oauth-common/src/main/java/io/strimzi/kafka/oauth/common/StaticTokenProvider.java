@@ -5,6 +5,8 @@
 
 package io.strimzi.kafka.oauth.common;
 
+import static io.strimzi.kafka.oauth.common.LogUtil.mask;
+
 /**
  * A TokenProvider that contains an immutable token that is returned every time a {@link io.strimzi.kafka.oauth.common.StaticTokenProvider#token()} method is called.
  */
@@ -23,5 +25,10 @@ public class StaticTokenProvider implements TokenProvider {
     @Override
     public String token() {
         return token;
+    }
+
+    @Override
+    public String toString() {
+        return "StaticTokenProvider: {token: '" + mask(token) + "'}";
     }
 }

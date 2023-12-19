@@ -37,7 +37,7 @@ public class Validators {
                 // If key with the same configId exists already it has to have an equal validatorKey (the same configuration)
                 // In that case, the existing ValidatorEntry will be reused
                 if (!key.getValidatorKey().equals(previous.key.getValidatorKey())) {
-                    throw new ConfigException("Configuration id " + key.getConfigId() + " with different configuration has already been assigned");
+                    throw new ConfigException("Configuration id '" + key.getConfigId() + "' with different configuration has already been assigned (" + previous.key + "\n\tversus:\n\t" + key + ")");
                 }
                 return previous.validator;
             }

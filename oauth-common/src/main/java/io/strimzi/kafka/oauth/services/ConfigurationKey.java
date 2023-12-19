@@ -73,4 +73,9 @@ public class ConfigurationKey {
     public int hashCode() {
         return Objects.hash(configId);
     }
+
+    @Override
+    public String toString() {
+        return "ConfigurationKey {configId: " + configId + ", validatorKey: " + validatorKey + "}";
+    }
 }

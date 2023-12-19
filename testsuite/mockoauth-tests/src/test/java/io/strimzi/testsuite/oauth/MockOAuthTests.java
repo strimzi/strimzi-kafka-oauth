@@ -6,6 +6,7 @@ package io.strimzi.testsuite.oauth;
 
 import io.strimzi.testsuite.oauth.common.TestContainersLogCollector;
 import io.strimzi.testsuite.oauth.common.TestContainersWatcher;
+import io.strimzi.testsuite.oauth.mockoauth.AuthorizationEndpointsTest;
 import io.strimzi.testsuite.oauth.mockoauth.JaasServerConfigTest;
 import io.strimzi.testsuite.oauth.mockoauth.metrics.MetricsTest;
 import io.strimzi.testsuite.oauth.mockoauth.ClientAssertionAuthTest;
@@ -61,7 +62,7 @@ public class MockOAuthTests {
             String kafkaContainer = environment.getContainerByServiceName("kafka_1").get().getContainerInfo().getName().substring(1);
             System.out.println("See log at: " + new File("target/test.log").getAbsolutePath());
 
-            // MetricsTest has to be the first as it relies on initial configuration and behaviour of mockoauth
+            // MetricsTest has to be the first as it relies on initial configuration and behaviour of mockoauth server
             //   JWKS endpoint is expected to return 404
             //   Subsequent tests can change that, but it takes some seconds for Kafka to retry fetching JWKS keys
             logStart("MetricsTest :: Basic Metrics Tests");
@@ -72,6 +73,9 @@ public class MockOAuthTests {
 
             logStart("JaasClientConfigTest :: Client Configuration Tests");
             new JaasClientConfigTest().doTest();
+
+            logStart("AuthorizationEndpointTest :: Server Configuration Tests");
+            new AuthorizationEndpointsTest().doTest();
 
             logStart("JaasServerConfigTest :: Server Configuration Tests");
             new JaasServerConfigTest().doTest();

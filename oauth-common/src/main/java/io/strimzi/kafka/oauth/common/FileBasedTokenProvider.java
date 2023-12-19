@@ -52,4 +52,9 @@ public class FileBasedTokenProvider implements TokenProvider {
             throw new IllegalStateException(e);
         }
     }
+
+    @Override
+    public String toString() {
+        return "FileBasedTokenProvider: {path: '" + filePath + "'}";
+    }
 }
