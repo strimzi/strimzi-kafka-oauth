@@ -147,9 +147,7 @@ This is true for configuring the server side of the Kafka Broker, as well as for
 The authentication configuration specific to the Strimzi Kafka OAuth can be specified as part of JAAS configuration in the form of JAAS parameter values. 
 The authorization configuration for `KeycloakAuthorizer` is specified as `server.properties` key-value pairs.
 Both authentication and authorization configuration specific to Strimzi Kafka OAuth can also be set as ENV vars, or as Java system properties.
-The limitation here is that authentication configuration specified in this manner can not be listener-scoped. 
-
-Note that property-values starting with `env:` are interpreted as references to existing ENV vars.
+The limitation here is that authentication configuration specified in this manner can not be listener-scoped.
 
 ### Configuring the Kafka Broker authentication
 
