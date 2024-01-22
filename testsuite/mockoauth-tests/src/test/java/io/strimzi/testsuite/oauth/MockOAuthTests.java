@@ -8,13 +8,14 @@ import io.strimzi.testsuite.oauth.common.TestContainersLogCollector;
 import io.strimzi.testsuite.oauth.common.TestContainersWatcher;
 import io.strimzi.testsuite.oauth.mockoauth.JaasServerConfigTest;
 import io.strimzi.testsuite.oauth.mockoauth.metrics.MetricsTest;
+import io.strimzi.testsuite.oauth.mockoauth.ClientAssertionAuthTest;
 import io.strimzi.testsuite.oauth.mockoauth.ConnectTimeoutTests;
 import io.strimzi.testsuite.oauth.mockoauth.JWKSKeyUseTest;
 import io.strimzi.testsuite.oauth.mockoauth.JaasClientConfigTest;
 import io.strimzi.testsuite.oauth.mockoauth.KeycloakAuthorizerTest;
 import io.strimzi.testsuite.oauth.mockoauth.PasswordAuthTest;
-
 import io.strimzi.testsuite.oauth.mockoauth.RetriesTests;
+
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -60,6 +61,9 @@ public class MockOAuthTests {
             String kafkaContainer = environment.getContainerByServiceName("kafka_1").get().getContainerInfo().getName().substring(1);
             System.out.println("See log at: " + new File("target/test.log").getAbsolutePath());
 
+            // MetricsTest has to be the first as it relies on initial configuration and behaviour of mockoauth
+            //   JWKS endpoint is expected to return 404
+            //   Subsequent tests can change that, but it takes some seconds for Kafka to retry fetching JWKS keys
             logStart("MetricsTest :: Basic Metrics Tests");
             new MetricsTest().doTest();
 
@@ -83,6 +87,9 @@ public class MockOAuthTests {
 
             // Keycloak authorizer tests
             new KeycloakAuthorizerTest().doTests();
+
+            logStart("ClientAssertionAuthTest :: Client Assertion Tests");
+            new ClientAssertionAuthTest().doTest();
 
         } catch (Throwable e) {
             log.error("Exception has occurred: ", e);

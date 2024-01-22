@@ -147,7 +147,7 @@ This is true for configuring the server side of the Kafka Broker, as well as for
 The authentication configuration specific to the Strimzi Kafka OAuth can be specified as part of JAAS configuration in the form of JAAS parameter values. 
 The authorization configuration for `KeycloakAuthorizer` is specified as `server.properties` key-value pairs.
 Both authentication and authorization configuration specific to Strimzi Kafka OAuth can also be set as ENV vars, or as Java system properties.
-The limitation here is that authentication configuration specified in this manner can not be listener-scoped. 
+The limitation here is that authentication configuration specified in this manner can not be listener-scoped.
 
 ### Configuring the Kafka Broker authentication
 
@@ -926,19 +926,50 @@ Strimzi Kafka OAuth supports four ways to configure authentication on the client
 
 #### Client Credentials
 
-The first is to specify the client ID and secret configured on the authorization server specifically for the individual client deployment. This is also called `client credentials grant`.
+The first is to specify Client Credentials. This requires that a client is configured on the authorization server specifically for the individual client deployment. This is also called `client credentials grant`.
 
 This is achieved by specifying the following:
 - `oauth.client.id` (e.g.: "my-client")
+
+together with one of authentication options below.
+
+When client starts to establish the connection with the Kafka Broker it will first obtain an access token from the configured Token Endpoint, authenticating with the configured client ID and configured authentication option using client_credentials grant type.
+
+##### Option 1: Using a Client Secret 
+
+Specify the client secret.
+
 - `oauth.client.secret` (e.g.: "my-client-secret")
 
-When client starts to establish the connection with the Kafka Broker it will first obtain an access token from the configured Token Endpoint, authenticating with the configured client ID and secret using client_credentials grant type.
+##### Option 2: Using a Client Assertion (a.k.a. private_key_jwt)
+
+Specify the client assertion (JWT token) either directly through
+
+- `oauth.client.assertion`
+
+or pointing to a file on the filesystem
+
+- `oauth.client.assertion.location`
+
+The file contains secrets in plain text and should have proper permissions set - not readable by others.
+
+The exact type of the token must also be communicated to the token endpoint and defaults to `urn:ietf:params:oauth:client-assertion-type:jwt-bearer` (which is specified in RFC-7523). 
+
+This can be overridden using property
+
+-  `oauth.client.assertion.type` (i.e. use `urn:ietf:params:oauth:client-assertion-type:saml2-bearer`, specified in RFC-7522, for SAML 2 tokens)
 
 #### Refresh Token
 
-The second way is to manually obtain and set a refresh token:
+The second way is to manually obtain and set a refresh token either directly through
 
 - `oauth.refresh.token`
+
+or pointing to a file on the filesystem
+
+- `oauth.refresh.token.location`
+
+The file contains secrets in plain text and should have proper permissions set - not readable by others.
 
 When using this approach you are not limited to OAuth2 client_credentials grant type for obtaining a token.
 You can use a password grant type and authenticate as an individual user, rather than a client application.
@@ -948,9 +979,15 @@ When client starts to establish the connection with the Kafka Broker it will fir
 
 #### Access Token
 
-The third way is to manually obtain and set an access token:
+The third way is to manually obtain and set an access token either directly through:
 
 - `oauth.access.token`
+
+or pointing to a file on the filesystem
+
+- `oauth.access.token.location`
+
+The file contains secrets in plain text and should have proper permissions set - not readable by others.
 
 Access tokens are supposed to be short-lived in order to prevent unauthorized access if the token leaks.
 It is up to you, your environment, and how you plan to run your Kafka client application to consider if using long-lived access tokens is appropriate.

@@ -149,6 +149,7 @@ public class Config {
      *   key.toUpperCase().replace('-', '_').replace('.', '_');
      * </pre>
      * If not, it checks if env variable with name equal to key exists.
+     *
      * Ultimately, it checks the defaults passed at Config object construction time.
      * <p>
      * If no configuration is found for key, it returns the fallback value.
