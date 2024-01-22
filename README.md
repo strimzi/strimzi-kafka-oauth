@@ -119,7 +119,7 @@ Copy the following jars into your Kafka `libs` directory:
     oauth-client/target/kafka-oauth-client-*.jar
     oauth-common/target/lib/nimbus-jose-jwt-*.jar
 
-If you want to use custom claim checking, also copy the following:
+If you want to use custom claim checking, or json-path based principal extraction from JWT tokens, also copy the following:
 
     oauth-server/target/lib/json-path-*.jar
     oauth-server/target/lib/json-smart-*.jar
