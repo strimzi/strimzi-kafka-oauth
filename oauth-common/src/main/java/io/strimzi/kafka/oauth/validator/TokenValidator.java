@@ -25,4 +25,9 @@ public interface TokenValidator {
      * @return A validator id
      */
     String getValidatorId();
+
+    /**
+     * Close any allocated resources like background threads
+     */
+    void close();
 }

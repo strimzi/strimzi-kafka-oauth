@@ -18,6 +18,7 @@ import io.strimzi.kafka.oauth.common.JSONUtil;
 import io.strimzi.kafka.oauth.common.PrincipalExtractor;
 import io.strimzi.kafka.oauth.common.TimeUtil;
 import io.strimzi.kafka.oauth.common.TokenInfo;
+import io.strimzi.kafka.oauth.common.TokenProvider;
 import io.strimzi.kafka.oauth.jsonpath.JsonPathFilterQuery;
 import io.strimzi.kafka.oauth.jsonpath.JsonPathQuery;
 import io.strimzi.kafka.oauth.metrics.JwksHttpSensorKeyProducer;
@@ -43,6 +44,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import static io.strimzi.kafka.oauth.common.LogUtil.mask;
+import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.base64encode;
 import static io.strimzi.kafka.oauth.validator.TokenValidationException.Status;
 
 /**
@@ -66,6 +69,10 @@ public class JWTSignatureValidator implements TokenValidator {
     private static final DefaultJWSVerifierFactory VERIFIER_FACTORY = new DefaultJWSVerifierFactory();
 
     private final String validatorId;
+    private final String clientId;
+    private final String clientSecret;
+    private final TokenProvider bearerTokenProvider;
+
     private final URI keysUri;
     private final String issuerUri;
     private final int maxStaleSeconds;
@@ -89,6 +96,8 @@ public class JWTSignatureValidator implements TokenValidator {
 
     private BackOffTaskScheduler fastScheduler;
 
+    private final ScheduledExecutorService executor;
+
     private final boolean enableMetrics;
     private final OAuthMetrics metrics;
     private final SensorKeyProducer jwksHttpSensorKeyProducer;
@@ -98,6 +107,9 @@ public class JWTSignatureValidator implements TokenValidator {
      * Create a new instance.
      *
      * @param validatorId A unique id to associate with this validator for the purpose of validator lifecycle and metrics tracking
+     * @param clientId The clientId of the OAuth2 client representing this Kafka broker - used to authenticate to the introspection endpoint using Basic authentication
+     * @param clientSecret The secret of the OAuth2 client representing this Kafka broker - used to authenticate to the introspection endpoint using Basic authentication
+     * @param bearerTokenProvider The provider of the bearer token as an alternative to clientId and secret of the OAuth2 client representing this Kafka broker - used to authenticate to the introspection endpoint using Bearer authentication
      * @param keysEndpointUri The JWKS endpoint url at the authorization server
      * @param socketFactory The optional SSL socket factory to use when establishing the connection to authorization server
      * @param verifier The optional hostname verifier used to validate the TLS certificate by the authorization server
@@ -120,6 +132,9 @@ public class JWTSignatureValidator implements TokenValidator {
      */
     @SuppressWarnings("checkstyle:ParameterNumber")
     public JWTSignatureValidator(String validatorId,
+                                 String clientId,
+                                 String clientSecret,
+                                 TokenProvider bearerTokenProvider,
                                  String keysEndpointUri,
                                  SSLSocketFactory socketFactory,
                                  HostnameVerifier verifier,
@@ -145,35 +160,18 @@ public class JWTSignatureValidator implements TokenValidator {
         }
         this.validatorId = validatorId;
 
-        if (keysEndpointUri == null) {
-            throw new IllegalArgumentException("keysEndpointUri == null");
-        }
-        try {
-            this.keysUri = new URI(keysEndpointUri);
-        } catch (URISyntaxException e) {
-            throw new IllegalArgumentException("Invalid keysEndpointUri: " + keysEndpointUri, e);
-        }
+        this.clientId = clientId;
+        this.clientSecret = clientSecret;
+        this.bearerTokenProvider = bearerTokenProvider;
 
-        if (socketFactory != null && !"https".equals(keysUri.getScheme())) {
-            throw new IllegalArgumentException("SSL socket factory set but keysEndpointUri not 'https'");
-        }
-        this.socketFactory = socketFactory;
+        checkAuthorizationOptions(clientId, bearerTokenProvider);
 
-        if (verifier != null && !"https".equals(keysUri.getScheme())) {
-            throw new IllegalArgumentException("Certificate hostname verifier set but keysEndpointUri not 'https'");
-        }
-        this.hostnameVerifier = verifier;
+        this.issuerUri = checkIssuerUri(validIssuerUri);
+        this.keysUri = checkKeysEndpointUri(keysEndpointUri);
 
+        this.socketFactory = checkSocketFactory(socketFactory);
+        this.hostnameVerifier = checkHostnameVerifier(verifier);
         this.principalExtractor = principalExtractor;
-
-        if (validIssuerUri != null) {
-            try {
-                new URI(validIssuerUri);
-            } catch (URISyntaxException e) {
-                throw new IllegalArgumentException("Value of validIssuerUri not a valid URI: " + validIssuerUri, e);
-            }
-        }
-        this.issuerUri = validIssuerUri;
 
         validateRefreshConfig(refreshSeconds, expirySeconds);
         this.maxStaleSeconds = expirySeconds;
@@ -197,35 +195,80 @@ public class JWTSignatureValidator implements TokenValidator {
             metrics = enableMetrics ? Services.getInstance().getMetrics() : null;
             jwksHttpSensorKeyProducer = new JwksHttpSensorKeyProducer(validatorId, keysUri);
 
-            ScheduledExecutorService executor = setupExecutorAndFetchInitialKeys(refreshSeconds, refreshMinPauseSeconds, failFast);
+            executor = setupExecutorAndFetchInitialKeys(refreshSeconds, refreshMinPauseSeconds, failFast);
 
             // set up periodic timer to trigger fastScheduler job every refreshSeconds
             setupRefreshKeysJob(executor, refreshSeconds);
         } finally {
             if (log.isDebugEnabled()) {
                 log.debug("Configured JWTSignatureValidator:"
-                        + "\n    validatorId: " + validatorId
-                        + "\n    keysEndpointUri: " + keysEndpointUri
-                        + "\n    sslSocketFactory: " + socketFactory
-                        + "\n    hostnameVerifier: " + hostnameVerifier
-                        + "\n    principalExtractor: " + principalExtractor
-                        + "\n    groupsClaimQuery: " + groupsClaimQuery
-                        + "\n    groupsClaimDelimiter: " + groupsClaimDelimiter
-                        + "\n    validIssuerUri: " + validIssuerUri
-                        + "\n    certsRefreshSeconds: " + refreshSeconds
-                        + "\n    certsRefreshMinPauseSeconds: " + refreshMinPauseSeconds
-                        + "\n    certsExpirySeconds: " + expirySeconds
-                        + "\n    certsIgnoreKeyUse: " + ignoreKeyUse
-                        + "\n    checkAccessTokenType: " + checkAccessTokenType
-                        + "\n    audience: " + audience
-                        + "\n    customClaimCheck: " + customClaimCheck
-                        + "\n    connectTimeoutSeconds: " + connectTimeoutSeconds
-                        + "\n    readTimeoutSeconds: " + readTimeoutSeconds
-                        + "\n    enableMetrics: " + enableMetrics
-                        + "\n    failFast: " + failFast
-                        + "\n    includeAcceptHeader: " + includeAcceptHeader);
+                        + "\n\t  validatorId: " + validatorId
+                        + "\n\t  clientId: " + clientId
+                        + "\n\t  clientSecret: " + mask(clientSecret)
+                        + "\n\t  bearerTokenProvider: " + bearerTokenProvider
+                        + "\n\t  keysEndpointUri: " + keysEndpointUri
+                        + "\n\t  sslSocketFactory: " + socketFactory
+                        + "\n\t  hostnameVerifier: " + hostnameVerifier
+                        + "\n\t  principalExtractor: " + principalExtractor
+                        + "\n\t  groupsClaimQuery: " + groupsClaimQuery
+                        + "\n\t  groupsClaimDelimiter: " + groupsClaimDelimiter
+                        + "\n\t  validIssuerUri: " + validIssuerUri
+                        + "\n\t  certsRefreshSeconds: " + refreshSeconds
+                        + "\n\t  certsRefreshMinPauseSeconds: " + refreshMinPauseSeconds
+                        + "\n\t  certsExpirySeconds: " + expirySeconds
+                        + "\n\t  certsIgnoreKeyUse: " + ignoreKeyUse
+                        + "\n\t  checkAccessTokenType: " + checkAccessTokenType
+                        + "\n\t  audience: " + audience
+                        + "\n\t  customClaimCheck: " + customClaimCheck
+                        + "\n\t  connectTimeoutSeconds: " + connectTimeoutSeconds
+                        + "\n\t  readTimeoutSeconds: " + readTimeoutSeconds
+                        + "\n\t  enableMetrics: " + enableMetrics
+                        + "\n\t  failFast: " + failFast
+                        + "\n\t  includeAcceptHeader: " + includeAcceptHeader);
             }
         }
+    }
+
+    private static void checkAuthorizationOptions(String clientId, TokenProvider bearerTokenProvider) {
+        if (clientId != null && bearerTokenProvider != null) {
+            throw new IllegalArgumentException("Can't use both clientId and bearerToken");
+        }
+    }
+
+    private URI checkKeysEndpointUri(String keysEndpointUri) {
+        if (keysEndpointUri == null) {
+            throw new IllegalArgumentException("keysEndpointUri == null");
+        }
+        try {
+            return new URI(keysEndpointUri);
+        } catch (URISyntaxException e) {
+            throw new IllegalArgumentException("Invalid keys endpoint uri: " + keysEndpointUri, e);
+        }
+    }
+
+    private HostnameVerifier checkHostnameVerifier(HostnameVerifier verifier) {
+        if (verifier != null && !"https".equals(keysUri.getScheme())) {
+            throw new IllegalArgumentException("Certificate hostname verifier set but keysEndpointUri not 'https'");
+        }
+        return verifier;
+    }
+
+    private static String checkIssuerUri(String validIssuerUri) {
+        if (validIssuerUri != null) {
+            try {
+                new URI(validIssuerUri);
+            } catch (URISyntaxException e) {
+                throw new IllegalArgumentException("Value of validIssuerUri not a valid URI: " + validIssuerUri, e);
+            }
+        }
+        return validIssuerUri;
+    }
+
+    private SSLSocketFactory checkSocketFactory(SSLSocketFactory socketFactory) {
+        if (socketFactory != null && !"https".equals(keysUri.getScheme())) {
+            throw new IllegalArgumentException("SSL socket factory set but keysEndpointUri not 'https'");
+        }
+        return socketFactory;
     }
 
     private ScheduledExecutorService setupExecutorAndFetchInitialKeys(int refreshSeconds, int refreshMinPauseSeconds, boolean failFast) {
@@ -260,7 +303,7 @@ public class JWTSignatureValidator implements TokenValidator {
     private JsonPathFilterQuery parseCustomClaimCheck(String customClaimCheck) {
         if (customClaimCheck != null) {
             String query = customClaimCheck.trim();
-            if (query.length() == 0) {
+            if (query.isEmpty()) {
                 throw new IllegalArgumentException("Value of customClaimCheck is empty");
             }
             return JsonPathFilterQuery.parse(query);
@@ -271,7 +314,7 @@ public class JWTSignatureValidator implements TokenValidator {
     private JsonPathQuery parseGroupsQuery(String groupsQuery) {
         if (groupsQuery != null) {
             String query = groupsQuery.trim();
-            if (query.length() == 0) {
+            if (query.isEmpty()) {
                 throw new IllegalArgumentException("Value of groupsClaimQuery is empty");
             }
             return JsonPathQuery.parse(query);
@@ -281,7 +324,7 @@ public class JWTSignatureValidator implements TokenValidator {
 
     private String parseGroupsDelimiter(String groupsDelimiter) {
         if (groupsDelimiter != null) {
-            if (groupsDelimiter.length() == 0) {
+            if (groupsDelimiter.isEmpty()) {
                 throw new IllegalArgumentException("Value of groupsClaimDelimiter is empty");
             }
         }
@@ -338,7 +381,8 @@ public class JWTSignatureValidator implements TokenValidator {
     private void fetchKeys() {
         long requestStartTime = System.currentTimeMillis();
         try {
-            String response = HttpUtil.get(keysUri, socketFactory, hostnameVerifier, null, String.class, connectTimeout, readTimeout, includeAcceptHeader);
+            String authorization = generateAuthorizationHeader();
+            String response = HttpUtil.get(keysUri, socketFactory, hostnameVerifier, authorization, String.class, connectTimeout, readTimeout, includeAcceptHeader);
             addJwksHttpMetricSuccessTime(requestStartTime);
 
             Map<String, PublicKey> newCache = new HashMap<>();
@@ -373,6 +417,16 @@ public class JWTSignatureValidator implements TokenValidator {
             addJwksHttpMetricErrorTime(ex, requestStartTime);
             throw new ServiceException("Failed to fetch public keys needed to validate JWT signatures: " + keysUri, ex);
         }
+    }
+
+    private String generateAuthorizationHeader() {
+        String authorization = null;
+        if (bearerTokenProvider != null) {
+            authorization = "Bearer " + bearerTokenProvider.token();
+        } else if (clientId != null) {
+            authorization = "Basic " + base64encode(clientId + ':' + clientSecret);
+        }
+        return authorization;
     }
 
     @SuppressFBWarnings(value = "BC_UNCONFIRMED_CAST_OF_RETURN_VALUE",
@@ -508,6 +562,11 @@ public class JWTSignatureValidator implements TokenValidator {
     @Override
     public String getValidatorId() {
         return validatorId;
+    }
+
+    @Override
+    public void close() {
+        executor.shutdownNow();
     }
 
 

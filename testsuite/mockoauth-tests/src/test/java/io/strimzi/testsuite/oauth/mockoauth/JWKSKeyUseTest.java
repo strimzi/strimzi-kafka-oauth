@@ -77,6 +77,9 @@ public class JWKSKeyUseTest {
 
     private static JWTSignatureValidator createTokenValidator(String validatorId, SSLSocketFactory sslFactory, boolean ignoreKeyUse) {
         return new JWTSignatureValidator(validatorId,
+                null,
+                null,
+                null,
                 "https://mockoauth:8090/jwks",
                 sslFactory,
                 null,

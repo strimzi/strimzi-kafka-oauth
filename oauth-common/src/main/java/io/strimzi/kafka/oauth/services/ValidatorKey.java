@@ -8,14 +8,20 @@ import io.strimzi.kafka.oauth.common.IOUtil;
 
 import java.util.Objects;
 
+import static io.strimzi.kafka.oauth.common.LogUtil.mask;
+import static io.strimzi.kafka.oauth.common.LogUtil.singleQuote;
+
 /**
  * The class that holds the validator configuration and is used to compare different configurations for equality.
  * It also calculates a unique identifier based on the configuration that is stable across application restarts.
- *
+ * <p>
  * This mechanism allows sharing a single validator across multiple listeners, as long as they are configured with same config parameter values
  */
 public class ValidatorKey {
 
+    private final String clientId;
+    private final String clientSecret;
+    private final String bearerToken;
     private final String validIssuerUri;
     private final String audience;
     private final String customClaimCheck;
@@ -39,7 +45,10 @@ public class ValidatorKey {
     private final String configIdHash;
 
     @SuppressWarnings("checkstyle:ParameterNumber")
-    ValidatorKey(String validIssuerUri,
+    ValidatorKey(String clientId,
+            String clientSecret,
+            String bearerToken,
+            String validIssuerUri,
             String audience,
             String customClaimCheck,
             String usernameClaim,
@@ -57,6 +66,9 @@ public class ValidatorKey {
             boolean enableMetrics,
             boolean includeAcceptHeader) {
 
+        this.clientId = clientId;
+        this.clientSecret = clientSecret;
+        this.bearerToken = bearerToken;
         this.validIssuerUri = validIssuerUri;
         this.audience = audience;
         this.customClaimCheck = customClaimCheck;
@@ -75,7 +87,11 @@ public class ValidatorKey {
         this.enableMetrics = enableMetrics;
         this.includeAcceptHeader = includeAcceptHeader;
 
-        this.configIdHash = IOUtil.hashForObjects(validIssuerUri,
+        this.configIdHash = IOUtil.hashForObjects(
+                clientId,
+                clientSecret,
+                bearerToken,
+                validIssuerUri,
                 audience,
                 customClaimCheck,
                 usernameClaim,
@@ -94,12 +110,16 @@ public class ValidatorKey {
                 includeAcceptHeader);
     }
 
+    @SuppressWarnings({"checkstyle:CyclomaticComplexity"})
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof ValidatorKey)) return false;
         ValidatorKey that = (ValidatorKey) o;
-        return hasHostnameVerifier == that.hasHostnameVerifier &&
+        return Objects.equals(clientId, that.clientId) &&
+                Objects.equals(clientSecret, that.clientSecret) &&
+                Objects.equals(bearerToken, that.bearerToken) &&
+                hasHostnameVerifier == that.hasHostnameVerifier &&
                 Objects.equals(validIssuerUri, that.validIssuerUri) &&
                 Objects.equals(audience, that.audience) &&
                 Objects.equals(customClaimCheck, that.customClaimCheck) &&
@@ -120,7 +140,11 @@ public class ValidatorKey {
 
     @Override
     public int hashCode() {
-        return Objects.hash(validIssuerUri,
+        return Objects.hash(
+                clientId,
+                clientSecret,
+                bearerToken,
+                validIssuerUri,
                 audience,
                 customClaimCheck,
                 usernameClaim,
@@ -166,6 +190,9 @@ public class ValidatorKey {
         /**
          * Create a new instance. Arguments have to include all validator config options.
          *
+         * @param clientId clientId
+         * @param clientSecret clientSecret
+         * @param bearerToken bearerToken
          * @param validIssuerUri validIssuerUri
          * @param audience audience
          * @param customClaimCheck customClaimCheck
@@ -192,7 +219,10 @@ public class ValidatorKey {
          * @param includeAcceptHeader includeAcceptHeader
          */
         @SuppressWarnings("checkstyle:parameternumber")
-        public JwtValidatorKey(String validIssuerUri,
+        public JwtValidatorKey(String clientId,
+                               String clientSecret,
+                               String bearerToken,
+                               String validIssuerUri,
                                String audience,
                                String customClaimCheck,
                                String usernameClaim,
@@ -218,7 +248,10 @@ public class ValidatorKey {
                                boolean failFast,
                                boolean includeAcceptHeader) {
 
-            super(validIssuerUri,
+            super(clientId,
+                    clientSecret,
+                    bearerToken,
+                    validIssuerUri,
                     audience,
                     customClaimCheck,
                     usernameClaim,
@@ -284,6 +317,38 @@ public class ValidatorKey {
         public String getConfigIdHash() {
             return configIdHash;
         }
+
+        @Override
+        public String toString() {
+            return "JwtValidatorKey {clientId: " + singleQuote(super.clientId)
+                    + ", clientSecret: " + singleQuote(mask(super.clientSecret))
+                    + ", bearerToken: " + singleQuote(mask(super.bearerToken))
+                    + ", validIssuerUri: " + singleQuote(super.validIssuerUri)
+                    + ", audience: " + singleQuote(super.audience)
+                    + ", customClaimCheck: " + singleQuote(super.customClaimCheck)
+                    + ", usernameClaim: " + singleQuote(super.usernameClaim)
+                    + ", fallbackUsernameClaim: " + singleQuote(super.fallbackUsernameClaim)
+                    + ", fallbackUsernamePrefix: " + singleQuote(super.fallbackUsernamePrefix)
+                    + ", groupQuery: " + singleQuote(super.groupQuery)
+                    + ", groupDelimiter: [" + super.groupDelimiter
+                    + "], sslTruststore: " + singleQuote(super.sslTruststore)
+                    + ", sslStorePassword: " + singleQuote(mask(super.sslStorePassword))
+                    + ", sslStoreType: " + singleQuote(super.sslStoreType)
+                    + ", sslRandom: " + singleQuote(super.sslRandom)
+                    + ", hasHostnameVerifier: " + super.hasHostnameVerifier
+                    + ", connectTimeout: " + super.connectTimeout
+                    + ", readTimeout: " + super.readTimeout
+                    + ", enableMetrics: " + super.enableMetrics
+                    + ", includeAcceptHeader: " + super.includeAcceptHeader
+                    + ", jwksEndpointUri: " + singleQuote(jwksEndpointUri)
+                    + ", jwksRefreshSeconds: " + jwksRefreshSeconds
+                    + ", jwksExpirySeconds: " + jwksExpirySeconds
+                    + ", jwksRefreshMinPauseSeconds: " + jwksRefreshMinPauseSeconds
+                    + ", jwksIgnoreKeyUse: " + jwksIgnoreKeyUse
+                    + ", checkAccessTokenType: " + checkAccessTokenType
+                    + ", failFast: " + failFast
+                    + "}";
+        }
     }
 
     /**
@@ -294,8 +359,6 @@ public class ValidatorKey {
         private final String introspectionEndpoint;
         private final String userInfoEndpoint;
         private final String validTokenType;
-        private final String clientId;
-        private final String clientSecret;
         private final int retries;
         private final long retryPauseMillis;
         private final String configIdHash;
@@ -303,6 +366,9 @@ public class ValidatorKey {
         /**
          * Create a new instance. Arguments have to include all validator config options.
          *
+         * @param clientId clientId
+         * @param clientSecret clientSecret
+         * @param bearerToken bearerToken
          * @param validIssuerUri validIssuerUri
          * @param audience audience
          * @param customClaimCheck customClaimCheck
@@ -319,8 +385,6 @@ public class ValidatorKey {
          * @param introspectionEndpoint introspectionEndpoint
          * @param userInfoEndpoint userInfoEndpoint
          * @param validTokenType validTokenType
-         * @param clientId clientId
-         * @param clientSecret clientSecret
          * @param connectTimeout connectTimeout
          * @param readTimeout readTimeout
          * @param enableMetrics enableMetrics
@@ -329,7 +393,10 @@ public class ValidatorKey {
          * @param includeAcceptHeader includeAcceptHeader
          */
         @SuppressWarnings("checkstyle:parameternumber")
-        public IntrospectionValidatorKey(String validIssuerUri,
+        public IntrospectionValidatorKey(String clientId,
+                                  String clientSecret,
+                                  String bearerToken,
+                                  String validIssuerUri,
                                   String audience,
                                   String customClaimCheck,
                                   String usernameClaim,
@@ -346,8 +413,6 @@ public class ValidatorKey {
                                   String introspectionEndpoint,
                                   String userInfoEndpoint,
                                   String validTokenType,
-                                  String clientId,
-                                  String clientSecret,
                                   int connectTimeout,
                                   int readTimeout,
                                   boolean enableMetrics,
@@ -355,7 +420,10 @@ public class ValidatorKey {
                                   long retryPauseMillis,
                                   boolean includeAcceptHeader) {
 
-            super(validIssuerUri,
+            super(clientId,
+                    clientSecret,
+                    bearerToken,
+                    validIssuerUri,
                     audience,
                     customClaimCheck,
                     usernameClaim,
@@ -375,8 +443,6 @@ public class ValidatorKey {
             this.introspectionEndpoint = introspectionEndpoint;
             this.userInfoEndpoint = userInfoEndpoint;
             this.validTokenType = validTokenType;
-            this.clientId = clientId;
-            this.clientSecret = clientSecret;
             this.retries = retries;
             this.retryPauseMillis = retryPauseMillis;
 
@@ -399,8 +465,6 @@ public class ValidatorKey {
             return Objects.equals(introspectionEndpoint, that.introspectionEndpoint) &&
                     Objects.equals(userInfoEndpoint, that.userInfoEndpoint) &&
                     Objects.equals(validTokenType, that.validTokenType) &&
-                    Objects.equals(clientId, that.clientId) &&
-                    Objects.equals(clientSecret, that.clientSecret) &&
                     Objects.equals(retries, that.retries) &&
                     Objects.equals(retryPauseMillis, that.retryPauseMillis);
         }
@@ -411,8 +475,6 @@ public class ValidatorKey {
                     introspectionEndpoint,
                     userInfoEndpoint,
                     validTokenType,
-                    clientId,
-                    clientSecret,
                     retries,
                     retryPauseMillis);
         }
@@ -420,6 +482,36 @@ public class ValidatorKey {
         @Override
         public String getConfigIdHash() {
             return configIdHash;
+        }
+
+        @Override
+        public String toString() {
+            return "IntrospectionValidatorKey {clientId: " + singleQuote(super.clientId)
+                    + ", clientSecret: " + singleQuote(mask(super.clientSecret))
+                    + ", bearerToken: " + singleQuote(mask(super.bearerToken))
+                    + ", validIssuerUri: " + singleQuote(super.validIssuerUri)
+                    + ", audience: " + singleQuote(super.audience)
+                    + ", customClaimCheck: " + singleQuote(super.customClaimCheck)
+                    + ", usernameClaim: " + singleQuote(super.usernameClaim)
+                    + ", fallbackUsernameClaim: " + singleQuote(super.fallbackUsernameClaim)
+                    + ", fallbackUsernamePrefix: " + singleQuote(super.fallbackUsernamePrefix)
+                    + ", groupQuery: " + singleQuote(super.groupQuery)
+                    + ", groupDelimiter: [" + super.groupDelimiter
+                    + "], sslTruststore: " + singleQuote(super.sslTruststore)
+                    + ", sslStorePassword: " + singleQuote(mask(super.sslStorePassword))
+                    + ", sslStoreType: " + singleQuote(super.sslStoreType)
+                    + ", sslRandom: " + singleQuote(super.sslRandom)
+                    + ", hasHostnameVerifier: " + super.hasHostnameVerifier
+                    + ", connectTimeout: " + super.connectTimeout
+                    + ", readTimeout: " + super.readTimeout
+                    + ", enableMetrics: " + super.enableMetrics
+                    + ", includeAcceptHeader: " + super.includeAcceptHeader
+                    + ", introspectionEndpoint: " + singleQuote(introspectionEndpoint)
+                    + ", userInfoEndpoint: " + singleQuote(userInfoEndpoint)
+                    + ", validTokenType: " + singleQuote(validTokenType)
+                    + ", retries: " + retries
+                    + ", retryPauseMillis: " + retryPauseMillis
+                    + "}";
         }
     }
 }

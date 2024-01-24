@@ -7,8 +7,11 @@ package io.strimzi.kafka.oauth.server;
 import io.strimzi.kafka.oauth.common.Config;
 import io.strimzi.kafka.oauth.common.ConfigException;
 import io.strimzi.kafka.oauth.common.ConfigUtil;
+import io.strimzi.kafka.oauth.common.FileBasedTokenProvider;
 import io.strimzi.kafka.oauth.common.IOUtil;
 import io.strimzi.kafka.oauth.common.PrincipalExtractor;
+import io.strimzi.kafka.oauth.common.StaticTokenProvider;
+import io.strimzi.kafka.oauth.common.TokenProvider;
 import io.strimzi.kafka.oauth.jsonpath.JsonPathFilterQuery;
 import io.strimzi.kafka.oauth.metrics.IntrospectValidationSensorKeyProducer;
 import io.strimzi.kafka.oauth.metrics.JwksValidationSensorKeyProducer;
@@ -123,13 +126,15 @@ import static io.strimzi.kafka.oauth.common.TokenIntrospection.debugLogJWT;
  * <ul>
  * <li><em>oauth.introspection.endpoint.uri</em> A URL of the token introspection endpoint to which token validation is delegates. <br>
  * It can be used to validate opaque non-JWT tokens which can't be checked using fast local token validation.</li>
- * <li><em>oauth.client.id</em> OAuth client id which the Kafka broker uses to authenticate against the authorization server to use the introspection endpoint.</li>
- * <li><em>oauth.client.secret</em> The OAuth client secret which the Kafka broker uses to authenticate to the authorization server and use the introspection endpoint.</li>
  * </ul>
  * <p>
  * Optional <em>sasl.jaas.config</em> configuration:
  * </p>
  * <ul>
+ * <li><em>oauth.client.id</em> OAuth client id which the Kafka broker uses to authenticate against the authorization server to use the introspection endpoint.</li>
+ * <li><em>oauth.client.secret</em> The OAuth client secret which the Kafka broker uses to authenticate to the authorization server and use the introspection endpoint.</li>
+ * <li><em>oauth.server.bearer.token</em> The bearer token which the Kafka broker uses to authenticate to the authorization server and use the introspection endpoint as an alternative to using client id and secret.</li>
+ * <li><em>oauth.server.bearer.token.location</em> The path to the file containing the bearer token (as opposed to raw value if <em>oauth.server.bearer.token</em> is configured) which the Kafka broker uses to authenticate to the authorization server and use the introspection endpoint as an alternative to using client id and secret.</li>
  * <li><em>oauth.userinfo.endpoint.uri</em> A URL of the token introspection endpoint which can be used to validate opaque non-JWT tokens.<br>
  * <li><em>oauth.valid.token.type</em> If set, the token type returned by the introspection endpoint has to match the configured value.<br>
  * </ul>
@@ -270,6 +275,9 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
         String clientId = config.getValue(Config.OAUTH_CLIENT_ID);
         String clientSecret = config.getValue(Config.OAUTH_CLIENT_SECRET);
+        String bearerToken = config.getValue(ServerConfig.OAUTH_SERVER_BEARER_TOKEN);
+        String bearerTokenLocation = config.getValue(ServerConfig.OAUTH_SERVER_BEARER_TOKEN_LOCATION);
+        TokenProvider bearerTokenProvider = configureTokenProvider(bearerToken, bearerTokenLocation);
 
         if (checkAudience && clientId == null) {
             throw new ConfigException("OAuth validator configuration error: '" + Config.OAUTH_CLIENT_ID + "' must be set when '"
@@ -295,7 +303,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         configureMetrics(configs);
 
         if (jwksUri != null) {
-            String effectiveConfigId = setupJWKSValidator(configId, jwksUri, validIssuerUri, checkTokenType,
+            String effectiveConfigId = setupJWKSValidator(configId, clientId, clientSecret, bearerTokenProvider, jwksUri, validIssuerUri, checkTokenType,
                     usernameClaim, fallbackUsernameClaim, fallbackUsernamePrefix,
                     groupQuery, groupDelimiter, audience, customClaimCheck,
                     sslTruststore, sslPassword, sslType, sslRnd, includeAcceptHeader);
@@ -303,13 +311,31 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
             URI jwksEndpointUri = config.getValueAsURI(ServerConfig.OAUTH_JWKS_ENDPOINT_URI);
             validationSensorKeyProducer = new JwksValidationSensorKeyProducer(effectiveConfigId, saslMechanism, jwksEndpointUri);
         } else {
-            String effectiveConfigId = setupIntrospectionValidator(configId, validIssuerUri, usernameClaim, fallbackUsernameClaim, fallbackUsernamePrefix,
-                    groupQuery, groupDelimiter, clientId, clientSecret, audience, customClaimCheck,
+            String effectiveConfigId = setupIntrospectionValidator(configId, clientId, clientSecret, bearerTokenProvider, validIssuerUri, usernameClaim, fallbackUsernameClaim, fallbackUsernamePrefix,
+                    groupQuery, groupDelimiter, audience, customClaimCheck,
                     sslTruststore, sslPassword, sslType, sslRnd, includeAcceptHeader);
 
             URI introspectionUri = config.getValueAsURI(ServerConfig.OAUTH_INTROSPECTION_ENDPOINT_URI);
             validationSensorKeyProducer = new IntrospectValidationSensorKeyProducer(effectiveConfigId, saslMechanism, introspectionUri);
         }
+    }
+
+    private TokenProvider configureTokenProvider(String token, String tokenLocation) {
+        if (tokenLocation != null) {
+            try {
+                if (token != null) {
+                    log.warn("Server bearer token location is configured ('{}'), server bearer token will be ignored ('{}').", ServerConfig.OAUTH_SERVER_BEARER_TOKEN_LOCATION, ServerConfig.OAUTH_SERVER_BEARER_TOKEN);
+                }
+                return new FileBasedTokenProvider(tokenLocation);
+
+            } catch (IllegalArgumentException e) {
+                throw new ConfigException("Specified server bearer token location is invalid ('" + ServerConfig.OAUTH_SERVER_BEARER_TOKEN_LOCATION + "'): " + e.getMessage());
+            }
+        }
+        if (token != null) {
+            return new StaticTokenProvider(token);
+        }
+        return null;
     }
 
     private void configureMetrics(Map<String, ?> configs) {
@@ -324,15 +350,33 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
     }
 
     @SuppressWarnings("checkstyle:ParameterNumber")
-    private String setupIntrospectionValidator(String configId, String validIssuerUri, String usernameClaim, String fallbackUsernameClaim, String fallbackUsernamePrefix,
-                                             String groupQuery, String groupDelimiter, String clientId, String clientSecret, String audience, String customClaimCheck,
-                                             String sslTruststore, String sslPassword, String sslType, String sslRnd, boolean includeAcceptHeader) {
+    private String setupIntrospectionValidator(
+            String configId,
+            String clientId,
+            String clientSecret,
+            TokenProvider bearerTokenProvider,
+            String validIssuerUri,
+            String usernameClaim,
+            String fallbackUsernameClaim,
+            String fallbackUsernamePrefix,
+            String groupQuery,
+            String groupDelimiter,
+            String audience,
+            String customClaimCheck,
+            String sslTruststore,
+            String sslPassword,
+            String sslType,
+            String sslRnd,
+            boolean includeAcceptHeader) {
 
         String introspectionEndpoint = config.getValue(ServerConfig.OAUTH_INTROSPECTION_ENDPOINT_URI);
         String userInfoEndpoint = config.getValue(ServerConfig.OAUTH_USERINFO_ENDPOINT_URI);
         String validTokenType = config.getValue(ServerConfig.OAUTH_VALID_TOKEN_TYPE);
 
         ValidatorKey vkey = new ValidatorKey.IntrospectionValidatorKey(
+                clientId,
+                clientSecret,
+                bearerTokenProvider != null ? bearerTokenProvider.toString() : null,
                 validIssuerUri,
                 audience,
                 customClaimCheck,
@@ -349,8 +393,6 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                 introspectionEndpoint,
                 userInfoEndpoint,
                 validTokenType,
-                clientId,
-                clientSecret,
                 connectTimeout,
                 readTimeout,
                 enableMetrics,
@@ -362,6 +404,9 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
         Supplier<TokenValidator> factory = () -> new OAuthIntrospectionValidator(
                 effectiveConfigId,
+                clientId,
+                clientSecret,
+                bearerTokenProvider,
                 introspectionEndpoint,
                 socketFactory,
                 verifier,
@@ -371,8 +416,6 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                 validIssuerUri,
                 userInfoEndpoint,
                 validTokenType,
-                clientId,
-                clientSecret,
                 audience,
                 customClaimCheck,
                 connectTimeout,
@@ -389,10 +432,26 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
     }
 
     @SuppressWarnings("checkstyle:ParameterNumber")
-    private String setupJWKSValidator(String configId, String jwksUri, String validIssuerUri, boolean checkTokenType,
-                                    String usernameClaim, String fallbackUsernameClaim, String fallbackUsernamePrefix,
-                                    String groupQuery, String groupDelimiter, String audience, String customClaimCheck,
-                                    String sslTruststore, String sslPassword, String sslType, String sslRnd, boolean includeAcceptHeader) {
+    private String setupJWKSValidator(
+            String configId,
+            String clientId,
+            String clientSecret,
+            TokenProvider bearerTokenProvider,
+            String jwksUri,
+            String validIssuerUri,
+            boolean checkTokenType,
+            String usernameClaim,
+            String fallbackUsernameClaim,
+            String fallbackUsernamePrefix,
+            String groupQuery,
+            String groupDelimiter,
+            String audience,
+            String customClaimCheck,
+            String sslTruststore,
+            String sslPassword,
+            String sslType,
+            String sslRnd,
+            boolean includeAcceptHeader) {
 
         int jwksRefreshSeconds = config.getValueAsInt(ServerConfig.OAUTH_JWKS_REFRESH_SECONDS, 300);
         int jwksExpirySeconds = config.getValueAsInt(ServerConfig.OAUTH_JWKS_EXPIRY_SECONDS, 360);
@@ -401,6 +460,9 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         boolean jwksIgnoreKeyUse = config.getValueAsBoolean(ServerConfig.OAUTH_JWKS_IGNORE_KEY_USE, false);
 
         ValidatorKey vkey = new ValidatorKey.JwtValidatorKey(
+                clientId,
+                clientSecret,
+                bearerTokenProvider != null ? bearerTokenProvider.toString() : null,
                 validIssuerUri,
                 audience,
                 customClaimCheck,
@@ -431,6 +493,9 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
         Supplier<TokenValidator> factory = () -> new JWTSignatureValidator(
                 effectiveConfigId,
+                clientId,
+                clientSecret,
+                bearerTokenProvider,
                 jwksUri,
                 socketFactory,
                 verifier,
@@ -561,7 +626,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
     @Override
     public void close() {
-
+        validator.close();
     }
 
     @Override

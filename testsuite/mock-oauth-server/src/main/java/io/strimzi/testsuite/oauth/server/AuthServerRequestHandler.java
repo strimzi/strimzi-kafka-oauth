@@ -28,7 +28,10 @@ import org.slf4j.LoggerFactory;
 
 import java.security.NoSuchAlgorithmException;
 import java.util.Date;
-import java.util.function.Consumer;
+import java.util.List;
+import java.util.Map;
+import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
@@ -56,6 +59,8 @@ import static io.strimzi.testsuite.oauth.server.Endpoint.TOKEN;
 import static io.strimzi.testsuite.oauth.server.Endpoint.USERINFO;
 import static io.strimzi.testsuite.oauth.server.Mode.MODE_200;
 import static io.strimzi.testsuite.oauth.server.Mode.MODE_200_DELAYED;
+import static io.strimzi.testsuite.oauth.server.Mode.MODE_200_PROTECTED;
+import static io.strimzi.testsuite.oauth.server.Mode.MODE_200_UNPROTECTED;
 import static io.strimzi.testsuite.oauth.server.Mode.MODE_FAILING_500;
 import static io.strimzi.testsuite.oauth.server.Mode.MODE_JWKS_RSA_WITHOUT_SIG_USE;
 import static io.strimzi.testsuite.oauth.server.Mode.MODE_JWKS_RSA_WITH_SIG_USE;
@@ -109,18 +114,18 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
 
     private boolean processRequest(Endpoint endpoint, Mode mode, HttpServerRequest req) throws NoSuchAlgorithmException, JOSEException, InterruptedException {
         if (endpoint == Endpoint.JWKS &&
-                isOneOf(mode, MODE_200, MODE_JWKS_RSA_WITH_SIG_USE, MODE_JWKS_RSA_WITHOUT_SIG_USE)) {
+                isOneOf(mode, MODE_200, MODE_200_PROTECTED, MODE_JWKS_RSA_WITH_SIG_USE, MODE_JWKS_RSA_WITHOUT_SIG_USE)) {
             processJwksRequest(req, mode);
         } else if (endpoint == TOKEN && mode == MODE_200) {
-            processTokenRequest(req);
+            processTokenRequest(req, mode);
         } else if (endpoint == FAILING_TOKEN) {
             processFailingRequest(req, endpoint, mode, this::processTokenRequest);
-        } else if (endpoint == INTROSPECT && mode == MODE_200) {
-            processIntrospectRequest(req);
+        } else if (endpoint == INTROSPECT && (mode == MODE_200 || mode == MODE_200_UNPROTECTED)) {
+            processIntrospectRequest(req, mode);
         } else if (endpoint == FAILING_INTROSPECT) {
             processFailingRequest(req, endpoint, mode, this::processIntrospectRequest);
         } else if (endpoint == USERINFO && mode == MODE_200) {
-            processUserInfoRequest(req);
+            processUserInfoRequest(req, mode);
         } else if (endpoint == FAILING_USERINFO) {
             processFailingRequest(req, endpoint, mode, this::processUserInfoRequest);
         } else if (endpoint == GRANTS && (mode == MODE_200 || mode == MODE_200_DELAYED)) {
@@ -128,9 +133,9 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
                 //verticle.getVertx().setTimer(1000, v -> processGrantsRequest(req));
                 Thread.sleep(2000);
 
-                processGrantsRequest(req);
+                processGrantsRequest(req, mode);
             } else {
-                processGrantsRequest(req);
+                processGrantsRequest(req, mode);
             }
         } else if (endpoint == FAILING_GRANTS) {
             processFailingRequest(req, endpoint, mode, this::processGrantsRequest);
@@ -176,7 +181,7 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
         return result;
     }
 
-    private void processGrantsRequest(HttpServerRequest req) {
+    private void processGrantsRequest(HttpServerRequest req, Mode mode) {
         if (req.method() != POST) {
             sendResponse(req, METHOD_NOT_ALLOWED);
             return;
@@ -243,7 +248,7 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
         });
     }
 
-    private void processTokenRequest(HttpServerRequest req) {
+    private void processTokenRequest(HttpServerRequest req, Mode mode) {
         if (req.method() != POST) {
             sendResponse(req, METHOD_NOT_ALLOWED);
             return;
@@ -356,7 +361,7 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
                 ("client_credentials".equals(grantType) || "password".equals(grantType) || "refresh_token".equals(grantType));
     }
 
-    private void processIntrospectRequest(HttpServerRequest req) {
+    private void processIntrospectRequest(HttpServerRequest req, Mode mode) {
         if (req.method() != POST) {
             sendResponse(req, METHOD_NOT_ALLOWED);
             return;
@@ -375,12 +380,14 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
                 return;
             }
 
-            String authorization = req.headers().get("Authorization");
-            String clientId = authorizeClient(authorization);
+            if (mode != MODE_200_UNPROTECTED) {
+                String authorization = req.headers().get("Authorization");
+                String clientId = authorizeClient(authorization);
 
-            if (clientId == null) {
-                sendResponse(req, UNAUTHORIZED);
-                return;
+                if (clientId == null) {
+                    sendResponse(req, UNAUTHORIZED);
+                    return;
+                }
             }
 
             // Let's take the info from the token itself
@@ -432,7 +439,7 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
         });
     }
 
-    private void processFailingRequest(HttpServerRequest req, Endpoint endpoint, Mode mode, Consumer<HttpServerRequest> requestCompletingFunction) {
+    private void processFailingRequest(HttpServerRequest req, Endpoint endpoint, Mode mode, BiConsumer<HttpServerRequest, Mode> requestCompletingFunction) {
 
         // Always fail without a coinflip if this mode is used
         if (mode == MODE_FAILING_500) {
@@ -445,10 +452,10 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
             // fail
             if (generateResponse(req, mode)) return;
         }
-        requestCompletingFunction.accept(req);
+        requestCompletingFunction.accept(req, mode);
     }
 
-    private void processUserInfoRequest(HttpServerRequest req) {
+    private void processUserInfoRequest(HttpServerRequest req, Mode mode) {
         if (req.method() != GET) {
             sendResponse(req, METHOD_NOT_ALLOWED);
             return;
@@ -461,7 +468,7 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
         }
 
         String token = authorization.substring(7);
-        if (token.length() == 0) {
+        if (token.isEmpty()) {
             sendResponse(req, BAD_REQUEST);
             return;
         }
@@ -557,26 +564,46 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
     }
 
     private String authorizeClient(String authorization) {
-        if (authorization == null || !authorization.startsWith("Basic ")) {
-            return null;
-        }
-        String decoded = base64decode(authorization.substring(6));
-        int pos = decoded.indexOf(":");
-        if (pos == -1) {
+        if (authorization == null) {
             return null;
         }
 
-        String clientId = decoded.substring(0, pos);
-        String secret = decoded.substring(pos + 1);
+        if (authorization.startsWith("Basic ")) {
+            String decoded = base64decode(authorization.substring(6));
+            int pos = decoded.indexOf(":");
+            if (pos == -1) {
+                return null;
+            }
 
-        String existingClientSecret = verticle.getClients().get(clientId);
-        if (existingClientSecret == null) {
-            log.info("Unknown clientId: " + clientId);
+            String clientId = decoded.substring(0, pos);
+            String secret = decoded.substring(pos + 1);
+
+            String existingClientSecret = verticle.getClients().get(clientId);
+            if (existingClientSecret == null) {
+                log.info("Unknown clientId: " + clientId);
+            }
+            if (!secret.equals(existingClientSecret)) {
+                return null;
+            }
+            return clientId;
         }
-        if (!secret.equals(existingClientSecret)) {
-            return null;
+
+        if (authorization.startsWith("Bearer ")) {
+            String token = authorization.substring(7);
+
+            List<String> matchingClients = verticle.getClients().entrySet().stream()
+                    .filter(e -> token.equals(e.getValue()))
+                    .map(Map.Entry::getKey)
+                    .collect(Collectors.toList());
+
+            if (matchingClients.isEmpty()) {
+                log.info("Unknown service account token: " + token);
+            } else {
+                return matchingClients.get(0);
+            }
         }
-        return clientId;
+
+        return null;
     }
 
     private String authorizeClientUsingAssertion(final String clientId, final String clientAssertion, final String clientAssertionType) {
@@ -606,6 +633,16 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
             return;
         }
         switch (mode) {
+            case MODE_200_PROTECTED:
+                String authorization = req.headers().get("Authorization");
+                String clientId = authorizeClient(authorization);
+
+                if (clientId == null) {
+                    sendResponse(req, UNAUTHORIZED);
+                    return;
+                }
+                // no break; on purpose
+                // pass through to next case block
             case MODE_200:
             case MODE_JWKS_RSA_WITH_SIG_USE:
                 sendResponse(req, OK, jwksWithSig());
