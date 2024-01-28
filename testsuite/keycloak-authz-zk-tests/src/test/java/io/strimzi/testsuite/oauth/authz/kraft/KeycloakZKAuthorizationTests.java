@@ -116,6 +116,7 @@ public class KeycloakZKAuthorizationTests {
 
         } catch (Throwable e) {
             log.error("Keycloak ZK Authorization Test failed: ", e);
+            e.printStackTrace();
             throw e;
         }
     }
