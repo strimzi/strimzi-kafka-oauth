@@ -4,6 +4,7 @@
  */
 package io.strimzi.testsuite.oauth;
 
+import io.strimzi.kafka.oauth.common.Config;
 import io.strimzi.testsuite.oauth.common.TestContainersLogCollector;
 import io.strimzi.testsuite.oauth.common.TestContainersWatcher;
 import io.strimzi.testsuite.oauth.mockoauth.AuthorizationEndpointsTest;
@@ -16,6 +17,7 @@ import io.strimzi.testsuite.oauth.mockoauth.JaasClientConfigTest;
 import io.strimzi.testsuite.oauth.mockoauth.KeycloakAuthorizerTest;
 import io.strimzi.testsuite.oauth.mockoauth.PasswordAuthTest;
 import io.strimzi.testsuite.oauth.mockoauth.RetriesTests;
+import io.strimzi.testsuite.oauth.mockoauth.KerberosListenerTest;
 
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -37,14 +39,28 @@ import java.time.Duration;
  */
 public class MockOAuthTests {
 
+    static boolean includeKerberosTests = new Config(System.getProperties()).getValueAsBoolean("oauth.testsuite.test.kerberos", true);
+
     @ClassRule
     public static TestContainersWatcher environment =
-            new TestContainersWatcher(new File("docker-compose.yml"))
-                    .withServices("mockoauth", "kafka", "zookeeper")
-                    .waitingFor("mockoauth", Wait.forLogMessage(".*Succeeded in deploying verticle.*", 1)
-                            .withStartupTimeout(Duration.ofSeconds(180)))
-                    .waitingFor("kafka", Wait.forLogMessage(".*started \\(kafka.server.KafkaServer\\).*", 1)
-                            .withStartupTimeout(Duration.ofSeconds(180)));
+            initWatcher();
+
+    private static TestContainersWatcher initWatcher() {
+        TestContainersWatcher watcher = new TestContainersWatcher(new File(includeKerberosTests ? "docker-compose-kerberos.yml" : "docker-compose.yml"));
+        if (includeKerberosTests) {
+            watcher.withServices("mockoauth", "kerberos", "kafka", "zookeeper")
+                    .waitingFor("kerberos", Wait.forLogMessage(".*commencing operation.*", 1)
+                            .withStartupTimeout(Duration.ofSeconds(45)));
+        } else {
+            watcher.withServices("mockoauth", "kafka", "zookeeper");
+        }
+        watcher.waitingFor("mockoauth", Wait.forLogMessage(".*Succeeded in deploying verticle.*", 1)
+                        .withStartupTimeout(Duration.ofSeconds(180)))
+                .waitingFor("kafka", Wait.forLogMessage(".*started \\(kafka.server.KafkaServer\\).*", 1)
+                        .withStartupTimeout(Duration.ofSeconds(180)));
+
+        return watcher;
+    }
 
     @Rule
     public TestRule logCollector = new TestContainersLogCollector(environment);
@@ -94,6 +110,11 @@ public class MockOAuthTests {
 
             logStart("ClientAssertionAuthTest :: Client Assertion Tests");
             new ClientAssertionAuthTest().doTest();
+
+            if (includeKerberosTests) {
+                logStart("KerberosTests :: Test authentication with Kerberos");
+                new KerberosListenerTest().doTests();
+            }
 
         } catch (Throwable e) {
             log.error("Exception has occurred: ", e);
