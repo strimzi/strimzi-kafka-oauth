@@ -3,8 +3,7 @@ Testsuite
 
 This module contains integration tests for OAuth 2.0 support - different configurations for client and server are tested.
 
-The tests in this testsuite are mostly integration tests, making use of Arquillian Cube to start and stop the necessary docker 
-containers. The tests are bootstrapped through standard maven's 'test' phase, rather than the conventional 'integration-test' 
+The tests in this testsuite are mostly integration tests, making use of 'testcontainers' to start and stop the necessary docker containers. The tests are bootstrapped through standard maven's 'test' phase, rather than the conventional 'integration-test' 
 phase which is otherwise used when integration tests are intermingled in the same project with unit tests. 
 
 
@@ -61,6 +60,12 @@ There are several profiles available to test with a specific version of Kafka im
 - kafka-2_8_1
 - kafka-3_0_0
 - kafka-3_1_0
+- kafka-3_1_2
+- kafka-3_2_3
+- kafka-3_3_1
+- kafka-3_3_2
+- kafka-3_4_0
+- kafka-3_5_0
 
 Only one at a time can be applied. For example:
  
@@ -81,15 +86,15 @@ Troubleshooting
 
 An example error message:
 
-    com.github.dockerjava.api.exception.BadRequestException: {"message":"network keycloak-auth-tests_default is ambiguous (2 matches found on name)"}
+    "network keycloak-auth-tests_default is ambiguous (2 matches found on name)"
 
-In case of a failed test Arquillian Cube sometimes fails to automatically remove the docker network it created.
+In case of a failed test 'testcontainers' needs up to 30 seconds to automatically remove the docker network it created.
 
 You can list existing networks with:
 
     docker network ls
 
-And remove the networks that shouldn;t be there with:
+And remove the networks that shouldn't be there with:
 
     docker rm NETWORK_ID
 
@@ -102,7 +107,7 @@ You can delete all test networks at once by running the following:
 
 An example error message:
 
-    Caused by: com.github.dockerjava.api.exception.ConflictException: {"message":"Conflict. The container name \"/keycloak\" is already in use by container \"ec9246b84b811e6fdc5224336bb95b54393d793b725cc9d764499d1df0927d72\". You have to remove (or rename) that container to be able to reuse that name."}
+    "The container name \"/keycloak\" is already in use by container \"ec9246b84b811e6fdc5224336bb95b54393d793b725cc9d764499d1df0927d72\""}
 
 Run the following to remove any left-over containers:
 
@@ -117,7 +122,6 @@ But then you may need to re-enable it again:
     sudo systemctl enable apparmor.service --now
 
 Also remove any docker test networks that are left due to error as instructed in previous section ('Network is ambiguous') and rerun the test. 
-Arquillian Cube automatically fixes the container name conflict by removing old containers.
 
 You can check that no container by the same name exists by doing:
 
@@ -134,10 +138,6 @@ Then try to repeat the test run, using `-rf` option to skip successful tests as 
 
 
 ### Could not build image - Permission denied
-
-Example message:
-
-    Could not build image: java.util.concurrent.ExecutionException: com.spotify.docker.client.shaded.javax.ws.rs.ProcessingException: java.io.IOException: Permission denied
 
 If you're running Docker daemon as root on Linux, you may need to configure an extra listener for TCP and set DOCKER_HOST env variable.
 
@@ -161,23 +161,6 @@ Make sure that you added 'kafka', 'keycloak', and 'hydra' to your `/etc/hosts` a
     127.0.0.1    mockoauth
 
 
-### How to see Kafka log
-
-Every test submodule contains `arquillian.xml` file which should contain the following:
-
-            kafka:
-              beforeStop:
-                - log:
-                    to: ${PWD}/../kafka.log
-                    stdout: true
-                    stderr: true
-
-You can see the complete kafka log of the last executed test in `kafka.log`.
-
-Alternatively, you can watch the kafka log as the test is executing by running in another shell the following:
-
-    docker logs kafka -f
-
 ### How to set a custom Kafka image
 
 By default, the latest released strimzi/kafka images are used for the tests. Regardless of the versions of oauth-kafka-* 
@@ -188,6 +171,6 @@ Thus, you don't need to use the latest local build of strimzi/kafka libraries to
 
 But if you want you can specify the kafka image to use for the test as follows:
 
-    mvn clean test -Dkafka.docker.image=quay.io/strimzi/kafka:0.31.1-kafka-3.1.2 -f testsuite/keycloak-auth-tests
+    mvn clean test -Dkafka.docker.image=quay.io/strimzi/kafka:0.39.0-kafka-3.5.2 -f testsuite/keycloak-auth-tests
 
 This will use the latest locally built kafka image of strimzi-kafka-operator project.
