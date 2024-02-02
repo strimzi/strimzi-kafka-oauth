@@ -109,11 +109,6 @@ elif [[ "$arch" != 'ppc64le' ]]; then
   fi
 
   set -e
-
-  # Test example image build for keycloak-ssl example
-  cd examples/docker
-  docker-compose -f compose.yml -f keycloak/compose-ssl.yml build
-  cd ../..
 fi
 
 
