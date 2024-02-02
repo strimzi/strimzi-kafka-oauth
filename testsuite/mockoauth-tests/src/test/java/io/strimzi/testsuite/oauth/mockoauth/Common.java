@@ -21,6 +21,7 @@ import org.junit.Assert;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.io.StringReader;
 import java.net.URI;
 import java.nio.file.Files;
@@ -186,6 +187,14 @@ public class Common {
     public static void changeAuthServerMode(String resource, String mode) throws IOException {
         String result = HttpUtil.post(URI.create("http://mockoauth:8091/admin/" + resource + "?mode=" + mode), null, "text/plain", "", String.class);
         Assert.assertEquals("admin server response should be ", mode.toUpperCase(Locale.ROOT), result);
+        if ("server".equals(resource)) {
+            try {
+                // This is to work around a race condition when switching server mode
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                throw new InterruptedIOException("Interrupted!");
+            }
+        }
     }
 
     public static void createOAuthClient(String clientId, String secret) throws IOException {
