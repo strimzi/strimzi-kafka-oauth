@@ -5,7 +5,7 @@ source functions.sh
 
 URI=${KEYCLOAK_URI}
 if [ "" == "${URI}" ]; then
-    URI="http://${KEYCLOAK_HOST:-keycloak}:8080/auth"
+    URI="http://${KEYCLOAK_HOST:-keycloak}:8080"
 fi
 
 wait_for_url $URI "Waiting for Keycloak to start"

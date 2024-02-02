@@ -64,11 +64,11 @@ services:
       # Authentication config
       OAUTH_CLIENT_ID: "kafka-broker"
       OAUTH_CLIENT_SECRET: "kafka-broker-secret"
-      OAUTH_TOKEN_ENDPOINT_URI: "http://${KEYCLOAK_HOST:-keycloak}:8080/auth/realms/${REALM:-demo}/protocol/openid-connect/token"
+      OAUTH_TOKEN_ENDPOINT_URI: "http://${KEYCLOAK_HOST:-keycloak}:8080/realms/${REALM:-demo}/protocol/openid-connect/token"
 
       # Validation config
-      OAUTH_VALID_ISSUER_URI: "http://${KEYCLOAK_HOST:-keycloak}:8080/auth/realms/${REALM:-demo}"
-      OAUTH_JWKS_ENDPOINT_URI: "http://${KEYCLOAK_HOST:-keycloak}:8080/auth/realms/${REALM:-demo}/protocol/openid-connect/certs"
+      OAUTH_VALID_ISSUER_URI: "https://${KEYCLOAK_HOST:-keycloak}:8443/realms/${REALM:-demo}"
+      OAUTH_JWKS_ENDPOINT_URI: "http://${KEYCLOAK_HOST:-keycloak}:8080/realms/${REALM:-demo}/protocol/openid-connect/certs"
       #OAUTH_INTROSPECTION_ENDPOINT_URI: "http://${KEYCLOAK_HOST:-keycloak}:8080/auth/realms/${REALM:-demo}/protocol/openid-connect/token/introspect"
 
 
@@ -78,4 +78,3 @@ services:
 
       # For start.sh script to know where the keycloak is listening
       KEYCLOAK_HOST: ${KEYCLOAK_HOST:-keycloak}
-      REALM: ${REALM:-demo}

@@ -70,7 +70,7 @@ public class ScramTest {
         // OAuth authentication using SCRAM password should fail
         try {
             Common.loginWithUsernamePassword(
-                    URI.create("http://keycloak:8080/auth/realms/kafka-authz/protocol/openid-connect/token"),
+                    URI.create("http://keycloak:8080/realms/kafka-authz/protocol/openid-connect/token"),
                     username, password, "kafka-cli");
 
             Assert.fail("Should have failed");

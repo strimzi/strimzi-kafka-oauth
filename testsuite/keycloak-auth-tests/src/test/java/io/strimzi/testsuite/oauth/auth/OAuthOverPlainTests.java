@@ -57,10 +57,10 @@ public class OAuthOverPlainTests {
         final String hostPort = "keycloak:8080";
         final String realm = "kafka-authz";
 
-        final String tokenEndpointUri = "http://" + hostPort + "/auth/realms/" + realm + "/protocol/openid-connect/token";
+        final String tokenEndpointUri = "http://" + hostPort + "/realms/" + realm + "/protocol/openid-connect/token";
 
         // For metrics
-        String tokenEndpointPath = "/auth/realms/" + realm + "/protocol/openid-connect/token";
+        String tokenEndpointPath = "/realms/" + realm + "/protocol/openid-connect/token";
 
         // first, request access token using client id and secret
         TokenInfo info = loginWithClientSecret(URI.create(tokenEndpointUri), null, null,
@@ -152,7 +152,7 @@ public class OAuthOverPlainTests {
         final String realm = "kafka-authz";
 
         // For metrics
-        String tokenEndpointPath = "/auth/realms/" + realm + "/protocol/openid-connect/token";
+        String tokenEndpointPath = "/realms/" + realm + "/protocol/openid-connect/token";
 
         Map<String, String> plainConfig = new HashMap<>();
         plainConfig.put("username", "team-a-client");
@@ -211,10 +211,10 @@ public class OAuthOverPlainTests {
         final String hostPort = "keycloak:8080";
         final String realm = "kafka-authz";
 
-        final String tokenEndpointUri = "http://" + hostPort + "/auth/realms/" + realm + "/protocol/openid-connect/token";
+        final String tokenEndpointUri = "http://" + hostPort + "/realms/" + realm + "/protocol/openid-connect/token";
 
         // For metrics
-        String tokenEndpointPath = "/auth/realms/" + realm + "/protocol/openid-connect/token";
+        String tokenEndpointPath = "/realms/" + realm + "/protocol/openid-connect/token";
 
         // first, request access token using client id and secret
         TokenInfo info = loginWithClientSecret(URI.create(tokenEndpointUri), null, null,
@@ -282,7 +282,7 @@ public class OAuthOverPlainTests {
 
         // For metrics
         final String realm = "kafka-authz";
-        String tokenEndpointPath = "/auth/realms/" + realm + "/protocol/openid-connect/token";
+        String tokenEndpointPath = "/realms/" + realm + "/protocol/openid-connect/token";
 
         Map<String, String> plainConfig = new HashMap<>();
         plainConfig.put("username", "team-a-client");

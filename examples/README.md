@@ -3,7 +3,7 @@ Examples / Demo
 
 This directory contains a preconfigured demo which uses Keycloak as OAuth2 authorization server.
 
-The demo uses docker-compose build projects to start Keycloak (`docker/keycloak`), import clients, and users as a new Keycloak realm (`docker/keycloak-import`), package containerized Kafka with strimzi-kafka-oauth modules and example configuration (`docker/kafka-oauth-strimzi`).
+The demo uses docker-compose build projects to start Keycloak (`docker/keycloak`) with a set of preconfigured realms containing clients and users, and to start a Strimzi Kafka based image with included strimzi-kafka-oauth modules and example configuration (`docker/kafka-oauth-strimzi`).
 
 The demo is primarily about authentication, and does not enforce any restrictions on clients.
 
@@ -21,20 +21,16 @@ Assuming `keycloak` container is up and running you can do the following.
 
 Connect to 'keycloak' container to get access to `kcadm.sh` tool:
 
-    docker exec -ti keycloak /bin/sh
+    docker exec -ti docker-keycloak-1 /bin/sh
     cd /opt/jboss/keycloak
 
 Set the server endpoint url:
 
-    export URL=http://keycloak:8080/auth
-    
-If you are using SSL configuration with Keycloak (using `compose-ssl.yml`) - which you should, whenever running anywhere but on your local machine - use the following endpoint url:
-    
-    export URL=https://keycloak:8443/auth
+    export URL=https://keycloak:8443
 
-If you're using SSL, configure the truststore for client to be able to connect:
+Configure the truststore for client to be able to connect:
 
-    bin/kcadm.sh config truststore --trustpass changeit standalone/configuration/keycloak.server.keystore.p12
+    bin/kcadm.sh config truststore --trustpass changeit /opt/keycloak/data/certs/keycloak.server.keystore.p12
 
 Note: Unfortunately `kcadm.sh` doesn't support turning off certificate hostname verification, which means that for SSL example demo we can't generate tokens with proper issuer.
     
@@ -49,10 +45,10 @@ Alternatively, you can authenticate as some user ('alice' in this case) authoriz
 After successfully authenticating you can retrieve access token and refresh token from local config file:
 
     # retrieve saved access token
-    cat ~/.keycloak/kcadm.config | grep token | awk -F'"' '{print $4}'
+    cat ~/.keycloak/kcadm.config | grep token | sed -E -e 's#.*: \"(.*)\".*#\1#'
     
     # OR retrieve a refresh token
-    cat ~/.keycloak/kcadm.config | grep refreshToken | awk -F'"' '{print $4}'
+    cat ~/.keycloak/kcadm.config | grep refreshToken | sed -E -e 's#.*: \"(.*)\".*#\1#'
 
 For this example you can instruct ExampleProducer / ExampleConsumer to use an access token by setting OAUTH_ACCESS_TOKEN env variable:
 

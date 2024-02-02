@@ -27,16 +27,8 @@ same hostname to ensure compatibility of generated access tokens.
 Also, when Kafka client connects to Kafka broker running inside docker image, the broker will redirect the client to: kafka:9292.
     
 
-Running without SSL
--------------------
-
-You can use an IDE to run example clients, or you can run from shell:
-
-    java -cp target/*:target/lib/* io.strimzi.examples.producer.ExampleProducer
-
-
-Running with SSL
-----------------
+Running
+-------
 
 You need to set additional env variables in order to configure truststore, and turn off certificate hostname validation:
 
@@ -46,7 +38,7 @@ You need to set additional env variables in order to configure truststore, and t
     
 To use Keycloak as authorization server set url of Keycloak's demo realm token endpoint:
 
-    export OAUTH_TOKEN_ENDPOINT_URI=https://keycloak:8443/auth/realms/demo/protocol/openid-connect/token
+    export OAUTH_TOKEN_ENDPOINT_URI=https://keycloak:8443/realms/demo/protocol/openid-connect/token
 
 To use Hydra as authorization server set url of Hydra's token endpoint:
 
@@ -62,7 +54,7 @@ If using Hydra with JWT tokens, then set:
     
 You can now use an IDE to run example clients, or you can run from shell:
 
-    java -cp target/*:target/lib/* io.strimzi.examples.producer.ExampleProducer
+    java -cp 'target/*:target/lib/*' io.strimzi.examples.producer.ExampleProducer
     
 By default, producer authenticates with client credentials using client id, and client secret.
 

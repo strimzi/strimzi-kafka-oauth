@@ -3,12 +3,18 @@ version: '3.5'
 services:
 
   keycloak:
-    image: quay.io/keycloak/keycloak:19.0.3-legacy
-    container_name: keycloak
+    image: quay.io/keycloak/keycloak:23.0.5
     ports:
-      -  8080:8080
+      - "8080:8080"
+      - "8443:8443"
+    volumes:
+      - ./keycloak/realms:/opt/keycloak/data/import
+      - ./keycloak/certificates/keycloak.server.keystore.p12:/opt/keycloak/data/certs/keycloak.server.keystore.p12
+
+    command: "-v start --import-realm --features=token-exchange,authorization,scripts --https-key-store-file=/opt/keycloak/data/certs/keycloak.server.keystore.p12 --https-key-store-password=changeit"
+
     environment:
-      KEYCLOAK_USER: "admin"
-      KEYCLOAK_PASSWORD: "admin"
-      PROXY_ADDRESS_FORWARDING: "true"
-    command: "-Dkeycloak.profile.feature.upload_scripts=enabled"
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+      - KC_HOSTNAME=keycloak
+      - KC_HTTP_ENABLED=true

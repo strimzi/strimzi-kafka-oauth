@@ -5,12 +5,10 @@ source functions.sh
 
 URI=${KEYCLOAK_URI}
 if [ "" == "${URI}" ]; then
-    URI="http://${KEYCLOAK_HOST:-keycloak}:8080/auth"
+    URI="http://${KEYCLOAK_HOST:-keycloak}:8080/admin"
 fi
 
 wait_for_url $URI "Waiting for Keycloak to start"
-
-wait_for_url "$URI/realms/${REALM:-demo}" "Waiting for realm '${REALM}' to be available"
 
 [ "$KAFKA_ZOOKEEPER_CONNECT" == "" ] && KAFKA_ZOOKEEPER_CONNECT=localhost:2181
 [ "$KAFKA_ZOOKEEPER_CONNECTION_TIMEOUT_MS" == "" ] && KAFKA_ZOOKEEPER_CONNECTION_TIMEOUT_MS=6000
