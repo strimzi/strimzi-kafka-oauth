@@ -5,7 +5,7 @@ jobs:
   include:
   - os: linux
     arch: s390x
-    jdk: openjdk11
+    jdk: openjdk17
     addons:
       hosts:
         - kafka
