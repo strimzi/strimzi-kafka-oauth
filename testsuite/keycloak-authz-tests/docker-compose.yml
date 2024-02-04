@@ -103,7 +103,9 @@ services:
 
       # Parameters controlling the refreshing of grants
       - KAFKA_STRIMZI_AUTHORIZATION_GRANTS_REFRESH_POOL_SIZE=4
-      #   any change to permissions will be reflected within 10 seconds
+
+      # Any change to permissions will be reflected within 10 seconds
+      # Has to be set to 10 seconds for keycloak-authz*-tests/**/RefreshTest
       - KAFKA_STRIMZI_AUTHORIZATION_GRANTS_REFRESH_PERIOD_SECONDS=10
       # If a grants fetch fails, immediately perform one retry
       - KAFKA_STRIMZI_AUTHORIZATION_HTTP_RETRIES=1

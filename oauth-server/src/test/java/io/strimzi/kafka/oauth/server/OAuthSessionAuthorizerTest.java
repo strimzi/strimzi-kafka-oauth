@@ -272,7 +272,7 @@ public class OAuthSessionAuthorizerTest {
     private AuthorizableRequestContext requestContext(KafkaPrincipal principal) throws UnknownHostException {
         AuthorizableRequestContext ctx = mock(AuthorizableRequestContext.class);
         when(ctx.principal()).thenReturn(principal);
-        when(ctx.clientAddress()).thenReturn(InetAddress.getLocalHost());
+        when(ctx.clientAddress()).thenReturn(InetAddress.getByAddress(new byte[] {127, 0, 0, 1}));
         return ctx;
     }
 
