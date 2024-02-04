@@ -14,6 +14,19 @@ exitIfError() {
 arch=$(uname -m)
 echo "Architecture: $arch"
 
+if [ "$arch" == 's390x' ]; then
+   set -x
+   # install maven that works with java17
+   wget https://dlcdn.apache.org/maven/maven-3/3.9.6/binaries/apache-maven-3.9.6-bin.tar.gz
+   mkdir ~/opt
+   tar xzf apache-maven-3.9.6-bin.tar.gz -C ~/opt/
+   mv apache-maven-3.8.5 ~/opt/maven
+   export M2_HOME=$HOME/opt/maven
+   export PATH=${M2_HOME}/bin:${PATH}
+   mvn -v
+   set +x
+fi
+
 # The first segment of the version number is '1' for releases < 9; then '9', '10', '11', ...
 JAVA_MAJOR_VERSION=$(java -version 2>&1 | sed -E -n 's/.* version "([0-9]*).*$/\1/p')
 echo "JAVA_MAJOR_VERSION: $JAVA_MAJOR_VERSION"
