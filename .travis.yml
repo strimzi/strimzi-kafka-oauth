@@ -17,10 +17,6 @@ jobs:
       apt:
         packages:
         - maven
-        - nodejs
-        - npm
-    before_install:
-      - sudo npm install -g pnpm
   - os: linux
     arch: ppc64le
     jdk: openjdk17
