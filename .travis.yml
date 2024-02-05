@@ -20,6 +20,7 @@ addons:
       - maven
 env:
   global:
+  - NODE_OPTIONS="--dns-result-order=ipv4first"
   - PULL_REQUEST=${TRAVIS_PULL_REQUEST}
   - TAG=${TRAVIS_TAG:-latest}
   - BRANCH=${TRAVIS_BRANCH:-main}
