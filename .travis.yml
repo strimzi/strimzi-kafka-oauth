@@ -19,10 +19,9 @@ addons:
     packages:
       - maven
 before_install:
-  - sudo apt install curl -y
-  - curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-  - sudo apt-get install nodejs -y
-  - sudo npm install -g pnpm
+  - curl https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash
+  - nvm install v18.18.25
+  - npm install -g pnpm
 env:
   global:
   - NODE_OPTIONS="--dns-result-order=ipv4first"
