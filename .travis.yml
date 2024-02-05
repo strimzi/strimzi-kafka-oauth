@@ -1,40 +1,9 @@
 dist: jammy
 sudo: required
 language: java
-jobs:
-  include:
-  - os: linux
-    arch: s390x
-    jdk: openjdk17
-    addons:
-      hosts:
-        - kafka
-        - keycloak
-        - hydra
-        - hydra-jwt
-        - mockoauth
-        - kerberos
-      apt:
-        packages:
-        - maven
-  - os: linux
-    arch: ppc64le
-    jdk: openjdk17
-    addons:
-      hosts:
-        - kafka
-        - keycloak
-        - hydra
-        - hydra-jwt
-        - mockoauth
-        - kerberos
-      apt:
-        packages:
-        - maven
-jdk:
-- openjdk11
-- openjdk17
-- openjdk8
+os: linux
+arch: s390x
+jdk: openjdk17
 cache:
   directories:
   - "$HOME/.m2"
@@ -46,10 +15,13 @@ addons:
   - hydra-jwt
   - mockoauth
   - kerberos
+  apt:
+    packages:
+      - maven
 env:
   global:
   - PULL_REQUEST=${TRAVIS_PULL_REQUEST}
   - TAG=${TRAVIS_TAG:-latest}
   - BRANCH=${TRAVIS_BRANCH:-main}
 script:
-- "./.travis/build.sh"
+- "./.travis/build-s390x.sh"
