@@ -17,9 +17,11 @@ rm pnpm-lock.yaml
 head -n -2 package.json > tmp.txt
 echo '  },
   "resolutions": {
+    "swc": "npm:@swc/wasm",
     "rollup": "npm:@rollup/wasm-node"
   },
   "overrides": {
+    "swc": "npm:@swc/wasm",
     "rollup": "npm:@rollup/wasm-node"
   }
 }' >> tmp.txt
