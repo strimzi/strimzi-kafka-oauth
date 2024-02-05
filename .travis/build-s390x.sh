@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -e
+set -x
 
 export PULL_REQUEST=${PULL_REQUEST:-true}
 export BRANCH=${BRANCH:-main}
@@ -7,7 +8,6 @@ export TAG=${TAG:-latest}
 
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/s390x-linux-gnu/jni
 
-mkdir target
 cd target
 git clone -b 23.0.5 https://github.com/keycloak/keycloak.git
 cd keycloak
