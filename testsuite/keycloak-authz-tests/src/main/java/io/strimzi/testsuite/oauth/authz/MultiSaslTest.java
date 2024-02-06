@@ -49,7 +49,7 @@ public class MultiSaslTest {
         // for metrics
         String authHostPort = "keycloak:8080";
         String realm = "kafka-authz";
-        String tokenPath =  "/auth/realms/" + realm + "/protocol/openid-connect/token";
+        String tokenPath =  "/realms/" + realm + "/protocol/openid-connect/token";
 
         // Producing to PLAIN listener using SASL/PLAIN should succeed.
         // The necessary ACLs have been added by 'docker/kafka-acls/scripts/add-acls.sh'
@@ -81,7 +81,7 @@ public class MultiSaslTest {
 
         // Producing to JWT listener using SASL/OAUTHBEARER using access token should succeed
         String accessToken = Common.loginWithUsernamePassword(
-                URI.create("http://keycloak:8080/auth/realms/kafka-authz/protocol/openid-connect/token"),
+                URI.create("http://keycloak:8080/realms/kafka-authz/protocol/openid-connect/token"),
                 username, password, "kafka-cli");
         producerProps = producerConfigOAuthBearerAccessToken(JWT_LISTENER, accessToken);
         produceToTopic("KeycloakAuthorizationTest-multiSaslTest-oauthbearer", producerProps);

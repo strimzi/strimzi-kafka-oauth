@@ -27,12 +27,17 @@ export PULL_REQUEST=${PULL_REQUEST:-true}
 export BRANCH=${BRANCH:-main}
 export TAG=${TAG:-latest}
 
-mvn -e -V -B clean install
+if [ "$arch" != 'ppc64le' ] && [ "$arch" != 's390x' ]; then
+  export MAVEN_EXTRA_ARGS=--no-transfer-progress
+fi
+echo "MAVEN_EXTRA_ARGS: $MAVEN_EXTRA_ARGS"
+
+mvn -e -V -B clean install $MAVEN_EXTRA_ARGS
 mvn spotbugs:check
 
 # Also test examples build on different architectures (exclude ppc64le until fixed)
 if [ "$arch" != 'ppc64le' ]; then
-  mvn clean install -f examples/docker
+  mvn clean install -f examples/docker $MAVEN_EXTRA_ARGS
   cd examples/docker
   set +e
   ./spring/test-spring.sh
@@ -43,29 +48,13 @@ if [ "$arch" != 'ppc64le' ]; then
 fi
 
 # Run testsuite
-if [ "$arch" == 's390x' ]; then
-    # Build s390x compatible hydra image
-    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/s390x-linux-gnu/jni
-    docker build --target hydra-import -t strimzi-oauth-testsuite/hydra-import:latest -f ./testsuite/docker/hydra-import/Dockerfile.s390x .
-    git clone -b 19.0.3 https://github.com/keycloak/keycloak-containers.git
-    cd keycloak-containers/server/
-    docker build -t quay.io/keycloak/keycloak:19.0.3-legacy .
-    cd ../../ && rm -rf keycloak-containers
-    docker build --target oryd-hydra -t oryd/hydra:v1.8.5 -f ./testsuite/docker/hydra-import/Dockerfile.s390x .
-    mvn test-compile spotbugs:check -e -V -B -f testsuite
-    set +e
-    clearDockerEnv
-    mvn -e -V -B clean install -f testsuite -Pcustom -Dkafka.docker.image=quay.io/strimzi/kafka:0.39.0-kafka-3.6.1
-    EXIT=$?
-    exitIfError
-    set -e
-elif [[ "$arch" != 'ppc64le' ]]; then
-  mvn test-compile spotbugs:check -e -V -B -f testsuite
+if [ "$arch" != 'ppc64le' ] && [ "$arch" != 's390x' ]; then
+  mvn test-compile spotbugs:check -e -V -B -f testsuite $MAVEN_EXTRA_ARGS
 
   set +e
 
   clearDockerEnv
-  mvn -e -V -B clean install -f testsuite -Pkafka-3_6_1
+  mvn -e -V -B clean install -f testsuite -Pkafka-3_6_1 $MAVEN_EXTRA_ARGS
   EXIT=$?
   exitIfError
 
@@ -73,47 +62,42 @@ elif [[ "$arch" != 'ppc64le' ]]; then
   if [ "$SKIP_DISABLED" == "false" ]; then
 
     clearDockerEnv
-    mvn -e -V -B clean install -f testsuite -Pkafka-3_5_2
+    mvn -e -V -B clean install -f testsuite -Pkafka-3_5_2 $MAVEN_EXTRA_ARGS
     EXIT=$?
     exitIfError
 
     clearDockerEnv
-    mvn -e -V -B clean install -f testsuite -Pkafka-3_4_0
+    mvn -e -V -B clean install -f testsuite -Pkafka-3_4_0 $MAVEN_EXTRA_ARGS
     EXIT=$?
     exitIfError
 
     clearDockerEnv
-    mvn -e -V -B clean install -f testsuite -Pkafka-3_3_2
+    mvn -e -V -B clean install -f testsuite -Pkafka-3_3_2 $MAVEN_EXTRA_ARGS
     EXIT=$?
     exitIfError
 
     clearDockerEnv
-    mvn -e -V -B clean install -f testsuite -Pkafka-3_2_3 -DfailIfNoTests=false -Dtest=\!KeycloakKRaftAuthorizationTests
+    mvn -e -V -B clean install -f testsuite -Pkafka-3_2_3 $MAVEN_EXTRA_ARGS -DfailIfNoTests=false -Dtest=\!KeycloakKRaftAuthorizationTests
     EXIT=$?
     exitIfError
 
     clearDockerEnv
-    mvn -e -V -B clean install -f testsuite -Pkafka-3_1_2 -DfailIfNoTests=false -Dtest=\!KeycloakKRaftAuthorizationTests,\!KeycloakZKAuthorizationTests
+    mvn -e -V -B clean install -f testsuite -Pkafka-3_1_2 $MAVEN_EXTRA_ARGS -DfailIfNoTests=false -Dtest=\!KeycloakKRaftAuthorizationTests,\!KeycloakZKAuthorizationTests
     EXIT=$?
     exitIfError
 
     clearDockerEnv
-    mvn -e -V -B clean install -f testsuite -Pkafka-3_0_0 -DfailIfNoTests=false -Dtest=\!KeycloakKRaftAuthorizationTests,\!KeycloakZKAuthorizationTests
+    mvn -e -V -B clean install -f testsuite -Pkafka-3_0_0 $MAVEN_EXTRA_ARGS -DfailIfNoTests=false -Dtest=\!KeycloakKRaftAuthorizationTests,\!KeycloakZKAuthorizationTests
     EXIT=$?
     exitIfError
 
     clearDockerEnv
-    mvn -e -V -B clean install -f testsuite -Pkafka-2_8_1 -DfailIfNoTests=false -Dtest=\!KeycloakKRaftAuthorizationTests,\!KeycloakZKAuthorizationTests
+    mvn -e -V -B clean install -f testsuite -Pkafka-2_8_1 $MAVEN_EXTRA_ARGS -DfailIfNoTests=false -Dtest=\!KeycloakKRaftAuthorizationTests,\!KeycloakZKAuthorizationTests
     EXIT=$?
     exitIfError
   fi
 
   set -e
-
-  # Test example image build for keycloak-ssl example
-  cd examples/docker
-  docker-compose -f compose.yml -f keycloak/compose-ssl.yml build
-  cd ../..
 fi
 
 

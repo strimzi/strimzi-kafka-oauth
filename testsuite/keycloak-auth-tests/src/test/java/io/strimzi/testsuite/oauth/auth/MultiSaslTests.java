@@ -68,7 +68,7 @@ public class MultiSaslTests {
         // OAuth authentication should fail
         try {
             Common.loginWithUsernamePassword(
-                    URI.create("http://keycloak:8080/auth/realms/demo-ec/protocol/openid-connect/token"),
+                    URI.create("http://keycloak:8080/realms/demo-ec/protocol/openid-connect/token"),
                     username, password, "kafka");
 
             Assert.fail("Should have failed");
@@ -98,14 +98,14 @@ public class MultiSaslTests {
 
         // producing to JWT listener using SASL/OAUTHBEARER using access token should succeed
         String accessToken = Common.loginWithUsernamePassword(
-                URI.create("http://keycloak:8080/auth/realms/demo-ec/protocol/openid-connect/token"),
+                URI.create("http://keycloak:8080/realms/demo-ec/protocol/openid-connect/token"),
                 username, password, "kafka");
         producerProps = producerConfigOAuthBearerAccessToken(KAFKA_JWT_LISTENER, accessToken);
         produceToTopic("KeycloakAuthenticationTest-multiSaslTest-oauthbearer", producerProps);
 
         // producing to JWTPLAIN listener using SASL/PLAIN using $accessToken should succeed
         accessToken = Common.loginWithUsernamePassword(
-                URI.create("http://keycloak:8080/auth/realms/kafka-authz/protocol/openid-connect/token"),
+                URI.create("http://keycloak:8080/realms/kafka-authz/protocol/openid-connect/token"),
                 username, password, "kafka-cli");
         producerProps = producerConfigPlain(KAFKA_JWTPLAIN_LISTENER, username, "$accessToken:" + accessToken);
         produceToTopic("KeycloakAuthenticationTest-multiSaslTest-oauth-over-plain", producerProps);

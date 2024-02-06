@@ -53,7 +53,7 @@ public class Common {
 
     static final String HOST = "keycloak";
     static final String REALM = "kafka-authz";
-    static final String TOKEN_ENDPOINT_URI = "http://" + HOST + ":8080/auth/realms/" + REALM + "/protocol/openid-connect/token";
+    static final String TOKEN_ENDPOINT_URI = "http://" + HOST + ":8080/realms/" + REALM + "/protocol/openid-connect/token";
 
     private static final String PLAIN_LISTENER = "kafka:9100";
     static final String TEAM_A_CLIENT = "team-a-client";

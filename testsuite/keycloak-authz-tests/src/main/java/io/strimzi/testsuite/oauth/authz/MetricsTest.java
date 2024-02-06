@@ -18,7 +18,7 @@ public class MetricsTest {
 
     private static final String AUTH_HOST_PORT = "keycloak:8080";
     private static final String REALM = "kafka-authz";
-    private static final String JWKS_PATH = "/auth/realms/" + REALM + "/protocol/openid-connect/certs";
+    private static final String JWKS_PATH = "/realms/" + REALM + "/protocol/openid-connect/certs";
 
     public static void doTest() throws Exception {
 
@@ -39,7 +39,7 @@ public class MetricsTest {
 
     public static void doTestValidationAndAuthorization() throws Exception {
 
-        final String tokenPath = "/auth/realms/" + REALM + "/protocol/openid-connect/token";
+        final String tokenPath = "/realms/" + REALM + "/protocol/openid-connect/token";
 
         TestMetrics metrics = getPrometheusMetrics(URI.create("http://kafka:9404/metrics"));
 

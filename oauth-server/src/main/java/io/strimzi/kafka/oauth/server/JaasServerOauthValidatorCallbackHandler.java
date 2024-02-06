@@ -626,7 +626,9 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
     @Override
     public void close() {
-        validator.close();
+        if (validator != null) {
+            validator.close();
+        }
     }
 
     @Override

@@ -50,7 +50,7 @@ public class GroupsExtractionTests {
         final String hostPort = "keycloak:8080";
         final String realm = "kafka-authz";
 
-        final String tokenEndpointUri = "http://" + hostPort + "/auth/realms/" + realm + "/protocol/openid-connect/token";
+        final String tokenEndpointUri = "http://" + hostPort + "/realms/" + realm + "/protocol/openid-connect/token";
 
         // logging in as 'team-b-client' should succeed - iss check, clientId check, aud check, resource_access check should all pass
 

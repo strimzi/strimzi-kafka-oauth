@@ -55,7 +55,7 @@ public class JwtManipulationTests {
 
         String privatePem = getPrivateKeyAsPEM(privateKey);
 
-        String adminToken = loginWithUsernamePassword(URI.create("http://" + hostPort + "/auth/realms/master/protocol/openid-connect/token"), "admin", "admin", "admin-cli");
+        String adminToken = loginWithUsernamePassword(URI.create("http://" + hostPort + "/realms/master/protocol/openid-connect/token"), "admin", "admin", "admin-cli");
 
         addRealmKey(adminToken, realm, privatePem);
 
@@ -191,14 +191,14 @@ public class JwtManipulationTests {
     }
 
     private JsonNode getActiveKeyInfo(String accessToken, String realm) throws IOException {
-        return HttpUtil.get(URI.create("http://" + hostPort + "/auth/admin/realms/" + realm + "/keys"), "Bearer " + accessToken, JsonNode.class);
+        return HttpUtil.get(URI.create("http://" + hostPort + "/admin/realms/" + realm + "/keys"), "Bearer " + accessToken, JsonNode.class);
     }
 
     private void addRealmKey(String accessToken, String realm, String keyPem) throws IOException {
 
         String authorization = "Bearer " + accessToken;
 
-        ArrayNode realms = HttpUtil.get(URI.create("http://" + hostPort + "/auth/admin/realms"), authorization, ArrayNode.class);
+        ArrayNode realms = HttpUtil.get(URI.create("http://" + hostPort + "/admin/realms"), authorization, ArrayNode.class);
 
         String realmId = null;
         for (JsonNode node: realms) {
@@ -214,13 +214,13 @@ public class JwtManipulationTests {
                 "\",\"config\":{\"priority\":[\"104\"],\"enabled\":[\"true\"],\"active\":[\"true\"],\"algorithm\":[\"RS256\"],\"privateKey\":[\"" + keyPem +
                 "\"],\"certificate\":[]}}";
 
-        HttpUtil.post(URI.create("http://" + hostPort + "/auth/admin/realms/" + realm + "/components"), "Bearer " + accessToken, "application/json", body, String.class);
+        HttpUtil.post(URI.create("http://" + hostPort + "/admin/realms/" + realm + "/components"), "Bearer " + accessToken, "application/json", body, String.class);
     }
 
 
     private String getOriginalToken() throws IOException {
 
-        final String tokenEndpointUri = "http://" + hostPort + "/auth/realms/" + realm + "/protocol/openid-connect/token";
+        final String tokenEndpointUri = "http://" + hostPort + "/realms/" + realm + "/protocol/openid-connect/token";
 
         // first, request access token using client id and secret
         TokenInfo info = OAuthAuthenticator.loginWithClientSecret(URI.create(tokenEndpointUri), null, null,

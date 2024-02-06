@@ -130,13 +130,13 @@ public class ErrorReportingTests {
         final String kafkaBootstrap = getKafkaBootstrap(9203);
         final String hostPort = "keycloak:8080";
 
-        final String tokenEndpointUri = "http://" + hostPort + "/auth/realms/demo/protocol/openid-connect/token";
+        final String tokenEndpointUri = "http://" + hostPort + "/realms/demo/protocol/openid-connect/token";
 
         Map<String, String> oauthConfig = new HashMap<>();
         oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, tokenEndpointUri);
         oauthConfig.put(ClientConfig.OAUTH_CLIENT_ID, "kafka-producer-client");
         oauthConfig.put(ClientConfig.OAUTH_CLIENT_SECRET, "kafka-producer-client-secret");
-        oauthConfig.put(ClientConfig.OAUTH_USERNAME_CLAIM, "preferred_username");
+        oauthConfig.put(ClientConfig.OAUTH_USERNAME_CLAIM, "username");
 
         Properties producerProps = buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
         Producer<String, String> producer = new KafkaProducer<>(producerProps);
@@ -165,7 +165,7 @@ public class ErrorReportingTests {
         final String hostPort = "keycloak:8080";
         final String realm = "demo-ec";
 
-        final String tokenEndpointUri = "http://" + hostPort + "/auth/realms/" + realm + "/protocol/openid-connect/token";
+        final String tokenEndpointUri = "http://" + hostPort + "/realms/" + realm + "/protocol/openid-connect/token";
 
         final String clientId = "kafka-producer-client";
         final String clientSecret = "kafka-producer-client-secret";
@@ -177,7 +177,7 @@ public class ErrorReportingTests {
         String tokenWithBrokenSig = info.token().substring(0, info.token().length() - 6) + "ffffff";
 
         oauthConfig.put(ClientConfig.OAUTH_ACCESS_TOKEN, tokenWithBrokenSig);
-        oauthConfig.put(ClientConfig.OAUTH_USERNAME_CLAIM, "preferred_username");
+        oauthConfig.put(ClientConfig.OAUTH_USERNAME_CLAIM, "username");
 
         Properties producerProps = buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
         Producer<String, String> producer = new KafkaProducer<>(producerProps);
@@ -206,7 +206,7 @@ public class ErrorReportingTests {
         final String hostPort = "keycloak:8080";
         final String realm = "demo";
 
-        final String tokenEndpointUri = "http://" + hostPort + "/auth/realms/" + realm + "/protocol/openid-connect/token";
+        final String tokenEndpointUri = "http://" + hostPort + "/realms/" + realm + "/protocol/openid-connect/token";
 
         final String clientId = "kafka-producer-client";
         final String clientSecret = "kafka-producer-client-secret";
@@ -218,7 +218,7 @@ public class ErrorReportingTests {
         String tokenWithBrokenSig = info.token().substring(0, info.token().length() - 6) + "ffffff";
 
         oauthConfig.put(ClientConfig.OAUTH_ACCESS_TOKEN, tokenWithBrokenSig);
-        oauthConfig.put(ClientConfig.OAUTH_USERNAME_CLAIM, "preferred_username");
+        oauthConfig.put(ClientConfig.OAUTH_USERNAME_CLAIM, "username");
 
         Properties producerProps = buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
         Producer<String, String> producer = new KafkaProducer<>(producerProps);
@@ -247,7 +247,7 @@ public class ErrorReportingTests {
         final String hostPort = "keycloak:8080";
         final String realm = "expiretest";
 
-        final String tokenEndpointUri = "http://" + hostPort + "/auth/realms/" + realm + "/protocol/openid-connect/token";
+        final String tokenEndpointUri = "http://" + hostPort + "/realms/" + realm + "/protocol/openid-connect/token";
 
         final String clientId = "kafka-producer-client";
         final String clientSecret = "kafka-producer-client-secret";
@@ -257,7 +257,7 @@ public class ErrorReportingTests {
 
         Map<String, String> oauthConfig = new HashMap<>();
         oauthConfig.put(ClientConfig.OAUTH_ACCESS_TOKEN, info.token());
-        oauthConfig.put(ClientConfig.OAUTH_USERNAME_CLAIM, "preferred_username");
+        oauthConfig.put(ClientConfig.OAUTH_USERNAME_CLAIM, "username");
 
         // sleep for 6s for token to expire
         Thread.sleep(6000);
@@ -446,14 +446,14 @@ public class ErrorReportingTests {
         final String hostPort = "172.0.0.221:8080";
         final String realm = "kafka-authz";
 
-        final String tokenEndpointUri = "http://" + hostPort + "/auth/realms/" + realm + "/protocol/openid-connect/token";
+        final String tokenEndpointUri = "http://" + hostPort + "/realms/" + realm + "/protocol/openid-connect/token";
 
         int timeout = 5;
         Map<String, String> oauthConfig = new HashMap<>();
         oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, tokenEndpointUri);
         oauthConfig.put(ClientConfig.OAUTH_CLIENT_ID, "team-a-client");
         oauthConfig.put(ClientConfig.OAUTH_CLIENT_SECRET, "team-a-client-secret");
-        oauthConfig.put(ClientConfig.OAUTH_USERNAME_CLAIM, "preferred_username");
+        oauthConfig.put(ClientConfig.OAUTH_USERNAME_CLAIM, "username");
         oauthConfig.put(ClientConfig.OAUTH_CONNECT_TIMEOUT_SECONDS, String.valueOf(timeout));
 
         Properties producerProps = buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);

@@ -1,11 +1,11 @@
-dist: bionic
+dist: jammy
 sudo: required
 language: java
 jobs:
   include:
   - os: linux
     arch: s390x
-    jdk: openjdk11
+    jdk: openjdk17
     addons:
       hosts:
         - kafka
@@ -19,7 +19,7 @@ jobs:
         - maven
   - os: linux
     arch: ppc64le
-    jdk: openjdk11
+    jdk: openjdk17
     addons:
       hosts:
         - kafka

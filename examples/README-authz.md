@@ -142,13 +142,8 @@ In this case the access token represents the specific user, rather than the clie
 
 
 ## Authorization in Action Using CLI Clients
-
-**NOTE**
-Before continuing, there is one setting we need to check if your Keycloak is older than version 9.0.2:
-Due to [a little bug in Keycloak](https://issues.redhat.com/browse/KEYCLOAK-12640) the realm is at this point misconfigured, and we have to fix the configuration manually.
-Under `Clients` / `kafka` / `Authorization` / `Settings` make sure the `Decision Strategy` is set to `Affirmative`, and NOT to `Unanimous`. Click `Save` after fixing it.
-  
-With configuration now in place, let's create some topics, use a producer, a consumer, and try to perform some management operations using different user and service accounts. 
+ 
+Let's now create some topics, use a producer, a consumer, and try to perform some management operations using different user and service accounts. 
 
 First, we'll spin up a new docker container based on a Kafka image previously built by `docker-compose` which we'll use to connect to the already running Kafka Broker.
 

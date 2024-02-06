@@ -1,9 +1,9 @@
 Demo services
 =============
 
-This module provides docker containers for the demo. It includes Keycloak, realm import service for Keycloak, and a preconfigured Kafka broker.
+This module provides docker containers for the demo. It includes Keycloak, and a preconfigured Kafka broker.
 
-Alternative option is to use included 'hydra' or 'spring' project as authorization server.
+Alternative option is to use included 'hydra' or 'spring' project as an authorization server.
 
 
 Building
@@ -44,12 +44,12 @@ You may want to remove any old containers to start clean:
     docker rm -f kafka zookeeper keycloak spring
 
 
-Running with Keycloak without SSL
----------------------------------
+Running with Keycloak
+---------------------
 
 You can startup all the containers at once:
 
-    docker-compose -f compose.yml -f kafka-oauth-strimzi/compose.yml -f keycloak/compose.yml -f keycloak-import/compose.yml up --build
+    docker-compose -f compose.yml -f kafka-oauth-strimzi/compose.yml -f keycloak/compose.yml up --build
 
 Or, you can have multiple terminal windows and start individual component in each:
 
@@ -57,23 +57,19 @@ Or, you can have multiple terminal windows and start individual component in eac
 
     docker-compose -f compose.yml -f keycloak/compose.yml up
 
-    docker-compose -f compose.yml -f keycloak-import/compose.yml up --build
-
 
 Running with Keycloak using SSL
 -------------------------------
 
 You can startup all the containers at once:
 
-    docker-compose -f compose.yml -f kafka-oauth-strimzi/compose-ssl.yml -f keycloak/compose-ssl.yml -f keycloak-import/compose-ssl.yml up --build
+    docker-compose -f compose.yml -f kafka-oauth-strimzi/compose-ssl.yml -f keycloak/compose.yml up --build
 
 Or, you can have multiple terminal windows and start individual component in each:
 
     docker-compose -f compose.yml -f kafka-oauth-strimzi/compose-ssl.yml up --build 
 
-    docker-compose -f compose.yml -f keycloak/compose-ssl.yml up
-
-    docker-compose -f compose.yml -f keycloak-import/compose-ssl.yml up --build
+    docker-compose -f compose.yml -f keycloak/compose.yml up
 
 
 Running with Hydra using SSL and opaque tokens
@@ -97,11 +93,11 @@ Running with Hydra using SSL and JWT tokens
 
 You can startup all the containers at once:
 
-    docker-compose -f compose.yml -f kafka-oauth-strimzi/compose-hydra.yml -f hydra/compose-with-jwt.yml -f hydra-import/compose.yml up --build
+    docker-compose -f compose.yml -f kafka-oauth-strimzi/compose-hydra-jwt.yml -f hydra/compose-with-jwt.yml -f hydra-import/compose.yml up --build
 
 Or, you can have multiple terminal windows and start individual component in each:
 
-    docker-compose -f compose.yml -f kafka-oauth-strimzi/compose-hydra.yml up --build 
+    docker-compose -f compose.yml -f kafka-oauth-strimzi/compose-hydra-jwt.yml up --build 
 
     docker-compose -f compose.yml -f hydra/compose-with-jwt.yml up
 
