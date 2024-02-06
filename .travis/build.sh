@@ -99,18 +99,3 @@ if [ "$arch" != 'ppc64le' ] && [ "$arch" != 's390x' ]; then
 
   set -e
 fi
-
-
-# Only continue if Java 8 and x86_64 platform
-if [ "$JAVA_MAJOR_VERSION" == "1" ] && [ "$arch" == "x86_64" ]; then
-
-  # Push only releases
-  if [ "$PULL_REQUEST" != "false" ] ; then
-    echo "Building Pull Request - nothing to push"
-  elif [ "$TAG" = "latest" ] && [ "$BRANCH" != "main" ]; then
-    echo "Not in main branch and not in release tag - nothing to push"
-  else
-    echo "Pushing JARs"
-    ./.travis/push-to-nexus.sh
-  fi
-fi
