@@ -10,10 +10,10 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/s390x-linux-gnu/jni
 
 cd target
 git clone -b 23.0.5 https://github.com/keycloak/keycloak.git
-cd keycloak/container
+cd keycloak/quarkus/container
 docker build . -t quay.io/keycloak/keycloak:23.0.5
 
-cd ../../.. && rm -rf target/keycloak
+cd ../../../.. && rm -rf target/keycloak
 
 docker build --target hydra-import -t strimzi-oauth-testsuite/hydra-import:latest -f ./testsuite/docker/hydra-import/Dockerfile.s390x .
 
