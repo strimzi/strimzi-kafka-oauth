@@ -2,6 +2,8 @@ Spring Authorization Server
 ===========================
 
 This project builds and runs Spring Authorization Server as a docker container.
+The accompanying Kafka broker example is configured to use this authorization server for Kafka authentication (not for Kafka authorization).
+Client definitions are defined in code in [SecurityConfig.java](file://./src/main/java/io/strimzi/examples/spring/SecurityConfig.java) file.
 
 
 Building
@@ -27,54 +29,118 @@ Using
 
 Make sure to add `spring` entry to your `/etc/hosts` as explained [here](../README.md#preparing).
 
-Configure your Kafka broker with the following settings:
+Spring Authorization Server exposes multiple OAuth2 / OIDC endpoints. For our purposes the important ones are:
 
-    oauth.introspection.endpoint.uri=http://spring:8080/oauth/check_token
-    oauth.token.endpoint.uri=http://spring:8080/oauth/token
-    oauth.client.id=kafka
-    oauth.client.secret=kafkasecret
-    oauth.scope=any
+* The token endpoint: http://spring:8080/oauth2/token
+* The signing keys endpoint: http://spring:8080/oauth2/jwks
+* The introspection endpoint: http://spring:8080/oauth2/introspect
+
+This example demonstrates using `client_credentials` grant with two different clients. First client `kafkaclient` produces 
+JWT access tokens which can be validated by using the JWKS endpoint. The second client `kafkaclient2` produces opaque access tokens
+which can only be validated by using the Introspection endpoint.
+
+For example, in order to use the JWKS endpoint you could configure your Kafka broker listener with the following JAAS config parameters:
+
+    oauth.jwks.endpoint.uri=http://spring:8080/oauth2/jwks
+    oauth.jwks.ignore.key.use=true    
+    oauth.valid.issuer.uri=http://spring:8080
+    oauth.check.access.token.type=false
+
+In order to use the Introspection endpoint you could configure your Kafka broker listener with the following JAAS config parameters:
+
+    oauth.introspect.endpoint.uri=http://spring:8080/oauth2/introspect
+    oauth.valid.issuer.uri=http://spring:8080
+    oauth.client.id=kafkabroker
+    oauth.client.secret=kafkabrokersecret
     oauth.access.token.is.jwt=false
-    oauth.check.issuer=false
-    oauth.username.claim=user_name
-    oauth.fallback.username.claim=client_id
-    oauth.fallback.username.prefix=client-account-
+    oauth.check.access.token.type=false
 
 
-Spring authorization server by default uses opaque tokens (non-JWT) which means validation has to use the introspection endpoint.
-The example single-broker cluster uses OAuth2 for inter-broker communication as well as Kafka client communication which requires token endpoint to be configured.
-Authorization server's Token endpoint requires `scope` to be specified.
-The Introspection endpoint returns no information about issuer, so we have to disable that check.
-User information is sent depending on the type of authentication. 
-If Kafka client sends a token obtained by a user using `password` grant, then `user_name` attribute 
-of introspection endpoint response contains user's username. If Kafka client sends a token obtained in as the client by using `client_credentials` grant, then no `user_name` is set, but `client_id` is.
-By using username prefix we can quickly differentiate client accounts from user accounts - client_id with the same name as another username will become a different principal.
-We can then use Kafka Simple ACL Authorization to define ACL policies based on authenticated principal.
+### Token validation using the Introspection endpoint (JWT and opaque tokens)
+
+You can run the prepared Kafka example from parent directory (`examples/docker`) - make sure the Spring Authorization Server is up before running this command:
+
+    docker-compose -f compose.yml -f kafka-oauth-strimzi/compose-spring.yml up --build
 
 
-You can run the prepared example from parent directory (`examples/docker`):
+You can authenticate as a Kafka client using a service account `kafkaclient` to obtain the access token:
 
-    docker-compose -f compose.yml -f kafka-oauth-strimzi/compose-spring.yml up
-    
+    curl http://spring:8080/oauth2/token -d "grant_type=client_credentials&scope=profile" -u kafkaclient:kafkaclientsecret
 
-Check the logging output of the Spring container for the default user's password:
+Or if you want to automate:
 
-    docker logs spring | grep "Using generated security password:"
+    RESPONSE=$(curl -s http://spring:8080/oauth2/token -d "grant_type=client_credentials&scope=profile" -u kafkaclient:kafkaclientsecret)
+    ACCESS_TOKEN=$(echo "$RESPONSE" | sed -E -e "s#.*\"access_token\":\"([^\"]+)\",\".*#\1#")
 
-Set the password as env var `PASSWORD`:
+You can take the role of the Kafka broker to check if the token is valid:
 
-    export PASSWORD=$(docker logs spring | grep "Using generated security password:" | awk '{print $NF}')
+    curl http://spring:8080/oauth2/introspect -d "token=$ACCESS_TOKEN"  -u kafkabroker:kafkabrokersecret
+
+In this case the returned access token was a JWT token which you can confirm by using the following helper script (from `examples/docker` directory):
+
+    ./kafka-oauth-strimzi/kafka/jwt.sh $ACCESS_TOKEN 
 
 
-Configure your Kafka client by obtaining the token as user `user`:
+If you authenticate as client `kafkaclient2` the returned access token will be an opaque token (not JWT):
 
-    curl spring:8080/oauth/token -d "grant_type=password&scope=read&username=user&password=$PASSWORD" -u kafka:kafkasecret
+    curl http://spring:8080/oauth2/token -d "grant_type=client_credentials&scope=profile" -u kafkaclient2:kafkaclient2secret
+
+Or if you want to automate:
+
+    RESPONSE2=$(curl -s http://spring:8080/oauth2/token -d "grant_type=client_credentials&scope=profile" -u kafkaclient2:kafkaclient2secret)
+    ACCESS_TOKEN2=$(echo "$RESPONSE2" | sed -E -e "s#.*\"access_token\":\"([^\"]+)\",\".*#\1#")
+
+You can again take the role of the Kafka broker to check if the token is valid:
+
+    curl http://spring:8080/oauth2/introspect -d "token=$ACCESS_TOKEN2"  -u kafkabroker:kafkabrokersecret
+
+You can not introspect the opaque token as it's just a random string without any internal structure that could be parsed.
+Using the introspection endpoint is the only way to validate such a token.
 
 
-Use the following configuration options to configure your client with the refresh token:
+### Connecting with a Kafka client
 
-    oauth.token.endpoint.uri=http://spring:8080/oauth/token
-    oauth.refresh.token=$REFRESH_TOKEN
-    oauth.scope=any
-    oauth.access.token.is.jwt=false
+You can try both JWT access token and the opaque access token with a Kafka client that connects to the example Kafka broker.
 
+Start a new kafka container for the client:
+
+    docker run -ti --name kafka-client --network docker_default strimzi/example-kafka /bin/sh
+
+```
+$ echo 'security.protocol=SASL_PLAINTEXT
+sasl.mechanism=OAUTHBEARER
+sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
+oauth.client.id="kafkaclient" \
+oauth.client.secret="kafkaclientsecret" \
+oauth.token.endpoint.uri="http://spring:8080/oauth2/token" ;
+sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler' > $HOME/client.properties
+```
+
+Check which topics exist:
+
+    bin/kafka-topics.sh --bootstrap-server kafka:9092 --command-config ~/client.properties --list
+
+
+Run a console kafka producer:
+
+    bin/kafka-console-producer.sh --broker-list kafka:9092 --topic a_messages   --producer.config=$HOME/client.properties
+    # type some messages then press CTRL-C or CTRL-D
+
+    bin/kafka-console-consumer.sh --bootstrap-server kafka:9092 --topic a_messages --from-beginning --consumer.config $HOME/client.properties --group a_consumer_group_1
+    # Press CTRL-C to exit
+
+You can also use `kafkaclient2` to see how it works with an opaque token.
+
+
+### Token validation using JWT key signature checking (JWT tokens only, opaque tokens not supported)
+
+There is a Kafka broker configuration example where the listener is configured to use the JWKS endpoint. Such a setup can only be used with JWT tokens.
+
+You can run the prepared Kafka example from parent directory (`examples/docker`) - make sure the Spring Authorization Server is up before running this command:
+
+    docker-compose -f compose.yml -f kafka-oauth-strimzi/compose-spring-jwt.yml up --build
+
+You can run the Kafka client using the same commands as in the previous chapter.
+
+If you try to authenticate the client as `kafkaclient2` the authentication will fail. While the Kafka client will successfully obtain the token, 
+the validation of the token will fail on Kafka broker due to not being a JWT token. 

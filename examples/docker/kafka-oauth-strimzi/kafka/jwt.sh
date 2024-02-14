@@ -8,7 +8,7 @@ fi
 IFS='.' read -r -a PARTS <<< "$1"
 
 echo "Head: "
-echo $(echo -n "${PARTS[0]}" | base64 -d 2>/dev/null)
+echo $(echo -n "${PARTS[0]}===" | base64 -d 2>/dev/null)
 echo
 echo "Payload: "
-echo $(echo -n "${PARTS[1]}" | base64 -d 2>/dev/null)
+echo $(echo -n "${PARTS[1]}===" | base64 -d 2>/dev/null)

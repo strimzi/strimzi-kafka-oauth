@@ -11,6 +11,7 @@ services:
       - /bin/bash
       - /opt/kafka/start_without_wait.sh
     ports:
+      - 9091:9091
       - 9092:9092
 
       # javaagent debug port
@@ -29,44 +30,37 @@ services:
       LOG_DIR: /home/kafka/logs
       #KAFKA_LOG_DIRS: /home/kafka/1
 
+      KAFKA_PORT: 9092
+      KAFKA_ADVERTISED_HOST_NAME: kafka
+
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_LISTENERS: CLIENT://kafka:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CLIENT:SASL_PLAINTEXT
-      KAFKA_SASL_ENABLED_MECHANISMS: OAUTHBEARER
-      KAFKA_INTER_BROKER_LISTENER_NAME: CLIENT
-      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: OAUTHBEARER
 
-      KAFKA_LISTENER_NAME_CLIENT_OAUTHBEARER_SASL_JAAS_CONFIG: "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required;"
-      KAFKA_LISTENER_NAME_CLIENT_OAUTHBEARER_SASL_LOGIN_CALLBACK_HANDLER_CLASS: io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
+      KAFKA_LISTENERS: REPLICATION://kafka:9091,CLIENT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: REPLICATION:SSL,CLIENT:SASL_PLAINTEXT
+
+      KAFKA_INTER_BROKER_LISTENER_NAME: REPLICATION
+      KAFKA_SSL_SECURE_RANDOM_IMPLEMENTATION: SHA1PRNG
+      KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: ""
+
+      KAFKA_LISTENER_NAME_REPLICATION_SSL_KEYSTORE_LOCATION: /tmp/kafka/cluster.keystore.p12
+      KAFKA_LISTENER_NAME_REPLICATION_SSL_KEYSTORE_PASSWORD: Z_pkTh9xgZovK4t34cGB2o6afT4zZg0L
+      KAFKA_LISTENER_NAME_REPLICATION_SSL_KEYSTORE_TYPE: PKCS12
+      KAFKA_LISTENER_NAME_REPLICATION_SSL_TRUSTSTORE_LOCATION: /tmp/kafka/cluster.truststore.p12
+      KAFKA_LISTENER_NAME_REPLICATION_SSL_TRUSTSTORE_PASSWORD: Z_pkTh9xgZovK4t34cGB2o6afT4zZg0L
+      KAFKA_LISTENER_NAME_REPLICATION_SSL_TRUSTSTORE_TYPE: PKCS12
+      KAFKA_LISTENER_NAME_REPLICATION_SSL_CLIENT_AUTH: required
+
+      KAFKA_LISTENER_NAME_CLIENT_SASL_ENABLED_MECHANISMS: OAUTHBEARER
+      KAFKA_LISTENER_NAME_CLIENT_OAUTHBEARER_SASL_JAAS_CONFIG: "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required    oauth.introspection.endpoint.uri=\"http://${SPRING_HOST:-spring}:8080/oauth2/introspect\"    oauth.valid.issuer.uri=\"http://${SPRING_HOST:-spring}:8080\"    oauth.client.id=\"kafkabroker\"    oauth.client.secret=\"kafkabrokersecret\"    oauth.access.token.is.jwt=\"false\"    oauth.check.access.token.type=\"false\"    unsecuredLoginStringClaim_sub=\"admin\" ;"
       KAFKA_LISTENER_NAME_CLIENT_OAUTHBEARER_SASL_SERVER_CALLBACK_HANDLER_CLASS: io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
 
-      KAFKA_SUPER_USERS: User:service-account-kafka-broker
+      KAFKA_SUPER_USERS: User:CN=my-cluster-kafka,O=io.strimzi;User:CN=my-cluster-entity-operator,O=io.strimzi;User:CN=my-cluster-kafka-exporter,O=io.strimzi;User:kafkabroker
+
+      KAFKA_CONNECTIONS_MAX_REAUTH_MS: 3600000
 
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-
-
-
-      #
-      # Strimzi OAuth Configuration
-      #
-
-      # Authentication config
-      OAUTH_CLIENT_ID: "kafka"
-      OAUTH_CLIENT_SECRET: "kafkasecret"
-      OAUTH_TOKEN_ENDPOINT_URI: "http://${SPRING_HOST:-spring}:8080/oauth/token"
-      OAUTH_SCOPE: "any"
-
-      # Validation config
-      OAUTH_INTROSPECTION_ENDPOINT_URI: "http://${SPRING_HOST:-spring}:8080/oauth/check_token"
-      OAUTH_CHECK_ISSUER: "false"
-      OAUTH_ACCESS_TOKEN_IS_JWT: "false"
-      OAUTH_CHECK_ACCESS_TOKEN_TYPE: "false"
-
-      # username extraction from JWT token claim
-      OAUTH_USERNAME_CLAIM: user_name
-      OAUTH_FALLBACK_USERNAME_CLAIM: client_id
-      OAUTH_FALLBACK_USERNAME_PREFIX: client-account-
+      KAFKA_PRINCIPAL_BUILDER_CLASS: io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder
 
       # For start.sh script to know where the keycloak is listening
       SPRING_HOST: ${SPRING_HOST:-spring}
