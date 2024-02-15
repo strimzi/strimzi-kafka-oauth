@@ -19,11 +19,13 @@ addons:
     packages:
       - maven
 before_install:
-  - curl https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash
-  - nvm install v18.18.2
-  - npm install -g pnpm
+  - sudo rm /usr/local/bin/docker-compose
+  - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
+  - chmod +x docker-compose
+  - sudo mv docker-compose /usr/local/bin
 env:
   global:
+  - DOCKER_COMPOSE_VERSION=v2.24.5
   - NODE_OPTIONS="--dns-result-order=ipv4first"
   - PULL_REQUEST=${TRAVIS_PULL_REQUEST}
   - TAG=${TRAVIS_TAG:-latest}
