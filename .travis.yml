@@ -30,6 +30,11 @@ jobs:
         - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
         - chmod +x docker-compose
         - sudo mv docker-compose /usr/local/bin
+        - java -version
+        - javac -version
+        - echo "JAVA_HOME: $JAVA_HOME"
+        - sudo apt -y remove openjdk11
+        - mvn -version
 env:
   global:
   - PULL_REQUEST=${TRAVIS_PULL_REQUEST}
