@@ -32,9 +32,9 @@ jobs:
         - sudo mv docker-compose /usr/local/bin
         - export JAVA_HOME=/usr/lib/jvm/temurin-17-jdk-s390x
         - export PATH=$JAVA_HOME/bin:$PATH
-        - java -version
+        - java -version > java_version
+        - cat java_version
         - javac -version
-        - echo JAVA_HOME: $JAVA_HOME
         - mvn -version
 env:
   global:
