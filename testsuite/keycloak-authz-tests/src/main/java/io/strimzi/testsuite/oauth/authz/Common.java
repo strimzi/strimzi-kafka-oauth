@@ -172,9 +172,8 @@ public class Common {
     public static void waitForACLs() throws Exception {
 
         // Create admin client using user `admin:admin-password` over PLAIN listener (port 9100)
-        try (AdminClient adminClient = buildAdminClientForPlain(PLAIN_LISTENER, "admin")) {
-
-            TestUtil.waitForCondition(() -> {
+        TestUtil.waitForCondition(() -> {
+            try (AdminClient adminClient = buildAdminClientForPlain(PLAIN_LISTENER, "admin")) {
                 try {
                     Collection<AclBinding> result = adminClient.describeAcls(new AclBindingFilter(ResourcePatternFilter.ANY,
                             new AccessControlEntryFilter("User:alice", null, AclOperation.IDEMPOTENT_WRITE, AclPermissionType.ALLOW))).values().get();
@@ -188,8 +187,8 @@ public class Common {
                 } catch (Throwable e) {
                     throw new RuntimeException("ACLs for User:alice could not be retrieved: ", e);
                 }
-            }, 500, 210);
-        }
+            }
+        }, 2000, 210);
     }
 
     Producer<String, String> getProducer(final String name) {

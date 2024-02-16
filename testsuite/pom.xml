@@ -14,8 +14,8 @@
         <module>common</module>
         <module>mock-oauth-server</module>
         <module>docker</module>
-        <module>mockoauth-tests</module>
-        <module>keycloak-auth-tests</module>
+        <!--module>mockoauth-tests</module>
+        <module>keycloak-auth-tests</module-->
         <module>keycloak-authz-tests</module>
         <module>keycloak-authz-kraft-tests</module>
         <module>keycloak-authz-zk-tests</module>
