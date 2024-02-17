@@ -4,20 +4,14 @@
  */
 package io.strimzi.kafka.oauth.client;
 
-import io.strimzi.kafka.oauth.client.metrics.ClientAuthenticationSensorKeyProducer;
-import io.strimzi.kafka.oauth.client.metrics.ClientHttpSensorKeyProducer;
+import io.strimzi.kafka.oauth.client.metrics.ClientMetricsHandler;
+import io.strimzi.kafka.oauth.client.metrics.ClientUtils;
 import io.strimzi.kafka.oauth.common.Config;
 import io.strimzi.kafka.oauth.common.ConfigException;
 import io.strimzi.kafka.oauth.common.ConfigUtil;
-import io.strimzi.kafka.oauth.common.MetricsHandler;
 import io.strimzi.kafka.oauth.common.PrincipalExtractor;
 import io.strimzi.kafka.oauth.common.TokenInfo;
 import io.strimzi.kafka.oauth.common.TokenProvider;
-import io.strimzi.kafka.oauth.common.FileBasedTokenProvider;
-import io.strimzi.kafka.oauth.common.StaticTokenProvider;
-import io.strimzi.kafka.oauth.metrics.SensorKeyProducer;
-import io.strimzi.kafka.oauth.services.OAuthMetrics;
-import io.strimzi.kafka.oauth.services.Services;
 import org.apache.kafka.common.security.auth.AuthenticateCallbackHandler;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerToken;
@@ -55,8 +49,6 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
 
     private static final Logger LOG = LoggerFactory.getLogger(JaasClientOauthLoginCallbackHandler.class);
 
-    private ClientConfig config = new ClientConfig();
-
     private String clientId;
     private String clientSecret;
     private String clientAssertionType;
@@ -68,26 +60,23 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
     private String scope;
     private String audience;
     private URI tokenEndpoint;
-
     private boolean isJwt;
     private int maxTokenExpirySeconds;
     private PrincipalExtractor principalExtractor;
-
     private SSLSocketFactory socketFactory;
     private HostnameVerifier hostnameVerifier;
-
     private int connectTimeout;
     private int readTimeout;
     private int retries;
     private long retryPauseMillis;
-
-    private boolean enableMetrics;
-    private OAuthMetrics metrics;
-    private SensorKeyProducer authSensorKeyProducer;
-    private SensorKeyProducer tokenSensorKeyProducer;
-
-    private final ClientMetricsHandler authenticatorMetrics = new ClientMetricsHandler();
     private boolean includeAcceptHeader;
+    private final ClientMetricsHandler authenticatorMetrics;
+    private final ClientUtils clientUtils;
+    private ClientConfig config;
+    public JaasClientOauthLoginCallbackHandler(ClientUtils clientUtils, ClientMetricsHandler authenticatorMetrics) {
+        this.clientUtils = clientUtils;
+        this.authenticatorMetrics = authenticatorMetrics;
+    }
 
     @Override
     public void configure(Map<String, ?> configs, String saslMechanism, List<AppConfigurationEntry> jaasConfigEntries) {
@@ -95,15 +84,16 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
             throw new IllegalArgumentException("Unexpected SASL mechanism: " + saslMechanism);
         }
 
-        for (AppConfigurationEntry e: jaasConfigEntries) {
-            Properties p = new Properties();
-            p.putAll(e.getOptions());
-            config = new ClientConfig(p);
-        }
+        jaasConfigEntries
+                .forEach(entry -> {
+                    Properties p = new Properties();
+                    p.putAll(entry.getOptions());
+                    config = new ClientConfig(p);
+                });
 
         final String token = config.getValue(ClientConfig.OAUTH_ACCESS_TOKEN);
         final String tokenLocation = config.getValue(ClientConfig.OAUTH_ACCESS_TOKEN_LOCATION);
-        tokenProvider = configureAccessTokenProvider(token, tokenLocation);
+        tokenProvider = clientUtils.configureAccessTokenProvider(token, tokenLocation);
 
         if (token == null && tokenLocation == null) {
             String endpoint = config.getValue(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI);
@@ -120,16 +110,17 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
             }
         }
 
+
         final String refreshToken = config.getValue(ClientConfig.OAUTH_REFRESH_TOKEN);
         final String refreshTokenLocation = config.getValue(ClientConfig.OAUTH_REFRESH_TOKEN_LOCATION);
-        refreshTokenProvider = configureRefreshTokenProvider(refreshToken, refreshTokenLocation);
+        refreshTokenProvider = clientUtils.configureRefreshTokenProvider(refreshToken, refreshTokenLocation);
 
         clientId = config.getValue(Config.OAUTH_CLIENT_ID);
         clientSecret = config.getValue(Config.OAUTH_CLIENT_SECRET);
 
         final String clientAssertion = config.getValue(ClientConfig.OAUTH_CLIENT_ASSERTION);
         final String clientAssertionLocation = config.getValue(ClientConfig.OAUTH_CLIENT_ASSERTION_LOCATION);
-        clientAssertionProvider = configureClientAssertionTokenProvider(clientAssertion, clientAssertionLocation);
+        clientAssertionProvider = clientUtils.configureClientAssertionTokenProvider(clientAssertion, clientAssertionLocation);
 
         clientAssertionType = config.getValue(ClientConfig.OAUTH_CLIENT_ASSERTION_TYPE, "urn:ietf:params:oauth:client-assertion-type:jwt-bearer");
 
@@ -142,10 +133,11 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
         hostnameVerifier = ConfigUtil.createHostnameVerifier(config);
         connectTimeout = getConnectTimeout(config);
         readTimeout = getReadTimeout(config);
-        retries = getHttpRetries(config);
-        retryPauseMillis = getHttpRetryPauseMillis(config, retries);
+        retries = clientUtils.getHttpRetries(config);
+        retryPauseMillis = clientUtils.getHttpRetryPauseMillis(config, retries);
         includeAcceptHeader = config.getValueAsBoolean(Config.OAUTH_INCLUDE_ACCEPT_HEADER, true);
-        checkConfiguration();
+
+        clientUtils.checkConfiguration(refreshTokenProvider, username, tokenProvider, clientId, clientAssertionProvider, password, clientSecret);
 
         principalExtractor = new PrincipalExtractor(
                 config.getValue(Config.OAUTH_USERNAME_CLAIM),
@@ -163,7 +155,7 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
             throw new ConfigException("Invalid value configured for '" + ClientConfig.OAUTH_MAX_TOKEN_EXPIRY_SECONDS + "': " + maxTokenExpirySeconds + " (should be at least 60)");
         }
 
-        String configId = configureMetrics(configs);
+        String configId = authenticatorMetrics.configureMetrics(configs, this.config, this.tokenEndpoint);
 
         if (LOG.isDebugEnabled()) {
             LOG.debug("Configured JaasClientOauthLoginCallbackHandler:"
@@ -189,137 +181,11 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
                     + "\n    readTimeout: " + readTimeout
                     + "\n    retries: " + retries
                     + "\n    retryPauseMillis: " + retryPauseMillis
-                    + "\n    enableMetrics: " + enableMetrics
+                    + "\n    enableMetrics: " + authenticatorMetrics.isEnableMetrics()
                     + "\n    includeAcceptHeader: " + includeAcceptHeader);
         }
     }
 
-    private TokenProvider configureAccessTokenProvider(String token, String tokenLocation) {
-        String tokenIgnoredMessage = "Access token location is configured ('" + ClientConfig.OAUTH_ACCESS_TOKEN_LOCATION +
-                "'), access token will be ignored ('" + ClientConfig.OAUTH_ACCESS_TOKEN + "').";
-        String noSuchFileMessage = "Specified access token location is invalid ('" + ClientConfig.OAUTH_ACCESS_TOKEN_LOCATION + "')";
-
-        return configureAnyTokenProvider(token, tokenLocation, tokenIgnoredMessage, noSuchFileMessage);
-    }
-
-    private TokenProvider configureRefreshTokenProvider(String token, String tokenLocation) {
-        String tokenIgnoredMessage = "Refresh token location is configured ('" + ClientConfig.OAUTH_REFRESH_TOKEN_LOCATION +
-                "'), refresh token will be ignored ('" + ClientConfig.OAUTH_REFRESH_TOKEN + "').";
-        String noSuchFileMessage = "Specified refresh token location is invalid ('" + ClientConfig.OAUTH_REFRESH_TOKEN_LOCATION + "')";
-
-        return configureAnyTokenProvider(token, tokenLocation, tokenIgnoredMessage, noSuchFileMessage);
-    }
-
-    private TokenProvider configureClientAssertionTokenProvider(String token, String tokenLocation) {
-        String tokenIgnoredMessage = "Client assertion location is configured ('" + ClientConfig.OAUTH_CLIENT_ASSERTION_LOCATION +
-                "'), client assertion will be ignored ('" + ClientConfig.OAUTH_CLIENT_ASSERTION + "').";
-        String noSuchFileMessage = "Specified client assertion location is invalid ('" + ClientConfig.OAUTH_CLIENT_ASSERTION_LOCATION + "')";
-
-        return configureAnyTokenProvider(token, tokenLocation, tokenIgnoredMessage, noSuchFileMessage);
-    }
-
-    private TokenProvider configureAnyTokenProvider(String token, String tokenLocation, String tokenIgnoredMessage, String noSuchFileMessage) {
-        if (tokenLocation != null) {
-            try {
-                if (token != null) {
-                    LOG.warn(tokenIgnoredMessage);
-                }
-                return new FileBasedTokenProvider(tokenLocation);
-
-            } catch (IllegalArgumentException e) {
-                throw new ConfigException(noSuchFileMessage + ": " + e.getMessage());
-            }
-        }
-        if (token != null) {
-            return new StaticTokenProvider(token);
-        }
-        return null;
-    }
-
-    private int getHttpRetries(ClientConfig config) {
-        int retries = config.getValueAsInt(Config.OAUTH_HTTP_RETRIES, 0);
-        if (retries < 0) {
-            throw new ConfigException("The configured value of 'oauth.http.retries' has to be greater or equal to zero");
-        }
-        return retries;
-    }
-
-    private long getHttpRetryPauseMillis(ClientConfig config, int retries) {
-        long retryPauseMillis = config.getValueAsLong(Config.OAUTH_HTTP_RETRY_PAUSE_MILLIS, 0);
-        if (retries > 0) {
-            if (retryPauseMillis < 0) {
-                retryPauseMillis = 0;
-                LOG.warn("The configured value of '{}' is less than zero and will be ignored", Config.OAUTH_HTTP_RETRY_PAUSE_MILLIS);
-            }
-            if (retryPauseMillis <= 0) {
-                LOG.warn("No pause between http retries configured. Consider setting '{}' to greater than zero to avoid flooding the authorization server with requests.", Config.OAUTH_HTTP_RETRY_PAUSE_MILLIS);
-            }
-        }
-        return retryPauseMillis;
-    }
-
-    private void checkConfiguration() {
-        if (tokenProvider != null) {
-            if (refreshTokenProvider != null) {
-                LOG.warn("Access token is configured ('{}'), refresh token will be ignored ('{}', '{}').",
-                        ClientConfig.OAUTH_ACCESS_TOKEN, ClientConfig.OAUTH_REFRESH_TOKEN, ClientConfig.OAUTH_REFRESH_TOKEN_LOCATION);
-            }
-            if (username != null) {
-                LOG.warn("Access token is configured ('{}'), username will be ignored ('{}').",
-                        ClientConfig.OAUTH_ACCESS_TOKEN, ClientConfig.OAUTH_PASSWORD_GRANT_USERNAME);
-            }
-            if (clientId != null) {
-                LOG.warn("Access token is configured ('{}'), client id will be ignored ('{}').",
-                        ClientConfig.OAUTH_ACCESS_TOKEN, ClientConfig.OAUTH_CLIENT_ID);
-            }
-            if (clientAssertionProvider != null) {
-                LOG.warn("Access token is configured ('{}'), client assertion (location) will be ignored ('{}', '{}').",
-                        ClientConfig.OAUTH_ACCESS_TOKEN, ClientConfig.OAUTH_CLIENT_ASSERTION, ClientConfig.OAUTH_CLIENT_ASSERTION_LOCATION);
-            }
-        } else if (refreshTokenProvider != null) {
-            if (username != null) {
-                LOG.warn("Refresh token is configured ('{}'), username will be ignored ('{}').",
-                        ClientConfig.OAUTH_REFRESH_TOKEN, ClientConfig.OAUTH_PASSWORD_GRANT_USERNAME);
-            }
-        }
-
-        if (tokenProvider == null) {
-            if (clientId == null) {
-                throw new ConfigException("No client id specified ('" + ClientConfig.OAUTH_CLIENT_ID + "')");
-            }
-
-            if (username != null && password == null) {
-                throw new ConfigException("Username configured ('" + ClientConfig.OAUTH_PASSWORD_GRANT_USERNAME
-                        + "') but no password specified ('" + ClientConfig.OAUTH_PASSWORD_GRANT_PASSWORD + "')");
-            }
-
-            if (refreshTokenProvider == null && clientSecret == null && username == null && clientAssertionProvider == null) {
-                throw new ConfigException("No access token or location ('" + ClientConfig.OAUTH_ACCESS_TOKEN
-                        + "', '" + ClientConfig.OAUTH_ACCESS_TOKEN_LOCATION + "'), refresh token or location ('"
-                        + ClientConfig.OAUTH_REFRESH_TOKEN + "', '" + ClientConfig.OAUTH_REFRESH_TOKEN_LOCATION + "'),"
-                        + " client credentials ('" + ClientConfig.OAUTH_CLIENT_SECRET
-                        + "'), user credentials ('" + ClientConfig.OAUTH_PASSWORD_GRANT_USERNAME + "')"
-                        + " or clientAssertion or location ('" + ClientConfig.OAUTH_CLIENT_ASSERTION + "', '"
-                        + ClientConfig.OAUTH_CLIENT_ASSERTION_LOCATION + "') specified");
-            }
-        }
-    }
-
-    private String configureMetrics(Map<String, ?> configs) {
-        String configId = config.getValue(Config.OAUTH_CONFIG_ID, "client");
-        enableMetrics = config.getValueAsBoolean(Config.OAUTH_ENABLE_METRICS, false);
-
-        authSensorKeyProducer = new ClientAuthenticationSensorKeyProducer(configId, tokenEndpoint);
-        tokenSensorKeyProducer = tokenEndpoint != null ? new ClientHttpSensorKeyProducer(configId, tokenEndpoint) : null;
-
-        if (!Services.isAvailable()) {
-            Services.configure(configs);
-        }
-        if (enableMetrics) {
-            metrics = Services.getInstance().getMetrics();
-        }
-        return configId;
-    }
 
     @Override
     public void close() {
@@ -361,9 +227,9 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
                 throw new IllegalStateException("Invalid oauth client configuration - no credentials");
             }
 
-            addSuccessTime(requestStartTime);
+            authenticatorMetrics.addSuccessTime(requestStartTime);
         } catch (Throwable t) {
-            addErrorTime(t, requestStartTime);
+            authenticatorMetrics.addErrorTime(t, requestStartTime);
             throw t;
         }
 
@@ -401,32 +267,6 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
         });
     }
 
-    private void addSuccessTime(long startTimeMs) {
-        if (enableMetrics) {
-            metrics.addTime(authSensorKeyProducer.successKey(), System.currentTimeMillis() - startTimeMs);
-        }
-    }
 
-    private void addErrorTime(Throwable e, long startTimeMs) {
-        if (enableMetrics) {
-            metrics.addTime(authSensorKeyProducer.errorKey(e), System.currentTimeMillis() - startTimeMs);
-        }
-    }
 
-    class ClientMetricsHandler implements MetricsHandler {
-
-        @Override
-        public void addSuccessRequestTime(long millis) {
-            if (enableMetrics) {
-                metrics.addTime(tokenSensorKeyProducer.successKey(), millis);
-            }
-        }
-
-        @Override
-        public void addErrorRequestTime(Throwable e, long millis) {
-            if (enableMetrics) {
-                metrics.addTime(tokenSensorKeyProducer.errorKey(e), millis);
-            }
-        }
-    }
 }
