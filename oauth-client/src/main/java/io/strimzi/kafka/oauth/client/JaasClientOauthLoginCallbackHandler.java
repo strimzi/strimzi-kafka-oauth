@@ -84,7 +84,7 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
             throw new IllegalArgumentException("Unexpected SASL mechanism: " + saslMechanism);
         }
 
-        AppConfigurationEntry entry = jaasConfigEntries.getFirst();
+        AppConfigurationEntry entry = jaasConfigEntries.get(0);
         Properties p = new Properties();
         p.putAll(entry.getOptions());
         config = new ClientConfig(p);
