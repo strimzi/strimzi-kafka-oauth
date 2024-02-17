@@ -15,6 +15,10 @@ import io.strimzi.kafka.oauth.services.Services;
 import java.net.URI;
 import java.util.Map;
 
+/**
+ * Handler for client metrics.
+ * This class implements the MetricsHandler interface.
+ */
 public class ClientMetricsHandler implements MetricsHandler {
     private boolean enableMetrics;
     private OAuthMetrics metrics;
@@ -94,7 +98,11 @@ public class ClientMetricsHandler implements MetricsHandler {
         }
     }
 
-
+    /**
+     * Checks if metrics are enabled.
+     *
+     * @return {@code true} if metrics are enabled, {@code false} otherwise.
+     */
     public boolean isEnableMetrics() {
         return enableMetrics;
     }

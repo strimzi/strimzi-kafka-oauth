@@ -72,10 +72,14 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
     private boolean includeAcceptHeader;
     private final ClientMetricsHandler authenticatorMetrics;
     private final ClientUtils clientUtils;
-    private ClientConfig config;
-    public JaasClientOauthLoginCallbackHandler(ClientUtils clientUtils, ClientMetricsHandler authenticatorMetrics) {
-        this.clientUtils = clientUtils;
-        this.authenticatorMetrics = authenticatorMetrics;
+
+    /**
+     * Constructs a new JaasClientOauthLoginCallbackHandler.
+     * Initializes the necessary utilities and metrics handler.
+     */
+    public JaasClientOauthLoginCallbackHandler() {
+        this.clientUtils = new ClientUtils();
+        this.authenticatorMetrics = new ClientMetricsHandler();
     }
 
     @Override
@@ -87,7 +91,7 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
         AppConfigurationEntry entry = jaasConfigEntries.get(0);
         Properties p = new Properties();
         p.putAll(entry.getOptions());
-        config = new ClientConfig(p);
+        ClientConfig config = new ClientConfig(p);
 
         final String token = config.getValue(ClientConfig.OAUTH_ACCESS_TOKEN);
         final String tokenLocation = config.getValue(ClientConfig.OAUTH_ACCESS_TOKEN_LOCATION);
@@ -153,7 +157,7 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
             throw new ConfigException("Invalid value configured for '" + ClientConfig.OAUTH_MAX_TOKEN_EXPIRY_SECONDS + "': " + maxTokenExpirySeconds + " (should be at least 60)");
         }
 
-        String configId = authenticatorMetrics.configureMetrics(configs, this.config, this.tokenEndpoint);
+        String configId = authenticatorMetrics.configureMetrics(configs, config, this.tokenEndpoint);
 
         if (LOG.isDebugEnabled()) {
             LOG.debug("Configured JaasClientOauthLoginCallbackHandler:"

@@ -14,6 +14,9 @@ import io.strimzi.kafka.oauth.common.Config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Utility class for configuring token providers and handling client metrics.
+ */
 public class ClientUtils {
     private static final Logger LOG = LoggerFactory.getLogger(ClientUtils.class);
 
