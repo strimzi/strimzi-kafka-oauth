@@ -73,6 +73,8 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
     private final ClientMetricsHandler authenticatorMetrics;
     private final ClientUtils clientUtils;
 
+    private ClientConfig config;
+
     /**
      * Constructs a new JaasClientOauthLoginCallbackHandler.
      * Initializes the necessary utilities and metrics handler.
@@ -88,10 +90,11 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
             throw new IllegalArgumentException("Unexpected SASL mechanism: " + saslMechanism);
         }
 
-        AppConfigurationEntry entry = jaasConfigEntries.get(0);
-        Properties p = new Properties();
-        p.putAll(entry.getOptions());
-        ClientConfig config = new ClientConfig(p);
+        jaasConfigEntries.forEach(entry -> {
+            Properties p = new Properties();
+            p.putAll(entry.getOptions());
+            config = new ClientConfig(p);
+        });
 
         final String token = config.getValue(ClientConfig.OAUTH_ACCESS_TOKEN);
         final String tokenLocation = config.getValue(ClientConfig.OAUTH_ACCESS_TOKEN_LOCATION);
