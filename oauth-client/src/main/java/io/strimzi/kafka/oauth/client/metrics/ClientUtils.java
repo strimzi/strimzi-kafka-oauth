@@ -1,7 +1,16 @@
+/*
+ * Copyright 2017-2019, Strimzi authors.
+ * License: Apache License 2.0 (see the file LICENSE or http://apache.org/licenses/LICENSE-2.0.html).
+ */
+
 package io.strimzi.kafka.oauth.client.metrics;
 
 import io.strimzi.kafka.oauth.client.ClientConfig;
-import io.strimzi.kafka.oauth.common.*;
+import io.strimzi.kafka.oauth.common.TokenProvider;
+import io.strimzi.kafka.oauth.common.StaticTokenProvider;
+import io.strimzi.kafka.oauth.common.FileBasedTokenProvider;
+import io.strimzi.kafka.oauth.common.ConfigException;
+import io.strimzi.kafka.oauth.common.Config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
