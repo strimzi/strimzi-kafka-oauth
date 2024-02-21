@@ -50,14 +50,14 @@ public class MockOAuthTests {
         if (includeKerberosTests) {
             watcher.withServices("mockoauth", "kerberos", "kafka", "zookeeper")
                     .waitingFor("kerberos", Wait.forLogMessage(".*commencing operation.*", 1)
-                            .withStartupTimeout(Duration.ofSeconds(45)));
+                            .withStartupTimeout(Duration.ofSeconds(180)));
         } else {
             watcher.withServices("mockoauth", "kafka", "zookeeper");
         }
         watcher.waitingFor("mockoauth", Wait.forLogMessage(".*Succeeded in deploying verticle.*", 1)
                         .withStartupTimeout(Duration.ofSeconds(180)))
                 .waitingFor("kafka", Wait.forLogMessage(".*started \\(kafka.server.KafkaServer\\).*", 1)
-                        .withStartupTimeout(Duration.ofSeconds(180)));
+                        .withStartupTimeout(Duration.ofSeconds(300)));
 
         return watcher;
     }

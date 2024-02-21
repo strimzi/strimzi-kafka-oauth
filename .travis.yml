@@ -17,6 +17,15 @@ jobs:
       apt:
         packages:
         - maven
+    env:
+      - DOCKER_COMPOSE_VERSION=v2.24.5
+    before_install:
+      - sudo rm /usr/local/bin/docker-compose
+      - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
+      - chmod +x docker-compose
+      - sudo mv docker-compose /usr/local/bin
+      - export JAVA_HOME=/usr/lib/jvm/temurin-17-jdk-s390x
+      - export PATH=$JAVA_HOME/bin:$PATH
   - os: linux
     arch: ppc64le
     jdk: openjdk17

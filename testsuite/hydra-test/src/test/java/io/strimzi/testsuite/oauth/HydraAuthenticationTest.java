@@ -56,7 +56,7 @@ public class HydraAuthenticationTest {
             new TestContainersWatcher(new File("docker-compose.yml"))
                     .withServices("hydra", "hydra-import", "hydra-jwt", "hydra-jwt-import", "zookeeper", "kafka")
                     .waitingFor("kafka", Wait.forLogMessage(".*started \\(kafka.server.KafkaServer\\).*", 1)
-                            .withStartupTimeout(Duration.ofSeconds(180)));
+                            .withStartupTimeout(Duration.ofSeconds(300)));
 
     @Rule
     public TestRule logCollector = new TestContainersLogCollector(environment);
