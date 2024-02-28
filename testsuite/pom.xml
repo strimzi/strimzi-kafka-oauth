@@ -41,7 +41,7 @@
         <maven.surefire.version>2.22.1</maven.surefire.version>
         <fabric8-docker-plugin.version>0.40.2</fabric8-docker-plugin.version>
 
-        <testcontainers.version>1.17.3</testcontainers.version>
+        <testcontainers.version>1.19.6</testcontainers.version>
         <version.junit>4.13.2</version.junit>
         <spotbugs.version>4.7.0</spotbugs.version>
         <jackson.annotation.version>2.15.2</jackson.annotation.version>
