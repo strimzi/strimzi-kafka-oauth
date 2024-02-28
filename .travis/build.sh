@@ -38,13 +38,16 @@ mvn spotbugs:check
 # Also test examples build on different architectures (exclude ppc64le until fixed)
 if [ "$arch" != 'ppc64le' ]; then
   mvn clean install -f examples/docker $MAVEN_EXTRA_ARGS
-  cd examples/docker
-  set +e
-  ./spring/test-spring.sh
-  EXIT=$?
-  cd ../..
-  exitIfError
-  set -e
+
+  if [[ "$JAVA_MAJOR_VERSION" -ge "17" ]]; then
+    cd examples/docker
+    set +e
+    ./spring/test-spring.sh
+    EXIT=$?
+    cd ../..
+    exitIfError
+    set -e
+  fi
 fi
 
 # Run testsuite

@@ -90,6 +90,19 @@
 
     <modules>
         <module>kafka-oauth-strimzi</module>
-        <module>spring</module>
     </modules>
+
+    <profiles>
+        <profile>
+            <id>java-17</id>
+            <activation>
+                <jdk>[17,</jdk>
+            </activation>
+
+            <modules>
+                <module>kafka-oauth-strimzi</module>
+                <module>spring</module>
+            </modules>
+        </profile>
+    </profiles>
 </project>
