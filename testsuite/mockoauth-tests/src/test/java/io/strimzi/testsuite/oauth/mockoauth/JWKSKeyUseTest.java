@@ -25,7 +25,7 @@ import static io.strimzi.testsuite.oauth.mockoauth.Common.createOAuthClient;
 import static io.strimzi.testsuite.oauth.mockoauth.Common.getProjectRoot;
 
 public class JWKSKeyUseTest {
-    private static final Logger log = LoggerFactory.getLogger(PasswordAuthTest.class);
+    private static final Logger log = LoggerFactory.getLogger(JWKSKeyUseTest.class);
 
     public void doTest() throws Exception {
         Services.configure(Collections.emptyMap());

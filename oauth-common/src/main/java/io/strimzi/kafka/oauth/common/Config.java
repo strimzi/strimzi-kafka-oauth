@@ -32,6 +32,9 @@ public class Config {
     /** The name of 'oauth.username.claim' config option  */
     public static final String OAUTH_USERNAME_CLAIM = "oauth.username.claim";
 
+    /** The name of 'oauth.username.prefix' config option  */
+    public static final String OAUTH_USERNAME_PREFIX = "oauth.username.prefix";
+
     /** The name of 'oauth.fallback.username.claim' config option  */
     public static final String OAUTH_FALLBACK_USERNAME_CLAIM = "oauth.fallback.username.claim";
 
@@ -149,7 +152,7 @@ public class Config {
      *   key.toUpperCase().replace('-', '_').replace('.', '_');
      * </pre>
      * If not, it checks if env variable with name equal to key exists.
-     *
+     * <p>
      * Ultimately, it checks the defaults passed at Config object construction time.
      * <p>
      * If no configuration is found for key, it returns the fallback value.

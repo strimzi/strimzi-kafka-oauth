@@ -4,10 +4,14 @@
  */
 package io.strimzi.testsuite.oauth.mockoauth;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.nimbusds.jose.JWSObject;
 import io.strimzi.kafka.oauth.common.HttpException;
 import io.strimzi.kafka.oauth.common.HttpUtil;
+import io.strimzi.kafka.oauth.common.JSONUtil;
 import io.strimzi.kafka.oauth.common.OAuthAuthenticator;
+import io.strimzi.kafka.oauth.common.PrincipalExtractor;
 import io.strimzi.kafka.oauth.common.SSLUtil;
 import io.strimzi.kafka.oauth.common.TokenInfo;
 import io.strimzi.kafka.oauth.common.TokenIntrospection;
@@ -17,6 +21,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLSocketFactory;
 import java.net.URI;
+import java.text.ParseException;
 
 import static io.strimzi.testsuite.oauth.mockoauth.Common.WWW_FORM_CONTENT_TYPE;
 import static io.strimzi.testsuite.oauth.mockoauth.Common.changeAuthServerMode;
@@ -24,9 +29,9 @@ import static io.strimzi.testsuite.oauth.mockoauth.Common.createOAuthClient;
 import static io.strimzi.testsuite.oauth.mockoauth.Common.createOAuthUser;
 import static io.strimzi.testsuite.oauth.mockoauth.Common.revokeToken;
 
-public class PasswordAuthTest {
+public class PasswordAuthAndPrincipalExtractionTest {
 
-    private static final Logger log = LoggerFactory.getLogger(PasswordAuthTest.class);
+    private static final Logger log = LoggerFactory.getLogger(PasswordAuthAndPrincipalExtractionTest.class);
 
     public void doTest() throws Exception {
 
@@ -52,6 +57,7 @@ public class PasswordAuthTest {
         SSLSocketFactory sslFactory = SSLUtil.createSSLFactory(
                 projectRoot + "/../docker/certificates/ca-truststore.p12", null, "changeit", null, null);
 
+        PrincipalExtractor principalExtractor = new PrincipalExtractor("username", "pref_", "clientId", "pref_service-account-");
 
         // authenticate user against token endpoint with the correct password
         TokenInfo tokenInfo = OAuthAuthenticator.loginWithPassword(
@@ -72,6 +78,10 @@ public class PasswordAuthTest {
         Assert.assertNotNull(token);
 
         TokenIntrospection.debugLogJWT(log, token);
+
+        String principal = principalExtractor.getPrincipal(JSONUtil.readJSON(getAccessTokenPayload(token), JsonNode.class));
+        Assert.assertEquals("Principal should be: 'pref_" + user1 + "'", "pref_" + user1, principal);
+
 
         ObjectNode json;
 
@@ -129,6 +139,9 @@ public class PasswordAuthTest {
 
         TokenIntrospection.debugLogJWT(log, token);
 
+        principal = principalExtractor.getPrincipal(JSONUtil.readJSON(getAccessTokenPayload(token), JsonNode.class));
+        Assert.assertEquals("Principal should be: 'pref_service-account-" + client1 + "'", "pref_service-account-" + client1, principal);
+
         // introspect the token using the introspection endpoint
         json = HttpUtil.post(URI.create("https://mockoauth:8090/introspect"), sslFactory, null,
                 "Basic " + OAuthAuthenticator.base64encode(clientSrv + ':' + clientSrvSecret), WWW_FORM_CONTENT_TYPE, "token=" + token, ObjectNode.class);
@@ -137,5 +150,10 @@ public class PasswordAuthTest {
         Assert.assertTrue("Token active", json.get("active").asBoolean());
         Assert.assertEquals("Introspection endpoint response contains `client_id`", client1, json.get("client_id") != null ? json.get("client_id").asText() : null);
         Assert.assertNull("Introspection endpoint response does not contain `username`", json.get("username"));
+    }
+
+    private String getAccessTokenPayload(String token) throws ParseException {
+        JWSObject jws = JWSObject.parse(token);
+        return jws.getPayload().toString();
     }
 }

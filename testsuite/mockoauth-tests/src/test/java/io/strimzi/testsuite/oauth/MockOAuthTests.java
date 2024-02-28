@@ -8,17 +8,17 @@ import io.strimzi.kafka.oauth.common.Config;
 import io.strimzi.testsuite.oauth.common.TestContainersLogCollector;
 import io.strimzi.testsuite.oauth.common.TestContainersWatcher;
 import io.strimzi.testsuite.oauth.mockoauth.AuthorizationEndpointsTest;
-import io.strimzi.testsuite.oauth.mockoauth.JaasServerConfigTest;
-import io.strimzi.testsuite.oauth.mockoauth.metrics.MetricsTest;
 import io.strimzi.testsuite.oauth.mockoauth.ClientAssertionAuthTest;
 import io.strimzi.testsuite.oauth.mockoauth.ConnectTimeoutTests;
 import io.strimzi.testsuite.oauth.mockoauth.JWKSKeyUseTest;
 import io.strimzi.testsuite.oauth.mockoauth.JaasClientConfigTest;
+import io.strimzi.testsuite.oauth.mockoauth.JaasServerConfigTest;
 import io.strimzi.testsuite.oauth.mockoauth.KeycloakAuthorizerTest;
-import io.strimzi.testsuite.oauth.mockoauth.PasswordAuthTest;
+import io.strimzi.testsuite.oauth.mockoauth.PasswordAuthAndPrincipalExtractionTest;
 import io.strimzi.testsuite.oauth.mockoauth.RetriesTests;
 import io.strimzi.testsuite.oauth.mockoauth.KerberosListenerTest;
 
+import io.strimzi.testsuite.oauth.mockoauth.metrics.MetricsTest;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -96,8 +96,8 @@ public class MockOAuthTests {
             logStart("JaasServerConfigTest :: Server Configuration Tests");
             new JaasServerConfigTest().doTest();
 
-            logStart("PasswordAuthTest :: Password Grant Tests");
-            new PasswordAuthTest().doTest();
+            logStart("PasswordAuthAndPrincipalExtractionTest :: Password Grant  +  Fallback Username / Prefix Tests");
+            new PasswordAuthAndPrincipalExtractionTest().doTest();
 
             logStart("ConnectTimeoutTests :: HTTP Timeout Tests");
             new ConnectTimeoutTests(kafkaContainer).doTest();

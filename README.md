@@ -320,6 +320,10 @@ Use `oauth.username.claim` to map the claim (attribute) where the value you want
 
 If `oauth.username.claim` is specified the value of that claim is used instead, but if not set, the automatic fallback claim is the `sub` claim.
 
+You can specify a prefix that is automatically prepended to the user id. This allows for the consistent mapping of user ids into the same name space and may be needed to prevent name collisions.
+One use case is to assign a different prefix for each server when using different authorization servers for different listeners:
+- `oauth.username.prefix` (e.g.: "internal_" - there is no prefix set by default)
+
 You can specify the secondary claim to fall back to, which allows you to map multiple account types into the same principal namespace: 
 - `oauth.fallback.username.claim` (e.g.: "client_id", for nested attributes use `[topAttrKey].[subAttrKey]`. Claim names can also be single quoted: `['topAttrKey'].['subAttrKey']`)
 - `oauth.fallback.username.prefix` (e.g.: "client-account-")

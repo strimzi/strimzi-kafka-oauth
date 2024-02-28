@@ -144,10 +144,13 @@ import static io.strimzi.kafka.oauth.common.TokenIntrospection.debugLogJWT;
  * <li><em>oauth.username.claim</em> The attribute key that should be used to extract the user id. If not set `sub` attribute is used.<br>
  * The attribute key refers to the JWT token claim when fast local validation is used, or to attribute in the response by introspection endpoint when introspection based validation is used.
  * For nested attributes use '[topAttrKey].[subAttrKey]'. Claim names can also be single quoted: ['topAttrKey'].['subAttrKey']. It has no default value.</li>
+ * <li><em>oauth.username.prefix</em> The prefix to automatically prepend to the user id. <br>
+ * This allows for consistent mapping of user ids into the same name space and may be needed to prevent name collisions. <br>
+ * One use case is to assign a different prefix for each server when using different authorization servers for different listeners. By default there is no prefix.</li>
  * <li><em>oauth.fallback.username.claim</em> The fallback username claim to be used for the user id if the attribute key specified by `oauth.username.claim` <br>
  * is not present. This is useful when `client_credentials` authentication only results in the client id being provided in another claim. For nested attributes same rules apply as for `oauth.username.claim`.
  * <li><em>oauth.fallback.username.prefix</em> The prefix to use with the value of <em>oauth.fallback.username.claim</em> to construct the user id.  <br>
- * This only takes effect if <em>oauth.fallback.username.claim</em> is <em>true</em>, and the value is present for the claim.
+ * This only takes effect if <em>oauth.fallback.username.claim</em> is configured, and the value is present for the claim.
  * Mapping usernames and client ids into the same user id space is useful in preventing name collisions.</li>
  * <li><em>oauth.check.issuer</em> Enable or disable issuer checking. <br>
  * By default issuer is checked using the value configured by <em>oauth.valid.issuer.uri</em>. Default value is <em>true</em></li>
@@ -266,12 +269,13 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         includeAcceptHeader = config.getValueAsBoolean(Config.OAUTH_INCLUDE_ACCEPT_HEADER, true);
 
         String usernameClaim = config.getValue(Config.OAUTH_USERNAME_CLAIM);
+        String usernamePrefix = config.getValue(Config.OAUTH_USERNAME_PREFIX);
         String fallbackUsernameClaim = config.getValue(Config.OAUTH_FALLBACK_USERNAME_CLAIM);
         String fallbackUsernamePrefix = config.getValue(Config.OAUTH_FALLBACK_USERNAME_PREFIX);
 
         validateFallbackUsernameParameters(usernameClaim, fallbackUsernameClaim, fallbackUsernamePrefix);
 
-        principalExtractor = new PrincipalExtractor(usernameClaim, fallbackUsernameClaim, fallbackUsernamePrefix);
+        principalExtractor = new PrincipalExtractor(usernameClaim, usernamePrefix, fallbackUsernameClaim, fallbackUsernamePrefix);
 
         String clientId = config.getValue(Config.OAUTH_CLIENT_ID);
         String clientSecret = config.getValue(Config.OAUTH_CLIENT_SECRET);

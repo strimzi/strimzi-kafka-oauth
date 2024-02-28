@@ -13,7 +13,8 @@ import static io.strimzi.kafka.oauth.common.JSONUtil.getClaimFromJWT;
  * An object with logic for extracting a principal name (i.e. a user id) from a JWT token.
  * <p>
  * First a claim configured as <code>usernameClaim</code> is looked up.
- * If not found the claim configured as <code>fallbackUsernameClaim</code> is looked up. If that one is found and if
+ * If found, and the <code>usernamePrefix</code> is configured, it is prepended to the value of the claim.
+ * If not found, the claim configured as <code>fallbackUsernameClaim</code> is looked up. If that one is found and if
  * the <code>fallbackUsernamePrefix</code> is configured prefix the found value with the prefix, otherwise not.
  * <p>
  * The claim specification uses the following rules:
@@ -44,6 +45,7 @@ import static io.strimzi.kafka.oauth.common.JSONUtil.getClaimFromJWT;
 public class PrincipalExtractor {
 
     private final Extractor usernameExtractor;
+    private final String usernamePrefix;
     private final Extractor fallbackUsernameExtractor;
     private final String fallbackUsernamePrefix;
 
@@ -52,6 +54,7 @@ public class PrincipalExtractor {
      */
     public PrincipalExtractor() {
         usernameExtractor = null;
+        usernamePrefix = null;
         fallbackUsernameExtractor = null;
         fallbackUsernamePrefix = null;
     }
@@ -60,11 +63,25 @@ public class PrincipalExtractor {
      * Create a new instance
      *
      * @param usernameClaim Attribute name for an attribute containing the user id to lookup first.
+     */
+    public PrincipalExtractor(String usernameClaim) {
+        this.usernameExtractor = parseClaimSpec(usernameClaim);
+        usernamePrefix = null;
+        fallbackUsernameExtractor = null;
+        fallbackUsernamePrefix = null;
+    }
+
+    /**
+     * Create a new instance
+     *
+     * @param usernameClaim Attribute name for an attribute containing the user id to lookup first.
+     * @param usernamePrefix A prefix to prepend to the user id
      * @param fallbackUsernameClaim Attribute name for an attribute containg the user id to lookup as a fallback
      * @param fallbackUsernamePrefix A prefix to prepend to the value of the fallback attribute value if set
      */
-    public PrincipalExtractor(String usernameClaim, String fallbackUsernameClaim, String fallbackUsernamePrefix) {
+    public PrincipalExtractor(String usernameClaim, String usernamePrefix, String fallbackUsernameClaim, String fallbackUsernamePrefix) {
         this.usernameExtractor = parseClaimSpec(usernameClaim);
+        this.usernamePrefix = usernamePrefix;
         this.fallbackUsernameExtractor = parseClaimSpec(fallbackUsernameClaim);
         this.fallbackUsernamePrefix = fallbackUsernamePrefix;
     }
@@ -81,11 +98,11 @@ public class PrincipalExtractor {
         if (usernameExtractor != null) {
             result = extractUsername(usernameExtractor, json);
             if (result != null) {
-                return result;
+                return usernamePrefix != null ? usernamePrefix + result : result;
             }
             if (fallbackUsernameExtractor != null) {
                 result = extractUsername(fallbackUsernameExtractor, json);
-                return result;
+                return result != null && fallbackUsernamePrefix != null ? fallbackUsernamePrefix + result : result;
             }
         }
 
@@ -120,7 +137,7 @@ public class PrincipalExtractor {
 
     @Override
     public String toString() {
-        return "PrincipalExtractor {usernameClaim: " + usernameExtractor + ", fallbackUsernameClaim: " + fallbackUsernameExtractor + ", fallbackUsernamePrefix: " + fallbackUsernamePrefix + "}";
+        return "PrincipalExtractor {usernameClaim: " + usernameExtractor + ", usernamePrefix: " + usernamePrefix + ", fallbackUsernameClaim: " + fallbackUsernameExtractor + ", fallbackUsernamePrefix: " + fallbackUsernamePrefix + "}";
     }
 
     /**
@@ -129,7 +146,7 @@ public class PrincipalExtractor {
      * @return True if any of the constructor parameters is set
      */
     public boolean isConfigured() {
-        return usernameExtractor != null || fallbackUsernameExtractor != null || fallbackUsernamePrefix != null;
+        return usernameExtractor != null || usernamePrefix != null || fallbackUsernameExtractor != null || fallbackUsernamePrefix != null;
     }
 
     /**
