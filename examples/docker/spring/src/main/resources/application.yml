@@ -1,7 +1,11 @@
-security:
-  oauth2:
-    authorization:
-      check-token-access: isAuthenticated()
-    client:
-      client-id: kafka
-      client-secret: kafkasecret
+server:
+  port: 8080
+
+logging:
+  level:
+    root: INFO
+    org.springframework.web: INFO
+    org.springframework.security: DEBUG
+    org.springframework.security.authentication: DEBUG
+    org.springframework.security.oauth2: DEBUG
+#    org.springframework.boot.autoconfigure: DEBUG

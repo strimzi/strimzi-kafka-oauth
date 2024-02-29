@@ -6,7 +6,7 @@ docker run -d --name spring strimzi/example-spring
 for i in {1..10}
 do
   sleep 1
-  RESULT=$(docker logs spring | grep "Started SimpleAuthorizationServerApplication")
+  RESULT=$(docker logs spring | grep "Started SpringAuthorizationServerApplication")
   if [ "$RESULT" != "" ]; then
      docker rm -f spring
      exit 0

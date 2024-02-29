@@ -1,0 +1,88 @@
+version: '3.5'
+
+services:
+
+  #################################### KAFKA BROKER ####################################
+  kafka:
+    image: strimzi/example-kafka
+    build: kafka-oauth-strimzi/kafka/target
+    container_name: kafka
+    command:
+      - /bin/bash
+      - /opt/kafka/start_without_wait.sh
+    ports:
+      - 9092:9092
+
+      # javaagent debug port
+      #- 5005:5005
+
+    environment:
+
+      # Java Debug
+      #KAFKA_DEBUG: y
+      #DEBUG_SUSPEND_FLAG: y
+      #JAVA_DEBUG_PORT: "*:5005"
+
+      #
+      # KAFKA Configuration
+      #
+      LOG_DIR: /home/kafka/logs
+      #KAFKA_LOG_DIRS: /home/kafka/1
+
+      KAFKA_PORT: 9092
+      KAFKA_ADVERTISED_HOST_NAME: kafka
+
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: CLIENT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CLIENT:SASL_PLAINTEXT
+      KAFKA_SASL_ENABLED_MECHANISMS: OAUTHBEARER
+      KAFKA_INTER_BROKER_LISTENER_NAME: CLIENT
+      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: OAUTHBEARER
+
+      KAFKA_LISTENER_NAME_CLIENT_OAUTHBEARER_SASL_JAAS_CONFIG: "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required;"
+      KAFKA_LISTENER_NAME_CLIENT_OAUTHBEARER_SASL_LOGIN_CALLBACK_HANDLER_CLASS: io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
+      KAFKA_LISTENER_NAME_CLIENT_OAUTHBEARER_SASL_SERVER_CALLBACK_HANDLER_CLASS: io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
+
+      KAFKA_SUPER_USERS: User:kafkabroker
+
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+
+
+      #
+      # Strimzi OAuth Configuration
+      #
+
+      # Authentication config for inter broker communication AND to authenticate to JWKS endpoint
+      #   The JaasClientOauthLoginCallbackHandler for inter broker communication understands this as the client_id and secret for client_credentials
+      #   While OAUTHBEARER can be used for inter broker communication it adds unnecessary complexity and lag. We really should be using mTLS instead.
+      #   See: compose-spring.yml
+
+      # The JaasServerOauthValidatorCallbackHandler understand this same configuration as client_id and secret to use
+      #   with Basic authentication to JWKS endpoint. In this example JWKS endpoint is not protected so authentication is redundant.
+      #   Nevertheless, the presence of these configuration options results in `Authorization: Basic ...` header sent to Spring Authorization Server
+      OAUTH_CLIENT_ID: "kafkabroker"
+      OAUTH_CLIENT_SECRET: "kafkabrokersecret"
+      OAUTH_TOKEN_ENDPOINT_URI: "http://${SPRING_HOST:-spring}:8080/oauth2/token"
+
+      # Validation config
+      OAUTH_JWKS_ENDPOINT_URI: "http://${SPRING_HOST:-spring}:8080/oauth2/jwks"
+      OAUTH_JWKS_IGNORE_KEY_USE: "true"
+      OAUTH_VALID_ISSUER_URI: "http://${SPRING_HOST:-spring}:8080"
+      OAUTH_CHECK_ACCESS_TOKEN_TYPE: "false"
+
+      # For start.sh script to know where the keycloak is listening
+      SPRING_HOST: ${SPRING_HOST:-spring}
+    depends_on:
+      - zookeeper
+    restart: on-failure
+
+  zookeeper:
+    image: strimzi/example-zookeeper
+    build: kafka-oauth-strimzi/zookeeper/target
+    container_name: zookeeper
+    ports:
+      - 2181:2181
+    environment:
+      LOG_DIR: /home/kafka/logs
