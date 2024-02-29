@@ -436,7 +436,7 @@ public class BasicTests {
         String accessToken = loginWithUsernamePassword(URI.create(tokenEndpointUri), username, password, clientId);
 
         TokenInfo tokenInfo = introspectAccessToken(accessToken,
-                new PrincipalExtractor("preferred_username", null, null));
+                new PrincipalExtractor("preferred_username"));
 
         Assert.assertEquals("Token contains 'preferred_username' claim with value equal to username", username, tokenInfo.principal());
 
@@ -465,7 +465,7 @@ public class BasicTests {
         accessToken = loginWithUsernamePassword(URI.create(tokenEndpointUri), username, password, confidentialClientId, confidentialClientSecret);
 
         tokenInfo = introspectAccessToken(accessToken,
-                new PrincipalExtractor("preferred_username", null, null));
+                new PrincipalExtractor("preferred_username"));
 
         Assert.assertEquals("Token contains 'preferred_username' claim with value equal to username", username, tokenInfo.principal());
 

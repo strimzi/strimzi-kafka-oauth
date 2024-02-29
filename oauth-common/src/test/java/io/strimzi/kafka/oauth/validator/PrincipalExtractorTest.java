@@ -115,25 +115,31 @@ public class PrincipalExtractorTest {
             "[ 'userInfo' ] [ 'id' ]"
         };
 
+        String usernamePrefix = "prefix-";
+        String fallbackUsernamePrefix = "fallback_prefix-";
+
         for (int i = 0; i < claimSpec.length; i++) {
             String query = claimSpec[i];
             String expected = claimSpec[++i];
 
             try {
-                PrincipalExtractor extractor = new PrincipalExtractor(query, null, null);
-                Assert.assertEquals(query + " top level works as primary", expected, extractor.getPrincipal(json));
-
-                extractor = new PrincipalExtractor("nonexisting", query, null);
-                Assert.assertEquals(query + " top level works as fallback", expected, extractor.getPrincipal(json));
+                PrincipalExtractor extractor = new PrincipalExtractor(query, usernamePrefix, null, null);
+                Assert.assertEquals(query + " top level works as primary", applyPrefix(usernamePrefix, expected), extractor.getPrincipal(json));
             } catch (Exception e) {
-                throw new RuntimeException("Unexpected error while testing: " + query + " expecting it to return: " + expected, e);
+                throw new RuntimeException("Unexpected error while testing: " + query + " expecting it to return: " + applyPrefix(usernamePrefix, expected), e);
+            }
+
+            try {
+                PrincipalExtractor extractor = new PrincipalExtractor("nonexisting", usernamePrefix, query, fallbackUsernamePrefix);
+                Assert.assertEquals(query + " top level works as fallback", applyPrefix(fallbackUsernamePrefix, expected), extractor.getPrincipal(json));
+            } catch (Exception e) {
+                throw new RuntimeException("Unexpected error while testing: " + query + " expecting it to return: " + applyPrefix(fallbackUsernamePrefix, expected), e);
             }
         }
 
-        for (int i = 0; i < claimSpecError.length; i++) {
-            String query = claimSpecError[i];
+        for (String query : claimSpecError) {
             try {
-                PrincipalExtractor extractor = new PrincipalExtractor(query, "nonexisting", null);
+                PrincipalExtractor extractor = new PrincipalExtractor(query, usernamePrefix, "nonexisting", fallbackUsernamePrefix);
                 extractor.getPrincipal(json);
                 Assert.fail("Should have failed");
             } catch (JsonPathQueryException e) {
@@ -141,5 +147,9 @@ public class PrincipalExtractorTest {
                 // ignored
             }
         }
+    }
+
+    private String applyPrefix(String prefix, String value) {
+        return value != null ? prefix + value : null;
     }
 }

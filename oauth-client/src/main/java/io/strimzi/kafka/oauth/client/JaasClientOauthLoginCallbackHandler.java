@@ -149,13 +149,14 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
 
         principalExtractor = new PrincipalExtractor(
                 config.getValue(Config.OAUTH_USERNAME_CLAIM),
+                config.getValue(Config.OAUTH_USERNAME_PREFIX),
                 config.getValue(Config.OAUTH_FALLBACK_USERNAME_CLAIM),
                 config.getValue(Config.OAUTH_FALLBACK_USERNAME_PREFIX));
 
         isJwt = isAccessTokenJwt(config, LOG, null);
         if (!isJwt && principalExtractor.isConfigured()) {
-            LOG.warn("Token is not JWT ('{}' is 'false') - custom username claim configuration will be ignored ('{}', '{}', '{}')",
-                    Config.OAUTH_ACCESS_TOKEN_IS_JWT, ClientConfig.OAUTH_USERNAME_CLAIM, ClientConfig.OAUTH_FALLBACK_USERNAME_CLAIM, ClientConfig.OAUTH_FALLBACK_USERNAME_PREFIX);
+            LOG.warn("Token is not JWT ('{}' is 'false') - custom username claim configuration will be ignored ('{}', '{}', '{}', '{}')",
+                    Config.OAUTH_ACCESS_TOKEN_IS_JWT, ClientConfig.OAUTH_USERNAME_CLAIM, ClientConfig.OAUTH_USERNAME_PREFIX, ClientConfig.OAUTH_FALLBACK_USERNAME_CLAIM, ClientConfig.OAUTH_FALLBACK_USERNAME_PREFIX);
         }
 
         maxTokenExpirySeconds = config.getValueAsInt(ClientConfig.OAUTH_MAX_TOKEN_EXPIRY_SECONDS, -1);
