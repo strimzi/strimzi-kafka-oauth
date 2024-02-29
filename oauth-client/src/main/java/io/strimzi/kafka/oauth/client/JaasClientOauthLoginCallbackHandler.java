@@ -19,6 +19,8 @@ import io.strimzi.kafka.oauth.metrics.SensorKeyProducer;
 import io.strimzi.kafka.oauth.services.OAuthMetrics;
 import io.strimzi.kafka.oauth.services.Services;
 import org.apache.kafka.common.security.auth.AuthenticateCallbackHandler;
+import org.apache.kafka.common.security.auth.SaslExtensions;
+import org.apache.kafka.common.security.auth.SaslExtensionsCallback;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerToken;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerTokenCallback;
@@ -33,10 +35,13 @@ import javax.security.auth.login.AppConfigurationEntry;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import static io.strimzi.kafka.oauth.common.ConfigUtil.getConnectTimeout;
 import static io.strimzi.kafka.oauth.common.ConfigUtil.getReadTimeout;
@@ -89,15 +94,24 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
     private final ClientMetricsHandler authenticatorMetrics = new ClientMetricsHandler();
     private boolean includeAcceptHeader;
 
+    // Using ordered map helps with predictable logging output which can be tested
+    private final Map<String, String> saslExtensions = new LinkedHashMap<>();
+    private static final Pattern SASL_KEY_VALIDATION_PATTERN = Pattern.compile("[A-Za-z]+");
+    private static final Pattern SASL_VALUE_VALIDATION_PATTERN = Pattern.compile("[\\x21-\\x7E \t\r\n]+");
+
+
     @Override
     public void configure(Map<String, ?> configs, String saslMechanism, List<AppConfigurationEntry> jaasConfigEntries) {
         if (!OAuthBearerLoginModule.OAUTHBEARER_MECHANISM.equals(saslMechanism))    {
             throw new IllegalArgumentException("Unexpected SASL mechanism: " + saslMechanism);
         }
 
-        for (AppConfigurationEntry e: jaasConfigEntries) {
+        Map<String, ?> options = Collections.emptyMap();
+
+        if (!jaasConfigEntries.isEmpty()) {
+            options = jaasConfigEntries.get(0).getOptions();
             Properties p = new Properties();
-            p.putAll(e.getOptions());
+            p.putAll(options);
             config = new ClientConfig(p);
         }
 
@@ -166,6 +180,17 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
 
         String configId = configureMetrics(configs);
 
+        // Process extensions configuration
+        for (String key: options.keySet()) {
+            if (key.startsWith(ClientConfig.OAUTH_SASL_EXTENSION_PREFIX)) {
+                String value = config.getValue(key, "");
+                key = key.substring(ClientConfig.OAUTH_SASL_EXTENSION_PREFIX.length());
+
+                validateSaslExtension(key, value);
+                saslExtensions.put(key, value);
+            }
+        }
+
         if (LOG.isDebugEnabled()) {
             LOG.debug("Configured JaasClientOauthLoginCallbackHandler:"
                     + "\n    configId: " + configId
@@ -191,7 +216,17 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
                     + "\n    retries: " + retries
                     + "\n    retryPauseMillis: " + retryPauseMillis
                     + "\n    enableMetrics: " + enableMetrics
-                    + "\n    includeAcceptHeader: " + includeAcceptHeader);
+                    + "\n    includeAcceptHeader: " + includeAcceptHeader
+                    + "\n    saslExtensions: " + saslExtensions);
+        }
+    }
+
+    private void validateSaslExtension(String key, String value) {
+        if (!SASL_KEY_VALIDATION_PATTERN.matcher(key).matches() || "auth".equals(key)) {
+            throw new ConfigException("Invalid sasl extension key: '" + key + "' ('" + ClientConfig.OAUTH_SASL_EXTENSION_PREFIX + key + "')");
+        }
+        if (!SASL_VALUE_VALIDATION_PATTERN.matcher(value).matches()) {
+            throw new ConfigException("Invalid sasl extension value for key: '" + key + "' ('" + ClientConfig.OAUTH_SASL_EXTENSION_PREFIX + key + "')");
         }
     }
 
@@ -332,10 +367,17 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
         for (Callback callback : callbacks) {
             if (callback instanceof OAuthBearerTokenCallback) {
                 handleCallback((OAuthBearerTokenCallback) callback);
+            } else if (callback instanceof SaslExtensionsCallback) {
+                handleExtensionsCallback((SaslExtensionsCallback) callback);
             } else {
                 throw new UnsupportedCallbackException(callback);
             }
         }
+    }
+
+    private void handleExtensionsCallback(SaslExtensionsCallback callback) {
+        SaslExtensions extensions = new SaslExtensions(saslExtensions);
+        callback.extensions(extensions);
     }
 
     private void handleCallback(OAuthBearerTokenCallback callback) throws IOException {

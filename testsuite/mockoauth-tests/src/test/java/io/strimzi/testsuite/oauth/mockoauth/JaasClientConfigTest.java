@@ -70,6 +70,8 @@ public class JaasClientConfigTest {
 
         testAllConfigOptions();
 
+        testSaslExtensions();
+
         testAccessTokenLocation();
 
         testRefreshTokenLocation();
@@ -93,7 +95,7 @@ public class JaasClientConfigTest {
         attrs.put(ClientConfig.OAUTH_PASSWORD_GRANT_PASSWORD, "password");
         attrs.put(ClientConfig.OAUTH_USERNAME_CLAIM, "username-claim");
         attrs.put(ClientConfig.OAUTH_FALLBACK_USERNAME_CLAIM, "fallback-username-claim");
-        attrs.put(ClientConfig.OAUTH_FALLBACK_USERNAME_PREFIX, "username-prefix");
+        attrs.put(ClientConfig.OAUTH_FALLBACK_USERNAME_PREFIX, "fallback-username-prefix");
         attrs.put(ClientConfig.OAUTH_SCOPE, "scope");
         attrs.put(ClientConfig.OAUTH_AUDIENCE, "audience");
         attrs.put(ClientConfig.OAUTH_ACCESS_TOKEN_IS_JWT, "false");
@@ -104,6 +106,8 @@ public class JaasClientConfigTest {
         attrs.put(ClientConfig.OAUTH_HTTP_RETRY_PAUSE_MILLIS, "500");
         attrs.put(ClientConfig.OAUTH_ENABLE_METRICS, "true");
         attrs.put(ClientConfig.OAUTH_INCLUDE_ACCEPT_HEADER, "false");
+        attrs.put(ClientConfig.OAUTH_SASL_EXTENSION_PREFIX + "poolid", "poolid-value");
+        attrs.put(ClientConfig.OAUTH_SASL_EXTENSION_PREFIX + "group.ref", "group-ref-value");
 
 
         AppConfigurationEntry jaasConfig = new AppConfigurationEntry("org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule", AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, attrs);
@@ -115,6 +119,18 @@ public class JaasClientConfigTest {
 
         LogLineReader logReader = new LogLineReader(Common.LOG_PATH);
         logReader.readNext();
+
+        try {
+            loginHandler.configure(clientProps, "OAUTHBEARER", Collections.singletonList(jaasConfig));
+        } catch (Exception e) {
+            Assert.assertTrue("Is a ConfigException", e instanceof ConfigException);
+            Assert.assertTrue("Invalid sasl extension key: " + e.getMessage(), e.getMessage().contains("Invalid sasl extension key: 'group.ref'"));
+        }
+
+        logReader.readNext();
+
+        attrs.remove(ClientConfig.OAUTH_SASL_EXTENSION_PREFIX + "group.ref");
+        attrs.put(ClientConfig.OAUTH_SASL_EXTENSION_PREFIX + "group", "group-ref-value");
 
         loginHandler.configure(clientProps, "OAUTHBEARER", Collections.singletonList(jaasConfig));
 
@@ -139,7 +155,8 @@ public class JaasClientConfigTest {
             "retries", "3",
             "retryPauseMillis", "500",
             "enableMetrics", "true",
-            "includeAcceptHeader", "false");
+            "includeAcceptHeader", "false",
+            "saslExtensions", "\\{poolid=poolid-value, group=group-ref-value\\}");
 
 
         // we could not check tokenEndpointUri and token in the same run
@@ -357,6 +374,34 @@ public class JaasClientConfigTest {
         }
     }
 
+    private void testSaslExtensions() throws Exception {
+        String testClient = "testclient";
+        String testSecret = "testsecret";
+
+        changeAuthServerMode("jwks", "mode_200");
+        changeAuthServerMode("token", "mode_200");
+        createOAuthClient(testClient, testSecret);
+
+        Map<String, String> oauthConfig = new HashMap<>();
+        oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, TOKEN_ENDPOINT_URI);
+        oauthConfig.put(ClientConfig.OAUTH_CLIENT_ID, testClient);
+        oauthConfig.put(ClientConfig.OAUTH_CLIENT_SECRET, testSecret);
+        oauthConfig.put(ClientConfig.OAUTH_SSL_TRUSTSTORE_LOCATION, "../docker/target/kafka/certs/ca-truststore.p12");
+        oauthConfig.put(ClientConfig.OAUTH_SSL_TRUSTSTORE_PASSWORD, "changeit");
+        oauthConfig.put(ClientConfig.OAUTH_SASL_EXTENSION_PREFIX + "extoption", "optionvalue");
+
+        LogLineReader logReader = new LogLineReader(Common.LOG_PATH);
+        logReader.readNext();
+
+        // If it fails with 'Unknown signing key' it means that Kafka has not managed to load JWKS keys yet
+        // due to jwks endpoint returning status 404 initially
+        initJaasWithRetry(oauthConfig);
+
+        List<String> lines = logReader.readNext();
+        // Check in the log that SASL extensions have been properly set
+        checkLogForRegex(lines, ".*LoginManager.*extensionsMap=\\{extoption=optionvalue\\}.*");
+    }
+
     private void testAccessTokenLocation() throws Exception {
 
         String testClient = "testclient";
@@ -369,7 +414,7 @@ public class JaasClientConfigTest {
         String accessToken = loginWithClientSecret(TOKEN_ENDPOINT_URI, testClient, testSecret, "../docker/target/kafka/certs/ca-truststore.p12", "changeit");
 
         Path accessTokenFilePath = Paths.get("target/access_token_file");
-        Files.write(accessTokenFilePath, accessToken.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE_NEW);
+        Files.write(accessTokenFilePath, accessToken.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
         try {
             LogLineReader logReader = new LogLineReader(Common.LOG_PATH);
             logReader.readNext();
