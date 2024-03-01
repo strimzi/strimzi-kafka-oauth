@@ -1065,6 +1065,16 @@ You may also specify a pause time between requests in order not to flood the aut
 The default value is '0', meaning 'no pause'. Provide the value greater than '0' to set the pause time between attempts in milliseconds:
 - `oauth.http.retry.pause.millis` (e.g.: "500" - if a retry is attempted, there will first be a half-a-second pause)
 
+### Configuring the SASL extensions
+
+If your Kafka Broker uses some other custom `OAUTHBEARER` implementation, you may need to pass it SASL extensions options.
+These are key:value pairs representing a client context, that are sent to the Kafka Broker when the new session is started.
+
+You can pass SASL extensions options by using `oauth.sasl.extension.` as a key prefix:
+- `oauth.sasl.extension.KEY` (e.g.: "VALUE" - replace KEY with the actual SASL extension key name, and VALUE with the actual value)
+
+For example, you could add multiple sasl extensions options: `oauth.sasl.extension.key1="value1" oauth.sasl.extension.key2="value2"`
+
 
 ### Configuring the re-authentication on the client
 

@@ -67,6 +67,11 @@ public class ClientConfig extends Config {
     public static final String OAUTH_CLIENT_ASSERTION_TYPE = "oauth.client.assertion.type";
 
     /**
+     * A prefix to use to pass SASL extensions options
+     */
+    public static final String OAUTH_SASL_EXTENSION_PREFIX = "oauth.sasl.extension.";
+
+    /**
      * Create a new instance
      */
     public ClientConfig() {
