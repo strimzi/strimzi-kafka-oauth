@@ -9,8 +9,24 @@ Building
 
 Copy resources to prepare the docker-compose project by running:
 
-    mvn clean package
-    
+1. Make sure to reference the desired version for the dependencies. If in doubt you may just reference the latest version from the [official public maven repository](https://mvnrepository.com/artifact/io.strimzi/kafka-oauth-client). For example, add the line `<version>0.15.0</version>` the [pom.xlm](./kafka/pom.xlm) in the [kafka dir](./kafka) for each dependency to go with version 0.15.0.:
+   ```xml
+   ...
+   <configuration>
+    <artifactItems>
+        <artifactItem>
+            <groupId>io.strimzi</groupId>
+            <artifactId>kafka-oauth-client</artifactId>
+            <version>0.15.0</version> <!-- Add new line with dependeny version. Use the version you found suitable -->
+        </artifactItem>
+        <!-- Configure other artifact items similarly, specifying versions -->
+   ...
+   ```
+
+3. Build
+   ```sh
+   mvn clean package
+   ``` 
 
 Preparing
 ---------
