@@ -22,7 +22,7 @@ Assuming `keycloak` container is up and running you can do the following.
 Connect to 'keycloak' container to get access to `kcadm.sh` tool:
 
     docker exec -ti docker-keycloak-1 /bin/sh
-    cd /opt/jboss/keycloak
+    cd /opt/keycloak/
 
 Set the server endpoint url:
 
