@@ -102,7 +102,7 @@
         <maven.checkstyle.version>3.2.1</maven.checkstyle.version>
         <maven.resources.version>3.3.0</maven.resources.version>
         <spotbugs.version>4.7.3</spotbugs.version>
-        <sonatype.nexus.staging>1.6.3</sonatype.nexus.staging>
+        <sonatype.nexus.staging>1.7.0</sonatype.nexus.staging>
         <kafka.version>3.7.0</kafka.version>
         <jackson.version>2.15.3</jackson.version>
         <jackson.databind.version>2.15.3</jackson.databind.version>
