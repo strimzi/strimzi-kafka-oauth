@@ -40,7 +40,7 @@ When everything starts up without errors we should have one instance of `keycloa
 
 ## Using Keycloak Admin Console to Configure Authorization
  
-You can login to the Admin Console by opening `http://localhost:8080/auth/admin` and using `admin` as both username, and a password.
+You can login to the Admin Console by opening `http://localhost:8080/admin` and using `admin` as both username, and a password.
 
 For this example we are interested in the `kafka-authz` realm. Selecting the realm in the upper left drop-down list will open the realm.
 
@@ -159,7 +159,7 @@ sasl.mechanism=OAUTHBEARER
 sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
   oauth.client.id="team-a-client" \
   oauth.client.secret="team-a-client-secret" \
-  oauth.token.endpoint.uri="http://keycloak:8080/auth/realms/kafka-authz/protocol/openid-connect/token" ;
+  oauth.token.endpoint.uri="http://keycloak:8080/realms/kafka-authz/protocol/openid-connect/token" ;
 sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
 EOF
 ```
@@ -258,7 +258,7 @@ sasl.mechanism=OAUTHBEARER
 sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
   oauth.client.id="team-b-client" \
   oauth.client.secret="team-b-client-secret" \
-  oauth.token.endpoint.uri="http://keycloak:8080/auth/realms/kafka-authz/protocol/openid-connect/token" ;
+  oauth.token.endpoint.uri="http://keycloak:8080/realms/kafka-authz/protocol/openid-connect/token" ;
 sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
 EOF
 ```
@@ -318,7 +318,7 @@ Let's create a configuration for user `bob` who has full ability to manage every
 First, `bob` will authenticate to Keycloak server with his username and password and get a refresh token.
 
 ```
-export TOKEN_ENDPOINT=http://keycloak:8080/auth/realms/kafka-authz/protocol/openid-connect/token
+export TOKEN_ENDPOINT=http://keycloak:8080/realms/kafka-authz/protocol/openid-connect/token
 REFRESH_TOKEN=$(./oauth.sh -q bob)
 ```
 
@@ -339,7 +339,7 @@ sasl.mechanism=OAUTHBEARER
 sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
   oauth.refresh.token="$REFRESH_TOKEN" \
   oauth.client.id="kafka-cli" \
-  oauth.token.endpoint.uri="http://keycloak:8080/auth/realms/kafka-authz/protocol/openid-connect/token" ;
+  oauth.token.endpoint.uri="http://keycloak:8080/realms/kafka-authz/protocol/openid-connect/token" ;
 sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
 EOF
 ```

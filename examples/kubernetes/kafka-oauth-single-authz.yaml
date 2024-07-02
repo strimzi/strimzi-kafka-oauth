@@ -4,7 +4,7 @@ metadata:
   name: my-cluster
 spec:
   kafka:
-    version: 3.4.0
+    version: 3.7.0
     replicas: 1
     listeners:
       - name: plain
@@ -13,8 +13,8 @@ spec:
         tls: false
         authentication:
           type: oauth
-          validIssuerUri: http://keycloak:8080/auth/realms/kafka-authz
-          jwksEndpointUri: http://keycloak:8080/auth/realms/kafka-authz/protocol/openid-connect/certs
+          validIssuerUri: http://keycloak:8080/realms/kafka-authz
+          jwksEndpointUri: http://keycloak:8080/realms/kafka-authz/protocol/openid-connect/certs
           userNameClaim: preferred_username
           checkAccessTokenType: false
           customClaimCheck: "@.typ && @.typ == 'Bearer'"
@@ -25,7 +25,7 @@ spec:
     authorization:
       type: keycloak
       clientId: kafka
-      tokenEndpointUri: http://keycloak:8080/auth/realms/kafka-authz/protocol/openid-connect/token
+      tokenEndpointUri: http://keycloak:8080/realms/kafka-authz/protocol/openid-connect/token
       delegateToKafkaAcls: true
       superUsers:
       - service-account-kafka

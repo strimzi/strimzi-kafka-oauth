@@ -14,8 +14,8 @@ spec:
         tls: false
         authentication:
           type: oauth
-          validIssuerUri: http://keycloak:8080/auth/realms/kafka-authz
-          jwksEndpointUri: http://keycloak:8080/auth/realms/kafka-authz/protocol/openid-connect/certs
+          validIssuerUri: http://keycloak:8080/realms/kafka-authz
+          jwksEndpointUri: http://keycloak:8080/realms/kafka-authz/protocol/openid-connect/certs
           userNameClaim: preferred_username
           checkAccessTokenType: false
           customClaimCheck: "@.typ && @.typ == 'Bearer'"
@@ -26,7 +26,7 @@ spec:
     authorization:
       type: keycloak
       clientId: kafka
-      tokenEndpointUri: http://keycloak:8080/auth/realms/kafka-authz/protocol/openid-connect/token
+      tokenEndpointUri: http://keycloak:8080/realms/kafka-authz/protocol/openid-connect/token
       delegateToKafkaAcls: true
       superUsers:
       - User:service-account-kafka

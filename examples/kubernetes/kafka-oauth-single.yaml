@@ -13,8 +13,8 @@ spec:
         tls: false
         authentication:
           type: oauth
-          validIssuerUri: http://keycloak:8080/auth/realms/demo
-          jwksEndpointUri: http://keycloak:8080/auth/realms/demo/protocol/openid-connect/certs
+          validIssuerUri: http://keycloak:8080/realms/demo
+          jwksEndpointUri: http://keycloak:8080/realms/demo/protocol/openid-connect/certs
           userNameClaim: preferred_username
     logging:
       type: inline

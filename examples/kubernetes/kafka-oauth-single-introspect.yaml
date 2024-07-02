@@ -13,8 +13,8 @@ spec:
         tls: false
         authentication:
           type: oauth
-          validIssuerUri: http://keycloak:8080/auth/realms/demo
-          introspectionEndpointUri: http://keycloak:8080/auth/realms/demo/protocol/openid-connect/token/introspect
+          validIssuerUri: http://keycloak:8080/realms/demo
+          introspectionEndpointUri: http://keycloak:8080/realms/demo/protocol/openid-connect/token/introspect
           userNameClaim: preferred_username
           clientId: kafka-broker
           clientSecret:

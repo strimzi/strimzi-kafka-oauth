@@ -80,7 +80,7 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
  * Required configuration:
  * </p>
  * <ul>
- * <li><em>strimzi.authorization.token.endpoint.uri</em> A URL of the Keycloak's token endpoint (e.g. <code>https://keycloak:8443/auth/realms/master/protocol/openid-connect/token</code>).<br>
+ * <li><em>strimzi.authorization.token.endpoint.uri</em> A URL of the Keycloak's token endpoint (e.g. <code>https://keycloak:8443/realms/master/protocol/openid-connect/token</code>).<br>
  * If not present, <em>oauth.token.endpoint.uri</em> is used as a fallback configuration key to avoid unnecessary duplication when already present for the purpose of client authentication.
  * </li>
  * <li><em>strimzi.authorization.client.id</em> A client id of the OAuth client definition in Keycloak, that has Authorization Services enabled.<br>

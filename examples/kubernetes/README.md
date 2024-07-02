@@ -90,7 +90,7 @@ e.g. `default` you can fix the script on the fly:
 
     KEYCLOAK_HOST=$(minishift ip)
     KEYCLOAK_PORT=$(kubectl get svc | grep keycloak | awk -F '8080:' '{print $2}' | awk -F '/' '{print $1}')
-    echo http://$KEYCLOAK_HOST:$KEYCLOAK_PORT/auth/admin
+    echo http://$KEYCLOAK_HOST:$KEYCLOAK_PORT/admin
 
 You can then open the printed URL and login with admin:admin.
 
@@ -101,7 +101,7 @@ You can connect directly to Kubernetes Node IP using a NodePort port:
 
     KEYCLOAK_HOST=$(minikube ip)
     KEYCLOAK_PORT=$(kubectl get svc | grep keycloak | awk -F '8080:' '{print $2}' | awk -F '/' '{print $1}')
-    echo http://$KEYCLOAK_HOST:$KEYCLOAK_PORT/auth/admin
+    echo http://$KEYCLOAK_HOST:$KEYCLOAK_PORT/admin
 
 You can then open the printed URL and login with admin:admin.
 
@@ -112,7 +112,7 @@ In order to connect to Keycloak Admin Console you have to create a TCP tunnel:
 
     kubectl port-forward svc/keycloak 8080:8080
     
-You can then open: http://localhost:8080/auth/admin and login with admin:admin.    
+You can then open: http://localhost:8080/admin and login with admin:admin.    
 
 
 ### Importing example realms

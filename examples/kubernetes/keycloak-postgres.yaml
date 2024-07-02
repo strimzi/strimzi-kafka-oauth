@@ -27,29 +27,17 @@ metadata:
 spec:
   containers:
   - name: keycloak
-    image: quay.io/keycloak/keycloak:19.0.3-legacy
-    args:
-    - "-b 0.0.0.0"
-    - "-Dkeycloak.profile.feature.upload_scripts=enabled"
+    image: quay.io/keycloak/keycloak:23.0.5
+    args: ["-v", "start", "--import-realm", "--features=token-exchange,authorization,scripts"]
     env:
-    - name: KEYCLOAK_USER
+    - name: KEYCLOAK_ADMIN
       value: admin
-    - name: KEYCLOAK_PASSWORD
+    - name: KEYCLOAK_ADMIN_PASSWORD
       value: admin
-    - name: KEYCLOAK_IMPORT
-      value: /tmp/realms/kafka-authz-realm.json,/tmp/realms/demo-realm.json
-    - name: PROXY_ADDRESS_FORWARDING
-      value: "true"
-    - name: KEYCLOAK_LOGLEVEL
-      value: INFO
-    - name: DB_ADDR
-      value: postgres.myproject.svc.cluster.local:5432
-    - name: DB_DATABASE
+    - name: KC_HOSTNAME
       value: keycloak
-    - name: DB_USER
-      value: kcuser
-    - name: DB_PASSWORD
-      value: kcuserpass
+    - name: KC_HTTP_ENABLED
+      value: "true"
     ports:
     - name: http
       containerPort: 8080
@@ -57,11 +45,11 @@ spec:
       containerPort: 8443
     readinessProbe:
       httpGet:
-        path: /auth/realms/master
+        path: /realms/master
         port: 8080
     volumeMounts:
       - name: realms
-        mountPath: /tmp/realms
+        mountPath: /opt/keycloak/data/import
   volumes:
     - name: realms
       configMap:

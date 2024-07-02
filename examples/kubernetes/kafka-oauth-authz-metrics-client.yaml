@@ -14,7 +14,7 @@ data:
       sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
         oauth.client.id="team-a-client" \
         oauth.client.secret="$SECRET" \
-        oauth.token.endpoint.uri="http://keycloak:8080/auth/realms/kafka-authz/protocol/openid-connect/token" ;
+        oauth.token.endpoint.uri="http://keycloak:8080/realms/kafka-authz/protocol/openid-connect/token" ;
       sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
     EOF
 

@@ -67,12 +67,12 @@ services:
       # Authentication config
       OAUTH_CLIENT_ID: "kafka"
       OAUTH_CLIENT_SECRET: "kafka-secret"
-      OAUTH_TOKEN_ENDPOINT_URI: "http://${KEYCLOAK_HOST:-keycloak}:8080/auth/realms/${REALM:-kafka-authz}/protocol/openid-connect/token"
+      OAUTH_TOKEN_ENDPOINT_URI: "http://${KEYCLOAK_HOST:-keycloak}:8080/realms/${REALM:-kafka-authz}/protocol/openid-connect/token"
 
       # Validation config
-      OAUTH_VALID_ISSUER_URI: "http://${KEYCLOAK_HOST:-keycloak}:8080/auth/realms/${REALM:-kafka-authz}"
-      OAUTH_JWKS_ENDPOINT_URI: "http://${KEYCLOAK_HOST:-keycloak}:8080/auth/realms/${REALM:-kafka-authz}/protocol/openid-connect/certs"
-      #OAUTH_INTROSPECTION_ENDPOINT_URI: "http://${KEYCLOAK_HOST:-keycloak}:8080/auth/realms/${REALM:-demo}/protocol/openid-connect/token/introspect"
+      OAUTH_VALID_ISSUER_URI: "http://${KEYCLOAK_HOST:-keycloak}:8080/realms/${REALM:-kafka-authz}"
+      OAUTH_JWKS_ENDPOINT_URI: "http://${KEYCLOAK_HOST:-keycloak}:8080/realms/${REALM:-kafka-authz}/protocol/openid-connect/certs"
+      #OAUTH_INTROSPECTION_ENDPOINT_URI: "http://${KEYCLOAK_HOST:-keycloak}:8080/realms/${REALM:-demo}/protocol/openid-connect/token/introspect"
 
       # username extraction from JWT token claim
       OAUTH_USERNAME_CLAIM: preferred_username
