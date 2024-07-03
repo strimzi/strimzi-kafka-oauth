@@ -98,7 +98,7 @@ else
     USER_PASS_CLIENT="&username=${UNAME}&password=${PASS}&client_id=${CLIENT_ID}"
 fi
 
-if [ "$SCOPES" == "" ] && [ DEFAULT_SCOPES != "" ]; then
+if [ "$SCOPES" == "" ] && [ "$DEFAULT_SCOPES" != "" ]; then
     [ "$QUIET" == "" ] && >&2 echo "SCOPES not set. Using default value: ${DEFAULT_SCOPES}"
     SCOPES="${DEFAULT_SCOPES}"
 fi
