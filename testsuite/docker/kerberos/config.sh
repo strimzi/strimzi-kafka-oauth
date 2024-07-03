@@ -1,6 +1,6 @@
 #!/bin/bash
 
-[[ "TRACE" ]] && set -x
+[[ "$TRACE" ]] && set -x
 
 : ${REALM:=KERBEROS}
 : ${DOMAIN_REALM:=kerberos}
