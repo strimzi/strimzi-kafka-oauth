@@ -139,7 +139,7 @@ services:
 
   kafka-acls:
     image: ${KAFKA_DOCKER_IMAGE}
-    links:
+    depends_on:
       - kafka
     volumes:
       - ${PWD}/../docker/kafka-acls/scripts:/opt/kafka/strimzi
