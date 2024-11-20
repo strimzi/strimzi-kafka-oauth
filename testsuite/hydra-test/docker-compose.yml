@@ -76,7 +76,7 @@ services:
     ports:
       - "9092:9092"
       - "9093:9093"
-    links:
+    depends_on:
       - hydra
       - hydra-jwt
       - hydra-import
