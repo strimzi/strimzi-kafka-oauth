@@ -1,6 +1,68 @@
 Release Notes
 =============
 
+0.15.0
+------
+
+### Added OAuth Client Assertion support
+
+Allows clients to authenticate to authorization server by using client assertion as specified by https://www.rfc-editor.org/rfc/rfc7523 and https://www.rfc-editor.org/rfc/rfc7521.
+The assertion can be provided by an external mechanism and available as a file on the file system or it can be explicitly set through OAuth configuration before running the Kafka client.
+
+Introduced the following new configuration options:
+- `oauth.client.assertion`
+- `oauth.client.assertion.location`
+- `oauth.client.assertion.type`
+
+See [PR 211](https://github.com/strimzi/strimzi-kafka-oauth/pull/211)
+
+### Added support for clients to read access token and refresh token from a file when authenticating
+
+Introduced the following new configuration options:
+- `oauth.refresh.token.location`
+- `oauth.access.token.location`
+
+See [PR 211](https://github.com/strimzi/strimzi-kafka-oauth/pull/211)
+
+### Added support for bearer token authentication when connecting to protected authorization server endpoints
+
+This is used by broker when connecting to JWKS and Introspection endpoints. Added to support talking to the Kubernetes API server's JWKS endpoint.
+
+Introduced the following new configuration options:
+- `oauth.server.bearer.token`
+- `oauth.server.bearer.token.location`
+
+The authentication configuration rules for configuring the introspection endpoint have been relaxed. 
+Introspection endpoint can now be unprotected (no authentication configured on the listener) or it can be protected with 
+`oauth.client.id` and `oauth.client.secret` to send `Basic` `Authorization` header or with the `oauth.server.bearer.token` or 
+`oauth.server.bearer.token.location` when sending `Bearer` `Authorization` header.
+
+JWKS endpoint can now also be protected in the same way.
+
+See [PR 217](https://github.com/strimzi/strimzi-kafka-oauth/pull/217)
+
+### Fixed NullPointerException that occurred when OAuthKafkaPrincipalBuilder was used with Kerberos authentication
+
+See [PR 207](https://github.com/strimzi/strimzi-kafka-oauth/pull/207)
+
+### Fixed a user id extraction bug where `oauth.fallback.username.prefix` was ignored, and added `oauth.username.prefix`
+
+A bug was introduced in 0.13.0 that resulted in `oauth.fallback.username.prefix` being ignored. This PR fixes that.
+
+A new configuration option is introduced: `oauth.username.prefix`.
+
+This allows for the consistent mapping of user ids into the same name space and may be needed to prevent name collisions.
+
+See [PR 230](https://github.com/strimzi/strimzi-kafka-oauth/pull/230)
+
+### Added support for SASL extension parameters
+
+Adds support for passing SASL extensions via OAuth configuration options, by using a prefix: `oauth.sasl.extension.`
+
+If Kafka Broker uses some other custom `OAUTHBEARER` implementation, it may require SASL extensions options to be sent by the Kafka client.
+
+See [PR 231](https://github.com/strimzi/strimzi-kafka-oauth/pull/231)
+
 0.14.0
 ------
 
