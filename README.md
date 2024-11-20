@@ -295,8 +295,8 @@ If your authorization server generates JWT tokens, and exposes the JWKS Endpoint
 since it does not require contacting the authorization server whenever a new Kafka client connects to the Kafka Broker.
 
 Specify the following `oauth.*` properties:
-- `oauth.jwks.endpoint.uri` (e.g.: "https://localhost:8443/auth/realms/demo/protocol/openid-connect/certs")
-- `oauth.valid.issuer.uri` (e.g.: "https://localhost:8443/auth/realms/demo" - only access tokens issued by this issuer will be accepted)
+- `oauth.jwks.endpoint.uri` (e.g.: "https://localhost:8443/realms/demo/protocol/openid-connect/certs")
+- `oauth.valid.issuer.uri` (e.g.: "https://localhost:8443/realms/demo" - only access tokens issued by this issuer will be accepted)
 
 Some authorization servers don't provide the `iss` claim. In that case you would not set `oauth.valid.issuer.uri`, and you would explicitly turn off issuer checking by setting the following option to `false`:
 - `oauth.check.issuer` (e.g. "false")
@@ -373,8 +373,8 @@ When your authorization server is configured to use opaque tokens (not JWT) or i
 This will result in Kafka Broker making a request to authorization server every time a new Kafka client connection is established.
 
 Specify the following `oauth.*` properties:
-- `oauth.introspection.endpoint.uri` (e.g.: "https://localhost:8443/auth/realms/demo/protocol/openid-connect/token/introspect")
-- `oauth.valid.issuer.uri` (e.g.: "https://localhost:8443/auth/realms/demo" - only access tokens issued by this issuer will be accepted)
+- `oauth.introspection.endpoint.uri` (e.g.: "https://localhost:8443/realms/demo/protocol/openid-connect/token/introspect")
+- `oauth.valid.issuer.uri` (e.g.: "https://localhost:8443/realms/demo" - only access tokens issued by this issuer will be accepted)
 - `oauth.client.id` (e.g.: "kafka" - this is the OAuth2 client configuration id for the Kafka broker)
 - `oauth.client.secret` (e.g.: "kafka-secret")
  
@@ -427,7 +427,7 @@ Otherwise, if the response contains `"client_id": "my-producer"` then the princi
 Sometimes the Introspection Endpoint does not provide any useful identifying information that we can use for the user id.
 In that case you can configure User Info Endpoint:
  
-- `oauth.userinfo.endpoint.uri` (e.g.: "https://localhost:8443/auth/realms/demo/protocol/openid-connect/userinfo")
+- `oauth.userinfo.endpoint.uri` (e.g.: "https://localhost:8443/realms/demo/protocol/openid-connect/userinfo")
 
 If the user id could not be extracted from Introspection Endpoint response, then the same rules (`oauth.username.claim`, `oauth.fallback.username.claim`, `oauth.fallback.username.prefix`) will be used to try extract the user id from User Info Endpoint response.
 
@@ -529,7 +529,7 @@ When configuring the listener for `SASL/PLAIN` using `org.apache.kafka.common.se
 
 There is an additional `oauth.*` option you can specify (it's optional):
 
-- `oauth.token.endpoint.uri` (e.g.: "https://localhost:8443/auth/realms/demo/protocol/openid-connect/token")
+- `oauth.token.endpoint.uri` (e.g.: "https://localhost:8443/realms/demo/protocol/openid-connect/token")
 
 If this option is not specified the listener treats the `username` parameter of the SASL/PLAIN authentication as the account name, and the `password` parameter as the raw access token which is passed to the validation as if SASL/OAUTHBEARER was used.
 
@@ -558,7 +558,7 @@ All the Kafka brokers in the cluster should be configured with the same client I
 When you configure your listener to support OAuth, you can configure it to support OAUTHBEARER, but you can also configure it to support the OAuth over PLAIN as explained previously. PLAIN does not make much sense on the broker for inter-broker communication since OAUTHBEARER is supported. Therefore, it is best to only use OAUTHBEARER mechanism for inter-broker communication.
 
 Specify the following `oauth.*` properties in `sasl.jaas.config` configuration:
-- `oauth.token.endpoint.uri` (e.g.: "https://localhost:8443/auth/realms/demo/protocol/openid-connect/token")
+- `oauth.token.endpoint.uri` (e.g.: "https://localhost:8443/realms/demo/protocol/openid-connect/token")
 - `oauth.client.id` (e.g.: "kafka" - this is the client configuration id for Kafka Broker)
 - `oauth.client.secret` (e.g.: "kafka-secret")
 - `oauth.username.claim` (e.g.: "preferred_username")
@@ -583,9 +583,9 @@ inter.broker.listener.name=REPLICATION
 listener.name.replication.oauthbearer.sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
 oauth.client.id="kafka" \
 oauth.client.secret="kafka-secret" \
-oauth.token.endpoint.uri="http://sso:8080/auth/realms/demo/protocol/openid-connect/token" \
-oauth.valid.issuer.uri="http://sso:8080/auth/realms/demo" \
-oauth.jwks.endpoint.uri="http://sso:8080/auth/realms/demo/protocol/openid-connect/certs" \
+oauth.token.endpoint.uri="http://sso:8080/realms/demo/protocol/openid-connect/token" \
+oauth.valid.issuer.uri="http://sso:8080/realms/demo" \
+oauth.jwks.endpoint.uri="http://sso:8080/realms/demo/protocol/openid-connect/certs" \
 oauth.username.claim="preferred_username" ;
 
 # Server-side-authentication handler
@@ -598,8 +598,8 @@ listener.name.replication.oauthbearer.sasl.login.callback.handler.class=io.strim
 # The EXTERNAL listener only needs server-side-authentication support because we don't use it for inter-broker communication:
 
 listener.name.external.oauthbearer.sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
-oauth.valid.issuer.uri="http://sso:8080/auth/realms/demo" \
-oauth.jwks.endpoint.uri="http://sso:8080/auth/realms/demo/protocol/openid-connect/certs" \
+oauth.valid.issuer.uri="http://sso:8080/realms/demo" \
+oauth.jwks.endpoint.uri="http://sso:8080/realms/demo/protocol/openid-connect/certs" \
 oauth.username.claim="preferred_username" \
 unsecuredLoginStringClaim_sub="unused" ;
 
@@ -611,9 +611,9 @@ listener.name.external.oauthbearer.sasl.server.callback.handler.class=io.strimzi
 
 # On EXTERNAL listener we may also want to support OAuth over PLAIN
 listener.name.external.plain.sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required \
-oauth.token.endpoint.uri="http://sso:8080/auth/realms/demo/protocol/openid-connect/token" \
-oauth.valid.issuer.uri="http://sso:8080/auth/realms/demo" \
-oauth.jwks.endpoint.uri="http://sso:8080/auth/realms/demo/protocol/openid-connect/certs" \
+oauth.token.endpoint.uri="http://sso:8080/realms/demo/protocol/openid-connect/token" \
+oauth.valid.issuer.uri="http://sso:8080/realms/demo" \
+oauth.jwks.endpoint.uri="http://sso:8080/realms/demo/protocol/openid-connect/certs" \
 oauth.username.claim="preferred_username" \
 unsecuredLoginStringClaim_sub="unused" ;
 
@@ -707,7 +707,7 @@ You also need a properly configured OAuth authentication support, as described i
 All the configuration properties for KeycloakAuthorizer begin with a `strimzi.authorization.` prefix.
 
 The token endpoint used by KeycloakAuthorizer has to be the same as the one used for OAuth authentication:
-- `strimzi.authorization.token.endpoint.uri` (e.g.: "https://localhost:8443/auth/realms/demo/protocol/openid-connect/token" - the endpoint used to exchange the access token for a list of grants)
+- `strimzi.authorization.token.endpoint.uri` (e.g.: "https://localhost:8443/realms/demo/protocol/openid-connect/token" - the endpoint used to exchange the access token for a list of grants)
 - `strimzi.authorization.client.id` (e.g.: "kafka" - the client representing a Kafka Broker which has Authorization Services enabled)
 
 The authorizer will regularly reload the list of grants for active sessions. By default, it will do this once every minute.
@@ -1104,7 +1104,7 @@ sasl.mechanism=OAUTHBEARER
 sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
   oauth.client.id="team-a-client" \
   oauth.client.secret="team-a-client-secret" \
-  oauth.token.endpoint.uri="http://keycloak:8080/auth/realms/kafka-authz/protocol/openid-connect/token" ;
+  oauth.token.endpoint.uri="http://keycloak:8080/realms/kafka-authz/protocol/openid-connect/token" ;
 sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
 ```
 
@@ -1122,7 +1122,7 @@ And pass additional configuration as ENV vars:
 ```
 export OAUTH_CLIENT_ID="team-a-client"
 export OAUTH_CLIENT_SECRET="team-a-client-secret"
-export OAUTH_TOKEN_ENDPOINT_URI="http://keycloak:8080/auth/realms/kafka-authz/protocol/openid-connect/token"
+export OAUTH_TOKEN_ENDPOINT_URI="http://keycloak:8080/realms/kafka-authz/protocol/openid-connect/token"
 ```
 
 Note that if you have JAAS config parameters with the same names (lowercase with dots) they would not take effect - ENV vars will override them.

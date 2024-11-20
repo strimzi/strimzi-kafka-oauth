@@ -42,7 +42,7 @@ public class ExampleProducer {
 
         final String keycloakHost = external.getValue("keycloak.host", "keycloak");
         final String realm = external.getValue("realm", "demo");
-        final String tokenEndpointUri = "http://" + keycloakHost + ":8080/auth/realms/" + realm + "/protocol/openid-connect/token";
+        final String tokenEndpointUri = "http://" + keycloakHost + ":8080/realms/" + realm + "/protocol/openid-connect/token";
 
         //  You can also configure token endpoint uri directly via 'oauth.token.endpoint.uri' system property,
         //  or OAUTH_TOKEN_ENDPOINT_URI env variable
