@@ -1,5 +1,3 @@
-version: '3.5'
-
 services:
 
   keycloak:
@@ -17,4 +15,5 @@ services:
       - KEYCLOAK_ADMIN=admin
       - KEYCLOAK_ADMIN_PASSWORD=admin
       - KC_HOSTNAME=keycloak
+      - KC_HOSTNAME_ADMIN_URL=https://keycloak:8443
       - KC_HTTP_ENABLED=true

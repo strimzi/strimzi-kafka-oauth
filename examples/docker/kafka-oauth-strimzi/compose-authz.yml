@@ -1,5 +1,3 @@
-version: '3.5'
-
 services:
 
   #################################### KAFKA BROKER ####################################
@@ -70,7 +68,7 @@ services:
       OAUTH_TOKEN_ENDPOINT_URI: "http://${KEYCLOAK_HOST:-keycloak}:8080/realms/${REALM:-kafka-authz}/protocol/openid-connect/token"
 
       # Validation config
-      OAUTH_VALID_ISSUER_URI: "http://${KEYCLOAK_HOST:-keycloak}:8080/realms/${REALM:-kafka-authz}"
+      OAUTH_VALID_ISSUER_URI: "https://${KEYCLOAK_HOST:-keycloak}:8443/realms/${REALM:-kafka-authz}"
       OAUTH_JWKS_ENDPOINT_URI: "http://${KEYCLOAK_HOST:-keycloak}:8080/realms/${REALM:-kafka-authz}/protocol/openid-connect/certs"
       #OAUTH_INTROSPECTION_ENDPOINT_URI: "http://${KEYCLOAK_HOST:-keycloak}:8080/realms/${REALM:-demo}/protocol/openid-connect/token/introspect"
 

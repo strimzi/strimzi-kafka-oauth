@@ -243,7 +243,7 @@
             "name": "Group:a_*",
             "type": "Group",
             "ownerManagedAccess": false,
-            "displayName": "Groups that start with a_",
+            "displayName": "Consumer groups that start with a_",
             "attributes": {},
             "uris": [],
             "scopes": [
@@ -259,7 +259,7 @@
             "name": "Group:*",
             "type": "Group",
             "ownerManagedAccess": false,
-            "displayName": "Any group",
+            "displayName": "Any consumer group",
             "attributes": {},
             "uris": [],
             "scopes": [
@@ -315,6 +315,7 @@
             "name": "kafka-cluster:my-cluster,Topic:b_*",
             "type": "Topic",
             "ownerManagedAccess": false,
+            "displayName": "Topics on my-cluster that start with b_",
             "attributes": {},
             "uris": [],
             "scopes": [
@@ -370,7 +371,7 @@
             "name": "kafka-cluster:my-cluster,Group:*",
             "type": "Group",
             "ownerManagedAccess": false,
-            "displayName": "Any group on my-cluster",
+            "displayName": "Any consumer group on my-cluster",
             "attributes": {},
             "uris": [],
             "scopes": [
@@ -432,6 +433,7 @@
             "name" : "Cluster:*",
             "type" : "Cluster",
             "ownerManagedAccess" : false,
+            "displayName": "Any cluster level operation",
             "attributes" : { },
             "uris" : [ ],
             "scopes": [

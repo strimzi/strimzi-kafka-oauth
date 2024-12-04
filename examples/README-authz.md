@@ -12,42 +12,45 @@ Grants are cached, and enforced locally on the Kafka Broker for each user sessio
 
 Before using the example, we first need to build the project, and prepare resources.
 
-First change the current directory to `examples/docker`:
+Go to the root directory of the project, and run:
 
-    cd examples/docker
-
-Now build the project, and prepare resources:
-
-    mvn clean install -DskipTests -f ../..
+    # build the whole project to make sure the latest code is packaged into docker images
     mvn clean install
+    
+    # prepare files for docker-compose builds
+    mvn clean install -f examples/docker
+
 
 We are now ready to start up the containers and see `Keycloak Authorization Services` in action.
 
 
 ## Starting Up the Containers
 
-First make sure any existing containers with the same name are removed, otherwise we might use previous configurations:
+Change into `examples/docker` directory before running any of the following examples.
 
-    docker rm keycloak kafka zookeeper
-    
+    cd examples/docker
+
+You may want to remove any old containers to start clean:
+
+    docker rm -f kafka zookeeper keycloak hydra spring
+ 
 Let's start up all the containers with authorization configured, and we'll then perform any manual step, and explain how everything works.
 
-    docker-compose -f compose.yml -f keycloak/compose.yml -f keycloak-import/compose.yml \
-      -f kafka-oauth-strimzi/compose-authz.yml up --build
+    docker-compose -f compose.yml -f keycloak/compose.yml -f kafka-oauth-strimzi/compose-authz.yml up --build
 
 When everything starts up without errors we should have one instance of `keycloak` listening on localhost:8080.
 
 
 ## Using Keycloak Admin Console to Configure Authorization
  
-You can login to the Admin Console by opening `http://localhost:8080/admin` and using `admin` as both username, and a password.
+You can login to the Admin Console by opening `https://keycloak:8443/admin` and using `admin` as both username, and a password.
 
 For this example we are interested in the `kafka-authz` realm. Selecting the realm in the upper left drop-down list will open the realm.
 
 In the left menu bar there are other sections we are interested in - `Groups`, `Realm roles`, `Clients` and `Users`.
 
 Under `Groups` we can see several groups that can be used to mark users as having some permissions.
-Groups are sets of users with name assigned. Typically they are used to geographically or organisationally compartmentalize users into organisations, organisational units, departments etc.
+Groups are sets of users with a name assigned. Typically, they are used to geographically or organisationally compartmentalize users into organisations, organisational units, departments etc.
 
 In Keycloak the groups can be stored in an LDAP identity provider.
 That makes it possible to make some user a member of some group - through a custom LDAP server admin UI for example, which grants them some permissions on Kafka resources.
@@ -56,7 +59,7 @@ Under `Users` you will see two users defined - `alice` and `bob`. `alice` is a m
 In Keycloak the users can be stored in an LDAP identity provider.
 
 Under `Realm roles` we can see several realm roles which can be used to mark users or clients as having some permissions.
-Roles are a concept analogous to groups. They are usually used to 'tag' users as playing organisational roles and having permissions that pertain to it. 
+Roles are a concept analogous to groups. They are usually used to 'tag' users as acting in organisational roles and having permissions that pertain to these roles. 
 In Keycloak the roles can not be stored in an LDAP identity provider - if that is your requirement then you should use groups instead.
 
 Under `Clients` we can see some additional clients configured - `kafka`, `kafka-cli`, `team-a-client`, `team-b-client`.
@@ -77,7 +80,7 @@ This tab becomes visible when `Authorization` is turned in the `Capability confi
 `Keycloak Authorization Services` uses several concepts that together take part in defining, and applying access control to resources.
 
 `Resources` define _what_ we are protecting from unauthorized access.
-Each resource can contain a list of `authorization scopes` - actions that are available on the resource, so that permission on a resource can be granted for one or more actions only.
+Each resource can contain a list of `authorization scopes` - actions that are available on the resource, so that permission on a resource can be granted for one or a limited set of actions.
 `Policies` define the groups of users we want to target with permissions. Users can be targeted based on group membership, assigned roles, or individually.
 Finally, the `permissions` tie together specific `resources`, `action scopes` and `policies` to define that 'specific users U can perform certain actions A on the resource R'.
 
@@ -100,7 +103,8 @@ It requires some understanding of [Kafka's permissions model](https://kafka.apac
 This list mirrors Kafka permissions and should be the same for any deployment.
 
 There is an [authorization-scopes.json](../oauth-keycloak-authorizer/etc/authorization-scopes.json) file containing the authorization scopes that can be imported, so that they don't have to be manually entered for every new `Authorization Services` enabled client.
-In order to import `authorization-scopes.json` into a new client, first make sure the new client has `Authorization` enabled and saved. Then, click on the `Authorization` tab and use the `Import` to import the file. Afterwards, if you select `Scopes` you will see the loaded scopes.
+In order to import `authorization-scopes.json` into a new client, first make sure the new client has `Authorization` enabled and saved. Then, click on the `Authorization` tab and use the `Import` to import the file. 
+Afterwards, if you select `Scopes` you will see the loaded scopes.
 For this example the authorization scopes have already been imported as part of the realm import.
 
 Under the `Policies` sub-tab there are filters that match sets of users.

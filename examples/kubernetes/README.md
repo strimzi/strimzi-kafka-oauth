@@ -64,7 +64,7 @@ You can typically make it accessible on 'http://localhost:8080' by using `kubect
 
 #### Deploying the Postgres and Keycloak that stores state to Postgres
 
-First, we need a stable filesystem that is remounted if the Postgres pod is deleted, and recreated:
+First, we need a persistent filesystem that is remounted if the Postgres pod is deleted, and recreated:
 
     kubectl apply -f postgres-pvc.yaml
     
@@ -119,47 +119,10 @@ You can then open: http://localhost:8080/admin and login with admin:admin.
 
 If you use the `keycloak-postgres.yaml` example with the `keycloak-realms-configmap.yaml` file to provide the mounted realm files, then the realms are imported automatically when the Keycloak is started.
 
-Alternatively, you can use Keycloak Admin Console GUI to import the realm. There are to realm JSON files in [../docker/keycloak-import/realms] directory which you can import one by one.
+Alternatively, you can use Keycloak Admin Console GUI to import the realm. There are two realm JSON files in [../docker/keycloak/realms] directory which you can import one by one.
 
 Otherwise, you can automate the import by creating the pod job that uses Keycloak Admin API to perform the import.
-This step depends on your development environment because we have to build a custom docker image, and deploy it as a Kubernetes pod, for which we have to push it to the Docker Registry first.
-
-First, we build the `keycloak-import` docker image:
-
-    cd ../docker/keycloak-import
-    docker build . -t strimzi/keycloak-import
-
-Then, we tag and push it to the Docker Registry:
-
-    docker tag strimzi/keycloak-import $REGISTRY_IP:$REGISTRY_PORT/strimzi/keycloak-import
-    docker push $REGISTRY_IP:$REGISTRY_PORT/strimzi/keycloak-import
-
-You may need to use a different tag for the registry to allow you to upload the image, e.g. your registry namespace.
-Here we assume we know the IP address (`$REGISTRY_IP`) of the docker container and the port (`$REGISTRY_PORT`) it's listening on, and that, if it is an insecure Docker Registry, the Docker Daemon has been configured to trust the insecure registry. 
-We also assume that you have authenticated to the registry if that is required in your environment. 
-And, very important, we also assume that this is either a public Docker Registry accessible to your Kubernetes deployment or that it's the internal Docker Registry used by your Kubernetes install.
-
-On Minishift, for example, your default registry namespace is 'myproject', and you can get `REGISTRY_IP` and `REGISTRY_PORT`:
-
-    export REGISTRY_IP=$(oc get services -n default | grep 5000 | awk '{print $3}')
-    export REGISTRY_PORT=5000
-
-See [HACKING.md](../../HACKING.md) for more information on setting up the local development environment with all the pieces in place.
-
-
-Now deploy it as a Kubernetes pod:
-
-    kubectl run -ti --attach keycloak-import --rm=true --restart=Never --image=$REGISTRY_IP:$REGISTRY_PORT/strimzi/keycloak-import
-
-The continer will perform the imports of realms into the Keycloak server, and exit.
-
-If you don't specify the '--rm=true --restart=Never run', then if you run `kubectl get pod` you'll see it CrashLoopBackOff because as soon as it's done, Kubernetes will restart the pod in the background, which will try to execute the same imports again, and fail. 
-You'll also see errors in the Keycloak log, but as long as the initial realm import was successful, you can safely ignore them.
-
-Remove the `keycloak-import` pod:
-
-    kubectl delete pod keycloak-import
-
+The usage of `keycloak-realms-configmap.yaml` is a much simpler approach to importing the realm.
 
 ### Deploying the Kafka cluster
 
