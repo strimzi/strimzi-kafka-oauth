@@ -117,6 +117,20 @@ Or, you can have multiple terminal windows and start individual component in eac
     docker-compose -f compose.yml -f keycloak/compose.yml up
 
 
+Running with Keycloak in KRaft mode
+-----------------------------------
+
+You can start up all the containers at once:
+
+    docker-compose -f compose.yml -f kafka-oauth-strimzi/compose-kraft.yml -f keycloak/compose.yml up --build
+
+Or, you can have multiple terminal windows and start individual component in each:
+
+    docker-compose -f compose.yml -f kafka-oauth-strimzi/compose-kraft.yml up --build 
+
+    docker-compose -f compose.yml -f keycloak/compose.yml up
+
+
 Running with Keycloak using SSL
 -------------------------------
 
@@ -166,6 +180,12 @@ Or, you can have multiple terminal windows and start individual component in eac
 
 Running with Spring using opaque tokens
 ---------------------------------------
+
+The Spring example requires JDK version 17 or higher.
+
+Before running the `docker-compose` you have to build the example:
+
+    mvn clean install -f spring
 
 Start spring authorization server first:
 
@@ -239,7 +259,10 @@ Similarly, you can run the example Kafka Producer:
     cd examples/producer
     java -cp 'target/*:target/lib/*' io.strimzi.examples.producer.ExampleProducer
 
-or
+or the concurrent producer: 
+
+    export OAUTH_CLIENT_ID=kafka-producer-client
+    export OAUTH_CLIENT_SECRET=kafka-producer-client-secret
 
     java -cp 'target/*:target/lib/*' io.strimzi.examples.producer.ExampleConcurrentProducer
 

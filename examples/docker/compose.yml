@@ -1,6 +1,4 @@
-version: '3.5'
-
-# This files serves as filesystem anchor
+# This file serves as filesystem anchor
 # Including it as first .yml file makes all build paths relative to this directory ('docker')
 #
 # Examples:

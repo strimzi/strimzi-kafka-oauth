@@ -14,7 +14,7 @@ Building
 
 Run `mvn install` then, use `docker build` to build the image:
 
-    docker build -t strimzi/kafka:latest-kafka-3.8.0-oauth .
+    docker build --output type=docker -t strimzi/kafka:latest-kafka-3.8.0-oauth .
 
 You can choose a different tag if you want.
 
