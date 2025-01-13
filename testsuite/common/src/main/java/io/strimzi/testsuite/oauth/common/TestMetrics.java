@@ -4,7 +4,6 @@
  */
 package io.strimzi.testsuite.oauth.common;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.strimzi.kafka.oauth.common.HttpUtil;
 
 import java.io.BufferedReader;
@@ -82,33 +81,30 @@ public class TestMetrics {
     }
 
     /**
-     * Returns a value of a single metric matching the key and the attributes.
+     * Get the sum of values of all the metrics matching the key and the attributes
      * <p>
      * Attributes are specified as: name1, value1, name2, value2, ...
      * Not all attributes have to be specified, but those specified have to match (equality).
      *
-     * @param key Metric name to retrieve
+     * Different Strimzi Kafka images seem to expose internal metrics structures of type CumulativeSum and CumulativeCount differently.
+     * The later versions seem to add '_total' suffix, whereas the older versions don't.
+     *
+     * @param keyPrefix The key prefix for the key identifying the metric
      * @param attrs The attributes filter passed as attrName1, attrValue1, attrName2, attrValue2 ...
-     * @return Metric value as String
+     * @return The sum of the values of all the matching metrics as String
      */
-    @SuppressFBWarnings("THROWS_METHOD_THROWS_RUNTIMEEXCEPTION")
-    public String getValue(String key, String... attrs) {
-        boolean match = false;
-        String result = null;
+    public BigDecimal getStartsWithValueSum(String keyPrefix, String... attrs) {
+
+        BigDecimal result = new BigDecimal(0);
         next:
         for (MetricEntry entry: entries) {
-            if (entry.key.equals(key)) {
+            if (entry.key.startsWith(keyPrefix)) {
                 for (int i = 0; i < attrs.length; i += 2) {
                     if (!attrs[i + 1].equals(entry.attrs.get(attrs[i]))) {
                         continue next;
                     }
                 }
-                if (!match) {
-                    match = true;
-                    result = entry.value;
-                } else {
-                    throw new RuntimeException("More than one matching metric entry");
-                }
+                result = result.add(new BigDecimal(entry.value));
             }
         }
         return result;

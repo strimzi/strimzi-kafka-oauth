@@ -23,17 +23,17 @@ public class MetricsTest {
     public static void doTest() throws Exception {
 
         TestMetrics metrics = getPrometheusMetrics(URI.create("http://kafka:9404/metrics"));
-        BigDecimal value = metrics.getValueSum("strimzi_oauth_http_requests_count", "kind", "jwks", "host", AUTH_HOST_PORT, "path", JWKS_PATH, "outcome", "success");
+        BigDecimal value = metrics.getStartsWithValueSum("strimzi_oauth_http_requests_count", "kind", "jwks", "host", AUTH_HOST_PORT, "path", JWKS_PATH, "outcome", "success");
         Assert.assertTrue("strimzi_oauth_http_requests_count for jwks > 0", value.doubleValue() > 0.0);
 
-        value = metrics.getValueSum("strimzi_oauth_http_requests_totaltimems", "kind", "jwks", "host", AUTH_HOST_PORT, "path", JWKS_PATH, "outcome", "success");
+        value = metrics.getStartsWithValueSum("strimzi_oauth_http_requests_totaltimems", "kind", "jwks", "host", AUTH_HOST_PORT, "path", JWKS_PATH, "outcome", "success");
         Assert.assertTrue("strimzi_oauth_http_requests_totaltimems for jwks > 0.0", value.doubleValue() > 0.0);
 
         // Accross all the listeners there should only be 2 client authentication requests - those for inter-broker connection on JWT listener
-        value = metrics.getValueSum("strimzi_oauth_authentication_requests_count", "kind", "client-auth", "outcome", "success");
+        value = metrics.getStartsWithValueSum("strimzi_oauth_authentication_requests_count", "kind", "client-auth", "outcome", "success");
         Assert.assertEquals("strimzi_oauth_authentication_requests_count for client-auth == 2", 2, value.intValue());
 
-        value = metrics.getValueSum("strimzi_oauth_authentication_requests_totaltimems", "kind", "client-auth", "outcome", "success");
+        value = metrics.getStartsWithValueSum("strimzi_oauth_authentication_requests_totaltimems", "kind", "client-auth", "outcome", "success");
         Assert.assertTrue("strimzi_oauth_authentication_requests_totaltimems for client-auth > 0.0", value.doubleValue() > 0.0);
     }
 
@@ -43,14 +43,14 @@ public class MetricsTest {
 
         TestMetrics metrics = getPrometheusMetrics(URI.create("http://kafka:9404/metrics"));
 
-        BigDecimal value = metrics.getValueSum("strimzi_oauth_validation_requests_count", "kind", "jwks", "mechanism", "OAUTHBEARER", "outcome", "success");
+        BigDecimal value = metrics.getStartsWithValueSum("strimzi_oauth_validation_requests_count", "kind", "jwks", "mechanism", "OAUTHBEARER", "outcome", "success");
         Assert.assertTrue("strimzi_oauth_validation_requests_count for jwks > 0", value.intValue() > 0);
 
-        value = metrics.getValueSum("strimzi_oauth_validation_requests_totaltimems", "kind", "jwks", "mechanism", "OAUTHBEARER", "outcome", "success");
+        value = metrics.getStartsWithValueSum("strimzi_oauth_validation_requests_totaltimems", "kind", "jwks", "mechanism", "OAUTHBEARER", "outcome", "success");
         Assert.assertTrue("strimzi_oauth_validation_requests_totaltimems for jwks > 0.0", value.doubleValue() > 0.0);
 
         // No 403 (no grants) responses in this test
-        value = metrics.getValueSum("strimzi_oauth_http_requests_count", "kind", "keycloak-authorization", "host", AUTH_HOST_PORT, "path", tokenPath, "outcome", "success");
+        value = metrics.getStartsWithValueSum("strimzi_oauth_http_requests_count", "kind", "keycloak-authorization", "host", AUTH_HOST_PORT, "path", tokenPath, "outcome", "success");
         Assert.assertTrue("strimzi_oauth_http_requests_count for keycloak-authorization > 0.0", value.doubleValue() > 0.0);
     }
 }
