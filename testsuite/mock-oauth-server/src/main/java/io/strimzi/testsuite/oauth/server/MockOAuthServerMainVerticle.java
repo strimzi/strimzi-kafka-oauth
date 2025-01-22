@@ -198,7 +198,7 @@ public class MockOAuthServerMainVerticle extends AbstractVerticle {
 
             authServer = vertx.createHttpServer(new HttpServerOptions()
                     .setSsl(true)
-                    .setKeyStoreOptions(keyOptions)
+                    .setKeyCertOptions(keyOptions)
                 )
                     .requestHandler(new AuthServerRequestHandler(this))
                     .listen(8090)

@@ -81,6 +81,7 @@ public class TestContainersWatcher implements TestRule {
 
     protected void outputLogs() {
         // Dump the logs to stdout
+        environment.getContainerByServiceName("kerberos_1").ifPresent(c -> System.out.println("\n\n'kerberos' log:\n\n" + c.getLogs() + "\n"));
         environment.getContainerByServiceName("kafka_1").ifPresent(c -> System.out.println("\n\n'kafka' log:\n\n" + c.getLogs() + "\n"));
         environment.getContainerByServiceName("mockoauth_1").ifPresent(c -> System.out.println("\n\n'mockoauth' log:\n\n" + c.getLogs() + "\n"));
         environment.getContainerByServiceName("keycloak_1").ifPresent(c -> System.out.println("\n\n'keycloak' log:\n\n" + c.getLogs() + "\n"));

@@ -64,6 +64,15 @@ public class TestUtil {
         }
     }
 
+    public static void copyFileFromContainer(String containerName, String srcPath, String destPath) {
+        try {
+            Process p = Runtime.getRuntime().exec(new String[] {"docker", "cp", containerName + ":" + srcPath, destPath});
+            p.waitFor();
+        } catch (Throwable e) {
+            throw new RuntimeException("Failed to copy file from container", e);
+        }
+    }
+
     /**
      * Helper method to wait for a condition by periodically testing the condition until it is satisfied or until timeout.
      *

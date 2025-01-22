@@ -1,5 +1,3 @@
-version: '3'
-
 services:
   mockoauth:
     image: testsuite/mock-oauth-server
