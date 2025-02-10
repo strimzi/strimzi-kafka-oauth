@@ -294,6 +294,15 @@
                     <!-- Configures the file for excluding warnings -->
                     <excludeFilterFile>${checkstyle.dir}/.spotbugs/spotbugs-exclude.xml</excludeFilterFile>
                 </configuration>
+                <executions>
+                    <execution>
+                        <id>check</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>

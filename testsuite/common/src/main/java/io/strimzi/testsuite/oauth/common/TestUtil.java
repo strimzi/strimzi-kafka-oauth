@@ -64,6 +64,14 @@ public class TestUtil {
         }
     }
 
+    /**
+     * Copy a file from a container to the host using 'docker cp'.
+     *
+     * @param containerName The name of the source container
+     * @param srcPath The path to the source file in the container
+     * @param destPath The path to the destination file on the host
+     */
+    @SuppressFBWarnings("THROWS_METHOD_THROWS_RUNTIMEEXCEPTION")
     public static void copyFileFromContainer(String containerName, String srcPath, String destPath) {
         try {
             Process p = Runtime.getRuntime().exec(new String[] {"docker", "cp", containerName + ":" + srcPath, destPath});
