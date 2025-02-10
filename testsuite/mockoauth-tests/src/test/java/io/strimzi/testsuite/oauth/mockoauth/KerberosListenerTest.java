@@ -4,6 +4,7 @@
  */
 package io.strimzi.testsuite.oauth.mockoauth;
 
+import io.strimzi.testsuite.oauth.common.TestUtil;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.CreateTopicsResult;
 import org.apache.kafka.clients.admin.NewTopic;
@@ -31,16 +32,24 @@ public class KerberosListenerTest {
     private static final long CONSUMER_TIMEOUT = 10000L;
     private static final int MESSAGE_COUNT = 100;
 
+    private final String kerberosContainer;
+
+    public KerberosListenerTest(String kerberosContainer) {
+        this.kerberosContainer = kerberosContainer;
+    }
+
     public void doTests() throws Exception {
 
-        File keyTab = new File("../docker/kerberos/keys/kafka_client.keytab");
+        File keyTab = new File("target/kafka_client.keytab");
+        TestUtil.copyFileFromContainer(kerberosContainer, "/keytabs/kafka_client.keytab", keyTab.getAbsolutePath());
         Assert.assertTrue(keyTab.exists());
         Assert.assertTrue(keyTab.canRead());
 
         Properties props = new Properties();
         props.put("security.protocol", "SASL_PLAINTEXT");
         props.put("sasl.kerberos.service.name", "kafka");
-        props.put("sasl.jaas.config", "com.sun.security.auth.module.Krb5LoginModule required useKeyTab=true storeKey=true keyTab='../docker/kerberos/keys/kafka_client.keytab' principal='kafka/client@KERBEROS';");
+        props.put("sasl.jaas.config", "com.sun.security.auth.module.Krb5LoginModule required useKeyTab=true storeKey=true keyTab='" +
+                keyTab.getAbsolutePath() + "' principal='kafka/client@KERBEROS';");
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "kafka:9099");
 
         Admin admin = Admin.create(props);

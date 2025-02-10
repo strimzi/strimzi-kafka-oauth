@@ -1,5 +1,3 @@
-version: '3'
-
 services:
   keycloak:
     image: quay.io/keycloak/keycloak:23.0.5
@@ -134,8 +132,9 @@ services:
       #   The following value will be available as env var STRIMZI_OAUTH_METRIC_REPORTERS
       - STRIMZI_OAUTH_METRIC_REPORTERS=org.apache.kafka.common.metrics.JmxReporter
 
-      #   The following value will turn to 'strimzi.oauth.metric.reporters=...' in 'strimzi.properties' file
+      #   The following value will turn into 'strimzi.oauth.metric.reporters=...' in 'strimzi.properties' file
       #   However, that won't work as the value may be filtered to the component that happens to initialise OAuthMetrics
+      #   Instead, use the env var approach above
       #- KAFKA_STRIMZI_OAUTH_METRIC_REPORTERS=org.apache.kafka.common.metrics.JmxReporter
 
 

@@ -112,8 +112,9 @@ public class MockOAuthTests {
             new ClientAssertionAuthTest().doTest();
 
             if (includeKerberosTests) {
+                String kerberosContainer = includeKerberosTests ? environment.getContainerByServiceName("kerberos_1").get().getContainerInfo().getName().substring(1) : null;
                 logStart("KerberosTests :: Test authentication with Kerberos");
-                new KerberosListenerTest().doTests();
+                new KerberosListenerTest(kerberosContainer).doTests();
             }
 
         } catch (Throwable e) {
