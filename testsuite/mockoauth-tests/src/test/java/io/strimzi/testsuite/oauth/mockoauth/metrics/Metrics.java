@@ -46,6 +46,39 @@ public class Metrics {
     }
 
     /**
+     * Returns a value of a single metric matching the key prefix and the attributes.
+     * Not all attributes have to be specified.
+     *
+     * Different Strimzi Kafka images seem to expose internal metrics structures of type CumulativeSum and CumulativeCount differently.
+     * The later versions seem to add '_total' suffix, whereas the older versions don't.
+     *
+     * @param keyPrefix The key prefix for the key identifying the metric
+     * @param attrs The attributes filter passed as [attrName1, attrValue1, ... attrNameN, attrValueN]
+     * @return Metric value as String
+     */
+    String getValueStartsWith(String keyPrefix, String... attrs) {
+        boolean match = false;
+        String result = null;
+        next:
+        for (MetricEntry entry : entries) {
+            if (entry.key.startsWith(keyPrefix)) {
+                for (int i = 0; i < attrs.length; i += 2) {
+                    if (!attrs[i + 1].equals(entry.attrs.get(attrs[i]))) {
+                        continue next;
+                    }
+                }
+                if (!match) {
+                    match = true;
+                    result = entry.value;
+                } else {
+                    throw new RuntimeException("More than one matching metric entry");
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
      * Get the sum of values of all the matching metrics
      *
      * @param key The key identifying the metric
@@ -71,5 +104,10 @@ public class Metrics {
 
     static String quoted(String value) {
         return "\\\"" + value + "\\\"";
+    }
+
+    @Override
+    public String toString() {
+        return Metrics.class.getName() + "@" + System.identityHashCode(this) + " entries=" + entries;
     }
 }

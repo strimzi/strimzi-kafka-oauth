@@ -16,4 +16,13 @@ public class MetricEntry {
         this.attrs = attrs;
         this.value = value;
     }
+
+    @Override
+    public String toString() {
+        return "MetricEntry{" +
+                "key='" + key + '\'' +
+                ", attrs=" + attrs +
+                ", value='" + value + '\'' +
+                '}';
+    }
 }

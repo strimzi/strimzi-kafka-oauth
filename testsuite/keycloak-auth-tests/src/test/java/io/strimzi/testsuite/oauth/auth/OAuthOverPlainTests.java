@@ -99,21 +99,21 @@ public class OAuthOverPlainTests {
         // Check metrics
 
         TestMetrics metrics = getPrometheusMetrics(URI.create("http://kafka:9404/metrics"));
-        BigDecimal value = metrics.getValueSum("strimzi_oauth_validation_requests_count", "context", "JWTPLAINWITHOUTCC", "kind", "jwks", "mechanism", "PLAIN", "outcome", "success");
+        BigDecimal value = metrics.getStartsWithValueSum("strimzi_oauth_validation_requests_count", "context", "JWTPLAINWITHOUTCC", "kind", "jwks", "mechanism", "PLAIN", "outcome", "success");
 
         // There is no inter-broker connection on this listener, producer did 2 validations, and consumer also did 2
         Assert.assertTrue("strimzi_oauth_validation_requests_count for jwks >= 4", value != null && value.intValue() >= 4);
 
-        value = metrics.getValueSum("strimzi_oauth_validation_requests_totaltimems", "context", "JWTPLAINWITHOUTCC", "kind", "jwks", "mechanism", "PLAIN", "outcome", "success");
+        value = metrics.getStartsWithValueSum("strimzi_oauth_validation_requests_totaltimems", "context", "JWTPLAINWITHOUTCC", "kind", "jwks", "mechanism", "PLAIN", "outcome", "success");
         Assert.assertTrue("strimzi_oauth_validation_requests_totaltimems for jwks > 0.0", value.doubleValue() > 0.0);
 
-        value = metrics.getValueSum("strimzi_oauth_http_requests_count", "context", "JWTPLAINWITHOUTCC", "kind", "plain", "host", hostPort, "path", tokenEndpointPath, "outcome", "success");
+        value = metrics.getStartsWithValueSum("strimzi_oauth_http_requests_count", "context", "JWTPLAINWITHOUTCC", "kind", "plain", "host", hostPort, "path", tokenEndpointPath, "outcome", "success");
 
         // There is no inter-broker connection on this listener
         // Validation did not require the broker authenticating in client's name, because the token was passed
         Assert.assertEquals("strimzi_oauth_http_requests_count for plain == 0", 0, value.intValue());
 
-        value = metrics.getValueSum("strimzi_oauth_http_requests_totaltimems", "context", "JWTPLAINWITHOUTCC", "kind", "plain", "host", hostPort, "path", tokenEndpointPath, "outcome", "success");
+        value = metrics.getStartsWithValueSum("strimzi_oauth_http_requests_totaltimems", "context", "JWTPLAINWITHOUTCC", "kind", "plain", "host", hostPort, "path", tokenEndpointPath, "outcome", "success");
         Assert.assertEquals("strimzi_oauth_http_requests_totaltimems for plain == 0.0", 0.0, value.doubleValue(), 0.0);
     }
 
@@ -186,20 +186,20 @@ public class OAuthOverPlainTests {
         // Check metrics
 
         TestMetrics metrics = getPrometheusMetrics(URI.create("http://kafka:9404/metrics"));
-        BigDecimal value = metrics.getValueSum("strimzi_oauth_validation_requests_count", "context", "INTROSPECTPLAIN", "kind", "introspect", "mechanism", "PLAIN", "outcome", "success");
+        BigDecimal value = metrics.getStartsWithValueSum("strimzi_oauth_validation_requests_count", "context", "INTROSPECTPLAIN", "kind", "introspect", "mechanism", "PLAIN", "outcome", "success");
 
         // There is no inter-broker connection on this listener, producer did 2 validations, and consumer also did 2
         Assert.assertTrue("strimzi_oauth_validation_requests_count for introspect >= 4", value != null && value.intValue() >= 4);
 
-        value = metrics.getValueSum("strimzi_oauth_validation_requests_totaltimems", "context", "INTROSPECTPLAIN", "kind", "introspect", "mechanism", "PLAIN", "outcome", "success");
+        value = metrics.getStartsWithValueSum("strimzi_oauth_validation_requests_totaltimems", "context", "INTROSPECTPLAIN", "kind", "introspect", "mechanism", "PLAIN", "outcome", "success");
         Assert.assertTrue("strimzi_oauth_validation_requests_totaltimems for introspect > 0.0", value.doubleValue() > 0.0);
 
-        value = metrics.getValueSum("strimzi_oauth_http_requests_count", "context", "INTROSPECTPLAIN", "kind", "plain", "host", hostPort, "path", tokenEndpointPath, "outcome", "success");
+        value = metrics.getStartsWithValueSum("strimzi_oauth_http_requests_count", "context", "INTROSPECTPLAIN", "kind", "plain", "host", hostPort, "path", tokenEndpointPath, "outcome", "success");
 
         // There is no inter-broker connection on this listener, producer did 2 validations, and consumer also did 2
         Assert.assertTrue("strimzi_oauth_http_requests_count for plain >= 4", value != null && value.intValue() >= 4);
 
-        value = metrics.getValueSum("strimzi_oauth_http_requests_totaltimems", "context", "INTROSPECTPLAIN", "kind", "plain", "host", hostPort, "path", tokenEndpointPath, "outcome", "success");
+        value = metrics.getStartsWithValueSum("strimzi_oauth_http_requests_totaltimems", "context", "INTROSPECTPLAIN", "kind", "plain", "host", hostPort, "path", tokenEndpointPath, "outcome", "success");
         Assert.assertTrue("strimzi_oauth_http_requests_totaltimems for plain > 0.0", value.doubleValue() > 0.0);
     }
 
@@ -252,17 +252,17 @@ public class OAuthOverPlainTests {
         // Check metrics
 
         TestMetrics metrics = getPrometheusMetrics(URI.create("http://kafka:9404/metrics"));
-        BigDecimal value = metrics.getValueSum("strimzi_oauth_validation_requests_count", "context", "INTROSPECTPLAIN", "kind", "introspect", "mechanism", "PLAIN", "outcome", "success");
+        BigDecimal value = metrics.getStartsWithValueSum("strimzi_oauth_validation_requests_count", "context", "INTROSPECTPLAIN", "kind", "introspect", "mechanism", "PLAIN", "outcome", "success");
 
         // There is no inter-broker connection on this listener, producer did 2 validations, and consumer also did 2 (on top of the previous test)
         Assert.assertTrue("strimzi_oauth_validation_requests_count for introspect >= 8", value != null && value.intValue() >= 8);
 
-        value = metrics.getValueSum("strimzi_oauth_http_requests_count", "context", "INTROSPECTPLAIN", "kind", "plain", "host", hostPort, "path", tokenEndpointPath, "outcome", "success");
+        value = metrics.getStartsWithValueSum("strimzi_oauth_http_requests_count", "context", "INTROSPECTPLAIN", "kind", "plain", "host", hostPort, "path", tokenEndpointPath, "outcome", "success");
 
         // There is no inter-broker connection on this listener, producer did 2 validations, and consumer also did 2
         Assert.assertTrue("strimzi_oauth_http_requests_count for plain >= 4", value != null && value.intValue() >= 4);
 
-        value = metrics.getValueSum("strimzi_oauth_http_requests_totaltimems", "context", "INTROSPECTPLAIN", "kind", "plain", "host", hostPort, "path", tokenEndpointPath, "outcome", "success");
+        value = metrics.getStartsWithValueSum("strimzi_oauth_http_requests_totaltimems", "context", "INTROSPECTPLAIN", "kind", "plain", "host", hostPort, "path", tokenEndpointPath, "outcome", "success");
         Assert.assertTrue("strimzi_oauth_http_requests_totaltimems for plain > 0.0", value.doubleValue() > 0.0);
     }
 
@@ -316,20 +316,20 @@ public class OAuthOverPlainTests {
         // Check metrics
 
         TestMetrics metrics = getPrometheusMetrics(URI.create("http://kafka:9404/metrics"));
-        BigDecimal value = metrics.getValueSum("strimzi_oauth_validation_requests_count", "context", "JWTPLAIN", "kind", "jwks", "mechanism", "PLAIN", "outcome", "success");
+        BigDecimal value = metrics.getStartsWithValueSum("strimzi_oauth_validation_requests_count", "context", "JWTPLAIN", "kind", "jwks", "mechanism", "PLAIN", "outcome", "success");
 
         // There is no inter-broker connection on this listener, producer did 2 validations, and consumer also did 2
         Assert.assertTrue("strimzi_oauth_validation_requests_count for jwt >= 4", value != null && value.intValue() >= 4);
 
-        value = metrics.getValueSum("strimzi_oauth_validation_requests_totaltimems", "context", "JWTPLAIN", "kind", "jwks", "mechanism", "PLAIN", "outcome", "success");
+        value = metrics.getStartsWithValueSum("strimzi_oauth_validation_requests_totaltimems", "context", "JWTPLAIN", "kind", "jwks", "mechanism", "PLAIN", "outcome", "success");
         Assert.assertTrue("strimzi_oauth_validation_requests_totaltimems for jwt > 0.0", value.doubleValue() > 0.0);
 
-        value = metrics.getValueSum("strimzi_oauth_http_requests_count", "context", "JWTPLAIN", "kind", "plain", "host", hostPort, "path", tokenEndpointPath, "outcome", "success");
+        value = metrics.getStartsWithValueSum("strimzi_oauth_http_requests_count", "context", "JWTPLAIN", "kind", "plain", "host", hostPort, "path", tokenEndpointPath, "outcome", "success");
 
         // There is no inter-broker connection on this listener, producer did 2 validations, and consumer also did 2
         Assert.assertTrue("strimzi_oauth_http_requests_count for plain >= 4", value != null && value.intValue() >= 4);
 
-        value = metrics.getValueSum("strimzi_oauth_http_requests_totaltimems", "context", "JWTPLAIN", "kind", "plain", "host", hostPort, "path", tokenEndpointPath, "outcome", "success");
+        value = metrics.getStartsWithValueSum("strimzi_oauth_http_requests_totaltimems", "context", "JWTPLAIN", "kind", "plain", "host", hostPort, "path", tokenEndpointPath, "outcome", "success");
         Assert.assertTrue("strimzi_oauth_http_requests_totaltimems for plain > 0.0", value.doubleValue() > 0.0);
     }
 

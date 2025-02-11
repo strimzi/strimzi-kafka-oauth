@@ -130,7 +130,7 @@ public class MetricsTest {
 
 
         // We should not see any 503 errors yet because of more TLS errors due to CERT_TWO being used
-        String value = metrics.getValue("strimzi_oauth_http_requests_count", "context", "JWT", "outcome", "error", "error_type", "http", "status", "503");
+        String value = metrics.getValueStartsWith("strimzi_oauth_http_requests_count", "context", "JWT", "outcome", "error", "error_type", "http", "status", "503");
         Assert.assertNull("There should be no 503 errors", value);
         // Switch mockoauth auth server back to using cert no. 1
         changeAuthServerMode("server", "mode_cert_one_on");
@@ -140,11 +140,11 @@ public class MetricsTest {
 
 
         // We should see some 503 errors
-        value = metrics.getValue("strimzi_oauth_http_requests_count", "context", "JWT", "outcome", "error", "error_type", "http", "status", "503");
+        value = metrics.getValueStartsWith("strimzi_oauth_http_requests_count", "context", "JWT", "outcome", "error", "error_type", "http", "status", "503");
         Assert.assertNotNull("Metric missing", value);
         Assert.assertTrue("There should be some 503 errors", new BigDecimal(value).doubleValue() > 0.0);
 
-        value = metrics.getValue("strimzi_oauth_http_requests_totaltimems", "context", "JWT", "outcome", "error", "error_type", "http", "status", "503");
+        value = metrics.getValueStartsWith("strimzi_oauth_http_requests_totaltimems", "context", "JWT", "outcome", "error", "error_type", "http", "status", "503");
         Assert.assertNotNull("Metric missing", value);
         Assert.assertTrue("There should be some 503 errors", new BigDecimal(value).doubleValue() > 0.0);
     }
@@ -159,11 +159,11 @@ public class MetricsTest {
 
 
         // We should see some TLS errors
-        String value = metrics.getValue("strimzi_oauth_http_requests_count", "context", "JWT", "outcome", "error", "error_type", "tls");
+        String value = metrics.getValueStartsWith("strimzi_oauth_http_requests_count", "context", "JWT", "outcome", "error", "error_type", "tls");
         Assert.assertNotNull("Metric missing", value);
         Assert.assertTrue("There should be some TLS errors", new BigDecimal(value).doubleValue() > 0.0);
 
-        value = metrics.getValue("strimzi_oauth_http_requests_totaltimems", "context", "JWT", "outcome", "error", "error_type", "tls");
+        value = metrics.getValueStartsWith("strimzi_oauth_http_requests_totaltimems", "context", "JWT", "outcome", "error", "error_type", "tls");
         Assert.assertNotNull("Metric missing", value);
         Assert.assertTrue("There should be some TLS errors", new BigDecimal(value).doubleValue() > 0.0);
     }
@@ -178,11 +178,11 @@ public class MetricsTest {
 
 
         // See some network errors on JWT's
-        String value = metrics.getValue("strimzi_oauth_http_requests_count", "context", "JWT", "outcome", "error", "error_type", "connect");
+        String value = metrics.getValueStartsWith("strimzi_oauth_http_requests_count", "context", "JWT", "outcome", "error", "error_type", "connect");
         Assert.assertNotNull("Metric missing", value);
         Assert.assertTrue("There should be some network errors", new BigDecimal(value).doubleValue() > 0.0);
 
-        value = metrics.getValue("strimzi_oauth_http_requests_totaltimems", "context", "JWT", "outcome", "error", "error_type", "connect");
+        value = metrics.getValueStartsWith("strimzi_oauth_http_requests_totaltimems", "context", "JWT", "outcome", "error", "error_type", "connect");
         Assert.assertNotNull("Metric missing", value);
         Assert.assertTrue("There should be some network errors", new BigDecimal(value).doubleValue() > 0.0);
     }
@@ -193,11 +193,11 @@ public class MetricsTest {
         // mockoauth has JWKS endpoint configured to return 404
         // error counter for 404 for JWT should not be zero as at least one JWKS request should fail
         // during JWT listener's JWTSignatureValidator initialisation
-        String value = metrics.getValue("strimzi_oauth_http_requests_count", "context", "JWT", "outcome", "error", "error_type", "http", "status", "404");
+        String value = metrics.getValueStartsWith("strimzi_oauth_http_requests_count", "context", "JWT", "outcome", "error", "error_type", "http", "status", "404");
         Assert.assertNotNull("Metric missing", value);
         Assert.assertTrue("There should be some 404 errors", new BigDecimal(value).doubleValue() > 0.0);
 
-        value = metrics.getValue("strimzi_oauth_http_requests_totaltimems", "context", "JWT", "outcome", "error", "error_type", "http", "status", "404");
+        value = metrics.getValueStartsWith("strimzi_oauth_http_requests_totaltimems", "context", "JWT", "outcome", "error", "error_type", "http", "status", "404");
         Assert.assertNotNull("Metric missing", value);
         Assert.assertTrue("There should be some 404 errors", new BigDecimal(value).doubleValue() > 0.0);
     }
@@ -207,33 +207,33 @@ public class MetricsTest {
 
         // assumption check
         // JWT listener config (on port 9404 in docker-compose.yml) has no token endpoint so the next metric should not exist
-        String value = metrics.getValue("strimzi_oauth_validation_requests_count", "context", "JWT");
+        String value = metrics.getValueStartsWith("strimzi_oauth_validation_requests_count", "context", "JWT");
         Assert.assertNull(value);
 
 
         // initial checks - all success counters should be null
-        value = metrics.getValue("strimzi_oauth_http_requests_count", "context", "JWT", "outcome", "success");
+        value = metrics.getValueStartsWith("strimzi_oauth_http_requests_count", "context", "JWT", "outcome", "success");
         Assert.assertNull(value);
 
-        value = metrics.getValue("strimzi_oauth_http_requests_totaltimems", "context", "JWT", "outcome", "success");
+        value = metrics.getValueStartsWith("strimzi_oauth_http_requests_totaltimems", "context", "JWT", "outcome", "success");
         Assert.assertNull(value);
 
-        value = metrics.getValue("strimzi_oauth_http_requests_count", "context", "INTROSPECT", "outcome", "success");
+        value = metrics.getValueStartsWith("strimzi_oauth_http_requests_count", "context", "INTROSPECT", "outcome", "success");
         Assert.assertNull(value);
 
-        value = metrics.getValue("strimzi_oauth_http_requests_totaltimems", "context", "INTROSPECT", "outcome", "success");
+        value = metrics.getValueStartsWith("strimzi_oauth_http_requests_totaltimems", "context", "INTROSPECT", "outcome", "success");
         Assert.assertNull(value);
 
-        value = metrics.getValue("strimzi_oauth_http_requests_count", "context", "JWTPLAIN", "outcome", "success");
+        value = metrics.getValueStartsWith("strimzi_oauth_http_requests_count", "context", "JWTPLAIN", "outcome", "success");
         Assert.assertNull(value);
 
-        value = metrics.getValue("strimzi_oauth_http_requests_totaltimems", "context", "JWTPLAIN", "outcome", "success");
+        value = metrics.getValueStartsWith("strimzi_oauth_http_requests_totaltimems", "context", "JWTPLAIN", "outcome", "success");
         Assert.assertNull(value);
 
-        value = metrics.getValue("strimzi_oauth_http_requests_count", "context", "JWTPLAIN", "outcome", "success");
+        value = metrics.getValueStartsWith("strimzi_oauth_http_requests_count", "context", "JWTPLAIN", "outcome", "success");
         Assert.assertNull(value);
 
-        value = metrics.getValue("strimzi_oauth_http_requests_totaltimems", "context", "JWTPLAIN", "outcome", "success");
+        value = metrics.getValueStartsWith("strimzi_oauth_http_requests_totaltimems", "context", "JWTPLAIN", "outcome", "success");
         Assert.assertNull(value);
     }
 
