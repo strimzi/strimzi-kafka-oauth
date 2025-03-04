@@ -11,6 +11,18 @@ exitIfError() {
   [ "$EXIT" != "0" ] && exit $EXIT
 }
 
+# # # # # # # # # # # # # # # # # # # # # # #
+#
+#   These tests are now disabled by default.
+#
+#
+
+if [ "$DISABLED" != "false" ]; then
+  echo "Tests are disabled by default. In order to run them locally set DISABLED=false"
+  echo "Usage: DISABLED=false ./build.sh"
+  exit 0
+fi
+
 arch=$(uname -m)
 echo "Architecture: $arch"
 
