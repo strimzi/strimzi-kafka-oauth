@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -e
 
+# # # # # # # # # # # # # # # # # #
+#
+#  Functions
+#
+# # # # # # # # # # # # # # # # # #
+
 clearDockerEnv() {
   docker rm -f kafka zookeeper keycloak keycloak-import hydra hydra-import hydra-jwt hydra-jwt-import kerberos || true
   DOCKER_TEST_NETWORKS=$(docker network ls | grep test | awk '{print $1}')
@@ -10,6 +16,17 @@ clearDockerEnv() {
 exitIfError() {
   [ "$EXIT" != "0" ] && exit $EXIT
 }
+
+
+# # # # # # # # # # # # # # # # # #
+#
+#  Main
+#
+# # # # # # # # # # # # # # # # # #
+
+export PULL_REQUEST=${PULL_REQUEST:-true}
+export BRANCH=${BRANCH:-main}
+export TAG=${TAG:-latest}
 
 arch=$(uname -m)
 echo "Architecture: $arch"
@@ -22,10 +39,6 @@ if [ "$SKIP_DISABLED" == "" ]; then
   SKIP_DISABLED="true"
 fi
 echo "SKIP_DISABLED: $SKIP_DISABLED"
-
-export PULL_REQUEST=${PULL_REQUEST:-true}
-export BRANCH=${BRANCH:-main}
-export TAG=${TAG:-latest}
 
 if [ "$arch" != 'ppc64le' ] && [ "$arch" != 's390x' ]; then
   export MAVEN_EXTRA_ARGS=--no-transfer-progress
