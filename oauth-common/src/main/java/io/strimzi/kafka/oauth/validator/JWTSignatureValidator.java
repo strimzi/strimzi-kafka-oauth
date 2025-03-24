@@ -476,7 +476,7 @@ public class JWTSignatureValidator implements TokenValidator {
         if (exp == null) {
             throw new TokenValidationException("Token validation failed: Expiry not set");
         }
-        long expiresMillis = exp.asInt(0) * 1000L;
+        long expiresMillis = exp.asLong(0) * 1000L;
         if (System.currentTimeMillis() > expiresMillis) {
             throw new TokenExpiredException("Token expired at: " + expiresMillis + " (" +
                     TimeUtil.formatIsoDateTimeUTC(expiresMillis) + " UTC)");

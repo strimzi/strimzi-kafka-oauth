@@ -85,8 +85,8 @@ public class TokenInfo {
                 payload.has(SCOPE) ? payload.get(SCOPE).asText() : null,
                 principal,
                 groups,
-                payload.has(IAT) ? payload.get(IAT).asInt(0) * 1000L : 0L,
-                payload.get(EXP).asInt(0) * 1000L);
+                payload.has(IAT) ? payload.get(IAT).asLong(0) * 1000L : 0L,
+                payload.get(EXP).asLong(0) * 1000L);
 
         if (!(payload instanceof ObjectNode)) {
             throw new IllegalArgumentException("Unexpected JSON Node type (not ObjectNode): " + payload.getClass());

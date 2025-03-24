@@ -78,7 +78,7 @@ public class TokenIntrospection {
             if (expires == null) {
                 log.debug("Access token has no expiry set.");
             } else {
-                log.debug("Access token expires at (UTC): " + (expires.isNumber() ? (LocalDateTime.ofEpochSecond(expires.asInt(), 0, ZoneOffset.UTC).format(DateTimeFormatter.ISO_DATE_TIME)) : ("invalid value: [" + expires.asText() + "]")));
+                log.debug("Access token expires at (UTC): " + (expires.isNumber() ? (LocalDateTime.ofEpochSecond(expires.asLong(), 0, ZoneOffset.UTC).format(DateTimeFormatter.ISO_DATE_TIME)) : ("invalid value: [" + expires.asText() + "]")));
             }
         } catch (Exception e) {
             log.debug("[IGNORED] Failed to parse JWT token's payload", e);
