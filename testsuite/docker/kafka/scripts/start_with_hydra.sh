@@ -11,11 +11,12 @@ URI="https://hydra-jwt:4455/clients"
 wait_for_url $URI "Waiting for Hydra JWT admin REST to start"
 wait_for_url $URI/kafka-broker "Waiting for kafka-broker client to be available"
 
-
-[ "$KAFKA_ZOOKEEPER_CONNECT" == "" ] && KAFKA_ZOOKEEPER_CONNECT=localhost:2181
-[ "$KAFKA_ZOOKEEPER_CONNECTION_TIMEOUT_MS" == "" ] && KAFKA_ZOOKEEPER_CONNECTION_TIMEOUT_MS=6000
-
 ./simple_kafka_config.sh | tee /tmp/strimzi.properties
+echo "Config created"
+
+KAFKA_CLUSTER_ID="$(/opt/kafka/bin/kafka-storage.sh random-uuid)"
+/opt/kafka/bin/kafka-storage.sh format -t $KAFKA_CLUSTER_ID -c /tmp/strimzi.properties
+echo "Initialised kafka storage for KRaft"
 
 # set log dir to writable directory
 if [ "$LOG_DIR" == "" ]; then

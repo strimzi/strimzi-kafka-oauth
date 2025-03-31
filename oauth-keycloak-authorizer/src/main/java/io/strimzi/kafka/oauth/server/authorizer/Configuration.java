@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 import static io.strimzi.kafka.oauth.client.ClientConfig.OAUTH_TOKEN_ENDPOINT_URI;
 import static io.strimzi.kafka.oauth.common.Config.OAUTH_CONNECT_TIMEOUT_SECONDS;
 import static io.strimzi.kafka.oauth.common.Config.OAUTH_ENABLE_METRICS;
+import static io.strimzi.kafka.oauth.common.Config.OAUTH_INCLUDE_ACCEPT_HEADER;
 import static io.strimzi.kafka.oauth.common.Config.OAUTH_READ_TIMEOUT_SECONDS;
 import static io.strimzi.kafka.oauth.common.Config.OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM;
 import static io.strimzi.kafka.oauth.common.Config.OAUTH_SSL_SECURE_RANDOM_IMPLEMENTATION;
@@ -80,7 +81,6 @@ public class Configuration {
     private final int grantsMaxIdleTimeSeconds;
     private final int grantsRefreshPoolSize;
     private final int gcPeriodSeconds;
-    private boolean isKRaft;
     private String truststore;
     private String truststoreData;
     private String truststorePassword;
@@ -135,7 +135,10 @@ public class Configuration {
         this.clusterName = clusterName;
 
         delegateToKafkaACL = authzConfig.getValueAsBoolean(STRIMZI_AUTHORIZATION_DELEGATE_TO_KAFKA_ACL, false);
-
+        boolean isKRaft = detectKRaft(configs);
+        if (delegateToKafkaACL && !isKRaft) {
+            throw new ConfigException("Zookeeper mode detected (no 'process.roles' configured) and delegation to ACL Authorizer has been enabled. This is no longer supported. Either turn off the delegation or upgrade the broker to KRaft mode.");
+        }
 
         configureSuperUsers(configs);
 
@@ -153,7 +156,7 @@ public class Configuration {
 
         reuseGrants = authzConfig.getValueAsBoolean(STRIMZI_AUTHORIZATION_REUSE_GRANTS, true);
 
-        includeAcceptHeader = ConfigUtil.getDefaultBooleanConfigWithFallbackLookup(authzConfig, STRIMZI_AUTHORIZATION_INCLUDE_ACCEPT_HEADER, Config.OAUTH_INCLUDE_ACCEPT_HEADER, true);
+        includeAcceptHeader = ConfigUtil.getDefaultBooleanConfigWithFallbackLookup(authzConfig, STRIMZI_AUTHORIZATION_INCLUDE_ACCEPT_HEADER, OAUTH_INCLUDE_ACCEPT_HEADER, true);
         configureHttpRetries(authzConfig);
 
         configureMetrics(authzConfig);
@@ -310,7 +313,7 @@ public class Configuration {
             STRIMZI_AUTHORIZATION_ENABLE_METRICS,
             OAUTH_ENABLE_METRICS,
             STRIMZI_AUTHORIZATION_INCLUDE_ACCEPT_HEADER,
-            Config.OAUTH_INCLUDE_ACCEPT_HEADER
+            OAUTH_INCLUDE_ACCEPT_HEADER
         };
 
         // Copy over the keys
@@ -322,12 +325,7 @@ public class Configuration {
     }
 
     AuthzConfig convertToAuthzConfig(Map<String, ?> configs) {
-        AuthzConfig config = Configuration.convertToCommonConfig(configs);
-        isKRaft = detectKRaft(configs);
-        if (isKRaft) {
-            logs.add(new Log(Log.Level.DEBUG, "Detected KRaft mode ('process.roles' configured)"));
-        }
-        return config;
+        return Configuration.convertToCommonConfig(configs);
     }
 
     private boolean detectKRaft(Map<String, ?> configs) {
@@ -335,10 +333,6 @@ public class Configuration {
         Object prop = configs.get("process.roles");
         String processRoles = prop != null ? String.valueOf(prop) : null;
         return processRoles != null && processRoles.length() > 0;
-    }
-
-    boolean isKRaft() {
-        return isKRaft;
     }
 
     String getTruststore() {
@@ -459,7 +453,6 @@ public class Configuration {
                 grantsMaxIdleTimeSeconds == that.grantsMaxIdleTimeSeconds &&
                 grantsRefreshPoolSize == that.grantsRefreshPoolSize &&
                 gcPeriodSeconds == that.gcPeriodSeconds &&
-                isKRaft == that.isKRaft &&
                 httpRetries == that.httpRetries &&
                 enableMetrics == that.enableMetrics &&
                 connectTimeoutSeconds == that.connectTimeoutSeconds &&
@@ -487,7 +480,6 @@ public class Configuration {
                 grantsMaxIdleTimeSeconds,
                 grantsRefreshPoolSize,
                 gcPeriodSeconds,
-                isKRaft,
                 truststore,
                 truststoreData,
                 truststorePassword,

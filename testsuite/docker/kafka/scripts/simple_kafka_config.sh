@@ -53,30 +53,16 @@ done
 # Generate output
 #
 
-if [[ "$1" == "--kraft" ]]; then
-  #
-  # Output kraft version of server.properties
-  #
-  echo "#"
-  echo "# strimzi.properties (kraft)"
-  echo "#"
+#
+# Output kraft version of server.properties
+#
+echo "#"
+echo "# strimzi.properties (kraft)"
+echo "#"
 
-  echo process.roles=`pop_value process.roles broker,controller`
-  echo node.id=`pop_value node.id 1`
-  echo log.dirs=`pop_value log.dirs /tmp/kraft-combined-logs`
-
-elif [[ "$1" == "" ]]; then
-  echo "#"
-  echo "# strimzi.properties"
-  echo "#"
-
-  echo broker.id=`pop_value broker.id 0`
-  echo log.dirs=`pop_value log.dirs /tmp/kafka-logs`
-  echo group.initial.rebalance.delay.ms=`pop_value group.initial.rebalance.delay.ms 0`
-else
-  echo "Unsupported argument: $1"
-  exit 1
-fi
+echo process.roles=`pop_value process.roles broker,controller`
+echo node.id=`pop_value node.id 1`
+echo log.dirs=`pop_value log.dirs /tmp/kraft-combined-logs`
 
 echo num.network.threads=`pop_value num.network.threads 3`
 echo num.io.threads=`pop_value num.io.threads 8`

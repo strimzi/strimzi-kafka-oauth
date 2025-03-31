@@ -25,6 +25,7 @@ services:
       - "9095:9095"
       - "9096:9096"
       - "9100:9100"
+      - "9101:9101"
 
       # Prometheus JMX Exporter
       - "9404:9404"
@@ -38,7 +39,7 @@ services:
     command:
       - /bin/bash
       - -c
-      - cd /opt/kafka/strimzi && ./start.sh --kraft
+      - cd /opt/kafka/strimzi && ./start.sh
     environment:
 
       #- KAFKA_DEBUG=y
@@ -52,9 +53,9 @@ services:
       - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
       - KAFKA_SASL_MECHANISM_CONTROLLER_PROTOCOL=PLAIN
 
-      - KAFKA_LISTENERS=CONTROLLER://kafka:9091,JWT://kafka:9092,INTROSPECT://kafka:9093,JWTPLAIN://kafka:9094,INTROSPECTPLAIN://kafka:9095,JWTREFRESH://kafka:9096,PLAIN://kafka:9100
-      - KAFKA_ADVERTISED_LISTENERS=JWT://kafka:9092,INTROSPECT://kafka:9093,JWTPLAIN://kafka:9094,INTROSPECTPLAIN://kafka:9095,JWTREFRESH://kafka:9096,PLAIN://kafka:9100
-      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:SASL_PLAINTEXT,JWT:SASL_PLAINTEXT,INTROSPECT:SASL_PLAINTEXT,JWTPLAIN:SASL_PLAINTEXT,INTROSPECTPLAIN:SASL_PLAINTEXT,JWTREFRESH:SASL_PLAINTEXT,PLAIN:SASL_PLAINTEXT
+      - KAFKA_LISTENERS=CONTROLLER://kafka:9091,JWT://kafka:9092,INTROSPECT://kafka:9093,JWTPLAIN://kafka:9094,INTROSPECTPLAIN://kafka:9095,JWTREFRESH://kafka:9096,PLAIN://kafka:9100,SCRAM://kafka:9101
+      - KAFKA_ADVERTISED_LISTENERS=JWT://kafka:9092,INTROSPECT://kafka:9093,JWTPLAIN://kafka:9094,INTROSPECTPLAIN://kafka:9095,JWTREFRESH://kafka:9096,PLAIN://kafka:9100,SCRAM://kafka:9101
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:SASL_PLAINTEXT,JWT:SASL_PLAINTEXT,INTROSPECT:SASL_PLAINTEXT,JWTPLAIN:SASL_PLAINTEXT,INTROSPECTPLAIN:SASL_PLAINTEXT,JWTREFRESH:SASL_PLAINTEXT,PLAIN:SASL_PLAINTEXT,SCRAM:SASL_PLAINTEXT
 
       - KAFKA_INTER_BROKER_LISTENER_NAME=JWT
       - KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL=OAUTHBEARER
@@ -96,6 +97,8 @@ services:
       - KAFKA_LISTENER_NAME_PLAIN_SASL_ENABLED_MECHANISMS=PLAIN
       - KAFKA_LISTENER_NAME_PLAIN_PLAIN_SASL_JAAS_CONFIG=org.apache.kafka.common.security.plain.PlainLoginModule required    username=\"admin\"    password=\"admin-password\"    user_admin=\"admin-password\"    user_bobby=\"bobby-secret\" ;
 
+      - KAFKA_LISTENER_NAME_SCRAM_SASL_ENABLED_MECHANISMS=SCRAM-SHA-512
+      - KAFKA_LISTENER_NAME_SCRAM_SCRAM__2DSHA__2D512_SASL_JAAS_CONFIG=org.apache.kafka.common.security.scram.ScramLoginModule required    username=\"admin\"    password=\"admin-secret\" ;
 
       # Authorizer configuration
       - KAFKA_AUTHORIZER_CLASS_NAME=io.strimzi.kafka.oauth.server.authorizer.KeycloakAuthorizer

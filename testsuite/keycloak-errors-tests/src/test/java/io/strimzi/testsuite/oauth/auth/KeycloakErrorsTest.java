@@ -30,8 +30,8 @@ public class KeycloakErrorsTest {
     @ClassRule
     public static TestContainersWatcher environment =
             new TestContainersWatcher(new File("docker-compose.yml"))
-                    .withServices("keycloak", "zookeeper", "kafka")
-                    .waitingFor("kafka", Wait.forLogMessage(".*started \\(kafka.server.KafkaServer\\).*", 1)
+                    .withServices("keycloak", "kafka")
+                    .waitingFor("kafka", Wait.forLogMessage(".*started \\(kafka.server.KafkaRaftServer\\).*", 1)
                             .withStartupTimeout(Duration.ofSeconds(300)));
 
     @Rule

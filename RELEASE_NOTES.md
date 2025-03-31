@@ -1,6 +1,15 @@
 Release Notes
 =============
 
+0.16.0
+------
+
+### Removed support for KeycloakAuthorizer ACL delegation in Zookeeper mode
+
+`KeycloakAuthorizer` can be configured to delegate authorization decision to standard ACL authorizer provided by Kafka.
+Since Zookeeper mode is no longer supported, the ACL authorizer delegation only works if the Kafka node runs in KRaft mode.
+If `KeycloakAuthorizer` is deployed to Kafka running in Zookeeper mode, and `strimzi.authorization.delegate.to.kafka.acl` is set to `true`, the broker will fail to start.
+
 0.15.0
 ------
 

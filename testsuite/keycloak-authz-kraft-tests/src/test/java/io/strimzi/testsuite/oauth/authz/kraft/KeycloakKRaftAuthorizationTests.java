@@ -11,6 +11,7 @@ import io.strimzi.testsuite.oauth.authz.MetricsTest;
 import io.strimzi.testsuite.oauth.authz.MultiSaslTest;
 import io.strimzi.testsuite.oauth.authz.OAuthOverPlainTest;
 import io.strimzi.testsuite.oauth.authz.RefreshTest;
+import io.strimzi.testsuite.oauth.authz.ScramTest;
 import io.strimzi.testsuite.oauth.authz.SingletonTest;
 import io.strimzi.testsuite.oauth.common.TestContainersLogCollector;
 import io.strimzi.testsuite.oauth.common.TestContainersWatcher;
@@ -80,6 +81,9 @@ public class KeycloakKRaftAuthorizationTests {
 
             logStart("KeycloakKRaftAuthorizationTest :: MultiSaslTests");
             new MultiSaslTest(kafkaContainer).doTest();
+
+            logStart("KeycloakAuthorizationTest :: ScramTest");
+            new ScramTest().doTest();
 
             logStart("KeycloakKRaftAuthorizationTest :: JwtValidationAuthzTest");
             new BasicTest(kafkaContainer, JWT_LISTENER, false).doTest();

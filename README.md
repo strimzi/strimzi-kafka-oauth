@@ -94,7 +94,7 @@ OAuth2 for Authorization
 Authentication is the procedure of establishing if the user is who they claim they are.
 Authorization is the procedure of deciding if the user is allowed to perform some action using some resource.
 Kafka brokers by default allow all users full access - there is no specific authorization policy in place.
-Kafka comes with an implementation of ACL based authorization mechanism where access rules are saved in ZooKeeper and replicated across brokers. 
+Kafka comes with an implementation of ACL based authorization mechanism where access rules are saved in kafka controller nodes and replicated across them. 
 
 Authorization in Kafka is implemented completely separately and independently of authentication.
 Thus, it is possible to configure Kafka brokers to use OAuth2 based authentication, and at the same time the default ACL authorization. 
@@ -150,8 +150,6 @@ Both authentication and authorization configuration specific to Strimzi Kafka OA
 The limitation here is that authentication configuration specified in this manner can not be listener-scoped.
 
 ### Configuring the Kafka Broker authentication
-
-Note: Strimzi Kafka OAuth can not be used for Kafka Broker to Zookeeper authentication. It only supports Kafka Client to Kafka Broker authentication (including inter-broker communication).
 
 There are several steps to configuring the Kafka Broker:
 
@@ -685,14 +683,15 @@ Strimzi Kafka OAuth provides support to centrally manage not only users and clie
 
 Support for this works specifically with Keycloak Authorization Services.
 
-By default, authorization is not enabled on Kafka Broker. There is `kafka.security.authorizer.AclAuthorizer` that comes with Kafka out-of-the-box and works with Zookeeper, and `org.apache.kafka.metadata.authorizer.StandardAuthorizer` that works in KRaft mode.
-They behave the same and handle the standard Kafka ACL based permissions as documented in [Kafka Documentation](https://kafka.apache.org/documentation/). 
+By default, authorization is not enabled on Kafka Broker. There is `org.apache.kafka.metadata.authorizer.StandardAuthorizer` that comes with Kafka and handles the standard Kafka ACL based permissions as documented in [Kafka Documentation](https://kafka.apache.org/documentation/). 
 
 Strimzi Kafka OAuth provides an alternative authorizer - `io.strimzi.kafka.oauth.server.authorizer.KeycloakAuthorizer`.
 `KeycloakAuthorizer` uses the access token and the Token Endpoint of the same Keycloak realm used for OAuth2 authentication as a source of permission grants for the authenticated session.
 
-Note: In `Kafka` versions prior to 3.3.x `io.strimzi.kafka.oauth.server.authorizer.KeycloakRBACAuthorizer` class should be used for the authorizer. For latest versions of `Kafka` the `KeycloakAuthorizer` which supports both KRaft mode and Zookeeper mode should be used. 
-The `KeycloakAuthorizer` detects the runtime environment, and delegates to `ACLAuthorizer` when in Zookeeper mode, and to `StandardAuthorizer` when in KRaft mode (as detected based on the presence of `process.roles` config property). 
+The `KeycloakAuthorizer` detects the runtime environment, and delegates to `StandardAuthorizer` when in KRaft mode (as detected based on the presence of `process.roles` config property).
+
+Note: Since version 0.16.0 of this project the Kafka ACL delegation (`strimzi.authorization.delegate.to.kafka.acl=true`) is no longer supported in Zookeeper mode. If you want to keep using it, you should upgrade your nodes to KRaft mode.
+
 
 #### Enabling the KeycloakAuthorizer
 

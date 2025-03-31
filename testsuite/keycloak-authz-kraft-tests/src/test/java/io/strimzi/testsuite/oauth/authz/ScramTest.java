@@ -18,6 +18,7 @@ import java.util.concurrent.ExecutionException;
 
 import static io.strimzi.testsuite.oauth.authz.Common.buildProducerConfigScram;
 import static io.strimzi.testsuite.oauth.authz.Common.produceToTopic;
+import static io.strimzi.testsuite.oauth.common.TestUtil.assertTrueExtra;
 
 @SuppressFBWarnings("THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION")
 public class ScramTest {
@@ -48,7 +49,7 @@ public class ScramTest {
             produceToTopic("KeycloakAuthorizationTest-multiSaslTest-scram", producerProps);
             Assert.fail("Should have failed");
         } catch (ExecutionException e) {
-            Assert.assertTrue("Instance of authentication exception", e.getCause() instanceof AuthenticationException);
+            assertTrueExtra("Instance of authentication exception", e.getCause() instanceof AuthenticationException, e);
         }
 
         // alice:alice-secret (user 'alice' has been configured for SCRAM in 'docker/kafka/scripts/start.sh')

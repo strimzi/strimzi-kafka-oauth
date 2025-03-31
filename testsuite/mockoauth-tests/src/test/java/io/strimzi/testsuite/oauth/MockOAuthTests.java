@@ -49,15 +49,15 @@ public class MockOAuthTests {
     private static TestContainersWatcher initWatcher() {
         TestContainersWatcher watcher = new TestContainersWatcher(new File(includeKerberosTests ? "docker-compose-kerberos.yml" : "docker-compose.yml"));
         if (includeKerberosTests) {
-            watcher.withServices("mockoauth", "kerberos", "kafka", "zookeeper")
+            watcher.withServices("mockoauth", "kerberos", "kafka")
                     .waitingFor("kerberos", Wait.forLogMessage(".*commencing operation.*", 1)
                             .withStartupTimeout(Duration.ofSeconds(180)));
         } else {
-            watcher.withServices("mockoauth", "kafka", "zookeeper");
+            watcher.withServices("mockoauth", "kafka");
         }
         watcher.waitingFor("mockoauth", Wait.forLogMessage(".*Succeeded in deploying verticle.*", 1)
                         .withStartupTimeout(Duration.ofSeconds(180)))
-                .waitingFor("kafka", Wait.forLogMessage(".*started \\(kafka.server.KafkaServer\\).*", 1)
+                .waitingFor("kafka", Wait.forLogMessage(".*started \\(kafka.server.KafkaRaftServer\\).*", 1)
                         .withStartupTimeout(Duration.ofSeconds(300)));
 
         return watcher;

@@ -32,7 +32,7 @@ Running
 
 You may first need to perform the following cleanup of pre-existing containers / network definitions:
 
-    docker rm -f keycloak kafka zookeeper hydra hydra-jwt mockoauth kerberos
+    docker rm -f keycloak kafka hydra hydra-jwt mockoauth kerberos
     docker network rm $(docker network ls | grep test | awk '{print $1}')
     
 To build and run the testsuite you need a running 'docker' daemon, then simply run:
@@ -103,7 +103,7 @@ An example error message:
 
 Run the following to remove any left-over containers:
 
-    docker rm -f kafka zookeeper keycloak hydra
+    docker rm -f kafka keycloak hydra
 
 If this fails, and you see 'Cannot remove ... Permission Denied' in `dockerd` log on Linux, you may have issues with AppArmor service.
 

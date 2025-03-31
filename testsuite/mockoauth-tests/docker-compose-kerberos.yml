@@ -54,12 +54,19 @@ services:
       #- DEBUG_SUSPEND_FLAG=y
       #- JAVA_DEBUG_PORT=0.0.0.0:5006
 
-      - KAFKA_BROKER_ID=1
-      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
-      - KAFKA_LISTENERS=INTERBROKER://kafka:9091,JWT://kafka:9092,INTROSPECT://kafka:9093,JWTPLAIN://kafka:9094,PLAIN://kafka:9095,INTROSPECTTIMEOUT://kafka:9096,FAILINGINTROSPECT://kafka:9097,FAILINGJWT://kafka:9098,KERBEROS://kafka:9099
-      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=INTERBROKER:PLAINTEXT,JWT:SASL_PLAINTEXT,INTROSPECT:SASL_PLAINTEXT,JWTPLAIN:SASL_PLAINTEXT,PLAIN:SASL_PLAINTEXT,INTROSPECTTIMEOUT:SASL_PLAINTEXT,FAILINGINTROSPECT:SASL_PLAINTEXT,FAILINGJWT:SASL_PLAINTEXT,KERBEROS:SASL_PLAINTEXT
+      # KRaft properties
+      - KAFKA_PROCESS_ROLES=broker,controller
+      - KAFKA_NODE_ID=1
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka:9091
+      - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_SASL_MECHANISM_CONTROLLER_PROTOCOL=PLAIN
+
+      - KAFKA_LISTENERS=CONTROLLER://kafka:9091,JWT://kafka:9092,INTROSPECT://kafka:9093,JWTPLAIN://kafka:9094,PLAIN://kafka:9095,INTROSPECTTIMEOUT://kafka:9096,FAILINGINTROSPECT://kafka:9097,FAILINGJWT://kafka:9098,KERBEROS://kafka:9099
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:SASL_PLAINTEXT,JWT:SASL_PLAINTEXT,INTROSPECT:SASL_PLAINTEXT,JWTPLAIN:SASL_PLAINTEXT,PLAIN:SASL_PLAINTEXT,INTROSPECTTIMEOUT:SASL_PLAINTEXT,FAILINGINTROSPECT:SASL_PLAINTEXT,FAILINGJWT:SASL_PLAINTEXT,KERBEROS:SASL_PLAINTEXT
       - KAFKA_SASL_ENABLED_MECHANISMS=OAUTHBEARER
-      - KAFKA_INTER_BROKER_LISTENER_NAME=INTERBROKER
+
+      - KAFKA_INTER_BROKER_LISTENER_NAME=JWT
+      - KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL=OAUTHBEARER
 
       # Common settings for all the listeners
       # username extraction from JWT token claim
@@ -67,6 +74,9 @@ services:
       - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
 
       # Configuration of individual listeners
+      - KAFKA_LISTENER_NAME_CONTROLLER_SASL_ENABLED_MECHANISMS=PLAIN
+      - KAFKA_LISTENER_NAME_CONTROLLER_PLAIN_SASL_JAAS_CONFIG=org.apache.kafka.common.security.plain.PlainLoginModule required    username=\"admin\"    password=\"admin-password\"    user_admin=\"admin-password\"    user_bobby=\"bobby-secret\" ;
+
       - KAFKA_LISTENER_NAME_INTROSPECT_OAUTHBEARER_SASL_JAAS_CONFIG=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required    oauth.config.id=\"INTROSPECT\"    oauth.introspection.endpoint.uri=\"https://mockoauth:8090/introspect\"    oauth.client.id=\"unused\"    oauth.client.secret=\"unused-secret\"    oauth.valid.issuer.uri=\"https://mockoauth:8090\"    unsecuredLoginStringClaim_sub=\"admin\" ;
       - KAFKA_LISTENER_NAME_INTROSPECT_OAUTHBEARER_SASL_SERVER_CALLBACK_HANDLER_CLASS=io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
       #- KAFKA_LISTENER_NAME_INTROSPECT_OAUTHBEARER_SASL_LOGIN_CALLBACK_HANDLER_CLASS=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
@@ -125,19 +135,6 @@ services:
       - KAFKA_LISTENER_NAME_KERBEROS_SASL_KERBEROS_SERVICE_NAME=kafka
       - KAFKA_LISTENER_NAME_KERBEROS_SASL_ENABLED_MECHANISMS=GSSAPI
       - KAFKA_OPTS=-Djava.security.krb5.conf=/etc/krb5.conf -Djava.security.auth.login.config=/opt/kafka/kafka_server_jaas.conf
-
-  zookeeper:
-    image: ${KAFKA_DOCKER_IMAGE}
-    ports:
-      - "2181:2181"
-    volumes:
-      - ${PWD}/../docker/zookeeper/scripts:/opt/kafka/strimzi
-    command:
-      - /bin/bash
-      - -c
-      - cd /opt/kafka/strimzi && ./start.sh
-    environment:
-      - LOG_DIR=/tmp/logs
 
   kerberos:
     build: ${PWD}/../docker/kerberos

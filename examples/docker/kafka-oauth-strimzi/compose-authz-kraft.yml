@@ -14,7 +14,7 @@ services:
     command:
       - /bin/bash
       - -c
-      - cd /opt/kafka && ./start.sh --kraft
+      - cd /opt/kafka && ./start.sh
 
     environment:
 

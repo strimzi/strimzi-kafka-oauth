@@ -39,11 +39,6 @@
             <artifactId>common</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.strimzi.oauth.testsuite</groupId>
-            <artifactId>keycloak-authz-tests</artifactId>
-        </dependency>
-
-        <dependency>
             <groupId>io.strimzi</groupId>
             <artifactId>kafka-oauth-common</artifactId>
         </dependency>
@@ -58,6 +53,10 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.github.spotbugs</groupId>
+            <artifactId>spotbugs-annotations</artifactId>
         </dependency>
     </dependencies>
 </project>

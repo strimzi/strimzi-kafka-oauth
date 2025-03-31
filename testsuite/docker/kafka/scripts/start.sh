@@ -10,10 +10,6 @@ fi
 
 wait_for_url $URI "Waiting for Keycloak to start"
 
-[ "$KAFKA_ZOOKEEPER_CONNECT" == "" ] && KAFKA_ZOOKEEPER_CONNECT=localhost:2181
-[ "$KAFKA_ZOOKEEPER_CONNECTION_TIMEOUT_MS" == "" ] && KAFKA_ZOOKEEPER_CONNECTION_TIMEOUT_MS=6000
-
-
 ./simple_kafka_config.sh $1 | tee /tmp/strimzi.properties
 
 echo "Config created"
@@ -25,18 +21,14 @@ unset KAFKA_DEBUG
 export CLASSPATH="/opt/kafka/libs/strimzi/*:$CLASSPATH"
 echo "CLASSPATH=$CLASSPATH"
 
-if [[ "$1" == "--kraft" ]]; then
-  KAFKA_CLUSTER_ID="$(/opt/kafka/bin/kafka-storage.sh random-uuid)"
-  /opt/kafka/bin/kafka-storage.sh format -t $KAFKA_CLUSTER_ID -c /tmp/strimzi.properties
-  echo "Initialised kafka storage for KRaft"
-else
-  # Add 'admin' user
-  /opt/kafka/bin/kafka-configs.sh --zookeeper zookeeper:2181 --alter --add-config 'SCRAM-SHA-512=[password=admin-secret]' --entity-type users --entity-name admin
-  # Add 'alice' user
-  /opt/kafka/bin/kafka-configs.sh --zookeeper zookeeper:2181 --alter --add-config 'SCRAM-SHA-512=[password=alice-secret]' --entity-type users --entity-name alice
 
-  echo "Added user secrets for SCRAM"
-fi
+KAFKA_CLUSTER_ID="$(/opt/kafka/bin/kafka-storage.sh random-uuid)"
+/opt/kafka/bin/kafka-storage.sh format -t $KAFKA_CLUSTER_ID -c /tmp/strimzi.properties \
+    --add-scram 'SCRAM-SHA-512=[name=admin,password=admin-secret]' \
+    --add-scram 'SCRAM-SHA-512=[name=alice,password=alice-secret]'
+
+echo "Initialised kafka storage for KRaft and added user secrets for SCRAM"
+
 
 export KAFKA_DEBUG=$KAFKA_DEBUG_PASSED
 

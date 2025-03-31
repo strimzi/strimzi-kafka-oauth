@@ -18,7 +18,6 @@ import io.strimzi.kafka.oauth.server.ServerConfig;
 import io.strimzi.kafka.oauth.server.TestTokenFactory;
 import io.strimzi.kafka.oauth.server.authorizer.AuthzConfig;
 import io.strimzi.kafka.oauth.server.authorizer.KeycloakAuthorizer;
-import io.strimzi.kafka.oauth.server.authorizer.KeycloakRBACAuthorizer;
 import io.strimzi.kafka.oauth.server.authorizer.TestAuthzUtil;
 import io.strimzi.testsuite.oauth.common.TestUtil;
 import org.apache.kafka.common.acl.AclOperation;
@@ -106,6 +105,7 @@ public class KeycloakAuthorizerTest {
 
     public void doTests() throws Exception {
         doConfigTests();
+        doAclDelegationConfigTests();
         doMalformedGrantsTests();
         doGrantsSemanticEqualsTest();
         doHttpRetriesTest();
@@ -230,7 +230,7 @@ public class KeycloakAuthorizerTest {
         HashMap<String, String> props = configureAuthorizer();
         props.put(AuthzConfig.STRIMZI_AUTHORIZATION_TOKEN_ENDPOINT_URI, "https://mockoauth:8090/failing_grants");
 
-        try (KeycloakRBACAuthorizer authorizer = new KeycloakRBACAuthorizer()) {
+        try (KeycloakAuthorizer authorizer = new KeycloakAuthorizer()) {
             authorizer.configure(props);
 
             try {
@@ -397,6 +397,7 @@ public class KeycloakAuthorizerTest {
         logStart("KeycloakAuthorizerTest :: Config Tests");
 
         HashMap<String, String> config = new HashMap<>();
+        config.put("process.roles", "broker,controller");
 
         try (KeycloakAuthorizer authorizer = new KeycloakAuthorizer()) {
             try {
@@ -501,7 +502,9 @@ public class KeycloakAuthorizerTest {
         );
 
 
-        // test OAUTH_INCLUDE_ACCEPT_HEADER fallback
+        //
+        // Test OAUTH_INCLUDE_ACCEPT_HEADER fallback
+        //
         config.remove(AuthzConfig.STRIMZI_AUTHORIZATION_INCLUDE_ACCEPT_HEADER);
         System.setProperty(Config.OAUTH_INCLUDE_ACCEPT_HEADER, "false");
 
@@ -516,8 +519,9 @@ public class KeycloakAuthorizerTest {
 
         System.clearProperty(Config.OAUTH_INCLUDE_ACCEPT_HEADER);
 
-
-        // test gcPeriodSeconds set to 0
+        //
+        // Test gcPeriodSeconds set to 0
+        //
         config.put(AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_GC_PERIOD_SECONDS, "0");
 
         TestAuthzUtil.clearKeycloakAuthorizerService();
@@ -528,6 +532,39 @@ public class KeycloakAuthorizerTest {
         checkLog(logReader,
                 "'strimzi.authorization.grants.gc.period.seconds' set to invalid value", "0, using the default value: 300 seconds",
                 "gcPeriodSeconds", "300");
+
+        TestAuthzUtil.clearKeycloakAuthorizerService();
+    }
+
+    private static void doAclDelegationConfigTests() throws IOException {
+        HashMap<String, String> config = new HashMap<>();
+
+        //
+        // Test ACL Delegation in Zookeeper Mode
+        //
+
+        // Setup config for Zookeeper mode
+        config.put("principal.builder.class", "io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder");
+        config.put(AuthzConfig.STRIMZI_AUTHORIZATION_TOKEN_ENDPOINT_URI, GRANTS_ENDPOINT);
+        config.put(AuthzConfig.STRIMZI_AUTHORIZATION_CLIENT_ID, "kafka");
+
+        try (KeycloakAuthorizer authorizer = new KeycloakAuthorizer()) {
+            authorizer.configure(config);
+        }
+
+        TestAuthzUtil.clearKeycloakAuthorizerService();
+
+        // enable ACL delegation
+        config.put(AuthzConfig.STRIMZI_AUTHORIZATION_DELEGATE_TO_KAFKA_ACL, "true");
+
+        try (KeycloakAuthorizer authorizer = new KeycloakAuthorizer()) {
+            try {
+                authorizer.configure(config);
+                Assert.fail("Should have failed");
+            } catch (ConfigException e) {
+                Assert.assertTrue("'strimzi.authorization.delegate.to.kafka.acl' in Zookeeper mode", e.getMessage().contains("Zookeeper mode detected (no 'process.roles' configured) and delegation to ACL Authorizer has been enabled. This is no longer supported. Either turn off the delegation or upgrade the broker to KRaft mode."));
+            }
+        }
 
         TestAuthzUtil.clearKeycloakAuthorizerService();
     }
@@ -919,6 +956,7 @@ public class KeycloakAuthorizerTest {
         props.put(AuthzConfig.STRIMZI_AUTHORIZATION_HTTP_RETRIES, "1");
         props.put("super.users", "User:admin;User:service-account-kafka");
         props.put("principal.builder.class", "io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder");
+        props.put("process.roles", "broker,controller");
         return props;
     }
 

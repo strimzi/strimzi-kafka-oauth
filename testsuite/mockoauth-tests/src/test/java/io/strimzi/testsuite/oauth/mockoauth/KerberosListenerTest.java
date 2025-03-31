@@ -57,8 +57,8 @@ public class KerberosListenerTest {
         try {
             result.all().get();
         } catch (Exception e) {
-            Assert.fail("Failed to create topic on Kerberos listener because of " + e.getMessage());
             e.printStackTrace();
+            Assert.fail("Failed to create topic on Kerberos listener because of " + e.getMessage());
         }
 
         Properties producerProps = (Properties) props.clone();
