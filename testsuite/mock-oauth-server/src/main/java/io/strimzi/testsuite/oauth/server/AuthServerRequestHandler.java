@@ -27,8 +27,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
@@ -313,7 +318,19 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
                 UserInfo userInfo = username != null ? verticle.getUsers().get(username) : null;
                 long expiresIn = userInfo != null && userInfo.expiresIn != null ? userInfo.expiresIn : EXPIRES_IN_SECONDS;
 
-                String accessToken = createSignedAccessToken(clientId, username, expiresIn);
+                Map<String, String> extraClaimsMap = getExtraClaimsMap(form);
+
+                // See if EXP (expiresAtEpochSeconds) override is present
+                String exp = extraClaimsMap.get("exp");
+                if (exp != null) {
+                    try {
+                        expiresIn = (Long.parseLong(exp) * 1000 - System.currentTimeMillis()) / 1000;
+                    } catch (NumberFormatException e) {
+                        log.error("Failed to parse 'exp'': ", e);
+                    }
+                }
+
+                String accessToken = createSignedAccessToken(clientId, username, expiresIn, extraClaimsMap);
                 String refreshToken = createRefreshToken(clientId, username);
                 JsonObject result = new JsonObject();
                 result.put("access_token", accessToken);
@@ -328,6 +345,33 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
                 handleFailure(req, t, log);
             }
         });
+    }
+
+    /**
+     * Extracts the extra claims from the form
+     *
+     * @param form Attributes from the submitted form
+     * @return A map of key value pairs representing the extra claims
+     */
+    private static Map<String, String> getExtraClaimsMap(MultiMap form) {
+
+        // Make a copy of the form entries and remove the ones that are not the extra claims
+        List<Map.Entry<String, String>> formEntries = new ArrayList<>(form.entries());
+        Iterator<Map.Entry<String, String>> it = formEntries.iterator();
+        HashSet<String> forRemoval = new HashSet<>(Arrays.asList(
+                "grant_type", "client_id", "client_assertion", "client_assertion_type", "username",
+                "password", "refresh_token"));
+
+        while (it.hasNext()) {
+            Map.Entry<String, String> e = it.next();
+            if (forRemoval.contains(e.getKey().toLowerCase(Locale.ENGLISH))) {
+                it.remove();
+            }
+        }
+
+        Map<String, String> formMap = formEntries.stream()
+                .collect(Collectors.toMap(entry -> entry.getKey().toLowerCase(Locale.ENGLISH), Map.Entry::getValue, (existing, replacement) -> replacement));
+        return formMap;
     }
 
     private boolean processUnauthorized(HttpServerRequest req, String grantType, String username, String clientId) {
@@ -519,7 +563,7 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
         return System.currentTimeMillis() > expiryTimeSeconds * 1000L;
     }
 
-    private String createSignedAccessToken(String clientId, String username, long expiresIn) throws JOSEException, NoSuchAlgorithmException {
+    private String createSignedAccessToken(String clientId, String username, long expiresIn, Map<String, String> claims) throws JOSEException, NoSuchAlgorithmException {
 
         // Create RSA-signer with the private key
         JWSSigner signer = new RSASSASigner(verticle.getSigKey());
@@ -529,6 +573,15 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
                 .subject(username != null ? username : clientId)
                 .issuer("https://mockoauth:8090")
                 .expirationTime(new Date(System.currentTimeMillis() + expiresIn * 1000));
+
+        for (Map.Entry<String, String> entry : claims.entrySet()) {
+            if ("exp".equalsIgnoreCase(entry.getKey())) {
+                // override the expiration time
+                builder.expirationTime(new Date(Long.parseLong(entry.getValue()) * 1000));
+                continue;
+            }
+            builder.claim(entry.getKey(), entry.getValue());
+        }
 
         if (clientId != null) {
             builder.claim("clientId", clientId);

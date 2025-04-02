@@ -35,6 +35,8 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 
+import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.base64encode;
+
 public class Common {
 
     static final String WWW_FORM_CONTENT_TYPE = "application/x-www-form-urlencoded";
@@ -91,6 +93,18 @@ public class Common {
         return p;
     }
 
+    /**
+     * Get an access token from the token endpoint using client credentials by way of the <code>OAuthAuthenticator.loginWithClientSecret</code> method.
+     *
+     * @param tokenEndpoint The token endpoint
+     * @param clientId The client ID
+     * @param secret The client secret
+     * @param truststorePath The path to the truststore for TLS connection
+     * @param truststorePass The truststore password for TLS connection
+     * @return The access token returned from the authorization server's token endpoint
+     *
+     * @throws IOException Exception while sending the request
+     */
     static String loginWithClientSecret(String tokenEndpoint, String clientId, String secret, String truststorePath, String truststorePass) throws IOException {
         TokenInfo tokenInfo = OAuthAuthenticator.loginWithClientSecret(
                 URI.create(tokenEndpoint),
@@ -105,6 +119,51 @@ public class Common {
                 true);
 
         return tokenInfo.token();
+    }
+
+    /**
+     * Get an access token from the token endpoint using client credentials and additional body attributes.
+     * <p>
+     * The Mock OAuth server takes the extraAttrs and writes them into the payload of the generated access token.
+     *
+     * @param tokenEndpoint The token endpoint
+     * @param clientId The client ID
+     * @param secret The client secret
+     * @param truststorePath The path to the truststore for TLS connection
+     * @param truststorePass The truststore password for TLS connection
+     * @param extraAttrs The string of url-encoded key=value pairs separated by '&' to be added to the body of the token request
+     * @return The access token returned from the authorization server's token endpoint
+     * @throws IOException Exception while sending the request
+     */
+    static String loginWithClientSecretAndExtraAttrs(String tokenEndpoint, String clientId, String secret,
+                                                     String truststorePath, String truststorePass, String extraAttrs) throws IOException {
+
+        if (clientId == null) {
+            throw new IllegalArgumentException("No clientId specified");
+        }
+        if (secret == null) {
+            secret = "";
+        }
+
+        String authorization = "Basic " + base64encode(clientId + ':' + secret);
+
+        StringBuilder body = new StringBuilder("grant_type=client_credentials");
+        if (extraAttrs != null) {
+            body.append("&").append(extraAttrs);
+        }
+        JsonNode result = HttpUtil.post(URI.create(tokenEndpoint),
+                SSLUtil.createSSLFactory(truststorePath, null, truststorePass, null, null),
+                null,
+                authorization,
+                WWW_FORM_CONTENT_TYPE,
+                body.toString(),
+                JsonNode.class);
+
+        JsonNode token = result.get("access_token");
+        if (token == null) {
+            throw new IllegalStateException("Invalid response from authorization server: no access_token");
+        }
+        return token.asText();
     }
 
     static String loginWithUsernameForRefreshToken(String tokenEndpointUri, String username, String password, String clientId, String truststorePath, String truststorePass) throws IOException {

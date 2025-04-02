@@ -13,6 +13,7 @@ import io.strimzi.testsuite.oauth.mockoauth.ConnectTimeoutTests;
 import io.strimzi.testsuite.oauth.mockoauth.JWKSKeyUseTest;
 import io.strimzi.testsuite.oauth.mockoauth.JaasClientConfigTest;
 import io.strimzi.testsuite.oauth.mockoauth.JaasServerConfigTest;
+import io.strimzi.testsuite.oauth.mockoauth.JwtExtractTest;
 import io.strimzi.testsuite.oauth.mockoauth.KeycloakAuthorizerTest;
 import io.strimzi.testsuite.oauth.mockoauth.PasswordAuthAndPrincipalExtractionTest;
 import io.strimzi.testsuite.oauth.mockoauth.RetriesTests;
@@ -86,6 +87,9 @@ public class MockOAuthTests {
 
             logStart("JWKSKeyUseTest :: JWKS KeyUse Test");
             new JWKSKeyUseTest().doTest();
+
+            logStart("JwtExtractTest :: JWT 'exp' attribute overflow Test");
+            new JwtExtractTest().doTest();
 
             logStart("JaasClientConfigTest :: Client Configuration Tests");
             new JaasClientConfigTest().doTest();
