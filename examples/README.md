@@ -5,7 +5,7 @@ This directory contains some `docker-compose` based example configurations for s
 
 The Keycloak based demo uses a set of preconfigured realms containing configurations for clients and users. The `kafka` image is based on a recent `quay.io/strimzi/kafka` image with included strimzi-kafka-oauth jars produced by the build of the current branch (see: `docker/kafka-oauth-strimzi`).
 
-Some of the demo configurations only set up the OAuth authentication, some also configure a custom authorization, using the authorizer for use with `Keycloak Authorization Services` (`docker/kafka-oauth-strimzi/compose-authz.yaml` and `docker/kafka-oauth-strimzi/compose-kraft-authz.yaml`).
+Some of the demo configurations only set up the OAuth authentication, some also configure a custom authorization, using the authorizer for use with `Keycloak Authorization Services` (`docker/kafka-oauth-strimzi/compose-authz.yaml`).
 
 
 Preparing
@@ -14,7 +14,7 @@ Preparing
 Configuring hostname resolution
 -------------------------------
 
-Make sure that the following ports on your host machine are free: 9091, 9092 (Kafka), 2181 (Zookeeper), 8080 (Spring or Keycloak), 8443 (Keycloak), 4444, 4445 (Hydra).
+Make sure that the following ports on your host machine are free: 9091, 9092 (Kafka), 8080 (Spring or Keycloak), 8443 (Keycloak), 4444, 4445 (Hydra).
 
 Then, you have to add some entries to your `/etc/hosts` file:
 
@@ -70,12 +70,12 @@ To regenerate Root CA run the following:
 You also have to regenerate keycloak and hydra server certificates otherwise clients won't be able to connect any more.
 
     cd keycloak/certificates
-    rm *.srl *.p12 cert-*
+    rm *.p12
     ./gen-keycloak-certs.sh
     cd ..
     
     cd ../hydra/certificates 
-    rm *.srl *.crt *.key *.csr
+    rm *.crt *.key
     ./gen-hydra-certs.sh
     cd ../..
 
@@ -100,7 +100,7 @@ Change into `examples/docker` directory before running any of the following exam
 
 You may want to remove any old containers to start clean:
 
-    docker rm -f kafka zookeeper keycloak hydra spring
+    docker rm -f kafka keycloak hydra spring
 
 
 Running with Keycloak
@@ -113,20 +113,6 @@ You can start up all the containers at once:
 Or, you can have multiple terminal windows and start individual component in each:
 
     docker-compose -f compose.yml -f kafka-oauth-strimzi/compose.yml up --build 
-
-    docker-compose -f compose.yml -f keycloak/compose.yml up
-
-
-Running with Keycloak in KRaft mode
------------------------------------
-
-You can start up all the containers at once:
-
-    docker-compose -f compose.yml -f kafka-oauth-strimzi/compose-kraft.yml -f keycloak/compose.yml up --build
-
-Or, you can have multiple terminal windows and start individual component in each:
-
-    docker-compose -f compose.yml -f kafka-oauth-strimzi/compose-kraft.yml up --build 
 
     docker-compose -f compose.yml -f keycloak/compose.yml up
 
@@ -196,6 +182,23 @@ Then start the Kafka broker:
     docker-compose -f compose.yml -f kafka-oauth-strimzi/compose-spring.yml up --build
 
 
+Running with Spring using JWT tokens
+------------------------------------
+
+The Spring example requires JDK version 17 or higher.
+
+Before running the `docker-compose` you have to build the example:
+
+    mvn clean install -f spring
+
+Start spring authorization server first:
+
+    docker-compose -f compose.yml -f spring/compose.yml up
+
+Then start the Kafka broker:
+
+    docker-compose -f compose.yml -f kafka-oauth-strimzi/compose-spring-jwt.yml up --build
+
 
 Running the clients
 ===================
@@ -214,11 +217,11 @@ Before running the example clients, you need to set additional env variables in 
     export OAUTH_SSL_TRUSTSTORE_PASSWORD=changeit
     export OAUTH_SSL_TRUSTSTORE_TYPE=pkcs12
 
-To use Keycloak as authorization server set url of Keycloak's demo realm token endpoint:
+To use Keycloak as authorization server set url of Keycloak's demo realm token endpoint, for example if you are using the Keycloak with SSL:
 
     export OAUTH_TOKEN_ENDPOINT_URI=https://keycloak:8443/realms/demo/protocol/openid-connect/token
 
-To use Hydra as authorization server set url of Hydra's token endpoint:
+To use Hydra as authorization server set url of Hydra's token endpoint, for example if you are using the Hydra with SSL:
 
     export OAUTH_TOKEN_ENDPOINT_URI=https://hydra:4444/oauth2/token
 
@@ -269,6 +272,13 @@ or the concurrent producer:
 
 Troubleshooting
 ---------------
+
+If 'kafka' fails to start with 'Invalid cluster.id in: /tmp/kraft-combined-logs/meta.properties.' error, the reason may be that an existing container named 'kafka' is being reused when running docker-compose.
+You can try to fix that by removing the existing 'kafka' container:
+
+    docker rm -f kafka
+
+Other reasons are possible as well, especially if you have changed the configuration of the Kafka broker, or the certificates.
 
 If you see exception messages like any of the following:
 * `org.apache.kafka.common.KafkaException: Failed to construct kafka consumer`

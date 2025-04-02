@@ -759,7 +759,7 @@ The following option can be used to set a custom value for the job period:
 There are some other things you may also want to configure. You may want to set a logical cluster name so you can target it with authorization rules:
 - `strimzi.authorization.kafka.cluster.name` (e.g.: "dev-cluster" - a logical name of the cluster which can be targeted with authorization services resource definitions, and permission policies)
 
-You can integrate KeycloakAuthorizer with AclAuthorizer (in Zookeeper mode) or StandardAuthorizer (in KRaft mode):
+You can integrate KeycloakAuthorizer with StandardAuthorizer (in KRaft mode only):
 - `strimzi.authorization.delegate.to.kafka.acl` (e.g.: "true" - if enabled, then when action is not granted based on Keycloak Authorization Services grant it is delegated to ACLAuthorizer / StandardAuthorizer which can still grant it.)
 
 If you turn on authorization support in Kafka brokers, you need to properly set `super.users` property. 

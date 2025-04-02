@@ -19,16 +19,21 @@ services:
       #
       # KAFKA Configuration
       #
-      LOG_DIR: /home/kafka/logs
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_NODE_ID: "1"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka:9090"
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_SASL_MECHANISM_CONTROLLER_PROTOCOL: PLAIN
 
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_LISTENERS: REPLICATION://kafka:9091,CLIENT://kafka:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: REPLICATION:SSL,CLIENT:SASL_PLAINTEXT
+      KAFKA_LISTENERS: CONTROLLER://kafka:9090,REPLICATION://kafka:9091,CLIENT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:SASL_PLAINTEXT,REPLICATION:SSL,CLIENT:SASL_PLAINTEXT
       KAFKA_SASL_ENABLED_MECHANISMS: PLAIN,OAUTHBEARER,SCRAM-SHA-256
       KAFKA_INTER_BROKER_LISTENER_NAME: REPLICATION
       KAFKA_SSL_SECURE_RANDOM_IMPLEMENTATION: SHA1PRNG
       KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: ""
+
+      KAFKA_LISTENER_NAME_CONTROLLER_SASL_ENABLED_MECHANISMS: PLAIN
+      KAFKA_LISTENER_NAME_CONTROLLER_PLAIN_SASL_JAAS_CONFIG: "org.apache.kafka.common.security.plain.PlainLoginModule required    username=\"admin\"    password=\"admin-password\"    user_admin=\"admin-password\"    user_bobby=\"bobby-secret\" ;"
 
       KAFKA_LISTENER_NAME_REPLICATION_SSL_KEYSTORE_LOCATION: /tmp/kafka/cluster.keystore.p12
       KAFKA_LISTENER_NAME_REPLICATION_SSL_KEYSTORE_PASSWORD: Z_pkTh9xgZovK4t34cGB2o6afT4zZg0L
@@ -50,9 +55,9 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
 
       KAFKA_PRINCIPAL_BUILDER_CLASS: io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder
-      KAFKA_AUTHORIZER_CLASS_NAME: io.strimzi.kafka.oauth.server.authorizer.KeycloakRBACAuthorizer
+      KAFKA_AUTHORIZER_CLASS_NAME: io.strimzi.kafka.oauth.server.authorizer.KeycloakAuthorizer
 
-      KAFKA_STRIMZI_AUTHORIZATION_KAFKA_CLUSTER_NAME: cluster2
+      KAFKA_STRIMZI_AUTHORIZATION_KAFKA_CLUSTER_NAME: mycluster
       KAFKA_STRIMZI_AUTHORIZATION_DELEGATE_TO_KAFKA_ACL: "true"
       KAFKA_STRIMZI_AUTHORIZATION_GRANTS_REFRESH_POOL_SIZE: "10"
       KAFKA_STRIMZI_AUTHORIZATION_GRANTS_REFRESH_PERIOD_SECONDS: "30"
@@ -71,7 +76,7 @@ services:
       OAUTH_TOKEN_ENDPOINT_URI: "http://${KEYCLOAK_HOST:-keycloak}:8080/realms/${REALM:-kafka-authz}/protocol/openid-connect/token"
 
       # Validation config
-      OAUTH_VALID_ISSUER_URI: "http://${KEYCLOAK_HOST:-keycloak}:8080/realms/${REALM:-kafka-authz}"
+      OAUTH_VALID_ISSUER_URI: "https://${KEYCLOAK_HOST:-keycloak}:8443/realms/${REALM:-kafka-authz}"
       OAUTH_JWKS_ENDPOINT_URI: "http://${KEYCLOAK_HOST:-keycloak}:8080/realms/${REALM:-kafka-authz}/protocol/openid-connect/certs"
       #OAUTH_INTROSPECTION_ENDPOINT_URI: "http://${KEYCLOAK_HOST:-keycloak}:8080/realms/${REALM:-demo}/protocol/openid-connect/token/introspect"
 
@@ -83,15 +88,5 @@ services:
       # For start.sh script to know where the keycloak is listening
       KEYCLOAK_HOST: ${KEYCLOAK_HOST:-keycloak}
       REALM: ${REALM:-kafka-authz}
-    depends_on:
-      - zookeeper
-    restart: on-failure
 
-  zookeeper:
-    image: strimzi/example-zookeeper
-    build: kafka-oauth-strimzi/zookeeper/target
-    container_name: zookeeper
-    ports:
-      - 2181:2181
-    environment:
-      LOG_DIR: /home/kafka/logs
+    restart: on-failure

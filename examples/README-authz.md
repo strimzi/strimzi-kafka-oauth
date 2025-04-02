@@ -32,7 +32,7 @@ Change into `examples/docker` directory before running any of the following exam
 
 You may want to remove any old containers to start clean:
 
-    docker rm -f kafka zookeeper keycloak hydra spring
+    docker rm -f kafka keycloak hydra spring
  
 Let's start up all the containers with authorization configured, and we'll then perform any manual step, and explain how everything works.
 

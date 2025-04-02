@@ -38,12 +38,6 @@ spec:
         type: persistent-claim
         size: 100Gi
         deleteClaim: false
-  zookeeper:
-    replicas: 1
-    storage:
-      type: persistent-claim
-      size: 100Gi
-      deleteClaim: false
   entityOperator:
     topicOperator: {}
     userOperator: {}

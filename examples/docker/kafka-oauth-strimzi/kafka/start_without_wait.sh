@@ -3,6 +3,9 @@ set -e
 
 ./simple_kafka_config.sh | tee /tmp/strimzi.properties
 
+KAFKA_CLUSTER_ID="$(/opt/kafka/bin/kafka-storage.sh random-uuid)"
+/opt/kafka/bin/kafka-storage.sh format -t $KAFKA_CLUSTER_ID -c /tmp/strimzi.properties
+
 # add Strimzi kafka-oauth-* jars and their dependencies to classpath
 export CLASSPATH="/opt/kafka/libs/strimzi/*:$CLASSPATH"
 

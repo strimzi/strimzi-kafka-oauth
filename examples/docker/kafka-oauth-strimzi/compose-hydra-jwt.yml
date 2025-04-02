@@ -26,14 +26,20 @@ services:
       # KAFKA Configuration
       #
       LOG_DIR: /home/kafka/logs
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_NODE_ID: "1"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka:9091"
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_SASL_MECHANISM_CONTROLLER_PROTOCOL: PLAIN
 
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_LISTENERS: CLIENT://kafka:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CLIENT:SASL_PLAINTEXT
+      KAFKA_LISTENERS: "CONTROLLER://kafka:9091,CLIENT://kafka:9092"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:SASL_PLAINTEXT,CLIENT:SASL_PLAINTEXT"
       KAFKA_SASL_ENABLED_MECHANISMS: OAUTHBEARER
       KAFKA_INTER_BROKER_LISTENER_NAME: CLIENT
       KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: OAUTHBEARER
+
+      KAFKA_LISTENER_NAME_CONTROLLER_SASL_ENABLED_MECHANISMS: PLAIN
+      KAFKA_LISTENER_NAME_CONTROLLER_PLAIN_SASL_JAAS_CONFIG: "org.apache.kafka.common.security.plain.PlainLoginModule required    username=\"admin\"    password=\"admin-password\"    user_admin=\"admin-password\"    user_bobby=\"bobby-secret\" ;"
 
       KAFKA_LISTENER_NAME_CLIENT_OAUTHBEARER_SASL_JAAS_CONFIG: "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required;"
       KAFKA_LISTENER_NAME_CLIENT_OAUTHBEARER_SASL_LOGIN_CALLBACK_HANDLER_CLASS: io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
@@ -70,15 +76,5 @@ services:
 
       # For start_with_hydra.sh script to know where hydra is listening
       HYDRA_HOST: ${HYDRA_HOST:-hydra}
-    depends_on:
-      - zookeeper
-    restart: on-failure
 
-  zookeeper:
-    image: strimzi/example-zookeeper
-    build: kafka-oauth-strimzi/zookeeper/target
-    container_name: zookeeper
-    ports:
-      - 2181:2181
-    environment:
-      LOG_DIR: /home/kafka/logs
+    restart: on-failure
