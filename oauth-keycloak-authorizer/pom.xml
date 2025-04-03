@@ -11,6 +11,10 @@
 
     <artifactId>kafka-oauth-keycloak-authorizer</artifactId>
 
+    <properties>
+        <maven.compiler.target>17</maven.compiler.target>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>io.strimzi</groupId>
