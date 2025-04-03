@@ -2,9 +2,7 @@
  * Copyright 2017-2023, Strimzi authors.
  * License: Apache License 2.0 (see the file LICENSE or http://apache.org/licenses/LICENSE-2.0.html).
  */
-package io.strimzi.testsuite.oauth.mockoauth;
-
-import io.strimzi.testsuite.oauth.common.TestUtil;
+package io.strimzi.testsuite.oauth.common;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -18,6 +16,8 @@ import java.util.concurrent.TimeoutException;
  */
 public class LogLineReader {
 
+    static final int LOOP_PAUSE_MS = 1000;
+    static final int TIMEOUT_SECONDS = 30;
     private final String logPath;
     private int logLineOffset = 0;
 
@@ -39,9 +39,9 @@ public class LogLineReader {
                 result.addAll(lines);
                 return false;
             } catch (Exception e) {
-                throw new RuntimeException("Failed to read log", e);
+                throw new LogLineReaderException("Failed to read log", e);
             }
-        }, KeycloakAuthorizerTest.LOOP_PAUSE_MS, KeycloakAuthorizerTest.TIMEOUT_SECONDS);
+        }, LOOP_PAUSE_MS, TIMEOUT_SECONDS);
 
         return result;
     }

@@ -2,7 +2,7 @@
  * Copyright 2017-2019, Strimzi authors.
  * License: Apache License 2.0 (see the file LICENSE or http://apache.org/licenses/LICENSE-2.0.html).
  */
-package io.strimzi.testsuite.oauth.mockoauth;
+package io.strimzi.testsuite.oauth.mockoauth.jdk17;
 
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
 import io.strimzi.kafka.oauth.common.Config;
@@ -19,6 +19,7 @@ import io.strimzi.kafka.oauth.server.TestTokenFactory;
 import io.strimzi.kafka.oauth.server.authorizer.AuthzConfig;
 import io.strimzi.kafka.oauth.server.authorizer.KeycloakAuthorizer;
 import io.strimzi.kafka.oauth.server.authorizer.TestAuthzUtil;
+import io.strimzi.testsuite.oauth.common.LogLineReader;
 import io.strimzi.testsuite.oauth.common.TestUtil;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.resource.PatternType;
@@ -57,20 +58,17 @@ import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 import static io.strimzi.testsuite.oauth.common.TestUtil.checkLogForRegex;
-import static io.strimzi.testsuite.oauth.mockoauth.Common.addGrantsForToken;
-import static io.strimzi.testsuite.oauth.mockoauth.Common.changeAuthServerMode;
-import static io.strimzi.testsuite.oauth.mockoauth.Common.checkLog;
-import static io.strimzi.testsuite.oauth.mockoauth.Common.createOAuthClient;
-import static io.strimzi.testsuite.oauth.mockoauth.Common.createOAuthUser;
+import static io.strimzi.testsuite.oauth.mockoauth.jdk17.Common.addGrantsForToken;
+import static io.strimzi.testsuite.oauth.mockoauth.jdk17.Common.changeAuthServerMode;
+import static io.strimzi.testsuite.oauth.mockoauth.jdk17.Common.checkLog;
+import static io.strimzi.testsuite.oauth.mockoauth.jdk17.Common.createOAuthClient;
+import static io.strimzi.testsuite.oauth.mockoauth.jdk17.Common.createOAuthUser;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class KeycloakAuthorizerTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(KeycloakAuthorizerTest.class);
-
-    static final int LOOP_PAUSE_MS = 1000;
-    static final int TIMEOUT_SECONDS = 30;
 
     static final String CLIENT_CLI = "kafka-cli";
 

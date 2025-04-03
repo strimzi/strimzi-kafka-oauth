@@ -9,7 +9,7 @@ import io.strimzi.kafka.oauth.metrics.GlobalConfig;
 import io.strimzi.kafka.oauth.services.Services;
 import io.strimzi.testsuite.oauth.common.TestUtil;
 import io.strimzi.testsuite.oauth.mockoauth.Common;
-import io.strimzi.testsuite.oauth.mockoauth.LogLineReader;
+import io.strimzi.testsuite.oauth.common.LogLineReader;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;

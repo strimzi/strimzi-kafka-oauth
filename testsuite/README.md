@@ -30,6 +30,9 @@ Also, when Kafka client connects to Kafka broker running inside docker image, th
 Running
 =======
 
+The testsuite can be run with Java 17 to test all the components, or with Java 11 to test client and server components that are Java 11 compatible.
+The only component not Java 11 compatible is `KeycloakAuthorizer` which integrates deeply with server-side Kafka libraries that only exist in Java 17 compatible class format since Kafka 4.0.0.
+
 You may first need to perform the following cleanup of pre-existing containers / network definitions:
 
     docker rm -f keycloak kafka hydra hydra-jwt mockoauth kerberos
@@ -39,7 +42,7 @@ To build and run the testsuite you need a running 'docker' daemon, then simply r
 
     mvn clean install
 
-Or if you are in strimzi-kafka-oauth project root directory:
+Or if you are in `strimzi-kafka-oauth` project root directory:
 
     mvn clean install -f testsuite
 

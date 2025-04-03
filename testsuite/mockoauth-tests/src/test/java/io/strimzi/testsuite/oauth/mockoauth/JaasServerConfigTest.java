@@ -8,6 +8,7 @@ import io.strimzi.kafka.oauth.common.ConfigException;
 import io.strimzi.kafka.oauth.metrics.GlobalConfig;
 import io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler;
 import io.strimzi.kafka.oauth.server.ServerConfig;
+import io.strimzi.testsuite.oauth.common.LogLineReader;
 import org.junit.Assert;
 
 import javax.security.auth.login.AppConfigurationEntry;

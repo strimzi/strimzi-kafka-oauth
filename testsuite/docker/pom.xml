@@ -35,10 +35,6 @@
         </dependency>
         <dependency>
             <groupId>io.strimzi</groupId>
-            <artifactId>kafka-oauth-keycloak-authorizer</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.strimzi</groupId>
             <artifactId>kafka-oauth-server-plain</artifactId>
         </dependency>
         <dependency>

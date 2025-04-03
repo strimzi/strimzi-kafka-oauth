@@ -5,14 +5,12 @@
 package io.strimzi.testsuite.oauth.mockoauth;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
 import io.strimzi.kafka.oauth.common.HttpUtil;
 import io.strimzi.kafka.oauth.common.OAuthAuthenticator;
 import io.strimzi.kafka.oauth.common.PrincipalExtractor;
 import io.strimzi.kafka.oauth.common.SSLUtil;
-import io.strimzi.kafka.oauth.common.TimeUtil;
 import io.strimzi.kafka.oauth.common.TokenInfo;
+import io.strimzi.testsuite.oauth.common.LogLineReader;
 import io.strimzi.testsuite.oauth.common.TestUtil;
 import io.strimzi.testsuite.oauth.mockoauth.metrics.Metrics;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -31,9 +29,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Properties;
-import java.util.Set;
 
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.base64encode;
 
@@ -291,13 +287,6 @@ public class Common {
                 "{\"token\": \"" + token + "\"}", String.class);
     }
 
-    public static void addGrantsForToken(String token, String grants) throws IOException {
-        HttpUtil.post(URI.create("http://mockoauth:8091/admin/grants_map"),
-                null,
-                "application/json",
-                "{\"token\": \"" + token + "\", \"grants\": " + grants + "}", String.class);
-    }
-
     public static Metrics reloadMetrics() throws IOException {
         return getPrometheusMetrics(URI.create("http://kafka:9404/metrics"));
     }
@@ -321,84 +310,6 @@ public class Common {
 
         for (int i = 0; i < args.length; i += 2) {
             Assert.assertEquals(args[i] + " =~ " + args[i + 1], 1, TestUtil.countLogForRegex(lines, args[i] + ":.*" + args[i + 1]));
-        }
-    }
-
-    static class MockBearerTokenWithPayload implements BearerTokenWithPayload {
-
-        private final TokenInfo ti;
-        private JsonNode payload;
-
-        MockBearerTokenWithPayload(TokenInfo ti) {
-            if (ti == null) {
-                throw new IllegalArgumentException("TokenInfo == null");
-            }
-            this.ti = ti;
-        }
-
-        @Override
-        public JsonNode getPayload() {
-            return payload;
-        }
-
-        @Override
-        public void setPayload(JsonNode value) {
-            payload = value;
-        }
-
-        @Override
-        public Set<String> getGroups() {
-            return ti.groups();
-        }
-
-        @Override
-        public ObjectNode getClaimsJSON() {
-            return ti.payload();
-        }
-
-        @Override
-        public String value() {
-            return ti.token();
-        }
-
-        @Override
-        public Set<String> scope() {
-            return ti.scope();
-        }
-
-        @Override
-        public long lifetimeMs() {
-            return ti.expiresAtMs();
-        }
-
-        @Override
-        public String principalName() {
-            return ti.principal();
-        }
-
-        @Override
-        public Long startTimeMs() {
-            return ti.issuedAtMs();
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (!(o instanceof MockBearerTokenWithPayload)) return false;
-            MockBearerTokenWithPayload that = (MockBearerTokenWithPayload) o;
-            return ti.equals(that.ti) && Objects.equals(payload, that.payload);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(ti, payload);
-        }
-
-        @Override
-        public String toString() {
-            return "BearerTokenWithPayload (principalName: " + ti.principal() + ", groups: " + ti.groups() + ", lifetimeMs: " +
-                    ti.expiresAtMs() + " [" + TimeUtil.formatIsoDateTimeUTC(ti.expiresAtMs()) + " UTC], startTimeMs: " +
-                    ti.issuedAtMs() + " [" + TimeUtil.formatIsoDateTimeUTC(ti.issuedAtMs()) + " UTC], scope: " + ti.scope() + ")";
         }
     }
 }

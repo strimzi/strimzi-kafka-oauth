@@ -7,6 +7,7 @@ package io.strimzi.testsuite.oauth.mockoauth;
 import io.strimzi.kafka.oauth.client.ClientConfig;
 import io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler;
 import io.strimzi.kafka.oauth.common.ConfigException;
+import io.strimzi.testsuite.oauth.common.LogLineReader;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;

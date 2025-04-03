@@ -105,6 +105,8 @@ See [examples authorization README](examples/README-authz.md) for a demonstratio
 Building
 --------
 
+This project requires Java 17 to build. It produces the classes using Java 11 bytecode compatibility in order to support clients that still use Java 11.
+
     mvn clean install
 
 Installing
