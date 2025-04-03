@@ -77,4 +77,3 @@ services:
       KEYCLOAK_HOST: ${KEYCLOAK_HOST:-keycloak}
       KEYCLOAK_URI: "https://${KEYCLOAK_HOST:-keycloak}:8443"
 
-    restart: on-failure

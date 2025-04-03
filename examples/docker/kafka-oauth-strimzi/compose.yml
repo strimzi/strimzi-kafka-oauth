@@ -68,4 +68,3 @@ services:
       # For start.sh script to know where the keycloak is listening
       KEYCLOAK_HOST: ${KEYCLOAK_HOST:-keycloak}
 
-    restart: on-failure

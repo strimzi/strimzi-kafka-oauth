@@ -4,6 +4,15 @@ Release Notes
 0.16.0
 ------
 
+### Using Kafka 4.0.0
+
+Kafka 4.0.0 server-side libraries are built with Java 17 bytecode compatibility. The client libraries are still built with Java 11 bytecode compatibility.
+
+### Java 17 required for building the project
+
+Java 17 is now required for building the project libraries. The example clients and the testsuite can also run with Java 11.
+All the components are built with Java 11 bytecode compatibility except `kafka-oauth-keycloak-authorizer` which requires Java 17 due to the dependency on server-side Kafka 4.0.0 libraries.
+
 ### Removed support for KeycloakAuthorizer ACL delegation in Zookeeper mode
 
 `KeycloakAuthorizer` can be configured to delegate authorization decision to standard ACL authorizer provided by Kafka.

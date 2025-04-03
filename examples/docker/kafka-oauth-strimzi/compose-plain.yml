@@ -89,4 +89,3 @@ services:
       KEYCLOAK_HOST: ${KEYCLOAK_HOST:-keycloak}
       REALM: ${REALM:-kafka-authz}
 
-    restart: on-failure

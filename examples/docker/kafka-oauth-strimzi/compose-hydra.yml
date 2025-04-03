@@ -75,4 +75,4 @@ services:
 
       # For start_with_hydra.sh script to know where hydra is listening
       HYDRA_HOST: ${HYDRA_HOST:-hydra}
-    restart: on-failure
+

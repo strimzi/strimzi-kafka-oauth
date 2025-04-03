@@ -217,11 +217,11 @@ Before running the example clients, you need to set additional env variables in 
     export OAUTH_SSL_TRUSTSTORE_PASSWORD=changeit
     export OAUTH_SSL_TRUSTSTORE_TYPE=pkcs12
 
-To use Keycloak as authorization server set url of Keycloak's demo realm token endpoint, for example if you are using the Keycloak with SSL:
+To use Keycloak as authorization server set url of Keycloak's demo realm token endpoint, for example if you are using Keycloak with SSL:
 
     export OAUTH_TOKEN_ENDPOINT_URI=https://keycloak:8443/realms/demo/protocol/openid-connect/token
 
-To use Hydra as authorization server set url of Hydra's token endpoint, for example if you are using the Hydra with SSL:
+To use Hydra as authorization server set url of Hydra's token endpoint, for example if you are using Hydra with SSL:
 
     export OAUTH_TOKEN_ENDPOINT_URI=https://hydra:4444/oauth2/token
 
@@ -273,8 +273,8 @@ or the concurrent producer:
 Troubleshooting
 ---------------
 
-If 'kafka' fails to start with 'Invalid cluster.id in: /tmp/kraft-combined-logs/meta.properties.' error, the reason may be that an existing container named 'kafka' is being reused when running docker-compose.
-You can try to fix that by removing the existing 'kafka' container:
+If `kafka` fails to start with 'Invalid cluster.id in: /tmp/kraft-combined-logs/meta.properties.' error, the reason may be that an existing container named `kafka` is being reused when running `docker-compose`.
+You can try to fix that by removing the existing `kafka` container:
 
     docker rm -f kafka
 

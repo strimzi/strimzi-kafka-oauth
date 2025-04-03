@@ -64,4 +64,3 @@ services:
       # For start.sh script to know where the keycloak is listening
       SPRING_HOST: ${SPRING_HOST:-spring}
 
-    restart: on-failure

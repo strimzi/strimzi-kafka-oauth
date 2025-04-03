@@ -94,7 +94,7 @@ OAuth2 for Authorization
 Authentication is the procedure of establishing if the user is who they claim they are.
 Authorization is the procedure of deciding if the user is allowed to perform some action using some resource.
 Kafka brokers by default allow all users full access - there is no specific authorization policy in place.
-Kafka comes with an implementation of ACL based authorization mechanism where access rules are saved in kafka controller nodes and replicated across them. 
+Kafka comes with an implementation of ACL based authorization mechanism where access rules are saved in Kafka controller nodes and replicated across them. 
 
 Authorization in Kafka is implemented completely separately and independently of authentication.
 Thus, it is possible to configure Kafka brokers to use OAuth2 based authentication, and at the same time the default ACL authorization. 
