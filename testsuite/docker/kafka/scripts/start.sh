@@ -26,7 +26,6 @@ KAFKA_CLUSTER_ID="$(/opt/kafka/bin/kafka-storage.sh random-uuid)"
 /opt/kafka/bin/kafka-storage.sh format -t $KAFKA_CLUSTER_ID -c /tmp/strimzi.properties \
     --add-scram 'SCRAM-SHA-512=[name=admin,password=admin-secret]' \
     --add-scram 'SCRAM-SHA-512=[name=alice,password=alice-secret]'
-
 echo "Initialised kafka storage for KRaft and added user secrets for SCRAM"
 
 
@@ -48,10 +47,10 @@ echo "KAFKA_LOG4J_OPTS=$KAFKA_LOG4J_OPTS"
 if [ "$PROMETHEUS_AGENT_CONFIG" == "" ]; then
 
   if [ "$PROMETHEUS_AGENT_VERSION" == "" ]; then
-    PROMETHEUS_AGENT_VERSION=$(ls /opt/kafka/libs/jmx_prometheus* | sed -E -n 's/.*([0-9]+\.[0-9]+\.[0-9]+).*$/\1/p')
+    PROMETHEUS_AGENT_VERSION=$(ls /opt/kafka/libs/strimzi/jmx_prometheus* | sed -E -n 's/.*([0-9]+\.[0-9]+\.[0-9]+).*$/\1/p')
   fi
 
-  export PROMETHEUS_AGENT_CONFIG="-javaagent:/opt/kafka/libs/jmx_prometheus_javaagent-$PROMETHEUS_AGENT_VERSION.jar=9404:/opt/kafka/config/strimzi/metrics-config.yml"
+  export PROMETHEUS_AGENT_CONFIG="-javaagent:/opt/kafka/libs/strimzi/jmx_prometheus_javaagent-$PROMETHEUS_AGENT_VERSION.jar=9404:/opt/kafka/config/strimzi/metrics-config.yml"
 fi
 echo "PROMETHEUS_AGENT_CONFIG=$PROMETHEUS_AGENT_CONFIG"
 

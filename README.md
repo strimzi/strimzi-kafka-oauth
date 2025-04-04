@@ -525,6 +525,10 @@ See [JsonPathQuery JavaDoc](oauth-common/src/main/java/io/strimzi/kafka/oauth/js
 
 ###### Configuring the `OAuth over PLAIN`
 
+> [!NOTE]
+> When OAuth support is configured on the broker, the default SASL PLAIN mechanism handling can not function any more, due to the custom `OAuth over PLAIN` functionality. 
+> Specifically, as soon as the custom `principal.builder.class` `io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder` is configured (it is required for OAuth), the default `PlainLoginModule` logic will be ignored and `OAuth over PLAIN` logic will be used. 
+
 When configuring the listener for `SASL/PLAIN` using `org.apache.kafka.common.security.plain.PlainLoginModule` in its `jaas.sasl.config` (as [explained previously](#configuring-the-listeners)), the `oauth.*` options are the same as when configuring the listener for SASL/OAUTHBEARER.
 
 There is an additional `oauth.*` option you can specify (it's optional):
@@ -659,9 +663,9 @@ As long as the token has not yet expired (it may have been recently invalidated 
 If you want to install OAuthSessionAuthorizer wrapped around Simple ACL Authorizer install it as follows in `server.properties`:
 
     authorizer.class.name=io.strimzi.kafka.oauth.server.OAuthSessionAuthorizer
-    strimzi.authorizer.delegate.class.name=kafka.security.auth.SimpleAclAuthorizer
+    strimzi.authorizer.delegate.class.name=org.apache.kafka.metadata.authorizer.StandardAuthorizer
 
-You configure the `SimpleAclAuthorizer` by specifying the same properties as if it was installed under `authorizer.class.name`.
+You configure the `StandardAuthorizer` by specifying the same properties as if it was installed under `authorizer.class.name`.
 
 It's the same for any other authorizer you may use - instead of using `authorizer.class.name` you install it by using `strimzi.authorizer.delegate.class.name`.
 
@@ -675,9 +679,10 @@ Instead, specify the following configuration:
 In this case, unless the access token has expired, all the actions will be granted. The broker will behave as if no authorizer was installed, effectively turning every user into a 'superuser'.
 The unauthenticated users, or users authenticated with a mechanism other than OAuth will also automatically have all the actions granted.
 
-Note: When using SASL/PLAIN authentication in combination with `KeycloakAuthorizer` or `OAuthSessionAuthorizer` the Kafka client session will expire when the access token expires.
-This will result in sudden appearance of the authorization failures.
-Since there is no way to pass a new access token mid-session (re-authenticate), the client will have to start a new session by establishing a new connection. 
+> [!NOTE]
+> When using SASL/PLAIN authentication in combination with `KeycloakAuthorizer` or `OAuthSessionAuthorizer` the Kafka client session will expire when the access token expires.
+> This will result in sudden appearance of the authorization failures.
+> Since there is no way to pass a new access token mid-session (re-authenticate), the client will have to start a new session by establishing a new connection. 
 
 ### Configuring the Kafka Broker authorization
 
@@ -743,9 +748,9 @@ Note that this can noticeably increase the load from brokers to the Keycloak and
 To enable such behavior, set the following option to `false`.
 - `strimzi.authorization.reuse.grants` (e.g.: "false" - if set to false, then when a new session is established the grants will be fetched from Keycloak using that session's access token and cached to grants cache)
 
-**Note**
-This option used to be set to `false` by default in version 0.12.0.
-In versions prior to 0.13.0 the grants were cached per access token, rather than per user id / principal name.
+> [!NOTE]
+> This option used to be set to `false` by default in version 0.12.0.
+> In versions prior to 0.13.0 the grants were cached per access token, rather than per user id / principal name.
 
 The grants in the grants cache are shared between sessions of the same user id. To facilitate the timely removal from cache, the maximum time in seconds that a grant is kept in grants cache without being accessed can be configured.
 It allows for reliable active releasing of memory rather than waiting for VM's gc() to kick in for the timed-out sessions. Normally, the open sessions should not just idly consume resources, rather they should perform some operations.

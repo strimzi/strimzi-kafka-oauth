@@ -46,7 +46,7 @@ services:
       - KAFKA_NODE_ID=1
       - KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka:9091
       - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
-      - KAFKA_SASL_MECHANISM_CONTROLLER_PROTOCOL=PLAIN
+      - KAFKA_SASL_MECHANISM_CONTROLLER_PROTOCOL=SCRAM-SHA-512
 
       - KAFKA_LISTENERS=CONTROLLER://kafka:9091,JWT://kafka:9201,INTROSPECT://kafka:9202,JWTPLAIN://kafka:9203,INTROSPECTPLAIN://kafka:9204,EXPIRETEST://kafka:9205,JWTCANTCONNECT://kafka:9206,INTROSPECTCANTCONNECT://kafka:9207,INTROSPECTTIMEOUT://kafka:9208
       - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:SASL_PLAINTEXT,JWT:SASL_PLAINTEXT,INTROSPECT:SASL_PLAINTEXT,JWTPLAIN:SASL_PLAINTEXT,INTROSPECTPLAIN:SASL_PLAINTEXT,EXPIRETEST:SASL_PLAINTEXT,JWTCANTCONNECT:SASL_PLAINTEXT,INTROSPECTCANTCONNECT:SASL_PLAINTEXT,INTROSPECTTIMEOUT:SASL_PLAINTEXT
@@ -61,8 +61,8 @@ services:
       - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
 
       # Configuration of individual listeners
-      - KAFKA_LISTENER_NAME_CONTROLLER_SASL_ENABLED_MECHANISMS=PLAIN
-      - KAFKA_LISTENER_NAME_CONTROLLER_PLAIN_SASL_JAAS_CONFIG=org.apache.kafka.common.security.plain.PlainLoginModule required    username=\"admin\"    password=\"admin-password\"    user_admin=\"admin-password\"    user_bobby=\"bobby-secret\" ;
+      - KAFKA_LISTENER_NAME_CONTROLLER_SASL_ENABLED_MECHANISMS=SCRAM-SHA-512
+      - KAFKA_LISTENER_NAME_CONTROLLER_SCRAM__2DSHA__2D512_SASL_JAAS_CONFIG=org.apache.kafka.common.security.scram.ScramLoginModule required    username=\"admin\"    password=\"admin-secret\" ;
 
       - KAFKA_LISTENER_NAME_INTROSPECT_OAUTHBEARER_SASL_JAAS_CONFIG=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required    oauth.introspection.endpoint.uri=\"http://keycloak:8080/realms/demo/protocol/openid-connect/token/introspect\"    oauth.client.id=\"kafka-broker\"    oauth.client.secret=\"kafka-broker-secret\"    oauth.valid.issuer.uri=\"https://keycloak:8443/realms/demo\"    oauth.token.endpoint.uri=\"http://keycloak:8080/realms/demo/protocol/openid-connect/token\"    oauth.fallback.username.claim=\"username\" ;
       - KAFKA_LISTENER_NAME_INTROSPECT_OAUTHBEARER_SASL_SERVER_CALLBACK_HANDLER_CLASS=io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler

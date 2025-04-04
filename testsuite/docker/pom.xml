@@ -184,6 +184,11 @@
                             <groupId>com.jayway.jsonpath</groupId>
                             <artifactId>json-path</artifactId>
                         </artifactItem>
+                        <artifactItem>
+                            <groupId>io.prometheus.jmx</groupId>
+                            <artifactId>jmx_prometheus_javaagent</artifactId>
+                            <version>1.0.1</version>
+                        </artifactItem>
                     </artifactItems>
                     <outputDirectory>target/kafka/libs</outputDirectory>
                     <overWriteReleases>false</overWriteReleases>

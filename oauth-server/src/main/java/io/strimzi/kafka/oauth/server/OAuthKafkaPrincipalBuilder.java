@@ -42,14 +42,24 @@ import java.util.Map;
  * for re-authentication to operate properly, and for custom authorizers to have access to additional session state -
  * i.e. the parsed access token. The extra information is in the form of <em>SessionInfo</em> object containing
  * the OAuthBearerToken token produced by <em>io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler</em>.
- * </p>
  * <p>
  * It is also required for OAuth over PLAIN to operate properly.
- * </p>
+ * <p>
+ * As a result, a listener configuration that uses SASL PLAIN mechanism without expecting it to work as OAuth over PLAIN
+ * <em>will not</em> work.
+ * <p>
+ * For example, the following configuration will not work as it will assume the usage of OAuth over PLAIN, rather than simple PLAIN:
+ * <pre>
+ *  listener.name.controller.sasl.enabled.mechanism=PLAIN
+ *  listener.name.controller.plain.sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required    username="admin"    password="admin-password"    user_admin="admin-password"    user_bobby="bobby-secret" ;
+ * </pre>
+ * In such a case the following exception may be thrown and output in the log:
+ * <pre>
+ *     java.lang.IllegalStateException: Services object has not been properly initialised
+ * </pre>
  * <p>
  * Use 'principal.builder.class=io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder'
- * property definition in server.properties to install it.
- * </p>
+ * property definition in server.properties to install this custom PrincipalBuilder.
  */
 public class OAuthKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder implements Configurable {
 

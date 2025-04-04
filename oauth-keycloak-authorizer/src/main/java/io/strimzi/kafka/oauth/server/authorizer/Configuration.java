@@ -106,7 +106,7 @@ public class Configuration {
 
         this.configMap = configs;
 
-        AuthzConfig authzConfig = convertToAuthzConfig(configs);
+        AuthzConfig authzConfig = convertToCommonConfig(configs);
 
         String pbclass = (String) configMap.get("principal.builder.class");
         if (!PRINCIPAL_BUILDER_CLASS.equals(pbclass) && !DEPRECATED_PRINCIPAL_BUILDER_CLASS.equals(pbclass)) {
@@ -322,10 +322,6 @@ public class Configuration {
         }
 
         return new AuthzConfig(p);
-    }
-
-    AuthzConfig convertToAuthzConfig(Map<String, ?> configs) {
-        return Configuration.convertToCommonConfig(configs);
     }
 
     private boolean detectKRaft(Map<String, ?> configs) {
