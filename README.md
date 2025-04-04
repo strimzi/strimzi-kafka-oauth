@@ -692,8 +692,8 @@ Strimzi Kafka OAuth provides an alternative authorizer - `io.strimzi.kafka.oauth
 
 The `KeycloakAuthorizer` detects the runtime environment, and delegates to `StandardAuthorizer` when in KRaft mode (as detected based on the presence of `process.roles` config property).
 
-Note: Since version 0.16.0 of this project the Kafka ACL delegation (`strimzi.authorization.delegate.to.kafka.acl=true`) is no longer supported in Zookeeper mode. If you want to keep using it, you should upgrade your nodes to KRaft mode.
-
+> [!NOTE]
+> Since version 0.16.0 of this project the Kafka ACL delegation (`strimzi.authorization.delegate.to.kafka.acl=true`) is no longer supported in Zookeeper mode. If you want to keep using it, you should upgrade your nodes to KRaft mode.
 
 #### Enabling the KeycloakAuthorizer
 
