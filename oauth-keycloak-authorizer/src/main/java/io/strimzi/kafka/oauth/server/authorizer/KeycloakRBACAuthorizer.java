@@ -18,7 +18,6 @@ import io.strimzi.kafka.oauth.services.OAuthMetrics;
 import io.strimzi.kafka.oauth.services.ServiceException;
 import io.strimzi.kafka.oauth.services.Services;
 import io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder;
-import kafka.security.authorizer.AclAuthorizer;
 import org.apache.kafka.common.Endpoint;
 import org.apache.kafka.common.acl.AclBinding;
 import org.apache.kafka.common.acl.AclBindingFilter;
@@ -157,7 +156,7 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
  * </p>
  */
 @Deprecated
-public class KeycloakRBACAuthorizer implements Authorizer {
+class KeycloakRBACAuthorizer implements Authorizer {
 
     static final Logger log = LoggerFactory.getLogger(KeycloakRBACAuthorizer.class);
     static final Logger GRANT_LOG = LoggerFactory.getLogger(KeycloakRBACAuthorizer.class.getName() + ".grant");
@@ -196,7 +195,7 @@ public class KeycloakRBACAuthorizer implements Authorizer {
      * Create a new instance
      */
     public KeycloakRBACAuthorizer() {
-        log.warn("KeycloakRBACAuthorizer has been deprecated, please use '{}' instead.", KeycloakAuthorizer.class.getName());
+        log.warn("KeycloakRBACAuthorizer has been deprecated, please use io.strimzi.kafka.oauth.server.authorizer.KeycloakAuthorizer instead.");
         this.delegator = null;
     }
 
@@ -243,10 +242,6 @@ public class KeycloakRBACAuthorizer implements Authorizer {
         socketFactory = createSSLFactory(configuration);
         hostnameVerifier = createHostnameVerifier(configuration);
 
-        if (configuration.isDelegateToKafkaACL()) {
-            setupDelegateAuthorizer();
-        }
-
         if (!Services.isAvailable()) {
             Services.configure(configuration.getConfigMap());
         }
@@ -267,17 +262,6 @@ public class KeycloakRBACAuthorizer implements Authorizer {
         // Call configure() on the delegate as the last thing
         if (delegate != null) {
             delegate.configure(configuration.getConfigMap());
-        }
-    }
-
-    /**
-     * This method is only called if <code>delegateToKafkaACL</code> is enabled.
-     * It is responsible for instantiating the Authorizer delegate instance.
-     */
-    void setupDelegateAuthorizer() {
-        if (delegate == null && !configuration.isKRaft()) {
-            log.debug("Using AclAuthorizer (ZooKeeper based) as a delegate");
-            delegate = new AclAuthorizer();
         }
     }
 

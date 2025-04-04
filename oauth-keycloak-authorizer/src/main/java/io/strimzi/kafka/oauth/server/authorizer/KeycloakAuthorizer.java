@@ -32,12 +32,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 
 /**
- * An authorizer using Keycloak Authorization Services that supports KRaft mode and Zookeeper mode.
+ * An authorizer using Keycloak Authorization Services that supports KRaft mode.
  * <p>
  * In KRaft mode multiple instances of this class can be instantiated, and each needs its own instance of <code>StandardAuthorizer</code> for
  * delegating authorization to Kafka ACL implementation.
  * <p>
- * This authorizer auto-detects whether it runs in KRaft mode or Zookeeper mode, and automatically sets up appropriate Kafka ACL delegation classes.
+ * This authorizer automatically sets up appropriate Kafka ACL delegation classes if delegation is enabled.
  * All authorization logic is delegated to <code>KeycloakRBACAuthorizer</code> of which a single instance is created and shared between all
  * instances of this class.
  * <p>
@@ -82,7 +82,7 @@ public class KeycloakAuthorizer implements ClusterMetadataAuthorizer {
             throw new ConfigException("Only one authorizer configuration per JVM is supported");
         }
 
-        if (configuration.isDelegateToKafkaACL() && configuration.isKRaft()) {
+        if (configuration.isDelegateToKafkaACL()) {
             delegate = instantiateStandardAuthorizer();
             delegate.configure(configs);
         }

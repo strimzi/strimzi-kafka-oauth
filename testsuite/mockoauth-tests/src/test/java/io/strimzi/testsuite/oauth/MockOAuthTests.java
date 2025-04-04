@@ -14,13 +14,11 @@ import io.strimzi.testsuite.oauth.mockoauth.JWKSKeyUseTest;
 import io.strimzi.testsuite.oauth.mockoauth.JaasClientConfigTest;
 import io.strimzi.testsuite.oauth.mockoauth.JaasServerConfigTest;
 import io.strimzi.testsuite.oauth.mockoauth.JwtExtractTest;
-import io.strimzi.testsuite.oauth.mockoauth.KeycloakAuthorizerTest;
 import io.strimzi.testsuite.oauth.mockoauth.PasswordAuthAndPrincipalExtractionTest;
 import io.strimzi.testsuite.oauth.mockoauth.RetriesTests;
 import io.strimzi.testsuite.oauth.mockoauth.KerberosListenerTest;
 
 import io.strimzi.testsuite.oauth.mockoauth.metrics.MetricsTest;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -30,7 +28,6 @@ import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.wait.strategy.Wait;
 
 import java.io.File;
-import java.io.IOException;
 import java.time.Duration;
 
 /**
@@ -49,15 +46,15 @@ public class MockOAuthTests {
     private static TestContainersWatcher initWatcher() {
         TestContainersWatcher watcher = new TestContainersWatcher(new File(includeKerberosTests ? "docker-compose-kerberos.yml" : "docker-compose.yml"));
         if (includeKerberosTests) {
-            watcher.withServices("mockoauth", "kerberos", "kafka", "zookeeper")
+            watcher.withServices("mockoauth", "kerberos", "kafka")
                     .waitingFor("kerberos", Wait.forLogMessage(".*commencing operation.*", 1)
                             .withStartupTimeout(Duration.ofSeconds(180)));
         } else {
-            watcher.withServices("mockoauth", "kafka", "zookeeper");
+            watcher.withServices("mockoauth", "kafka");
         }
         watcher.waitingFor("mockoauth", Wait.forLogMessage(".*Succeeded in deploying verticle.*", 1)
                         .withStartupTimeout(Duration.ofSeconds(180)))
-                .waitingFor("kafka", Wait.forLogMessage(".*started \\(kafka.server.KafkaServer\\).*", 1)
+                .waitingFor("kafka", Wait.forLogMessage(".*started \\(kafka.server.KafkaRaftServer\\).*", 1)
                         .withStartupTimeout(Duration.ofSeconds(300)));
 
         return watcher;
@@ -67,11 +64,6 @@ public class MockOAuthTests {
     public TestRule logCollector = new TestContainersLogCollector(environment);
 
     private static final Logger log = LoggerFactory.getLogger(MockOAuthTests.class);
-
-    @BeforeClass
-    public static void staticInit() throws IOException {
-        KeycloakAuthorizerTest.staticInit();
-    }
 
     @Test
     public void runTests() throws Exception {
@@ -108,9 +100,6 @@ public class MockOAuthTests {
 
             logStart("RetriesTests :: Authentication HTTP Retries Tests");
             new RetriesTests(kafkaContainer).doTests();
-
-            // Keycloak authorizer tests
-            new KeycloakAuthorizerTest().doTests();
 
             logStart("ClientAssertionAuthTest :: Client Assertion Tests");
             new ClientAssertionAuthTest().doTest();

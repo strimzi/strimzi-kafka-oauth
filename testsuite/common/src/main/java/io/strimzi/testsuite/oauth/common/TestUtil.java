@@ -5,6 +5,7 @@
 package io.strimzi.testsuite.oauth.common;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.junit.Assert;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -111,6 +112,14 @@ public class TestUtil {
         System.out.println();
     }
 
+    public static void log(String format, String... objects) {
+        if (objects == null || objects.length == 0) {
+            System.out.println(format);
+        } else {
+            System.out.printf(format, objects);
+        }
+    }
+
     public static int findFirstMatchingInLog(List<String> log, String regex) {
         int lineNum = 0;
         Pattern pattern = Pattern.compile(regex);
@@ -144,5 +153,22 @@ public class TestUtil {
             cause = cause.getCause();
         }
         return cause == e ? null : cause;
+    }
+
+    public static void assertTrueExtra(String name, boolean condition, Throwable t) {
+        try {
+            Assert.assertTrue(name, condition);
+        } catch (AssertionError e) {
+            t.printStackTrace();
+            throw new AssertionError(e.getMessage(), t);
+        }
+    }
+
+    public static void assertTrueExtra(String name, boolean condition, Throwable t, String extraInfo) {
+        try {
+            Assert.assertTrue(name, condition);
+        } catch (AssertionError e) {
+            throw new AssertionError(e.getMessage() + " " + extraInfo, t);
+        }
     }
 }

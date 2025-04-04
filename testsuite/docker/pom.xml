@@ -35,10 +35,6 @@
         </dependency>
         <dependency>
             <groupId>io.strimzi</groupId>
-            <artifactId>kafka-oauth-keycloak-authorizer</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.strimzi</groupId>
             <artifactId>kafka-oauth-server-plain</artifactId>
         </dependency>
         <dependency>
@@ -187,6 +183,11 @@
                         <artifactItem>
                             <groupId>com.jayway.jsonpath</groupId>
                             <artifactId>json-path</artifactId>
+                        </artifactItem>
+                        <artifactItem>
+                            <groupId>io.prometheus.jmx</groupId>
+                            <artifactId>jmx_prometheus_javaagent</artifactId>
+                            <version>1.0.1</version>
                         </artifactItem>
                     </artifactItems>
                     <outputDirectory>target/kafka/libs</outputDirectory>

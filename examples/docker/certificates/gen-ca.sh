@@ -16,4 +16,3 @@ keytool -keystore ca-truststore.p12 -storetype pkcs12 -alias ca -storepass $PASS
 # copy the certificate to client dirs
 cp ca.crt ../hydra-import/
 cp ca-truststore.p12 ../kafka-oauth-strimzi/kafka/config/
-cp ca-truststore.p12 ../keycloak-import/config/
