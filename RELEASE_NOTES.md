@@ -19,6 +19,8 @@ All the components are built with Java 11 bytecode compatibility except `kafka-o
 Since Zookeeper mode is no longer supported, the ACL authorizer delegation only works if the Kafka node runs in KRaft mode.
 If `KeycloakAuthorizer` is deployed to Kafka running in Zookeeper mode, and `strimzi.authorization.delegate.to.kafka.acl` is set to `true`, the broker will fail to start.
 
+Kafka 4.x users should upgrade to this OAuth version (0.16.0). Kafka 3.x users can also use this OAuth version in both Kraft or Zookeeper mode, but if they use `KeycloakAuthorizer` with ACL delegation, that will not work in Zookeeper mode.
+
 ### Added a test and a fix for 'Overflow parsing timestamps in oauth JWTs as 32 bit int'
 
 See [#260](https://github.com/strimzi/strimzi-kafka-oauth/issues/260)
