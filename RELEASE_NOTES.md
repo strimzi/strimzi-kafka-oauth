@@ -1,6 +1,14 @@
 Release Notes
 =============
 
+0.16.1
+------
+
+### Override json-smart version to 2.5.2 to address CVE-2024-57699 warnings
+
+`net.minidev:json-smart` is a transitive dependency pulled in by `com.jayway.jsonpath:json-path`. There is a PR open at JsonPath project https://github.com/json-path/JsonPath/pull/1030
+Once the new version of JsonPath is released, with the fixed dependency, we can remove the override.
+
 0.16.0
 ------
 
