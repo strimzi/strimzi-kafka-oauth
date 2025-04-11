@@ -114,6 +114,7 @@
         <jackson.version>2.15.3</jackson.version>
         <jackson.databind.version>2.15.3</jackson.databind.version>
         <jsonpath.version>2.9.0</jsonpath.version>
+        <jsonsmart.version>2.5.2</jsonsmart.version>
         <junit.version>4.13.2</junit.version>
         <slf4j.version>1.7.36</slf4j.version>
         <mockito.version>3.12.4</mockito.version>
@@ -207,6 +208,12 @@
                 <groupId>com.jayway.jsonpath</groupId>
                 <artifactId>json-path</artifactId>
                 <version>${jsonpath.version}</version>
+            </dependency>
+            <!-- Transitive override to address CVE-2024-57699. Remove in the future. -->
+            <dependency>
+                <groupId>net.minidev</groupId>
+                <artifactId>json-smart</artifactId>
+                <version>${jsonsmart.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.nimbusds</groupId>
