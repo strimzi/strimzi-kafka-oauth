@@ -35,6 +35,12 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <!-- Transitive override to address CVE-2024-57699. Remove in the future. -->
+        <dependency>
+            <groupId>net.minidev</groupId>
+            <artifactId>json-smart</artifactId>
+            <version>${jsonsmart.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka-clients</artifactId>

@@ -209,12 +209,6 @@
                 <artifactId>json-path</artifactId>
                 <version>${jsonpath.version}</version>
             </dependency>
-            <!-- Transitive override to address CVE-2024-57699. Remove in the future. -->
-            <dependency>
-                <groupId>net.minidev</groupId>
-                <artifactId>json-smart</artifactId>
-                <version>${jsonsmart.version}</version>
-            </dependency>
             <dependency>
                 <groupId>com.nimbusds</groupId>
                 <artifactId>nimbus-jose-jwt</artifactId>
@@ -290,6 +284,8 @@
                             <failOnWarning>true</failOnWarning>
                             <ignoredUnusedDeclaredDependencies>
                                 <ignoredUnusedDeclaredDependency>org.slf4j:slf4j-simple:jar</ignoredUnusedDeclaredDependency>
+                                <!-- Added due to transitive override to address CVE-2024-57699. Remove in the future. -->
+                                <ignoredUnusedDeclaredDependency>net.minidev:json-smart:jar</ignoredUnusedDeclaredDependency>
                             </ignoredUnusedDeclaredDependencies>
                         </configuration>
                     </execution>
