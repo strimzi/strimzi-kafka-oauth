@@ -1,6 +1,13 @@
 Release Notes
 =============
 
+0.16.2
+------
+
+### Properly override json-smart version to 2.5.2 to address CVE-2024-57699 warnings
+
+The version override in 0.16.1 was inadequate. It didn't work for third party components using the OAuth components. They would still transitively bring in `net.minidev:json-smart` version 2.5.0.
+
 0.16.1
 ------
 
