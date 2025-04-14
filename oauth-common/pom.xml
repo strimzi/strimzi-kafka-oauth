@@ -39,7 +39,6 @@
         <dependency>
             <groupId>net.minidev</groupId>
             <artifactId>json-smart</artifactId>
-            <version>${jsonsmart.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.kafka</groupId>
