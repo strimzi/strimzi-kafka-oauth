@@ -290,6 +290,8 @@
                             <failOnWarning>true</failOnWarning>
                             <ignoredUnusedDeclaredDependencies>
                                 <ignoredUnusedDeclaredDependency>org.slf4j:slf4j-simple:jar</ignoredUnusedDeclaredDependency>
+                                <!-- Added due to transitive override to address CVE-2024-57699. Remove in the future. -->
+                                <ignoredUnusedDeclaredDependency>net.minidev:json-smart:jar</ignoredUnusedDeclaredDependency>
                             </ignoredUnusedDeclaredDependencies>
                         </configuration>
                     </execution>
