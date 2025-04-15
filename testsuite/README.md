@@ -160,7 +160,7 @@ Make sure that you added 'kafka', 'keycloak', and 'hydra' to your `/etc/hosts` a
 ### How to set a custom Kafka image
 
 By default, the latest released strimzi/kafka images are used for the tests. Regardless of the versions of oauth-kafka-* 
-libraries included with these images, the latest build of 1.0.0-SNAPSHOT oauth-kafka-* libraries is included in these images and
+libraries included with these images, the latest build of 0.16.2 oauth-kafka-* libraries is included in these images and
  placed at the head of the classpath to override the versions packaged with the published images.
   
 Thus, you don't need to use the latest local build of strimzi/kafka libraries to test the new oauth functionality.

@@ -340,7 +340,7 @@ cd strimzi-kafka-operator
 
 We have to update the oauth library dependency version:
 
-    sed -Ei 's#<strimzi-oauth.version>[0-9a-zA-Z.-]+</strimzi-oauth.version>#<strimzi-oauth.version>1.0.0-SNAPSHOT</strimzi-oauth.version>#g' \
+    sed -Ei 's#<strimzi-oauth.version>[0-9a-zA-Z.-]+</strimzi-oauth.version>#<strimzi-oauth.version>0.16.2</strimzi-oauth.version>#g' \
       pom.xml \
       docker-images/artifacts/kafka-thirdparty-libs/3.8.x/pom.xml \
       docker-images/artifacts/kafka-thirdparty-libs/3.9.x/pom.xml
@@ -374,7 +374,7 @@ Let's make sure the SNAPSHOT Strimzi OAuth libraries are included.
     docker run --rm -ti $DOCKER_REG/strimzi/kafka:0.35.0-kafka-3.9.0 /bin/sh -c 'ls -la /opt/kafka/libs/kafka-oauth*'
 
 This executes a `ls` command inside a new Kafka container, which it removes afterwards.
-The deployed version should be 1.0.0-SNAPSHOT.
+The deployed version should be 0.16.2.
 
 
 ### Building a custom Strimzi Kafka 'override' image based on existing one

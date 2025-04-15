@@ -11,7 +11,7 @@
 
 	<groupId>io.strimzi.oauth.docker</groupId>
 	<artifactId>kafka-oauth-docker-spring</artifactId>
-	<version>1.0.0-SNAPSHOT</version>
+	<version>0.16.2</version>
 
 	<name>kafka-oauth-docker-spring</name>
 	<description>OAuth2 Example using Spring Authorization Server</description>
