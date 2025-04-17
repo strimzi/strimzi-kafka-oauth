@@ -44,6 +44,7 @@ import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithClientSecret;
+import static io.strimzi.kafka.oauth.common.Common.OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_FALLBACK;
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
 
 @SuppressFBWarnings({"THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION", "THROWS_METHOD_THROWS_RUNTIMEEXCEPTION", "RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT"})
@@ -93,9 +94,9 @@ public class Common {
 
     void authenticateAllActors() throws IOException {
         tokens.put(TEAM_A_CLIENT, loginWithClientSecret(URI.create(TOKEN_ENDPOINT_URI), null, null,
-                TEAM_A_CLIENT, TEAM_A_CLIENT + "-secret", true, null, null, true).token());
+                TEAM_A_CLIENT, TEAM_A_CLIENT + "-secret", true, null, null, true, OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_FALLBACK).token());
         tokens.put(TEAM_B_CLIENT, loginWithClientSecret(URI.create(TOKEN_ENDPOINT_URI), null, null,
-                TEAM_B_CLIENT, TEAM_B_CLIENT + "-secret", true, null, null, true).token());
+                TEAM_B_CLIENT, TEAM_B_CLIENT + "-secret", true, null, null, true, OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_FALLBACK).token());
         tokens.put(BOB, loginWithUsernamePassword(URI.create(TOKEN_ENDPOINT_URI),
                 BOB, BOB + "-password", "kafka-cli"));
         tokens.put(ZERO, loginWithUsernamePassword(URI.create(TOKEN_ENDPOINT_URI),

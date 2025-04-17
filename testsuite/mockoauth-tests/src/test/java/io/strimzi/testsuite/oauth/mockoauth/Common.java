@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.base64encode;
+import static io.strimzi.kafka.oauth.common.Common.OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_FALLBACK;
 
 public class Common {
 
@@ -112,7 +113,8 @@ public class Common {
                 new PrincipalExtractor(),
                 "all",
                 null,
-                true);
+                true,
+                OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_FALLBACK);
 
         return tokenInfo.token();
     }

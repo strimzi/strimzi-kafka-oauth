@@ -42,6 +42,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 
+import static io.strimzi.kafka.oauth.common.Common.OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_FALLBACK;
 import static io.strimzi.testsuite.oauth.common.TestUtil.logStart;
 
 /**
@@ -135,7 +136,7 @@ public class HydraAuthenticationTest {
         // first, request access token using client id and secret
         TokenInfo info = OAuthAuthenticator.loginWithClientSecret(URI.create(tokenEndpointUri),
                 ConfigUtil.createSSLFactory(new ClientConfig()),
-                null, clientId, clientSecret, true, null, null, true);
+                null, clientId, clientSecret, true, null, null, true, OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_FALLBACK);
 
         Map<String, String> oauthConfig = new HashMap<>();
         oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, tokenEndpointUri);

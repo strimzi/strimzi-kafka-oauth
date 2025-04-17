@@ -23,7 +23,14 @@ public class Config {
     /** The name of 'oauth.client.secret' config option  */
     public static final String OAUTH_CLIENT_SECRET = "oauth.client.secret";
 
-    /** The name of 'oauth.scope' config option  */
+    /** The name of 'oauth.client.credentials.grant.type.string' config option  */
+    public static final String OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE = "oauth.client.credentials.grant.type";
+
+    /** The fallback for 'oauth.client.credentials.grant.type.string' config option  */
+    public static final String OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_FALLBACK = "client_credentials";
+
+
+  /** The name of 'oauth.scope' config option  */
     public static final String OAUTH_SCOPE = "oauth.scope";
 
     /** The name of 'oauth.audience' config option  */
