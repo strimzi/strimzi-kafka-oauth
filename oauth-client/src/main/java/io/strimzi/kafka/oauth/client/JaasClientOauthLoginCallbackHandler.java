@@ -73,6 +73,7 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
     private String scope;
     private String audience;
     private URI tokenEndpoint;
+    private String grantType;
 
     private boolean isJwt;
     private int maxTokenExpirySeconds;
@@ -152,6 +153,7 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
 
         scope = config.getValue(Config.OAUTH_SCOPE);
         audience = config.getValue(Config.OAUTH_AUDIENCE);
+        grantType = config.getValue(Config.OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE, Config.OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_FALLBACK);
         socketFactory = ConfigUtil.createSSLFactory(config);
         hostnameVerifier = ConfigUtil.createHostnameVerifier(config);
         connectTimeout = getConnectTimeout(config);
@@ -397,9 +399,9 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
             } else if (username != null) {
                 result = loginWithPassword(tokenEndpoint, socketFactory, hostnameVerifier, username, password, clientId, clientSecret, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout, authenticatorMetrics, retries, retryPauseMillis, includeAcceptHeader);
             } else if (clientSecret != null) {
-                result = loginWithClientSecret(tokenEndpoint, socketFactory, hostnameVerifier, clientId, clientSecret, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout, authenticatorMetrics, retries, retryPauseMillis, includeAcceptHeader);
+                result = loginWithClientSecret(tokenEndpoint, socketFactory, hostnameVerifier, clientId, clientSecret, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout, authenticatorMetrics, retries, retryPauseMillis, includeAcceptHeader, grantType);
             } else if (clientAssertionProvider != null) {
-                result = loginWithClientAssertion(tokenEndpoint, socketFactory, hostnameVerifier, clientId, clientAssertionProvider.token(), clientAssertionType, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout, authenticatorMetrics, retries, retryPauseMillis, includeAcceptHeader);
+                result = loginWithClientAssertion(tokenEndpoint, socketFactory, hostnameVerifier, clientId, clientAssertionProvider.token(), clientAssertionType, isJwt, principalExtractor, scope, audience, connectTimeout, readTimeout, authenticatorMetrics, retries, retryPauseMillis, includeAcceptHeader, grantType);
             } else {
                 throw new IllegalStateException("Invalid oauth client configuration - no credentials");
             }

@@ -73,6 +73,7 @@ public class OAuthAuthenticator {
      * @param principalExtractor A PrincipalExtractor to use to determine the principal (user id)
      * @param scope A scope to request when authenticating
      * @param includeAcceptHeader Should we skip sending the Accept header when making outbound http requests
+     * @param grantType The grant type to be used, typically "client_credentials"
      * @return A TokenInfo with access token and information extracted from it
      * @throws IOException If the request to the authorization server has failed
      * @throws IllegalStateException If the response from the authorization server could not be handled
@@ -80,10 +81,11 @@ public class OAuthAuthenticator {
     public static TokenInfo loginWithClientSecret(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
                                                   HostnameVerifier hostnameVerifier,
                                                   String clientId, String clientSecret, boolean isJwt,
-                                                  PrincipalExtractor principalExtractor, String scope, boolean includeAcceptHeader) throws IOException {
+                                                  PrincipalExtractor principalExtractor, String scope, boolean includeAcceptHeader,
+                                                  String grantType) throws IOException {
 
         return loginWithClientSecret(tokenEndpointUrl, socketFactory, hostnameVerifier,
-                clientId, clientSecret, isJwt, principalExtractor, scope, null, HttpUtil.DEFAULT_CONNECT_TIMEOUT, HttpUtil.DEFAULT_READ_TIMEOUT, null, 0, 0, includeAcceptHeader);
+                clientId, clientSecret, isJwt, principalExtractor, scope, null, HttpUtil.DEFAULT_CONNECT_TIMEOUT, HttpUtil.DEFAULT_READ_TIMEOUT, null, 0, 0, includeAcceptHeader, grantType);
     }
 
     /**
@@ -100,6 +102,7 @@ public class OAuthAuthenticator {
      * @param scope A scope to request when authenticating
      * @param audience An 'audience' attribute to set on the request when authenticating
      * @param includeAcceptHeader Should we skip sending the Accept header when making outbound http requests
+     * @param grantType The grant type to be used, typically "client_credentials"
      * @return A TokenInfo with access token and information extracted from it
      * @throws IOException If the request to the authorization server has failed
      * @throws IllegalStateException If the response from the authorization server could not be handled
@@ -107,10 +110,11 @@ public class OAuthAuthenticator {
     public static TokenInfo loginWithClientSecret(URI tokenEndpointUrl, SSLSocketFactory socketFactory,
                                                   HostnameVerifier hostnameVerifier,
                                                   String clientId, String clientSecret, boolean isJwt,
-                                                  PrincipalExtractor principalExtractor, String scope, String audience, boolean includeAcceptHeader) throws IOException {
+                                                  PrincipalExtractor principalExtractor, String scope, String audience, boolean includeAcceptHeader,
+                                                  String grantType) throws IOException {
 
         return loginWithClientSecret(tokenEndpointUrl, socketFactory, hostnameVerifier,
-                clientId, clientSecret, isJwt, principalExtractor, scope, audience, HttpUtil.DEFAULT_CONNECT_TIMEOUT, HttpUtil.DEFAULT_READ_TIMEOUT, null, 0, 0, includeAcceptHeader);
+                clientId, clientSecret, isJwt, principalExtractor, scope, audience, HttpUtil.DEFAULT_CONNECT_TIMEOUT, HttpUtil.DEFAULT_READ_TIMEOUT, null, 0, 0, includeAcceptHeader, grantType);
     }
 
     /**
@@ -132,6 +136,7 @@ public class OAuthAuthenticator {
      * @param retries A maximum number of retries if the request fails due to network, or unexpected response status
      * @param retryPauseMillis A pause between consecutive requests
      * @param includeAcceptHeader Should we skip sending the Accept header when making outbound http requests
+     * @param grantType The grant type to be used, typically "client_credentials"
      * @return A TokenInfo with access token and information extracted from it
      * @throws IOException If the request to the authorization server has failed
      * @throws IllegalStateException If the response from the authorization server could not be handled
@@ -141,7 +146,8 @@ public class OAuthAuthenticator {
                                                   HostnameVerifier hostnameVerifier,
                                                   String clientId, String clientSecret, boolean isJwt,
                                                   PrincipalExtractor principalExtractor, String scope, String audience,
-                                                  int connectTimeout, int readTimeout, MetricsHandler metrics, int retries, long retryPauseMillis, boolean includeAcceptHeader) throws IOException {
+                                                  int connectTimeout, int readTimeout, MetricsHandler metrics, int retries, long retryPauseMillis, boolean includeAcceptHeader,
+                                                  String grantType) throws IOException {
         if (log.isDebugEnabled()) {
             log.debug("loginWithClientSecret() - tokenEndpointUrl: {}, clientId: {}, clientSecret: {}, scope: {}, audience: {}, connectTimeout: {}, readTimeout: {}, retries: {}, retryPauseMillis: {}",
                     tokenEndpointUrl, clientId, mask(clientSecret), scope, audience, connectTimeout, readTimeout, retries, retryPauseMillis);
@@ -155,8 +161,9 @@ public class OAuthAuthenticator {
         }
 
         String authorization = "Basic " + base64encode(clientId + ':' + clientSecret);
+        log.info("gbjoauth");
 
-        StringBuilder body = new StringBuilder("grant_type=client_credentials");
+        StringBuilder body = new StringBuilder("grant_type=" + grantType);
         if (scope != null) {
             body.append("&scope=").append(urlencode(scope));
         }
@@ -182,6 +189,7 @@ public class OAuthAuthenticator {
      * @param principalExtractor A PrincipalExtractor to use to determine the principal (user id)
      * @param scope A scope to request when authenticating
      * @param audience An 'audience' attribute to set on the request when authenticating
+     * @param grantType The grant type to be used, typically "client_credentials"
      * @return A TokenInfo with access token and information extracted from it
      * @throws IOException If the request to the authorization server has failed
      * @throws IllegalStateException If the response from the authorization server could not be handled
@@ -196,10 +204,11 @@ public class OAuthAuthenticator {
                                                      boolean isJwt,
                                                      PrincipalExtractor principalExtractor,
                                                      String scope,
-                                                     String audience) throws IOException {
+                                                     String audience,
+                                                     String grantType) throws IOException {
 
         return loginWithClientAssertion(tokenEndpointUrl, socketFactory, hostnameVerifier,
-                clientId, clientAssertion, clientAssertionType, isJwt, principalExtractor, scope, audience, HttpUtil.DEFAULT_CONNECT_TIMEOUT, HttpUtil.DEFAULT_READ_TIMEOUT, null, 0, 0, true);
+                clientId, clientAssertion, clientAssertionType, isJwt, principalExtractor, scope, audience, HttpUtil.DEFAULT_CONNECT_TIMEOUT, HttpUtil.DEFAULT_READ_TIMEOUT, null, 0, 0, true, grantType);
     }
 
     /**
@@ -222,6 +231,7 @@ public class OAuthAuthenticator {
      * @param retries A maximum number of retries if the request fails due to network, or unexpected response status
      * @param retryPauseMillis A pause between consecutive requests
      * @param includeAcceptHeader Should we skip sending the Accept header when making outbound http requests
+     * @param grantType The grant type to be used, typically "client_credentials"
      * @return A TokenInfo with access token and information extracted from it
      * @throws IOException If the request to the authorization server has failed
      * @throws IllegalStateException If the response from the authorization server could not be handled
@@ -242,7 +252,8 @@ public class OAuthAuthenticator {
                                                      MetricsHandler metrics,
                                                      int retries,
                                                      long retryPauseMillis,
-                                                     boolean includeAcceptHeader) throws IOException {
+                                                     boolean includeAcceptHeader,
+                                                     String grantType) throws IOException {
         if (log.isDebugEnabled()) {
             log.debug("loginWithClientAssertion() - tokenEndpointUrl: {}, clientId: {}, clientAssertion: {}, clientAssertionType: {}, scope: {}, audience: {}, connectTimeout: {}, readTimeout: {}, retries: {}, retryPauseMillis: {}",
                     tokenEndpointUrl, clientId, mask(clientAssertion), clientAssertionType, scope, audience, connectTimeout, readTimeout, retries, retryPauseMillis);
@@ -252,7 +263,7 @@ public class OAuthAuthenticator {
             throw new IllegalArgumentException("No clientId specified");
         }
 
-        StringBuilder body = new StringBuilder("grant_type=client_credentials")
+        StringBuilder body = new StringBuilder("grant_type=" + grantType)
                 .append("&client_id=").append(urlencode(clientId))
                 .append("&client_assertion=").append(urlencode(clientAssertion))
                 .append("&client_assertion_type=").append(urlencode(clientAssertionType));

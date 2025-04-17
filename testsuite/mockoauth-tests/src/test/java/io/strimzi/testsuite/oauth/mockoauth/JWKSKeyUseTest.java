@@ -20,6 +20,7 @@ import javax.net.ssl.SSLSocketFactory;
 import java.net.URI;
 import java.util.Collections;
 
+import static io.strimzi.kafka.oauth.common.Common.OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_FALLBACK;
 import static io.strimzi.testsuite.oauth.mockoauth.Common.changeAuthServerMode;
 import static io.strimzi.testsuite.oauth.mockoauth.Common.createOAuthClient;
 import static io.strimzi.testsuite.oauth.mockoauth.Common.getProjectRoot;
@@ -54,7 +55,8 @@ public class JWKSKeyUseTest {
                 null,
                 null,
                 null,
-                true);
+                true,
+                OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_FALLBACK);
 
         TokenIntrospection.debugLogJWT(log, tokenInfo.token());
 
