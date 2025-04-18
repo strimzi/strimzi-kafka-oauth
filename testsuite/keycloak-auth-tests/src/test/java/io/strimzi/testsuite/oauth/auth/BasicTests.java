@@ -28,7 +28,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithClientSecret;
-import static io.strimzi.kafka.oauth.common.Common.OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_FALLBACK;
+import static io.strimzi.kafka.oauth.common.Config.OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_FALLBACK;
 import static io.strimzi.kafka.oauth.common.TokenIntrospection.introspectAccessToken;
 import static io.strimzi.testsuite.oauth.auth.Common.buildConsumerConfigOAuthBearer;
 import static io.strimzi.testsuite.oauth.auth.Common.buildProducerConfigOAuthBearer;
