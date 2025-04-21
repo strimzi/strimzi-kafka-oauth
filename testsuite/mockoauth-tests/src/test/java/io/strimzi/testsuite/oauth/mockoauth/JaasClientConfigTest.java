@@ -148,7 +148,7 @@ public class JaasClientConfigTest {
             "password", "p\\*\\*",
             "scope", "scope",
             "audience", "audience",
-            "grantType", "client_credentials",
+            "grantType", ClientConfig.OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_FALLBACK,
             "isJwt", "false",
             "usernameClaim", "username-claim",
             "fallbackUsernameClaim", "fallback-username-claim",
@@ -587,7 +587,9 @@ public class JaasClientConfigTest {
         oauthConfig.put(ClientConfig.OAUTH_SSL_TRUSTSTORE_LOCATION, "../docker/target/kafka/certs/ca-truststore.p12");
         oauthConfig.put(ClientConfig.OAUTH_SSL_TRUSTSTORE_PASSWORD, "changeit");
 
+        // Confirm fails with invalid grant type
         oauthConfig.put(ClientConfig.OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE, "dummy-grant-type");
+
         try {
             initJaasWithRetry(oauthConfig);
             Assert.fail("Should have failed");
@@ -596,6 +598,7 @@ public class JaasClientConfigTest {
             assertLoginException(e);
         }
 
+        // Confirm succeeds with valid grant type
         oauthConfig.put(ClientConfig.OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE, ClientConfig.OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_FALLBACK);
 
         LogLineReader logReader = new LogLineReader(Common.LOG_PATH);

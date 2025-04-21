@@ -161,7 +161,6 @@ public class OAuthAuthenticator {
         }
 
         String authorization = "Basic " + base64encode(clientId + ':' + clientSecret);
-        log.info("gbjoauth");
 
         StringBuilder body = new StringBuilder("grant_type=" + grantType);
         if (scope != null) {
