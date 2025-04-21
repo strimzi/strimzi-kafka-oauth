@@ -210,6 +210,7 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
                     + "\n    password: " + mask(password)
                     + "\n    scope: " + scope
                     + "\n    audience: " + audience
+                    + "\n    grantType: " + grantType
                     + "\n    isJwt: " + isJwt
                     + "\n    maxTokenExpirySeconds: " + maxTokenExpirySeconds
                     + "\n    principalExtractor: " + principalExtractor
