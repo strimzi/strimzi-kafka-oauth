@@ -1,0 +1,3 @@
+[submodule "spiffe-principal-builder"]
+	path = spiffe-principal-builder
+	url = https://github.com/statnett/k3a-spiffe-principal-builder.git

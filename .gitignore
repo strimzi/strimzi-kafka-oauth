@@ -28,3 +28,7 @@ velocity.log
 
 # Kafka log from test suite
 testsuite/kafka.log
+
+# Ignore overriding of versions
+**/pom.xml
+**/pom.xml.versionsBackup

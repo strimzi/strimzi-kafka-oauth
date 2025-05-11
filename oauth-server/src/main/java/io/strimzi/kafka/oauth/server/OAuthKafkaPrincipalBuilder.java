@@ -16,12 +16,15 @@ import org.apache.kafka.common.protocol.MessageUtil;
 import org.apache.kafka.common.protocol.types.RawTaggedField;
 import org.apache.kafka.common.security.auth.AuthenticationContext;
 import org.apache.kafka.common.security.auth.KafkaPrincipal;
+import org.apache.kafka.common.security.auth.KafkaPrincipalSerde;
 import org.apache.kafka.common.security.auth.SaslAuthenticationContext;
 import org.apache.kafka.common.security.authenticator.DefaultKafkaPrincipalBuilder;
 import org.apache.kafka.common.security.kerberos.KerberosShortNamer;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule;
 import org.apache.kafka.common.security.oauthbearer.internals.OAuthBearerSaslServer;
 import org.apache.kafka.common.security.plain.internals.PlainSaslServer;
+import io.statnett.k3a.authz.spiffe.SpiffePrincipalBuilder;
+import org.apache.kafka.common.security.auth.KafkaPrincipalBuilder;
 
 import javax.security.auth.kerberos.KerberosPrincipal;
 import javax.security.sasl.SaslServer;
@@ -34,6 +37,7 @@ import java.security.PrivilegedAction;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 
 /**
  * This class needs to be enabled as the PrincipalBuilder on Kafka Broker.
@@ -61,12 +65,14 @@ import java.util.Map;
  * Use 'principal.builder.class=io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder'
  * property definition in server.properties to install this custom PrincipalBuilder.
  */
-public class OAuthKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder implements Configurable {
+public class OAuthKafkaPrincipalBuilder implements KafkaPrincipalBuilder, Configurable, KafkaPrincipalSerde {
 
     private static final SetAccessibleAction SET_PRINCIPAL_MAPPER = SetAccessibleAction.newInstance("sslPrincipalMapper");
     private static final SetAccessibleAction SET_KERBEROS_SHORT_NAMER = SetAccessibleAction.newInstance("kerberosShortNamer");
 
     private static final int OAUTH_DATA_TAG = 575;
+
+    private final SpiffePrincipalBuilder delegate = new SpiffePrincipalBuilder();
 
     private static class SetAccessibleAction implements PrivilegedAction<Void> {
 
@@ -96,15 +102,11 @@ public class OAuthKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder imp
         }
     }
 
-
     /**
      * Create a new instance
      */
     public OAuthKafkaPrincipalBuilder() {
-        super(null, null);
     }
-
-
 
     @Override
     public void configure(Map<String, ?> configs) {
@@ -140,7 +142,7 @@ public class OAuthKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder imp
             // An alternative would be to copy paste the complete DefaultKafkaPrincipalBuilder implementation
             // into this class and extend it
 
-            SET_PRINCIPAL_MAPPER.invoke(this, sslPrincipalMapper);
+            // SET_PRINCIPAL_MAPPER.invoke(delegate, sslPrincipalMapper); // Not compatible with SpiffePrincipalBuilder
 
             try {
                 defaultRealm = new KerberosPrincipal("tmp", 1).getRealm();
@@ -150,7 +152,7 @@ public class OAuthKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder imp
 
             if (principalToLocalRules != null) {
                 kerberosShortNamer = KerberosShortNamer.fromUnparsedRules(defaultRealm, principalToLocalRules);
-                SET_KERBEROS_SHORT_NAMER.invoke(this, kerberosShortNamer);
+                // SET_KERBEROS_SHORT_NAMER.invoke(delegate, kerberosShortNamer); // Not compatible with SpiffePrincipalBuilder
             }
 
 
@@ -161,9 +163,9 @@ public class OAuthKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder imp
                 | InvocationTargetException e) {
             throw new IllegalStateException("Failed to initialize OAuthKafkaPrincipalBuilder", e);
         }
+        delegate.configure(configs);
     }
 
-    @Override
     public KafkaPrincipal build(AuthenticationContext context) {
         if (context instanceof SaslAuthenticationContext) {
             SaslServer saslServer = ((SaslAuthenticationContext) context).server();
@@ -173,8 +175,8 @@ public class OAuthKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder imp
                     BearerTokenWithPayload token = (BearerTokenWithPayload) server.getNegotiatedProperty("OAUTHBEARER.token");
                     Services.getInstance().getSessions().put(token);
 
-                    return new OAuthKafkaPrincipal(KafkaPrincipal.USER_TYPE,
-                            server.getAuthorizationID(), token);
+                    String principalName = sanitizePrincipal(server.getAuthorizationID());
+                    return new OAuthKafkaPrincipal(KafkaPrincipal.USER_TYPE, principalName, token);
                 }
             } else if (saslServer instanceof PlainSaslServer) {
                 PlainSaslServer server = (PlainSaslServer) saslServer;
@@ -197,11 +199,30 @@ public class OAuthKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder imp
             }
         }
 
-        return super.build(context);
+        KafkaPrincipal principal = delegate.build(context);
+        // If the principal is a SPIFFE principal, sanitize the name so it's compatible with Kubernetes
+        if (principal != null && principal.getPrincipalType().equals("SPIFFE")) {
+            String principalName = sanitizePrincipal(principal.getName());
+            // Remap to USER_TYPE so it's compatible with Strimzi
+            return new KafkaPrincipal(KafkaPrincipal.USER_TYPE, principalName, principal.tokenAuthenticated());
+        }
+        return principal;
     }
 
+    private String sanitizePrincipal(String principal) {
+        if (principal == null) {
+            return null;
+        }
+        // Make the principal name compatible with Kubernetes names
+        String result = principal.toLowerCase(Locale.ROOT)
+                .replace("@", "-at-")
+                .replaceAll("[^a-z0-9.-]", "-");
+        if (result.length() > 253) {
+            result = result.substring(0, 253);
+        }
+        return result;
+    }
 
-    @Override
     public byte[] serialize(KafkaPrincipal principal) {
         if (principal instanceof OAuthKafkaPrincipal) {
             DefaultPrincipalData data = new DefaultPrincipalData()
@@ -219,10 +240,9 @@ public class OAuthKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder imp
 
             return MessageUtil.toVersionPrefixedBytes(DefaultPrincipalData.HIGHEST_SUPPORTED_VERSION, data);
         }
-        return super.serialize(principal);
+        return delegate.serialize(principal);
     }
 
-    @Override
     public KafkaPrincipal deserialize(byte[] bytes) {
         ByteBuffer buffer = ByteBuffer.wrap(bytes);
         short version = buffer.getShort();

@@ -115,26 +115,12 @@ public class PrincipalExtractor {
         if (extractor.getAttributeName() != null) {
             String result = getClaimFromJWT(json, extractor.getAttributeName());
             if (result != null && !result.isEmpty()) {
-                // HACK(cypres): Make the username compatible with Kubernetes names
-                result = result.toLowerCase(Locale.ROOT)
-                        .replace("@", "-at-")
-                        .replaceAll("[^a-z0-9.-]", "-");
-                if (result.length() > 253) {
-                    result = result.substring(0, 253);
-                }
                 return result;
             }
         } else {
             JsonNode queryResult = extractor.getJSONPathQuery().apply(json);
             String result = queryResult == null ? null : queryResult.asText().trim();
             if (result != null && !result.isEmpty()) {
-                // HACK(cypres): Make the username compatible with Kubernetes names
-                result = result.toLowerCase(Locale.ROOT)
-                        .replace("@", "-at-")
-                        .replaceAll("[^a-z0-9.-]", "-");
-                if (result.length() > 253) {
-                    result = result.substring(0, 253);
-                }
                 return result;
             }
         }

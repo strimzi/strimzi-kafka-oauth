@@ -15,6 +15,8 @@ import org.apache.kafka.common.security.plain.internals.PlainSaslServer;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -25,10 +27,10 @@ import static org.mockito.Mockito.when;
 public class OAuthKafkaPrincipalBuilderTest {
 
     static final String USERNAME = "user";
+    static final String SPIFFE_ID = "spiffe://example.com/service";
 
     @Test
     public void testPreviousStoredPrincipalIsReused() {
-
         Services.configure(Collections.emptyMap());
         Credentials credentials = Services.getInstance().getCredentials();
         Principals principals = Services.getInstance().getPrincipals();
@@ -57,5 +59,27 @@ public class OAuthKafkaPrincipalBuilderTest {
         // Invoke the principal builder the second time
         principal = principalBuilder.build(context);
         assertEquals("The Principal from authentication should be returned", authenticatedPrincipal, principal);
+    }
+
+    @Test
+    public void testSpiffePrincipalBuilder() {
+        Map<String, String> config = new HashMap<>();
+        config.put("strimzi.oauth.spiffe.enabled", "true");
+        Services.configure(config);
+
+        // Simulate invocation of OAuthKafkaPrincipalBuilder with SPIFFE ID
+        OAuthKafkaPrincipalBuilder principalBuilder = new OAuthKafkaPrincipalBuilder();
+        principalBuilder.configure(config);
+
+        PlainSaslServer saslServer = mock(PlainSaslServer.class);
+        when(saslServer.getAuthorizationID()).thenReturn(SPIFFE_ID);
+        SaslAuthenticationContext context = mock(SaslAuthenticationContext.class);
+        when(context.server()).thenReturn(saslServer);
+
+        // Invoke the principal builder
+        KafkaPrincipal principal = principalBuilder.build(context);
+        assertEquals("The Principal should be a KafkaPrincipal", KafkaPrincipal.class, principal.getClass());
+        assertEquals("The Principal type should be SPIFFE", "SPIFFE", principal.getPrincipalType());
+        assertEquals("The Principal name should match the SPIFFE ID", SPIFFE_ID, principal.getName());
     }
 }
