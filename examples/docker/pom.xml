@@ -6,7 +6,7 @@
 
     <groupId>io.strimzi.oauth.docker</groupId>
     <artifactId>kafka-oauth-docker-parent</artifactId>
-    <version>0.15.0</version>
+    <version>0.15.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <properties>
@@ -15,7 +15,7 @@
         <plugins.resources.version>3.1.0</plugins.resources.version>
 
         <nimbus.jose.version>9.37.2</nimbus.jose.version>
-        <strimzi-oauth.version>0.15.0</strimzi-oauth.version>
+        <strimzi-oauth.version>0.15.1-SNAPSHOT</strimzi-oauth.version>
     </properties>
 
     <licenses>
