@@ -1,6 +1,14 @@
 Release Notes
 =============
 
+0.15.1
+------
+
+### Bumped dependencies
+
+Bumped json-smart version to 2.5.2
+Bumped kafka version to 3.9.1
+
 0.15.0
 ------
 
