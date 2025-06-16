@@ -15,7 +15,7 @@
         </license>
     </licenses>
 
-    <name>Strimzi - Apache Kafka on Kubernetes</name>
+    <name>Strimzi OAuth for Apache Kafka</name>
     <description>Strimzi uses the Kubernetes operator pattern to provide a way to run an Apache Kafka cluster on
         Kubernetes in various deployment configurations. The OAuth subproject implements the callbacks for
         Kafka authentication using OAuth (based on SASL OAUTHBEARER mechanism).</description>
