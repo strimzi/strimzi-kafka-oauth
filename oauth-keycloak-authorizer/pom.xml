@@ -9,6 +9,7 @@
         <version>0.15.1-SNAPSHOT</version>
     </parent>
 
+    <name>Strimzi Kafka OAuth Keycloak authorizer</name>
     <artifactId>kafka-oauth-keycloak-authorizer</artifactId>
 
     <dependencies>

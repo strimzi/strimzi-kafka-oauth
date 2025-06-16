@@ -9,6 +9,7 @@
         <version>0.15.1-SNAPSHOT</version>
     </parent>
 
+    <name>Strimzi Kafka OAuth client</name>
     <artifactId>kafka-oauth-client</artifactId>
 
     <dependencies>
