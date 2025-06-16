@@ -9,6 +9,7 @@
         <version>0.15.1-SNAPSHOT</version>
     </parent>
 
+    <name>Strimzi Kafka OAuth server plain</name>
     <artifactId>kafka-oauth-server-plain</artifactId>
 
     <dependencies>
