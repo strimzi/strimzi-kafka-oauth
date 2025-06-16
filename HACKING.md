@@ -340,7 +340,7 @@ cd strimzi-kafka-operator
 
 We have to update the oauth library dependency version:
 
-    sed -Ei 's#<strimzi-oauth.version>[0-9a-zA-Z.-]+</strimzi-oauth.version>#<strimzi-oauth.version>0.15.1-SNAPSHOT</strimzi-oauth.version>#g' \
+    sed -Ei 's#<strimzi-oauth.version>[0-9a-zA-Z.-]+</strimzi-oauth.version>#<strimzi-oauth.version>0.15.1</strimzi-oauth.version>#g' \
       pom.xml \
       docker-images/kafka/kafka-thirdparty-libs/2.6.x/pom.xml \
       docker-images/kafka/kafka-thirdparty-libs/2.7.x/pom.xml
