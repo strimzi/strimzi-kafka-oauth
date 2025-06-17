@@ -18,6 +18,6 @@ export GPG_TTY=$(tty)
 echo $GPG_SIGNING_KEY | base64 -d > signing.gpg
 gpg --batch --import signing.gpg
 
-GPG_EXECUTABLE=gpg mvn $MVN_ARGS -DskipTests -s ./.azure/scripts/settings.xml -pl '!examples/producer','!examples/consumer' -P ossrh verify deploy
+GPG_EXECUTABLE=gpg mvn $MVN_ARGS -DskipTests -s ./.azure/scripts/settings.xml -pl '!examples/producer','!examples/consumer' -P central deploy
 
 cleanup
