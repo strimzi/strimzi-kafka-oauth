@@ -120,6 +120,7 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
     private URI tokenEndpointUri;
     private String scope;
     private String audience;
+    private String grantType;
 
     private OAuthMetrics metrics;
     private boolean enableMetrics;
@@ -148,6 +149,7 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
 
         scope = config.getValue(ServerConfig.OAUTH_SCOPE);
         audience = config.getValue(ServerConfig.OAUTH_AUDIENCE);
+        grantType = config.getValue(Config.OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE, Config.OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_FALLBACK);
 
         super.delegatedConfigure(configs, "PLAIN", jaasConfigEntries);
 
@@ -247,7 +249,7 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
                 checkUsernameMatch = true;
             } else if (tokenEndpointUri != null) {
                 accessToken = OAuthAuthenticator.loginWithClientSecret(tokenEndpointUri, getSocketFactory(), getVerifier(),
-                        username, password, isJwt(), getPrincipalExtractor(), scope, audience, getConnectTimeout(), getReadTimeout(), authMetrics, getRetries(), getRetryPauseMillis(), includeAcceptHeader())
+                        username, password, isJwt(), getPrincipalExtractor(), scope, audience, getConnectTimeout(), getReadTimeout(), authMetrics, getRetries(), getRetryPauseMillis(), includeAcceptHeader(), grantType)
                         .token();
             } else {
                 throw new ValidationException("Empty password where access token was expected");
