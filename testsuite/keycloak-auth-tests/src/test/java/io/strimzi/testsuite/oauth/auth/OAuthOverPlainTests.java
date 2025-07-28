@@ -27,7 +27,6 @@ import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithClientSecret;
-import static io.strimzi.kafka.oauth.common.Config.OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_FALLBACK;
 import static io.strimzi.testsuite.oauth.auth.Common.buildConsumerConfigPlain;
 import static io.strimzi.testsuite.oauth.auth.Common.buildProducerConfigPlain;
 import static io.strimzi.testsuite.oauth.auth.Common.poll;
@@ -65,7 +64,7 @@ public class OAuthOverPlainTests {
 
         // first, request access token using client id and secret
         TokenInfo info = loginWithClientSecret(URI.create(tokenEndpointUri), null, null,
-                "team-a-client", "team-a-client-secret", true, null, null, true, OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_FALLBACK);
+                "team-a-client", "team-a-client-secret", true, null, null, true);
 
         Map<String, String> plainConfig = new HashMap<>();
         plainConfig.put("username", "service-account-team-a-client");
@@ -219,7 +218,7 @@ public class OAuthOverPlainTests {
 
         // first, request access token using client id and secret
         TokenInfo info = loginWithClientSecret(URI.create(tokenEndpointUri), null, null,
-                "team-a-client", "team-a-client-secret", true, null, null, true, OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_FALLBACK);
+                "team-a-client", "team-a-client-secret", true, null, null, true);
 
         Map<String, String> plainConfig = new HashMap<>();
         plainConfig.put("username", "service-account-team-a-client");

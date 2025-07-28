@@ -23,7 +23,6 @@ import javax.net.ssl.SSLSocketFactory;
 import java.net.URI;
 import java.text.ParseException;
 
-import static io.strimzi.kafka.oauth.common.Config.OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_FALLBACK;
 import static io.strimzi.testsuite.oauth.mockoauth.Common.WWW_FORM_CONTENT_TYPE;
 import static io.strimzi.testsuite.oauth.mockoauth.Common.changeAuthServerMode;
 import static io.strimzi.testsuite.oauth.mockoauth.Common.createOAuthClient;
@@ -132,9 +131,7 @@ public class PasswordAuthAndPrincipalExtractionTest {
                 true,
                 null,
                 null,
-                null,
-                true,
-                OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_FALLBACK);
+                true);
 
         token = tokenInfo.token();
         Assert.assertNotNull(token);

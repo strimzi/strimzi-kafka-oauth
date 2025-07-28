@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.Properties;
 
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithClientSecret;
-import static io.strimzi.kafka.oauth.common.Config.OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_FALLBACK;
 import static io.strimzi.kafka.oauth.common.TokenIntrospection.introspectAccessToken;
 import static io.strimzi.testsuite.oauth.auth.Common.buildConsumerConfigOAuthBearer;
 import static io.strimzi.testsuite.oauth.auth.Common.buildProducerConfigOAuthBearer;
@@ -254,8 +253,7 @@ public class BasicTests {
         final String clientSecret = "kafka-producer-client-secret";
 
         // First, request access token using client id and secret
-        TokenInfo info = loginWithClientSecret(URI.create(tokenEndpointUri), null, null, clientId, clientSecret, true, null, null, true,
-                                               OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_FALLBACK);
+        TokenInfo info = loginWithClientSecret(URI.create(tokenEndpointUri), null, null, clientId, clientSecret, true, null, null, true);
 
         Map<String, String> oauthConfig = new HashMap<>();
         oauthConfig.put(ClientConfig.OAUTH_ACCESS_TOKEN, info.token());

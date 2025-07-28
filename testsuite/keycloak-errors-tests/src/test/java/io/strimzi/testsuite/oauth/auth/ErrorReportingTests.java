@@ -21,7 +21,6 @@ import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithClientSecret;
-import static io.strimzi.kafka.oauth.common.Config.OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_FALLBACK;
 import static io.strimzi.testsuite.oauth.auth.Common.buildProducerConfigOAuthBearer;
 import static io.strimzi.testsuite.oauth.auth.Common.buildProducerConfigPlain;
 import static io.strimzi.testsuite.oauth.common.TestUtil.assertTrueExtra;
@@ -173,8 +172,7 @@ public class ErrorReportingTests {
         final String clientSecret = "kafka-producer-client-secret";
 
         // first, request access token using client id and secret
-        TokenInfo info = loginWithClientSecret(URI.create(tokenEndpointUri), null, null, clientId, clientSecret, true, null, null, true,
-                                               OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_FALLBACK);
+        TokenInfo info = loginWithClientSecret(URI.create(tokenEndpointUri), null, null, clientId, clientSecret, true, null, null, true);
 
         Map<String, String> oauthConfig = new HashMap<>();
         String tokenWithBrokenSig = info.token().substring(0, info.token().length() - 6) + "ffffff";
@@ -215,8 +213,7 @@ public class ErrorReportingTests {
         final String clientSecret = "kafka-producer-client-secret";
 
         // first, request access token using client id and secret
-        TokenInfo info = loginWithClientSecret(URI.create(tokenEndpointUri), null, null, clientId, clientSecret, true, null, null, true,
-                                               OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_FALLBACK);
+        TokenInfo info = loginWithClientSecret(URI.create(tokenEndpointUri), null, null, clientId, clientSecret, true, null, null, true);
 
         Map<String, String> oauthConfig = new HashMap<>();
         String tokenWithBrokenSig = info.token().substring(0, info.token().length() - 6) + "ffffff";
@@ -257,8 +254,7 @@ public class ErrorReportingTests {
         final String clientSecret = "kafka-producer-client-secret";
 
         // first, request access token using client id and secret
-        TokenInfo info = loginWithClientSecret(URI.create(tokenEndpointUri), null, null, clientId, clientSecret, true, null, null, true,
-                                               OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_FALLBACK);
+        TokenInfo info = loginWithClientSecret(URI.create(tokenEndpointUri), null, null, clientId, clientSecret, true, null, null, true);
 
         Map<String, String> oauthConfig = new HashMap<>();
         oauthConfig.put(ClientConfig.OAUTH_ACCESS_TOKEN, info.token());

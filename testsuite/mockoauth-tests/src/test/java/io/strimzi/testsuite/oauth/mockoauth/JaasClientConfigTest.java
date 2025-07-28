@@ -92,6 +92,7 @@ public class JaasClientConfigTest {
         attrs.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, "https://sso/token");
         attrs.put(ClientConfig.OAUTH_CLIENT_ID, "client-id");
         attrs.put(ClientConfig.OAUTH_CLIENT_SECRET, "client-secret");
+        attrs.put(ClientConfig.OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE, "non-default-grant-type");
         attrs.put(ClientConfig.OAUTH_CLIENT_ASSERTION, "client-assertion");
         attrs.put(ClientConfig.OAUTH_CLIENT_ASSERTION_TYPE, "urn:ietf:params:oauth:client-assertion-type:saml2-bearer");
         attrs.put(ClientConfig.OAUTH_PASSWORD_GRANT_USERNAME, "username");
@@ -148,7 +149,7 @@ public class JaasClientConfigTest {
             "password", "p\\*\\*",
             "scope", "scope",
             "audience", "audience",
-            "grantType", ClientConfig.OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_FALLBACK,
+            "grantType", "non-default-grant-type",
             "isJwt", "false",
             "usernameClaim", "username-claim",
             "fallbackUsernameClaim", "fallback-username-claim",
@@ -599,10 +600,11 @@ public class JaasClientConfigTest {
         }
 
         // Confirm succeeds with valid grant type
-        oauthConfig.put(ClientConfig.OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE, ClientConfig.OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_FALLBACK);
+        oauthConfig.put(ClientConfig.OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE, ClientConfig.OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_DEFAULT_VALUE);
 
         LogLineReader logReader = new LogLineReader(Common.LOG_PATH);
         logReader.readNext();
+
         initJaasWithRetry(oauthConfig);
         List<String> lines = logReader.readNext();
         boolean found = checkLogForRegex(lines, "Login succeeded");

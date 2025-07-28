@@ -26,7 +26,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithClientSecret;
-import static io.strimzi.kafka.oauth.common.Config.OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_FALLBACK;
 
 @SuppressFBWarnings({"THROWS_METHOD_THROWS_RUNTIMEEXCEPTION", "THROWS_METHOD_THROWS_CLAUSE_THROWABLE"})
 public class FloodTest extends Common {
@@ -160,7 +159,7 @@ public class FloodTest extends Common {
         String secret = clientId + "-secret";
 
         tokens.put(clientId, loginWithClientSecret(URI.create(TOKEN_ENDPOINT_URI), null, null,
-                clientId, secret, true, null, null, true, OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_FALLBACK).token());
+                clientId, secret, true, null, null, true).token());
     }
 
 

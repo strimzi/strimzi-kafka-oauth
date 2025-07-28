@@ -104,6 +104,8 @@ import java.util.Map;
  * The token endpoint is used to authenticate to authorization server with the <em>clientId</em> and the <em>secret</em> received over username and password parameters.
  * If set, both clientId + secret, and userId + access token are available. Otherwise only userId + access token authentication is available.
  * </li>
+ * <li><em>oauth.client.credentials.grant.type</em> A custom value of `grant_type` parameter passed to token endpoint when authenticating with <em>clientId</em> and the <em>secret</em> to obtain the token.
+ * </li>
  * <li><em>oauth.scope</em> A `scope` parameter passed to token endpoint when authenticating with <em>clientId</em> and the <em>secret</em> to obtain the token.
  * </li>
  * <li><em>oauth.audience</em> An `audience` parameter passed to token endpoint when authenticating with <em>clientId</em> and the <em>secret</em> to obtain the token.
@@ -149,7 +151,7 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
 
         scope = config.getValue(ServerConfig.OAUTH_SCOPE);
         audience = config.getValue(ServerConfig.OAUTH_AUDIENCE);
-        grantType = config.getValue(Config.OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE, Config.OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_FALLBACK);
+        grantType = config.getValue(Config.OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE, Config.OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_DEFAULT_VALUE);
 
         super.delegatedConfigure(configs, "PLAIN", jaasConfigEntries);
 
@@ -161,6 +163,7 @@ public class JaasServerOauthOverPlainValidatorCallbackHandler extends JaasServer
         log.debug("Configured OAuth over PLAIN:"
                 + "\n    configId: " + configId
                 + "\n    tokenEndpointUri: " + tokenEndpointUri
+                + "\n    grantType: " + grantType
                 + "\n    scope: " + scope
                 + "\n    audience: " + audience
                 + "\n    enableMetrics: " + enableMetrics);

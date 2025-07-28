@@ -18,7 +18,6 @@ import org.slf4j.LoggerFactory;
 import javax.net.ssl.SSLSocketFactory;
 import java.net.URI;
 
-import static io.strimzi.kafka.oauth.common.Config.OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_FALLBACK;
 import static io.strimzi.testsuite.oauth.mockoauth.Common.WWW_FORM_CONTENT_TYPE;
 import static io.strimzi.testsuite.oauth.mockoauth.Common.changeAuthServerMode;
 import static io.strimzi.testsuite.oauth.mockoauth.Common.createOAuthClient;
@@ -60,8 +59,7 @@ public class ClientAssertionAuthTest {
                     true,
                     null,
                     null,
-                    null,
-                    OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_FALLBACK);
+                    null);
 
             Assert.fail("Should have failed with 401");
         } catch (Exception e) {
@@ -81,8 +79,7 @@ public class ClientAssertionAuthTest {
                 true,
                 null,
                 null,
-                null,
-                OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_FALLBACK);
+                null);
 
         String token = tokenInfo.token();
         Assert.assertNotNull(token);

@@ -141,6 +141,7 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
 
         clientId = config.getValue(Config.OAUTH_CLIENT_ID);
         clientSecret = config.getValue(Config.OAUTH_CLIENT_SECRET);
+        grantType = config.getValue(Config.OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE, Config.OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_DEFAULT_VALUE);
 
         final String clientAssertion = config.getValue(ClientConfig.OAUTH_CLIENT_ASSERTION);
         final String clientAssertionLocation = config.getValue(ClientConfig.OAUTH_CLIENT_ASSERTION_LOCATION);
@@ -153,7 +154,6 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
 
         scope = config.getValue(Config.OAUTH_SCOPE);
         audience = config.getValue(Config.OAUTH_AUDIENCE);
-        grantType = config.getValue(Config.OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE, Config.OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_FALLBACK);
         socketFactory = ConfigUtil.createSSLFactory(config);
         hostnameVerifier = ConfigUtil.createHostnameVerifier(config);
         connectTimeout = getConnectTimeout(config);
@@ -203,6 +203,7 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
                     + "\n    tokenEndpointUri: " + tokenEndpoint
                     + "\n    clientId: " + clientId
                     + "\n    clientSecret: " + mask(clientSecret)
+                    + "\n    grantType: " + grantType
                     + "\n    clientAssertion: " + mask(clientAssertion)
                     + "\n    clientAssertionLocation: " + clientAssertionLocation
                     + "\n    clientAssertionType: " + clientAssertionType
@@ -210,7 +211,6 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
                     + "\n    password: " + mask(password)
                     + "\n    scope: " + scope
                     + "\n    audience: " + audience
-                    + "\n    grantType: " + grantType
                     + "\n    isJwt: " + isJwt
                     + "\n    maxTokenExpirySeconds: " + maxTokenExpirySeconds
                     + "\n    principalExtractor: " + principalExtractor
