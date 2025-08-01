@@ -945,6 +945,10 @@ together with one of authentication options below.
 
 When client starts to establish the connection with the Kafka Broker it will first obtain an access token from the configured Token Endpoint, authenticating with the configured client ID and configured authentication option using client_credentials grant type.
 
+If the OAuth2 server is using an alternative to the "grant_type=client_credentials" string, such as "grant_type=kubernetes", that is achieved by specifying the following:
+- `oauth.client.credentials.grant.type` (e.g.: "kubernetes")
+
+
 ##### Option 1: Using a Client Secret 
 
 Specify the client secret.

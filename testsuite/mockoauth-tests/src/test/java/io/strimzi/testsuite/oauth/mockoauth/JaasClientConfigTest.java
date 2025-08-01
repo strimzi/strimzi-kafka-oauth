@@ -78,6 +78,8 @@ public class JaasClientConfigTest {
         testRefreshTokenLocation();
 
         testClientAssertionLocation();
+
+        testInvalidGrantType();
     }
 
     private void testAllConfigOptions() throws IOException {
@@ -90,6 +92,7 @@ public class JaasClientConfigTest {
         attrs.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, "https://sso/token");
         attrs.put(ClientConfig.OAUTH_CLIENT_ID, "client-id");
         attrs.put(ClientConfig.OAUTH_CLIENT_SECRET, "client-secret");
+        attrs.put(ClientConfig.OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE, "non-default-grant-type");
         attrs.put(ClientConfig.OAUTH_CLIENT_ASSERTION, "client-assertion");
         attrs.put(ClientConfig.OAUTH_CLIENT_ASSERTION_TYPE, "urn:ietf:params:oauth:client-assertion-type:saml2-bearer");
         attrs.put(ClientConfig.OAUTH_PASSWORD_GRANT_USERNAME, "username");
@@ -140,6 +143,7 @@ public class JaasClientConfigTest {
             "tokenEndpointUri", "https://sso/token",
             "clientId", "client-id",
             "clientSecret", "c\\*\\*",
+            "grantType", "non-default-grant-type",
             "clientAssertion", "c\\*\\*",
             "clientAssertionType", "urn:ietf:params:oauth:client-assertion-type:saml2-bearer",
             "username", "username",
@@ -568,6 +572,46 @@ public class JaasClientConfigTest {
             Files.delete(clientAssertionFilePath);
         }
     }
+
+    private void testInvalidGrantType() throws Exception {
+        String testClient = "testclient";
+        String testSecret = "testsecret";
+
+        changeAuthServerMode("jwks", "mode_200");
+        changeAuthServerMode("token", "mode_200");
+        createOAuthClient(testClient, testSecret);
+
+        Map<String, String> oauthConfig = new HashMap<>();
+        oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, TOKEN_ENDPOINT_URI);
+        oauthConfig.put(ClientConfig.OAUTH_CLIENT_ID, testClient);
+        oauthConfig.put(ClientConfig.OAUTH_CLIENT_SECRET, testSecret);
+        oauthConfig.put(ClientConfig.OAUTH_SSL_TRUSTSTORE_LOCATION, "../docker/target/kafka/certs/ca-truststore.p12");
+        oauthConfig.put(ClientConfig.OAUTH_SSL_TRUSTSTORE_PASSWORD, "changeit");
+
+        // Confirm fails with invalid grant type
+        oauthConfig.put(ClientConfig.OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE, "dummy-grant-type");
+
+        try {
+            initJaasWithRetry(oauthConfig);
+            Assert.fail("Should have failed");
+
+        } catch (KafkaException e) {
+            assertLoginException(e);
+        }
+
+        // Confirm succeeds with valid grant type
+        oauthConfig.put(ClientConfig.OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE, ClientConfig.OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_DEFAULT_VALUE);
+
+        LogLineReader logReader = new LogLineReader(Common.LOG_PATH);
+        logReader.readNext();
+
+        initJaasWithRetry(oauthConfig);
+        List<String> lines = logReader.readNext();
+        boolean found = checkLogForRegex(lines, "Login succeeded");
+        Assert.assertTrue("Login succeeded", found);
+
+    }
+
 
     /**
      * If signing keys have not yet been loaded by kafka broker,

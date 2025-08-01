@@ -116,7 +116,7 @@ public class TestUtil {
         if (objects == null || objects.length == 0) {
             System.out.println(format);
         } else {
-            System.out.printf(format, objects);
+            System.out.printf(format, (Object[]) objects);
         }
     }
 
