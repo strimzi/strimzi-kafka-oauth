@@ -131,7 +131,6 @@ public class PasswordAuthAndPrincipalExtractionTest {
                 true,
                 null,
                 null,
-                null,
                 true);
 
         token = tokenInfo.token();
