@@ -160,13 +160,13 @@ Make sure that you added 'kafka', 'keycloak', and 'hydra' to your `/etc/hosts` a
 ### How to set a custom Kafka image
 
 By default, the latest released strimzi/kafka images are used for the tests. Regardless of the versions of oauth-kafka-* 
-libraries included with these images, the latest build of 1.0.0-SNAPSHOT oauth-kafka-* libraries is included in these images and
+libraries included with these images, the latest build of 0.17.0 oauth-kafka-* libraries is included in these images and
  placed at the head of the classpath to override the versions packaged with the published images.
   
 Thus, you don't need to use the latest local build of strimzi/kafka libraries to test the new oauth functionality.
 
 But if you want you can specify the kafka image to use for the test as follows:
 
-    mvn clean test -Dkafka.docker.image=quay.io/strimzi/kafka:0.44.0-kafka-3.7.1 -f testsuite/keycloak-auth-tests
+    mvn clean test -Dkafka.docker.image=quay.io/strimzi/kafka:0.47.0-kafka-4.0.0 -f testsuite/keycloak-auth-tests
 
 This will use the latest locally built kafka image of strimzi-kafka-operator project.

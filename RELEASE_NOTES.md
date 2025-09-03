@@ -1,6 +1,18 @@
 Release Notes
 =============
 
+0.17.0
+------
+
+### Make client credentials grant type configurable
+
+OAuth clients using client_credentials can now set grant_type to a custom value. 
+Custom authorization servers' OAuth implementations of client_credentials mechanism can now use grant_type as a discriminator.
+
+A new configuration option was introduced: `oauth.client.credentials.grant.type`.
+
+See [PR 279](https://github.com/strimzi/strimzi-kafka-oauth/pull/279)
+
 0.16.2
 ------
 
