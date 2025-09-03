@@ -1,12 +1,12 @@
 Strimzi Kafka Image with SNAPSHOT Strimzi Kafka OAuth
 =====================================================
 
-This is a build of a Docker image based on `quay.io/strimzi/kafka:0.45.0-kafka-3.9.0` with added most recently locally built SNAPSHOT version of Strimzi Kafka OAuth libraries.
+This is a build of a Docker image based on `quay.io/strimzi/kafka:0.47.0-kafka-4.0.0` with added most recently locally built SNAPSHOT version of Strimzi Kafka OAuth libraries.
 
 This image adds a `/opt/kafka/libs/oauth` directory, and copies the latest jars for OAuth support in it.
 Then it puts this directory as the first directory on the classpath.
 
-The result is that the specific version of Strimzi Kafka OAuth jars and their dependencies is used, because they appear on the classpath before the ones that are part of `quay.io/strimzi/kafka:0.45.0-kafka-3.9.0` which are located in the `/opt/kafka/libs` directory.
+The result is that the specific version of Strimzi Kafka OAuth jars and their dependencies is used, because they appear on the classpath before the ones that are part of `quay.io/strimzi/kafka:0.47.0-kafka-4.0.0` which are located in the `/opt/kafka/libs` directory.
 
 
 Building
@@ -79,9 +79,9 @@ Deploying
 
 In order for the operator to use your Kafka image, you have to replace the Kafka image coordinates in `packaging/install/cluster-operator/060-Deployment-strimzi-cluster-operator.yaml` in your `strimzi-kafka-operator` project.
 
-This image builds the kafka-3.9.0 replacement image, so we need to replace all occurrences where kafka-3.9.0 is referred to into the proper coordinates to our image:
+This image builds the kafka-3.9.1 replacement image, so we need to replace all occurrences where kafka-3.9.1 is referred to into the proper coordinates to our image:
 
-    sed -Ei "s#quay.io/strimzi/kafka:latest-kafka-3.9.0#${DOCKER_REG}/strimzi/kafka:latest-kafka-3.9.0-oauth#" \
+    sed -Ei "s#quay.io/strimzi/kafka:latest-kafka-3.9.1#${DOCKER_REG}/strimzi/kafka:latest-kafka-3.9.1-oauth#" \
         packaging/install/cluster-operator/060-Deployment-strimzi-cluster-operator.yaml
 
 
@@ -94,11 +94,11 @@ You can now deploy Strimzi Kafka Operator following instructions in [HACKING.md]
 
 ## Via Helm
 
-You can also run the operator via its Helm chart and set the `kafka.image.registry` property to your local registry. As an example, if you've built and tagged the image as `local.dev/strimzi/kafka:0.45.0-kafka-3.9.0`. You can run it using the operator as:
+You can also run the operator via its Helm chart and set the `kafka.image.registry` property to your local registry. As an example, if you've built and tagged the image as `local.dev/strimzi/kafka:0.47.0-kafka-3.9.1`. You can run it using the operator as:
 
     helm repo add strimzi https://strimzi.io/charts/ --force-update
     helm upgrade -i -n strimzi strimzi strimzi/strimzi-kafka-operator \
-      --version 0.45.0 \
+      --version 0.47.0 \
       --set watchNamespaces="{default}" \
       --set generateNetworkPolicy=false \
       --set kafka.image.registry="local.dev" \

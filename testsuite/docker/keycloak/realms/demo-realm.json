@@ -9,6 +9,8 @@
     {
       "username": "alice",
       "enabled": true,
+      "firstName" : "Alice",
+      "lastName" : "Doe",
       "email": "alice@example.com",
       "credentials": [
         {
@@ -28,6 +30,8 @@
     {
       "username": "admin",
       "enabled": true,
+      "firstName" : "Admin",
+      "lastName": "Doe",
       "email": "admin@example.com",
       "credentials": [
         {

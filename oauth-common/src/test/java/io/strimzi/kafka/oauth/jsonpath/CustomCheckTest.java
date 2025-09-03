@@ -226,4 +226,40 @@ public class CustomCheckTest {
             System.out.printf("Ran query on %d unique tokens in %d ms :: '%s'%n", tokens.size(), System.currentTimeMillis() - time, parsedQuery);
         }
     }
+
+    @Ignore
+    @Test
+    public void testComplexQuery() throws Exception {
+        String jsonString = "{\n" +
+                " \"exp\" : 1756844595,\n" +
+                " \"iat\" : 1756844295,\n" +
+                " \"jti\" : \"trrtcc:92eb0ba2-8c4f-e829-abed-2a54a77f0020\",\n" +
+                " \"iss\" : \"http://keycloak:8080/realms/kafka-authz\",\n" +
+                " \"aud\" : [ \"kafka\", \"account\" ],\n" +
+                " \"sub\" : \"7b3b2198-d44f-4786-8a2b-e896af230e2b\",\n" +
+                " \"typ\" : \"Bearer\",\n" +
+                " \"azp\" : \"team-b-client\",\n" +
+                " \"acr\" : \"1\",\n" +
+                " \"realm_access\" : {\n" +
+                "   \"roles\" : [ \"offline_access\", \"Dev Team B\" ]\n" +
+                " },\n" +
+                " \"resource_access\" : {\n" +
+                "   \"kafka\" : {\n" +
+                "     \"roles\" : [ \"kafka-user\" ]\n" +
+                "   },\n" +
+                "   \"account\" : {\n" +
+                "     \"roles\" : [ \"manage-account\", \"manage-account-links\", \"view-profile\" ]\n" +
+                "   }\n" +
+                " },\n" +
+                " \"scope\" : \"email profile\",\n" +
+                " \"email_verified\" : false,\n" +
+                " \"preferred_username\" : \"service-account-team-b-client\"\n" +
+                "}\n";
+
+        String query = "@.typ == 'Bearer' && @.iss == 'http://keycloak:8080/realms/kafka-authz'  && 'kafka' in @.aud && 'kafka-user' in @.resource_access.kafka.roles";
+
+        JsonNode json = JSONUtil.readJSON(jsonString, JsonNode.class);
+        JsonPathFilterQuery q = JsonPathFilterQuery.parse(query);
+        Assert.assertTrue(q.matches(json));
+    }
 }

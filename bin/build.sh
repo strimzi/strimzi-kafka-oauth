@@ -69,9 +69,9 @@ if [ "$arch" == 's390x' ]; then
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/s390x-linux-gnu/jni
 
     cd target
-    git clone -b 23.0.5 https://github.com/keycloak/keycloak.git
+    git clone -b 26.3.3 https://github.com/keycloak/keycloak.git
     cd keycloak/quarkus/container
-    docker build . -t quay.io/keycloak/keycloak:23.0.5
+    docker build . -t quay.io/keycloak/keycloak:26.3.3
     cd ../../../.. && rm -rf target/keycloak
 
     docker build --target hydra-import -t strimzi-oauth-testsuite/hydra-import:latest -f ./testsuite/docker/hydra-import/Dockerfile.s390x .

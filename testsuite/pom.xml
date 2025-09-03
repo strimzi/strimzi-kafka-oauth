@@ -48,7 +48,7 @@
         <strimzi-oauth.version>1.0.0-SNAPSHOT</strimzi-oauth.version>
         <checkstyle.dir>..</checkstyle.dir>
 
-        <kafka.docker.image>quay.io/strimzi/kafka:0.45.0-kafka-3.9.0</kafka.docker.image>
+        <kafka.docker.image>quay.io/strimzi/kafka:0.47.0-kafka-4.0.0</kafka.docker.image>
     </properties>
 
     <dependencyManagement>
@@ -78,7 +78,16 @@
                 <artifactId>commons-compress</artifactId>
                 <version>${commons.compress.version}</version>
             </dependency>
-
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>3.18.0</version>
+            </dependency>
+            <dependency>
+                <groupId>commons-beanutils</groupId>
+                <artifactId>commons-beanutils</artifactId>
+                <version>1.11.0</version>
+            </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-annotations</artifactId>
@@ -317,63 +326,48 @@
         <profile>
             <id>kafka-3_2_3</id>
             <properties>
-                <!-- Uses JDK 17.0.x -->
                 <kafka.docker.image>quay.io/strimzi/kafka:0.33.0-kafka-3.2.3</kafka.docker.image>
-            </properties>
-        </profile>
-        <profile>
-            <id>kafka-3_3_1</id>
-            <properties>
-                <!-- Uses JDK 17.0.x -->
-                <kafka.docker.image>quay.io/strimzi/kafka:0.33.0-kafka-3.3.1</kafka.docker.image>
             </properties>
         </profile>
         <profile>
             <id>kafka-3_3_2</id>
             <properties>
-                <!-- Uses JDK 17.0.x -->
                 <kafka.docker.image>quay.io/strimzi/kafka:0.33.1-kafka-3.3.2</kafka.docker.image>
             </properties>
         </profile>
         <profile>
             <id>kafka-3_4_0</id>
             <properties>
-                <!-- Uses JDK 17.0.x -->
                 <kafka.docker.image>quay.io/strimzi/kafka:0.35.1-kafka-3.4.0</kafka.docker.image>
             </properties>
         </profile>
         <profile>
             <id>kafka-3_5_0</id>
             <properties>
-                <!-- Uses JDK 17.0.x -->
                 <kafka.docker.image>quay.io/strimzi/kafka:0.37.0-kafka-3.5.0</kafka.docker.image>
             </properties>
         </profile>
         <profile>
             <id>kafka-3_5_2</id>
             <properties>
-                <!-- Uses JDK 17.0.x -->
                 <kafka.docker.image>quay.io/strimzi/kafka:0.39.0-kafka-3.5.2</kafka.docker.image>
             </properties>
         </profile>
         <profile>
             <id>kafka-3_6_1</id>
             <properties>
-                <!-- Uses JDK 17.0.x -->
                 <kafka.docker.image>quay.io/strimzi/kafka:0.39.0-kafka-3.6.1</kafka.docker.image>
             </properties>
         </profile>
         <profile>
             <id>kafka-3_6_2</id>
             <properties>
-                <!-- Uses JDK 17.0.x -->
                 <kafka.docker.image>quay.io/strimzi/kafka:0.42.0-kafka-3.6.2</kafka.docker.image>
             </properties>
         </profile>
         <profile>
             <id>kafka-3_7_1</id>
             <properties>
-                <!-- Uses JDK 17.0.x -->
                 <kafka.docker.image>quay.io/strimzi/kafka:0.44.0-kafka-3.7.1</kafka.docker.image>
             </properties>
         </profile>
@@ -381,15 +375,19 @@
         <profile>
             <id>kafka-3_8_1</id>
             <properties>
-                <!-- Uses JDK 17.0.x -->
                 <kafka.docker.image>quay.io/strimzi/kafka:0.45.0-kafka-3.8.1</kafka.docker.image>
             </properties>
         </profile>
         <profile>
-            <id>kafka-3_9_0</id>
+            <id>kafka-3_9_1</id>
             <properties>
-                <!-- Uses JDK 17.0.x -->
-                <kafka.docker.image>quay.io/strimzi/kafka:0.45.0-kafka-3.9.0</kafka.docker.image>
+                <kafka.docker.image>quay.io/strimzi/kafka:0.47.0-kafka-3.9.1</kafka.docker.image>
+            </properties>
+        </profile>
+        <profile>
+            <id>kafka-4_0_0</id>
+            <properties>
+                <kafka.docker.image>quay.io/strimzi/kafka:0.47.0-kafka-4.0.0</kafka.docker.image>
             </properties>
         </profile>
         <profile>

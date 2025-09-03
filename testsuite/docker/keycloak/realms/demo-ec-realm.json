@@ -34,6 +34,8 @@
       "username": "alice",
       "enabled": true,
       "email": "alice@example.com",
+      "firstName": "Alice",
+      "lastName": "Doe",
       "credentials": [
         {
           "type": "password",
@@ -53,6 +55,8 @@
       "username": "admin",
       "enabled": true,
       "email": "admin@example.com",
+      "firstName" : "Admin",
+      "lastName": "Doe",
       "credentials": [
         {
           "type": "password",

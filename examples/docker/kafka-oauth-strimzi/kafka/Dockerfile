@@ -1,4 +1,4 @@
-FROM quay.io/strimzi/kafka:0.45.0-kafka-3.9.0
+FROM quay.io/strimzi/kafka:0.47.0-kafka-4.0.0
 
 COPY libs/* /opt/kafka/libs/strimzi/
 COPY config/* /opt/kafka/config/

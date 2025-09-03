@@ -27,7 +27,7 @@ metadata:
 spec:
   containers:
   - name: keycloak
-    image: quay.io/keycloak/keycloak:23.0.5
+    image: quay.io/keycloak/keycloak:26.3.3
     args: ["-v", "start", "--import-realm", "--features=token-exchange,authorization,scripts"]
     env:
     - name: KEYCLOAK_ADMIN
