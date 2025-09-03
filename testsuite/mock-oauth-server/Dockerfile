@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi8/openjdk-17
+FROM registry.access.redhat.com/ubi9/openjdk-17
 
 ENV APP_DIR /application
 ENV APP_FILE container-uber-jar.jar
