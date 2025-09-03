@@ -110,7 +110,7 @@
         <maven.resources.version>3.3.0</maven.resources.version>
         <spotbugs.version>4.7.3</spotbugs.version>
         <central-publishing-maven-plugin.version>0.7.0</central-publishing-maven-plugin.version>
-        <kafka.version>4.0.0</kafka.version>
+        <kafka.version>4.1.0</kafka.version>
         <jackson.version>2.15.3</jackson.version>
         <jackson.databind.version>2.15.3</jackson.databind.version>
         <jsonpath.version>2.9.0</jsonpath.version>
