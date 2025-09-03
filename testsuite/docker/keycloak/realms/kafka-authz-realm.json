@@ -55,6 +55,7 @@
       "totp" : false,
       "emailVerified" : true,
       "firstName" : "Alice",
+      "lastName" : "Doe",
       "email" : "alice@strimzi.io",
       "credentials" : [ {
         "type" : "password",
@@ -74,6 +75,7 @@
       "totp" : false,
       "emailVerified" : true,
       "firstName" : "Bob",
+      "lastName": "Doe",
       "email" : "bob@strimzi.io",
       "credentials" : [ {
         "type" : "password",
@@ -93,6 +95,7 @@
       "totp" : false,
       "emailVerified" : true,
       "firstName" : "Zero",
+      "lastName" : "Doe",
       "email" : "zero@strimzi.io",
       "credentials" : [ {
         "type" : "password",
