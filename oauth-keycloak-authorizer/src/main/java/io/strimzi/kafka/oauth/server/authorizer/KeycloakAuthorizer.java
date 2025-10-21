@@ -5,11 +5,13 @@
 package io.strimzi.kafka.oauth.server.authorizer;
 
 import io.strimzi.kafka.oauth.common.ConfigException;
+import io.strimzi.kafka.oauth.services.Services;
 import org.apache.kafka.common.Endpoint;
 import org.apache.kafka.common.Uuid;
 import org.apache.kafka.common.acl.AclBinding;
 import org.apache.kafka.common.acl.AclBindingFilter;
 import org.apache.kafka.common.acl.AclOperation;
+import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.resource.ResourceType;
 import org.apache.kafka.metadata.authorizer.AclMutator;
 import org.apache.kafka.metadata.authorizer.ClusterMetadataAuthorizer;
@@ -25,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
@@ -66,6 +69,7 @@ public class KeycloakAuthorizer implements ClusterMetadataAuthorizer {
     private final int instanceNumber = INSTANCE_NUMBER_COUNTER.getAndIncrement();
 
     private StandardAuthorizer delegate;
+    private Object pluginMetrics;
     private KeycloakRBACAuthorizer singleton;
 
     @Override
@@ -85,10 +89,71 @@ public class KeycloakAuthorizer implements ClusterMetadataAuthorizer {
         if (configuration.isDelegateToKafkaACL()) {
             delegate = instantiateStandardAuthorizer();
             delegate.configure(configs);
+            initPluginMetricsIfNeeded();
         }
 
         if (log.isDebugEnabled()) {
             log.debug("Configured " + this + " using " + singleton);
+        }
+    }
+
+    /**
+     * Initialise and set PluginMetrics on StandardAuthorizer if it implements Monitorable
+     * Use of reflection is needed since the classes are only available starting with Kafka 4.1.0
+     * Once this class implements Monitorable the use of reflection will no longer be necessary, and the passed-in
+     * PluginMetrics object will be passed on to StandardAuthorizer.withPluginMetrics().
+     */
+    private void initPluginMetricsIfNeeded() {
+        Class<?> monitorableClass = null;
+        try {
+            // Check if StandardAuthorizer implements Monitorable, which can only be true if running on Kafka 4.1.0+
+            monitorableClass = Class.forName("org.apache.kafka.common.metrics.Monitorable");
+        } catch (Exception e) {
+            log.debug("Monitorable class not present. PluginMetrics initialisation skipped on StandardAuthorizer");
+        }
+        try {
+            if (monitorableClass != null && monitorableClass.isAssignableFrom(delegate.getClass())) {
+                Class<?> pluginClass = Class.forName("org.apache.kafka.common.internals.Plugin");
+                Metrics metrics = Services.getInstance().getMetrics().getKafkaMetrics();
+                Method method = pluginClass.getMethod("wrapInstance", Object.class, Metrics.class, String.class, String.class, String.class);
+                pluginMetrics = method.invoke(null, delegate, metrics, "authorizer.class.name", "role", determineRole());
+            }
+        } catch (Exception e) {
+            log.warn("Failed to initialise PluginMetrics on StandardAuthorizer", e);
+        }
+    }
+
+    /**
+     * This method uses a rather hackish way to determine if this authorizer instance is instantiated
+     * by ControllerServer or by BrokerServer. Once this class implements Monitorable, this will no longer be necessary.
+     *
+     * @return The role of the instantiating server: "controller" or "broker"
+     */
+    private String determineRole() {
+        for (StackTraceElement s: new RuntimeException().getStackTrace()) {
+            String className = s.getClassName();
+            if (className.endsWith("ControllerServer")) {
+                return "controller";
+            } else if (className.endsWith("BrokerServer")) {
+                return "broker";
+            }
+        }
+        return "broker";
+    }
+
+    /**
+     * Invoke Plugin.close() if pluginMetrics was initialised.
+     * Use of reflection is needed since the classes are only available starting with Kafka 4.1.0
+     */
+    private void closePluginMetricsIfNeeded() {
+        try {
+            if (pluginMetrics != null) {
+                Class<?> pluginClass = Class.forName("org.apache.kafka.common.internals.Plugin");
+                Method method = pluginClass.getMethod("close");
+                method.invoke(pluginMetrics);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to close PluginMetrics on StandardAuthorizer", e);
         }
     }
 
@@ -238,6 +303,8 @@ public class KeycloakAuthorizer implements ClusterMetadataAuthorizer {
         if (delegate != null) {
             delegate.close();
         }
+
+        closePluginMetricsIfNeeded();
     }
 
     @Override

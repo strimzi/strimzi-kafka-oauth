@@ -244,4 +244,13 @@ public class OAuthMetrics {
         metricName = metrics.metricName("minTimeMs", key.getName(), "Min request time in ms", key.getAttributes());
         sensor.add(metricName, new Min());
     }
+
+    /**
+     * Get access to the underlying Kafka API Metrics object
+     *
+     * @return The underlying Kafka API Metrics instance used
+     */
+    public Metrics getKafkaMetrics() {
+        return metrics;
+    }
 }
