@@ -3,13 +3,19 @@ set -e
 
 source functions.sh
 
-URI="https://hydra:4445/clients"
+URI="https://hydra:4445/admin/clients"
 wait_for_url $URI "Waiting for Hydra admin REST to start"
 wait_for_url $URI/kafka-broker "Waiting for kafka-broker client to be available"
 
-URI="https://hydra-jwt:4455/clients"
+URI="https://hydra-jwt:4455/admin/clients"
 wait_for_url $URI "Waiting for Hydra JWT admin REST to start"
 wait_for_url $URI/kafka-broker "Waiting for kafka-broker client to be available"
+
+URI="https://hydra:4444/oauth2/token"
+wait_for_url $URI "Waiting for hydra:4444 token endpoint to start"
+
+URI="https://hydra:4445/admin/oauth2/introspect"
+wait_for_url $URI "Waiting for hydra:4445 introspect endpoint to start"
 
 ./simple_kafka_config.sh | tee /tmp/strimzi.properties
 echo "Config created"

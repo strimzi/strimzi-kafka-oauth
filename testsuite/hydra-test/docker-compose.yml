@@ -1,7 +1,7 @@
 services:
 
   hydra:
-    image: oryd/hydra:v1.8.5
+    image: oryd/hydra:v2.3.0
     ports:
       - "4444:4444"
       - "4445:4445"
@@ -14,10 +14,16 @@ services:
       - URLS_SELF_ISSUER=https://hydra:4444/
       - URLS_CONSENT=http://hydra:9020/consent
       - URLS_LOGIN=http://hydra:9020/login
-      - SERVE_TLS_KEY_PATH=/tmp/certs/hydra.key
-      - SERVE_TLS_CERT_PATH=/tmp/certs/hydra.crt
+      - SERVE_PUBLIC_TLS_ENABLED=true
+      - SERVE_ADMIN_TLS_ENABLED=true
+      - SERVE_PUBLIC_TLS_KEY_PATH=/tmp/certs/hydra.key
+      - SERVE_ADMIN_TLS_KEY_PATH=/tmp/certs/hydra.key
+      - SERVE_PUBLIC_TLS_CERT_PATH=/tmp/certs/hydra.crt
+      - SERVE_ADMIN_TLS_CERT_PATH=/tmp/certs/hydra.crt
       - SERVE_PUBLIC_PORT=4444
       - SERVE_ADMIN_PORT=4445
+      - SECRETS_SYSTEM=thisisaglobalsecret
+      - LOG_LEVEL=debug
 
   hydra-import:
     image: testsuite/hydra-import:latest
@@ -30,29 +36,34 @@ services:
       - -c
       - cd hydra && ./start.sh
     environment:
-      - HYDRA_ADMIN_URL=https://hydra:4445
-      - HYDRA_URI=https://hydra:4445/clients
+      - HYDRA_URI=https://hydra:4445/admin/clients
       - SERVE_ADMIN_PORT=4445
 
   hydra-jwt:
-    image: oryd/hydra:v1.8.5
+    image: oryd/hydra:v2.3.0
     ports:
       - "4454:4454"
       - "4455:4455"
     volumes:
       - ${PWD}/../docker/target/hydra/certs:/tmp/certs
-    command: serve all
 
     environment:
       - DSN=memory
       - URLS_SELF_ISSUER=https://hydra-jwt:4454/
       - URLS_CONSENT=http://hydra-jwt:9120/consent
       - URLS_LOGIN=http://hydra-jwt:9120/login
-      - SERVE_TLS_KEY_PATH=/tmp/certs/hydra-jwt.key
-      - SERVE_TLS_CERT_PATH=/tmp/certs/hydra-jwt.crt
+      - SERVE_PUBLIC_TLS_ENABLED=true
+      - SERVE_ADMIN_TLS_ENABLED=true
+      - SERVE_PUBLIC_TLS_KEY_PATH=/tmp/certs/hydra-jwt.key
+      - SERVE_ADMIN_TLS_KEY_PATH=/tmp/certs/hydra-jwt.key
+      - SERVE_PUBLIC_TLS_CERT_PATH=/tmp/certs/hydra-jwt.crt
+      - SERVE_ADMIN_TLS_CERT_PATH=/tmp/certs/hydra-jwt.crt
+
       - SERVE_PUBLIC_PORT=4454
       - SERVE_ADMIN_PORT=4455
       - STRATEGIES_ACCESS_TOKEN=jwt
+      - SECRETS_SYSTEM=thisisaglobalsecret
+      - LOG_LEVEL=debug
 
   hydra-jwt-import:
     image: testsuite/hydra-import:latest
@@ -65,8 +76,7 @@ services:
       - -c
       - cd hydra && ./start.sh
     environment:
-      - HYDRA_ADMIN_URL=https://hydra-jwt:4455
-      - HYDRA_URI=https://hydra-jwt:4455/clients
+      - HYDRA_URI=https://hydra-jwt:4455/admin/clients
       - SERVE_ADMIN_PORT=4455
 
   kafka:
@@ -107,7 +117,7 @@ services:
       - KAFKA_LISTENER_NAME_CONTROLLER_SASL_ENABLED_MECHANISMS=SCRAM-SHA-512
       - KAFKA_LISTENER_NAME_CONTROLLER_SCRAM__2DSHA__2D512_SASL_JAAS_CONFIG=org.apache.kafka.common.security.scram.ScramLoginModule required    username=\"admin\"    password=\"admin-secret\" ;
 
-      - KAFKA_LISTENER_NAME_INTROSPECT_OAUTHBEARER_SASL_JAAS_CONFIG=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required    oauth.introspection.endpoint.uri=\"https://hydra:4445/oauth2/introspect\"    oauth.client.id=\"kafka-broker\"    oauth.client.secret=\"kafka-broker-secret\"    oauth.valid.issuer.uri=\"https://hydra:4444/\"    oauth.token.endpoint.uri=\"https://hydra:4444/oauth2/token\"    oauth.check.access.token.type=\"false\"    oauth.access.token.is.jwt=\"false\" ;
+      - KAFKA_LISTENER_NAME_INTROSPECT_OAUTHBEARER_SASL_JAAS_CONFIG=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required    oauth.introspection.endpoint.uri=\"https://hydra:4445/admin/oauth2/introspect\"    oauth.client.id=\"kafka-broker\"    oauth.client.secret=\"kafka-broker-secret\"    oauth.valid.issuer.uri=\"https://hydra:4444/\"    oauth.token.endpoint.uri=\"https://hydra:4444/oauth2/token\"    oauth.check.access.token.type=\"false\"    oauth.access.token.is.jwt=\"false\" ;
       - KAFKA_LISTENER_NAME_INTROSPECT_OAUTHBEARER_SASL_LOGIN_CALLBACK_HANDLER_CLASS=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
       - KAFKA_LISTENER_NAME_INTROSPECT_OAUTHBEARER_SASL_SERVER_CALLBACK_HANDLER_CLASS=io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
 

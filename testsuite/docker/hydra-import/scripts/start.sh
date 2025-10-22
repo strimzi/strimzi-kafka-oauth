@@ -23,7 +23,7 @@ cat < /hydra/certs/ca.crt >> /etc/ssl/certs/ca-certificates.crt
 
 URI=${HYDRA_URI}
 if [ "" == "${URI}" ]; then
-    URI="http://${HYDRA_HOST:-hydra}:{SERVE_ADMIN_PORT:-4445}/clients"
+    URI="https://${HYDRA_HOST:-hydra}:{SERVE_ADMIN_PORT:-4445}/admin/clients"
 fi
 
 wait_for_url $URI "Waiting for Hydra admin REST to start"
