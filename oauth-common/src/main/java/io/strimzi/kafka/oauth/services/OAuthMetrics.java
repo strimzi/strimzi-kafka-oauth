@@ -4,6 +4,7 @@
  */
 package io.strimzi.kafka.oauth.services;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.strimzi.kafka.oauth.common.Config;
 import io.strimzi.kafka.oauth.metrics.SensorKey;
 import org.apache.kafka.clients.CommonClientConfigs;
@@ -246,10 +247,14 @@ public class OAuthMetrics {
     }
 
     /**
-     * Get access to the underlying Kafka API Metrics object
+     * Get access to the underlying Kafka API Metrics object.
+     *
+     * Only used in KeycloakAuthorizer where it's part of the workaround for Kafka 4.1.0 breaking change.
      *
      * @return The underlying Kafka API Metrics instance used
      */
+    @SuppressFBWarnings("EI_EXPOSE_REP")
+    // See https://spotbugs.readthedocs.io/en/stable/bugDescriptions.html#ei-may-expose-internal-representation-by-returning-reference-to-mutable-object-ei-expose-rep
     public Metrics getKafkaMetrics() {
         return metrics;
     }

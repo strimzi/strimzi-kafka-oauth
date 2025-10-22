@@ -118,7 +118,7 @@ public class KeycloakAuthorizer implements ClusterMetadataAuthorizer {
                 Method method = pluginClass.getMethod("wrapInstance", Object.class, Metrics.class, String.class, String.class, String.class);
                 pluginMetrics = method.invoke(null, delegate, metrics, "authorizer.class.name", "role", determineRole());
             }
-        } catch (Exception e) {
+        } catch (Throwable e) {
             log.warn("Failed to initialise PluginMetrics on StandardAuthorizer", e);
         }
     }
@@ -152,7 +152,7 @@ public class KeycloakAuthorizer implements ClusterMetadataAuthorizer {
                 Method method = pluginClass.getMethod("close");
                 method.invoke(pluginMetrics);
             }
-        } catch (Exception e) {
+        } catch (Throwable e) {
             log.warn("Failed to close PluginMetrics on StandardAuthorizer", e);
         }
     }
