@@ -371,7 +371,7 @@ instead of doing the whole `docker_build` again:
     
 Let's make sure the SNAPSHOT Strimzi OAuth libraries are included.
 
-    docker run --rm -ti $DOCKER_REG/strimzi/kafka:0.35.0-kafka-3.9.0 /bin/sh -c 'ls -la /opt/kafka/libs/kafka-oauth*'
+    docker run --rm -ti $DOCKER_REG/strimzi/kafka:0.47.0-kafka-4.0.0 /bin/sh -c 'ls -la /opt/kafka/libs/kafka-oauth*'
 
 This executes a `ls` command inside a new Kafka container, which it removes afterwards.
 The deployed version should be 1.0.0-SNAPSHOT.
