@@ -9,9 +9,12 @@ wait_for_url() {
         CMD="curl -sL -o /dev/null -w %{http_code} $URL"
     fi
 
-    until [ "200" == "`$CMD`" ]
+    # Run 'curl' but suppress any error code from 'set -e' error hook
+    status=$($CMD || echo "000")
+    until [[ "$status" == "200" || "$status" == "405" ]]
     do
         echo "$MSG ($URL)"
+        status=$($CMD || echo "000")
         sleep 2
     done
 }
