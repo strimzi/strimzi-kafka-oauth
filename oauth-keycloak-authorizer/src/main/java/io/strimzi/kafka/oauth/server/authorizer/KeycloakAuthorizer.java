@@ -106,7 +106,7 @@ public class KeycloakAuthorizer implements ClusterMetadataAuthorizer {
     private void initPluginMetricsIfNeeded() {
         Class<?> monitorableClass = null;
         try {
-            // Check if StandardAuthorizer implements Monitorable, which can only be true if running on Kafka 4.1.0+
+            // Check if Monitorable is present. This indicates if we're running on Kafka 4.1.0+
             monitorableClass = Class.forName("org.apache.kafka.common.metrics.Monitorable");
         } catch (Exception e) {
             log.debug("Monitorable class not present. PluginMetrics initialisation skipped on StandardAuthorizer");
@@ -119,7 +119,7 @@ public class KeycloakAuthorizer implements ClusterMetadataAuthorizer {
                 pluginMetrics = method.invoke(null, delegate, metrics, "authorizer.class.name", "role", determineRole());
             }
         } catch (Throwable e) {
-            log.warn("Failed to initialise PluginMetrics on StandardAuthorizer", e);
+            throw new ConfigException("Failed to initialise PluginMetrics on StandardAuthorizer (consider setting `strimzi.authorization.delegate.to.kafka.acl=false`): ", e);
         }
     }
 
