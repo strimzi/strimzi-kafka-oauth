@@ -31,7 +31,7 @@ services:
       - "9404:9404"
 
       # javaagent debug port
-      - "5005:5005"
+      #- "5006:5006"
     volumes:
       - ${PWD}/../docker/target/kafka/libs:/opt/kafka/libs/strimzi
       - ${PWD}/../docker/kafka/config:/opt/kafka/config/strimzi
