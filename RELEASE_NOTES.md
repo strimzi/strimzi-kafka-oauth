@@ -6,7 +6,7 @@ Release Notes
 
 ### Make client credentials grant type configurable
 
-OAuth clients using client_credentials can now set grant_type to a custom value. 
+OAuth clients using client_credentials can now set grant_type to a custom value.
 Custom authorization servers' OAuth implementations of client_credentials mechanism can now use grant_type as a discriminator.
 
 A new configuration option was introduced: `oauth.client.credentials.grant.type`.
