@@ -6,7 +6,7 @@
 
     <groupId>io.strimzi.oauth.testsuite</groupId>
     <artifactId>kafka-oauth-testsuite</artifactId>
-    <version>0.17.0</version>
+    <version>0.17.1</version>
 
     <packaging>pom</packaging>
 
@@ -45,7 +45,7 @@
         <version.junit>4.13.2</version.junit>
         <spotbugs.version>4.7.0</spotbugs.version>
         <jackson.annotation.version>2.15.2</jackson.annotation.version>
-        <strimzi-oauth.version>0.17.0</strimzi-oauth.version>
+        <strimzi-oauth.version>0.17.1</strimzi-oauth.version>
         <checkstyle.dir>..</checkstyle.dir>
 
         <kafka.docker.image>quay.io/strimzi/kafka:0.48.0-kafka-4.1.0</kafka.docker.image>

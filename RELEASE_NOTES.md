@@ -1,6 +1,21 @@
 Release Notes
 =============
 
+0.17.1
+------
+
+### Fix for KeycloakAuthorizer incompatibility with Kafka 4.1.0
+
+When deploying `KeycloakAuthorizer` with Kafka ACL delegation enabled (`strimzi.authorization.delegate.to.kafka.acl=true`)
+there was an exception each time the authorization decision was delegated to Kafka's `StandardAuthorizer`, and the actions were denied.
+
+Kafka 4.1.0 introduced a new metrics pluggability mechanism and updated `StandardAuthorizer` to implement `Monitorable` interface and expect a `PluginMetrics` object to be provided by the instantiating server via `Monitorable.withPluginMetrics(PluginMetrics)`.
+`KeycloakAuthorizer` did not provide this part of the expected initialisation to `StandardAuthorizer` which resulted in `NullPointerException` at runtime.
+
+This issue should now be fixed.
+
+See [PR 283](https://github.com/strimzi/strimzi-kafka-oauth/pull/283)
+
 0.17.0
 ------
 
