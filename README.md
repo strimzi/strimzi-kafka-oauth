@@ -58,6 +58,7 @@ Strimzi Kafka OAuth modules provide support for OAuth2 as authentication mechani
   - [Using the metrics with Prometheus](#using-the-metrics-with-prometheus)
   - [Some examples of PromQL queries](#some-examples-of-promql-queries)
 - [Demo](#demo)
+- [Community Testing for Linux on IBM Z s390x architecture](#community-testing-for-linux-on-ibm-z-s390x-architecture)
   
 <!-- /TOC -->
 
@@ -1512,6 +1513,12 @@ Demo
 For a demo / tutorial covering OAuth2 authentication see [examples README](examples/README.md).
 
 For another demo / tutorial covering token based authorization using Keycloak Authorization Services see [authorization README](examples/README-authz.md)
+
+Community Testing for Linux on IBM Z s390x architecture
+----
+[![Jenkins](https://ibmz-ci.osuosl.org/buildStatus/icon?job=Strimzi_Kafka_Oauth_IBMZ_CI&subject=s390x%20build)](https://ibmz-ci.osuosl.org/job/Strimzi_Kafka_Oauth_IBMZ_CI/)
+
+_Note: This badge represents a community-led initiative and is not officially endorsed by the Strimzi project maintainers._
 
 
 Troubleshooting
