@@ -28,8 +28,10 @@ Strimzi Kafka OAuth modules provide support for OAuth2 as authentication mechani
     - [Configuring the OAuth2](#configuring-the-oauth2)
       - [Configuring the token validation](#configuring-the-token-validation)
         - [Validation using the JWKS endpoint](#validation-using-the-jwks-endpoint)
+        - [JWKS caching and local JWT validation](#jwks-caching-and-local-jwt-validation)
         - [Validation using the introspection endpoint](#validation-using-the-introspection-endpoint)
         - [Custom claim checking](#custom-claim-checking)
+        - [Group extraction](#group-extraction)
         - [Configuring the `OAuth over PLAIN`](#configuring-the-oauth-over-plain)
       - [Configuring the client side of inter-broker communication](#configuring-the-client-side-of-inter-broker-communication)
     - [Enabling the re-authentication](#enabling-the-re-authentication)
@@ -57,6 +59,10 @@ Strimzi Kafka OAuth modules provide support for OAuth2 as authentication mechani
 - [Configuring the metrics](#configuring-the-metrics)
   - [Using the metrics with Prometheus](#using-the-metrics-with-prometheus)
   - [Some examples of PromQL queries](#some-examples-of-promql-queries)
+- [Configuration Reference](#configuration-reference)
+  - [Broker configuration options](#broker-configuration-options)
+  - [Client configuration options](#client-configuration-options)
+  - [Authorizer configuration options (KeycloakAuthorizer)](#authorizer-configuration-options-keycloakauthorizer)
 - [Demo](#demo)
 - [Community Testing for Linux on IBM Z s390x architecture](#community-testing-for-linux-on-ibm-z-s390x-architecture)
   
@@ -140,7 +146,7 @@ Consult your authorization server's documentation.
 
 If you use the `KeycloakAuthorizer` for authorization, then you have to use Keycloak or Keycloak based authorization server to configure security policies and permissions for users and service accounts.
  
-Configuring the Kafka Broker 
+Configuring the Kafka broker authentication 
 ----------------------------
 
 Kafka uses JAAS to bootstrap custom authentication mechanisms. 
@@ -152,11 +158,9 @@ The authorization configuration for `KeycloakAuthorizer` is specified as `server
 Both authentication and authorization configuration specific to Strimzi Kafka OAuth can also be set as ENV vars, or as Java system properties.
 The limitation here is that authentication configuration specified in this manner can not be listener-scoped.
 
-### Configuring the Kafka Broker authentication
+There are several steps to configuring the Kafka broker, as outlined in this section.
 
-There are several steps to configuring the Kafka Broker:
-
-#### Configuring the listeners
+### Configuring the listeners
 
 In order to configure Strimzi Kafka OAuth for the listener, you first need to enable SASL security for the listener, and enable SASL/OAUTHBEARER mechanism.
 
@@ -181,7 +185,7 @@ In order to use `OAuth over PLAIN` you have to enable the SASL/PLAIN mechanism a
 
     sasl.enabled.mechanisms=OAUTHBEARER,PLAIN
 
-#### Configuring the JAAS login module
+### Configuring the JAAS login module
 
 In JAAS configuration we do four things:
 - Activate a specific JAAS login module - for Strimzi Kafka OAuth that is either:
@@ -218,7 +222,7 @@ Any Strimzi Kafka OAuth keys that begin with `oauth.` can be specified this way 
 A value of the scoped `sasl.jaas.config` always starts with the JAAS login module name, followed by `required`, and then followed by zero or more configuration parameters, separated by a whitespace, and ended with a semicolon - `;`
 Inside `server.properties` this has to be a single line, or if multi-line, each non-final line has to be ended with a backslash `\`.
 
-#### Enabling the custom callbacks
+### Enabling the custom callbacks
 
 The custom callbacks are enabled per listener in `server.properties` using the listener-scoped configuration.
 
@@ -249,13 +253,13 @@ oauth.jwks.endpoint.uri="https://server/keys" unsecuredLoginStringClaim_sub="unu
 
 This prevents an error during the execution of the default `OAuthBearerLoginModule` parameter validation logic.
 
-#### Enabling the custom principal builder
+### Enabling the custom principal builder
 
 OAuth authentication also requires a custom principal builder to be installed on the broker:
   
     principal.builder.class=io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder
 
-#### Configuring the OAuth2
+### Configuring the OAuth2
 
 Strimzi Kafka OAuth library uses properties that start with `oauth.*` to configure authentication, and properties that start with `strimzi.*` to configure authorization.
 
@@ -282,17 +286,18 @@ For example, the order of looking for configuration for `strimzi.client.id` woul
 - ENV var `strimzi.client.id`
 - `server.properties` property `strimzi.client.id`
 
-##### Configuring the token validation
+#### Configuring the token validation
 
-The most essential OAuth2 configuration on the Kafka broker is the configuration related to validation of the access tokens passed from Kafka clients to the Kafka broker during SASL based authentication mechanism.
+Token validation defines how the broker verifies access tokens during SASL authentication. 
+You configure this behaviour by specifying how the broker validates the tokens that clients present when they connect.
 
 There are two options for token validation:
 - Using the JWKS endpoint in combination with signed JWT formatted access tokens
 - Using the introspection endpoint
 
-###### Validation using the JWKS endpoint
+##### Validation using the JWKS endpoint
 
-If your authorization server generates JWT tokens, and exposes the JWKS Endpoint then using JWKS endpoint is most efficient,
+If your authorization server generates JWT tokens, and exposes the JWKS Endpoint then using JWKS endpoint is more efficient,
 since it does not require contacting the authorization server whenever a new Kafka client connects to the Kafka Broker.
 
 Specify the following `oauth.*` properties:
@@ -329,7 +334,9 @@ You can specify the secondary claim to fall back to, which allows you to map mul
 - `oauth.fallback.username.claim` (e.g.: "client_id", for nested attributes use `[topAttrKey].[subAttrKey]`. Claim names can also be single quoted: `['topAttrKey'].['subAttrKey']`)
 - `oauth.fallback.username.prefix` (e.g.: "client-account-")
 
-If `oauth.username.claim` is specified but value does not exist in the token, then `oauth.fallback.username.claim` is used. If value for that doesn't exist either, the exception is thrown.
+If `oauth.username.claim` is set but the claim is missing in the token, the broker uses the value from `oauth.fallback.username.claim`.
+If the fallback claim is also missing, authentication fails with an exception.
+
 When `oauth.fallback.username.prefix` is specified and the claim specified by `oauth.fallback.username.claim` contains a non-null value the resulting user id will be equal to concatenation of the prefix, and the value.
 
 For example, if the following configuration is set:
@@ -341,10 +348,9 @@ For example, if the following configuration is set:
 Then, if the token contains `"username": "alice"` claim then the principal will be `User:alice`.
 Otherwise, if the token contains `"client_id": "my-producer"` claim then the principal will be `User:client-account-my-producer`. 
 
-If your authorization server uses ECDSA encryption you used to need to enable the BouncyCastle JCE crypto provider:
-- `oauth.crypto.provider.bouncycastle` (e.g.: "true")
+If your authorization server uses ECDSA signing algorithms, no additional Java cryptography providers are required. The Kafka broker ignores the following options:
 
-Since version 0.8.0 this is no longer needed, and this configuration option is ignored, as well as the option:
+- `oauth.crypto.provider.bouncycastle`
 - `oauth.crypto.provider.bouncycastle.position`
 
 Depending on your authorization server you may need to relax some checks: 
@@ -368,7 +374,37 @@ If JWKS keys can not be loaded or can not be successfully parsed during startup,
 That behaviour can be turned off:
 - `oauth.fail.fast` (e.g.: "false" - it is "true" by default)
 
-###### Validation using the introspection endpoint
+##### JWKS caching and local JWT validation
+
+When JWT access tokens are validated through a JWKS endpoint, the Strimzi Kafka OAuth library retrieves the JSON Web Key Set and stores the keys in a local cache. After the keys are loaded, the broker verifies token signatures locally. The broker does not contact the authorization server for each validation request.
+
+Local validation reduces network traffic and improves throughput, while still allowing the broker to detect signing key changes.
+
+Key aspects of this behaviour:
+
+*Local verification*
+
+Tokens are verified with cached public keys. Validation does not depend on network availability.
+
+*Key refresh*
+
+The broker refreshes the JWKS keys at regular intervals. Refresh settings control how often updates are attempted and how long cached keys remain valid.
+
+*Unknown signing keys*
+
+If a token references a kid that is not present in the cached JWKS set, the broker performs an immediate refresh before failing the authentication request.
+
+*Performance profile*
+
+Local JWT validation avoids per-request network calls. It is suited to high-connection-rate or latency-sensitive deployments.
+
+*When to use JWKS-based validation*
+
+Use this approach when your authorization server publishes signing keys and when the environment requires fast, local token verification.
+
+See the [Broker configuration options](#broker-configuration-options) that control refresh intervals, key expiry, and retries.
+
+##### Validation using the introspection endpoint
 
 When your authorization server is configured to use opaque tokens (not JWT) or if it does not expose JWKS endpoint, you have no other option but to use the introspection endpoint.
 This will result in Kafka Broker making a request to authorization server every time a new Kafka client connection is established.
@@ -381,7 +417,9 @@ Specify the following `oauth.*` properties:
  
 Introspection endpoint should be protected. The `oauth.client.id` and `oauth.client.secret` specify Kafka Broker credentials for authenticating to access the introspection endpoint. 
 
-Some authorization servers don't provide the `iss` claim. In that case you would not set `oauth.valid.issuer.uri`, and you would explicitly turn off issuer checking by setting the following option to `false`:
+Some authorization servers do not include the `iss` claim.
+In this case, do not set `oauth.valid.issuer.uri`.
+Set `oauth.check.issuer` to `false` to disable issuer checking:
 - `oauth.check.issuer` (e.g.: "false")
 
 You can enforce audience checking, which is an OAuth2 mechanism to prevent successful authentication with tokens unless they are explicitly issued for use by your resource server.
@@ -430,12 +468,12 @@ In that case you can configure User Info Endpoint:
  
 - `oauth.userinfo.endpoint.uri` (e.g.: "https://localhost:8443/realms/demo/protocol/openid-connect/userinfo")
 
-If the user id could not be extracted from Introspection Endpoint response, then the same rules (`oauth.username.claim`, `oauth.fallback.username.claim`, `oauth.fallback.username.prefix`) will be used to try extract the user id from User Info Endpoint response.
+If the user ID cannot be extracted from the introspection response, the broker applies the same rules (`oauth.username.claim`, `oauth.fallback.username.claim`, `oauth.fallback.username.prefix`) to the `userinfo` endpoint response.
 
 When you have a DEBUG logging configured for the `io.strimzi` category you may need to specify the following to prevent warnings about access token not being JWT:
 - `oauth.access.token.is.jwt` (e.g.: "false")
 
-Sometimes the network of the deployment environment may be glitchy resulting in intermittent connection problems. By default, a failed request to the Introspection Endpoint or the User Info Endpoint
+Sometimes the network of the deployment environment may be unreliable resulting in intermittent connection problems. By default, a failed request to the Introspection Endpoint or the User Info Endpoint
 will result in immediate failed validation and `AuthenticationException` returned to the Kafka client application. The following option enables reattempting the request to either endpoint.
 The default value is '0', meaning 'no retries'. Provide the value greater than '0' to set the number of repeated attempts:
 - `oauth.http.retries` (e.g.: "1" - if initial request fails, retry one more time)
@@ -449,8 +487,7 @@ When using `oauth.http.retries` and `oauth.http.retry.pause.millis` options also
 get blocked on unresponsive connection, and you will want to set `oauth.connect.timeout.seconds` and `oauth.read.timeout.seconds` 
 to smaller values as well, as explained in [the chapter on timeouts](#configuring-the-network-timeouts-for-communication-with-authorization-server). 
 
-
-###### Custom claim checking
+##### Custom claim checking
 
 You may want to place additional constraints on who can authenticate to your Kafka broker based on the content of JWT access token.
 There is a mechanism available that allows the use of JSONPath filter query which is the JWT access token or the introspection endpoint response is matched against.
@@ -490,7 +527,7 @@ For example:
 
 See [JsonPathFilterQuery JavaDoc](oauth-common/src/main/java/io/strimzi/kafka/oauth/jsonpath/JsonPathFilterQuery.java) for more information about the syntax.
 
-###### Group extraction
+##### Group extraction
 
 When using custom authorization (by installing a custom authorizer) you may want to take user's group membership into account when making the authorization decisions.
 One way is to obtain and inspect a parsed JWT token from `io.strimzi.kafka.oauth.server.OAuthKafkaPrincipal` object available through `AuthorizableRequestContext` passed to your `authorize()` method. 
@@ -524,7 +561,7 @@ The extracted groups are stored into `OAuthKafkaPrincipal` object. Here is an ex
 
 See [JsonPathQuery JavaDoc](oauth-common/src/main/java/io/strimzi/kafka/oauth/jsonpath/JsonPathQuery.java) for more information about the syntax.
 
-###### Configuring the `OAuth over PLAIN`
+##### Configuring the `OAuth over PLAIN`
 
 > [!NOTE]
 > When OAuth support is configured on the broker, the default SASL PLAIN mechanism handling can not function any more, due to the custom `OAuth over PLAIN` functionality. 
@@ -545,10 +582,9 @@ We can also say that by not configuring the `oauth.token.endpoint.uri` we disabl
 When connecting to the token endpoint the listener's configuration options `oauth.http.retries` and `oauth.http.retry.pause.millis` will be used to control what to do if the request to the endpoint fails due to a network issue, a timeout, or unexpected response status.
 It means that you can set these options on the listener that uses `oauth.jwks.endpoint.uri` as well as on one that uses `oauth.introspection.endpoint.uri`.
 
+#### Configuring the client side of inter-broker communication
 
-##### Configuring the client side of inter-broker communication
-
-It is best to use mutual TLS for inter-broker communication. But if you really want to use `oauth`, there are a few details to get right.
+It is best to use mutual TLS for inter-broker communication. But if you choose to use `oauth`, there are a few details to get right.
 
 In order to use OAuth for inter-broker connections you have to specify the following two settings:
 - `sasl.mechanism.inter.broker.protocol`
@@ -560,7 +596,7 @@ Then, you need to configure the `sasl.jaas.config` with client configuration opt
 
 All the Kafka brokers in the cluster should be configured with the same client ID and secret, and the corresponding user should be added to `super.users` since inter-broker client requires super-user permissions.
 
-When you configure your listener to support OAuth, you can configure it to support OAUTHBEARER, but you can also configure it to support the OAuth over PLAIN as explained previously. PLAIN does not make much sense on the broker for inter-broker communication since OAUTHBEARER is supported. Therefore, it is best to only use OAUTHBEARER mechanism for inter-broker communication.
+When you configure your listener to support OAuth, you can configure it to support OAUTHBEARER, but you can also configure it to support the OAuth over PLAIN as explained previously. PLAIN is not recommended on the broker for inter-broker communication since OAUTHBEARER is supported. Therefore, it is best to only use OAUTHBEARER mechanism for inter-broker communication.
 
 Specify the following `oauth.*` properties in `sasl.jaas.config` configuration:
 - `oauth.token.endpoint.uri` (e.g.: "https://localhost:8443/realms/demo/protocol/openid-connect/token")
@@ -576,7 +612,7 @@ This is not a full set of available `oauth.*` properties. All the `oauth.*` prop
 Here is an example of the configuration that uses OAUTHBEARER for inter-broker authentication:
 
 ```
-# We could use only one listener, but it's customary to use a separate listener 
+# We could use only one listener, but deployments often use a separate listener 
 # for interbroker communication
 listener.security.protocol.map=REPLICATION:SASL_PLAINTEXT,EXTERNAL:SASL_PLAINTEXT
 sasl.enabled.mechanisms=OAUTHBEARER,PLAIN
@@ -586,12 +622,12 @@ inter.broker.listener.name=REPLICATION
 # Because REPLICATION listener is used for inter-broker communication it also requires the 'client-side' login callback handler and corresponding configuration:
 
 listener.name.replication.oauthbearer.sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
-oauth.client.id="kafka" \
-oauth.client.secret="kafka-secret" \
-oauth.token.endpoint.uri="http://sso:8080/realms/demo/protocol/openid-connect/token" \
-oauth.valid.issuer.uri="http://sso:8080/realms/demo" \
-oauth.jwks.endpoint.uri="http://sso:8080/realms/demo/protocol/openid-connect/certs" \
-oauth.username.claim="preferred_username" ;
+  oauth.client.id="kafka" \
+  oauth.client.secret="kafka-secret" \
+  oauth.token.endpoint.uri="http://sso:8080/realms/demo/protocol/openid-connect/token" \
+  oauth.valid.issuer.uri="http://sso:8080/realms/demo" \
+  oauth.jwks.endpoint.uri="http://sso:8080/realms/demo/protocol/openid-connect/certs" \
+  oauth.username.claim="preferred_username" ;
 
 # Server-side-authentication handler
 listener.name.replication.oauthbearer.sasl.server.callback.handler.class=io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
@@ -603,10 +639,10 @@ listener.name.replication.oauthbearer.sasl.login.callback.handler.class=io.strim
 # The EXTERNAL listener only needs server-side-authentication support because we don't use it for inter-broker communication:
 
 listener.name.external.oauthbearer.sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
-oauth.valid.issuer.uri="http://sso:8080/realms/demo" \
-oauth.jwks.endpoint.uri="http://sso:8080/realms/demo/protocol/openid-connect/certs" \
-oauth.username.claim="preferred_username" \
-unsecuredLoginStringClaim_sub="unused" ;
+  oauth.valid.issuer.uri="http://sso:8080/realms/demo" \
+  oauth.jwks.endpoint.uri="http://sso:8080/realms/demo/protocol/openid-connect/certs" \
+  oauth.username.claim="preferred_username" \
+  unsecuredLoginStringClaim_sub="unused" ;
 
 # The last parameter is needed for configuration to pass OAuthBearerLoginModule validation when we don't specify a custom sasl.login.callback.handler.class
 
@@ -616,11 +652,11 @@ listener.name.external.oauthbearer.sasl.server.callback.handler.class=io.strimzi
 
 # On EXTERNAL listener we may also want to support OAuth over PLAIN
 listener.name.external.plain.sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required \
-oauth.token.endpoint.uri="http://sso:8080/realms/demo/protocol/openid-connect/token" \
-oauth.valid.issuer.uri="http://sso:8080/realms/demo" \
-oauth.jwks.endpoint.uri="http://sso:8080/realms/demo/protocol/openid-connect/certs" \
-oauth.username.claim="preferred_username" \
-unsecuredLoginStringClaim_sub="unused" ;
+  oauth.token.endpoint.uri="http://sso:8080/realms/demo/protocol/openid-connect/token" \
+  oauth.valid.issuer.uri="http://sso:8080/realms/demo" \
+  oauth.jwks.endpoint.uri="http://sso:8080/realms/demo/protocol/openid-connect/certs" \
+  oauth.username.claim="preferred_username" \
+  unsecuredLoginStringClaim_sub="unused" ;
 
 # Server-side-authentication handler
 listener.name.external.plain.sasl.server.callback.handler.class=io.strimzi.kafka.oauth.server.plain.JaasServerOauthOverPlainValidatorCallbackHandler
@@ -726,7 +762,7 @@ It does that by using a thread pool. You can control the size of the thread pool
 - `strimzi.authorization.grants.refresh.pool.size` (e.g.: "10" - the maximum of 10 parallel fetches of grants at a time)
 
 Sometimes the deployment environment is such that there is a reverse proxy in front of the Keycloak, or some service like a network traffic analyzer, or flood protection server.
-Or, the network may be glitchy resulting in intermittent connection problems. By default, any error while getting the initial grants for the new session,
+Or, the network may be unreliable resulting in intermittent connection problems. By default, any error while getting the initial grants for the new session,
 will result in `AuthorizationException` returned to the Kafka client application. When the client retries some operation, the grants will be fetched again,
 since they are not yet available. The following option enables reattempting the fetching of grants immediately so that if subsequent fetch is successful the client doesn't 
 receive the `AuthorizationException`. The default value is '0', meaning 'no retries'. Provide the value greater than '0' to set the number of repeated attempts:
@@ -1232,6 +1268,139 @@ For example, to connect with `kafkacat` you could run:
 
     kafkacat -b my-cluster-kafka-bootstrap:9092 -X security.protocol=SASL_PLAINTEXT -X sasl.mechanism=PLAIN -X sasl.username=team-a-client -X sasl.password="team-a-client-secret" -t a_topic -P
 
+## Configuration reference
+
+This section summarizes commonly used configuration options for OAuth 2.0 on the Kafka broker and on Kafka clients.
+
+### Broker configuration options
+
+These configuration options apply to the Kafka broker when using the Strimzi Kafka OAuth library.
+
+| Option | Purpose | Required | Description |
+|--------|---------|----------|-------------|
+| **Token validation – JWT / JWKS** ||||
+| `oauth.jwks.endpoint.uri` | JWT validation | Required for JWT | URI of the JWKS endpoint used to load public keys for signature verification. |
+| `oauth.valid.issuer.uri` | Token validation | Recommended | Expected issuer (`iss`) of tokens. Only tokens from this issuer are accepted. |
+| `oauth.check.issuer` | Token validation | Optional | Enables or disables issuer checking when `oauth.valid.issuer.uri` is not set. |
+| `oauth.check.audience` | Token validation | Optional | Enables audience (`aud`) checking. |
+| `oauth.client.id` | Token validation | Required when audience checking is enabled | OAuth client ID representing the Kafka broker for audience validation. |
+| `oauth.username.claim` | Identity mapping | Optional | Claim used to extract the principal name. Defaults to `sub`. |
+| `oauth.username.prefix` | Identity mapping | Optional | Prefix added to the resolved username. |
+| `oauth.fallback.username.claim` | Identity mapping | Optional | Secondary claim used when the primary username claim is not present. |
+| `oauth.fallback.username.prefix` | Identity mapping | Optional | Prefix applied when the fallback claim is used. |
+| `oauth.custom.claim.check` | Policy enforcement | Optional | JSONPath filter expression used to restrict which tokens may authenticate. |
+| **JWKS caching** ||||
+| `oauth.jwks.refresh.seconds` | JWKS refresh | Optional | Interval for refreshing JWKS keys. Default: 300 seconds. |
+| `oauth.jwks.expiry.seconds` | JWKS expiry | Optional | Time after which cached JWKS keys expire. Default: 360 seconds. |
+| `oauth.jwks.refresh.min.pause.seconds` | JWKS refresh behavior | Optional | Minimum pause between consecutive refresh attempts. Default: 1 second. |
+| `oauth.jwks.ignore.key.use` | JWKS behavior | Optional | Treat all keys in JWKS response as usable, ignoring `"use": "sig"`. |
+| `oauth.fail.fast` | Startup behavior | Optional | When `true`, broker exits if JWKS keys cannot be loaded at startup. |
+| **Token validation – Introspection / UserInfo** ||||
+| `oauth.introspection.endpoint.uri` | Introspection | Required for opaque tokens | URI of the introspection endpoint. |
+| `oauth.client.id` | Introspection | Required | OAuth client ID used when authenticating to the introspection endpoint. |
+| `oauth.client.secret` | Introspection | Required if endpoint requires client credentials | Secret used for authentication to the introspection endpoint. |
+| `oauth.valid.token.type` | Introspection | Optional | Expected `token_type` value returned by the introspection endpoint. |
+| `oauth.userinfo.endpoint.uri` | User identity | Optional | URI of the UserInfo endpoint used when introspection response does not include identifying information. |
+| `oauth.access.token.is.jwt` | Token format | Optional | Set to `false` to skip JWT parsing when using opaque tokens. |
+| **OAuth over PLAIN (server-side)** ||||
+| `oauth.token.endpoint.uri` | Token acquisition | Optional | Token endpoint used by the broker when performing OAuth over PLAIN. |
+| **`oauth.client.credentials.grant.type`** | Token acquisition | Optional | Grant type used when the broker obtains tokens from the token endpoint. Defaults to `client_credentials`. |
+| **Group extraction** ||||
+| `oauth.groups.claim` | Group extraction | Optional | JSONPath expression used to extract group names from the token. |
+| `oauth.groups.claim.delimiter` | Group extraction | Optional | Delimiter for parsing group lists encoded as a single string. |
+| **HTTP behavior** ||||
+| `oauth.http.retries` | HTTP retry | Optional | Number of retry attempts for failed HTTP calls to introspection or UserInfo endpoints. |
+| `oauth.http.retry.pause.millis` | HTTP retry | Optional | Pause between HTTP retry attempts. |
+| `oauth.connect.timeout.seconds` | HTTP timeout | Optional | Connect timeout for HTTP calls. |
+| `oauth.read.timeout.seconds` | HTTP timeout | Optional | Read timeout for HTTP calls. |
+| `oauth.include.accept.header` | HTTP headers | Optional | When `false`, removes the `Accept: application/json` header from outbound HTTP requests. |
+| **TLS truststore** ||||
+| `oauth.ssl.truststore.location` | TLS | Optional | Path to JKS/PKCS12/PEM truststore. |
+| `oauth.ssl.truststore.password` | TLS | Optional | Password for JKS/PKCS12 truststore. |
+| `oauth.ssl.truststore.certificates` | TLS | Optional | Inlined PEM certificate values. |
+| `oauth.ssl.truststore.type` | TLS | Optional | Truststore type (`JKS`, `PKCS12`, `PEM`). |
+| `oauth.ssl.secure.random.implementation` | TLS | Optional | Java SecureRandom provider. |
+| `oauth.ssl.endpoint.identification.algorithm` | TLS | Optional | When empty, disables TLS hostname verification. |
+| **Metrics** ||||
+| `oauth.enable.metrics` | Metrics | Optional | Enables exposing OAuth metrics on the broker. |
+| `oauth.config.id` | Metrics | Optional | Logical identifier included in metric names. |
+
+### Client configuration options
+
+These configuration options apply to Kafka clients using the `OAUTHBEARER` SASL mechanism.
+
+| Option | Purpose | Required | Description |
+|--------|---------|----------|-------------|
+| **Token acquisition – token endpoint flows** ||||
+| `oauth.token.endpoint.uri` | Token acquisition | Required unless direct access token is set | OAuth 2.0 token endpoint. |
+| `oauth.client.id` | Client authentication | Required for most flows | OAuth client ID used when obtaining access tokens. |
+| `oauth.client.secret` | Client authentication | Required when using a client secret | Secret associated with the OAuth client ID. |
+| `oauth.client.credentials.grant.type` | Grant type | Optional | Overrides the grant type used for client credentials. |
+| `oauth.client.assertion` | JWT-based client auth | Optional | Client assertion JWT for private_key_jwt authentication. |
+| `oauth.client.assertion.location` | JWT-based client auth | Optional | File path to a client assertion JWT. |
+| `oauth.client.assertion.type` | JWT-based client auth | Optional | Client assertion type string. |
+| **Refresh token authentication** ||||
+| `oauth.refresh.token` | Refresh token | Optional | Refresh token used to obtain access tokens. |
+| `oauth.refresh.token.location` | Refresh token | Optional | Path to a file containing a refresh token. |
+| **Direct access token usage** ||||
+| `oauth.access.token` | Access token | Optional | Directly configured access token. |
+| `oauth.access.token.location` | Access token | Optional | Path to a file containing an access token. |
+| **Password grant** ||||
+| `oauth.password.grant.username` | Password grant | Optional | Username used for Resource Owner Password Credentials flow. |
+| `oauth.password.grant.password` | Password grant | Optional | Password for the password grant. |
+| **Request parameters** ||||
+| `oauth.scope` | Token request | Optional | Scope parameter sent to the token endpoint. |
+| `oauth.audience` | Token request | Optional | Audience parameter sent to the token endpoint. |
+| **Identity mapping** ||||
+| `oauth.username.claim` | Identity mapping | Optional | Claim used as the client-side user ID for logging. |
+| `oauth.access.token.is.jwt` | Token format | Optional | Set to `false` to avoid parsing opaque tokens as JWT. |
+| **HTTP behavior** ||||
+| `oauth.http.retries` | HTTP retry | Optional | Number of retry attempts for failed token endpoint calls. |
+| `oauth.http.retry.pause.millis` | HTTP retry | Optional | Pause between retry attempts. |
+| `oauth.connect.timeout.seconds` | HTTP timeout | Optional | Connect timeout for HTTP token endpoint calls. |
+| `oauth.read.timeout.seconds` | HTTP timeout | Optional | Read timeout for token endpoint calls. |
+| `oauth.include.accept.header` | HTTP behaviour | Optional | When `false`, removes the `Accept: application/json` header from outbound HTTP requests. |
+| **SASL Extensions** ||||
+| `oauth.sasl.extension.KEY` | SASL extension attributes | Optional | Sends SASL extension key–value pairs with the OAUTHBEARER exchange. Replace `KEY` with the extension name. |
+| **Token lifetime control** ||||
+| `oauth.max.token.expiry.seconds` | Token lifespan | Optional | Maximum time a token is considered valid on the client before refresh. |
+| **TLS truststore** ||||
+| `oauth.ssl.truststore.location` | TLS | Optional | Path to JKS/PKCS12/PEM truststore. |
+| `oauth.ssl.truststore.password` | TLS | Optional | Password for the truststore. |
+| `oauth.ssl.truststore.certificates` | TLS | Optional | Inline PEM certificate values. |
+| `oauth.ssl.truststore.type` | TLS | Optional | Truststore type (`JKS`, `PKCS12`, `PEM`). |
+| `oauth.ssl.secure.random.implementation` | TLS | Optional | Java SecureRandom provider. |
+| `oauth.ssl.endpoint.identification.algorithm` | TLS | Optional | When empty, disables hostname verification. |
+| **Metrics** ||||
+| `oauth.enable.metrics` | Metrics | Optional | Enables OAuth metrics for the client. |
+| `oauth.config.id` | Metrics | Optional | Logical configuration identifier included in metric names. |
+
+### Authorizer configuration options (KeycloakAuthorizer)
+
+These configuration options apply when using the Strimzi **KeycloakAuthorizer** (`io.strimzi.kafka.oauth.server.authorizer.KeycloakAuthorizer`) on the Kafka broker.
+
+| Option | Purpose | Required | Description |
+|--------|---------|----------|-------------|
+| **Core authorization settings** ||||
+| `strimzi.authorization.token.endpoint.uri` | Token acquisition for authorization | Required | Token endpoint used by KeycloakAuthorizer to retrieve authorization grants from Keycloak Authorization Services. Must match the realm used for authentication. |
+| `strimzi.authorization.client.id` | Broker identity in Keycloak | Required | OAuth client ID representing the Kafka broker in Authorization Services. Used when requesting grants. |
+| **Grant refresh and caching** ||||
+| `strimzi.authorization.grants.refresh.period.seconds` | Periodic refresh | Optional | Interval (seconds) for background refresh of cached grants. Default: 60 seconds. Setting to `0` disables periodic refresh. |
+| `strimzi.authorization.grants.refresh.pool.size` | Parallelism | Optional | Maximum number of parallel requests when refreshing grants. Default: 5. |
+| `strimzi.authorization.reuse.grants` | Cache behaviour | Optional | When `true` (default), cached grants for a user are reused for new sessions. When `false`, fresh grants are fetched for every session. |
+| `strimzi.authorization.grants.max.idle.time.seconds` | Grant eviction | Optional | Maximum idle time (seconds) before cached grants are removed. Default: 300 seconds. |
+| `strimzi.authorization.grants.gc.period.seconds` | Cache cleanup | Optional | Interval (seconds) for background cleanup of expired or idle grants. Default: 300 seconds. |
+| **HTTP behaviour for grant retrieval** ||||
+| `strimzi.authorization.http.retries` | Retry attempts | Optional | Number of retry attempts when fetching grants fails. Default: 0 (no retries). |
+| `strimzi.authorization.connect.timeout.seconds` | HTTP timeout | Optional | Connect timeout for contacting the authorization server (overrides global OAuth timeout if set). |
+| `strimzi.authorization.read.timeout.seconds` | HTTP timeout | Optional | Read timeout for authorization server calls (overrides global OAuth timeout if set). |
+| **Integration with Kafka ACLs** ||||
+| `strimzi.authorization.delegate.to.kafka.acl` | ACL fallback | Optional | When `true` (KRaft mode only), failed authorization checks fall back to Kafka’s ACL authorizer (`StandardAuthorizer`). |
+| **Cluster scoping for rules** ||||
+| `strimzi.authorization.kafka.cluster.name` | Cluster identity | Optional | Logical cluster name used in Keycloak Authorization Services to scope resources and permissions. |
+| **Metrics** ||||
+| `strimzi.authorization.enable.metrics` | Metrics | Optional | Enables KeycloakAuthorizer-specific metrics. Metrics respect global `OAUTH_ENABLE_METRICS`/`strimzi.oauth.metric.reporters` settings. |
+
 
 Configuring the TLS truststore
 ------------------------------
@@ -1268,7 +1437,7 @@ Configuring the network timeouts for communication with authorization server
 ----------------------------------------------------------------------------
 
 When the Kafka Broker or the Kafka Client communicates with the authorization server, the default connect and read timeouts are applied to the request.
-By default, they are both set to 60 seconds. That prevents the indefinite stalling of the HTTP request which may occur sometimes with _glitchy_ network components.
+By default, they are both set to 60 seconds. That prevents the indefinite stalling of the HTTP request which may occur sometimes with unreliable network components.
 
 Use the following configuration options to customize the connect and read timeouts:
 - `oauth.connect.timeout.seconds` (e.g.: 60)
