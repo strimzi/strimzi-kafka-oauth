@@ -289,7 +289,7 @@ For example, the order of looking for configuration for `strimzi.client.id` woul
 #### Configuring the token validation
 
 Token validation defines how the broker verifies access tokens during SASL authentication. 
-You configure this behaviour by specifying how the broker validates the tokens that clients present when they connect.
+You configure this behavior by specifying how the broker validates the tokens that clients present when they connect.
 
 There are two options for token validation:
 - Using the JWKS endpoint in combination with signed JWT formatted access tokens
@@ -371,7 +371,7 @@ Some authorization servers don't specify the `"use": "sig"` attribute in validat
 
 During the Kafka broker startup, a request to the JWKS endpoint immediately tries to load the keys.
 If JWKS keys can not be loaded or can not be successfully parsed during startup, the Kafka broker will exit.
-That behaviour can be turned off:
+That behavior can be turned off:
 - `oauth.fail.fast` (e.g.: "false" - it is "true" by default)
 
 ##### JWKS caching and local JWT validation
@@ -380,7 +380,7 @@ When JWT access tokens are validated through a JWKS endpoint, the Strimzi Kafka 
 
 Local validation reduces network traffic and improves throughput, while still allowing the broker to detect signing key changes.
 
-Key aspects of this behaviour:
+Key aspects of this behavior:
 
 *Local verification*
 
@@ -1276,9 +1276,10 @@ This section summarizes commonly used configuration options for OAuth 2.0 on the
 
 These configuration options apply to the Kafka broker when using the Strimzi Kafka OAuth library.
 
+#### Token validation – JWT / JWKS
+
 | Option | Purpose | Required | Description |
 |--------|---------|----------|-------------|
-| **Token validation – JWT / JWKS** ||||
 | `oauth.jwks.endpoint.uri` | JWT validation | Required for JWT | URI of the JWKS endpoint used to load public keys for signature verification. |
 | `oauth.valid.issuer.uri` | Token validation | Recommended | Expected issuer (`iss`) of tokens. Only tokens from this issuer are accepted. |
 | `oauth.check.issuer` | Token validation | Optional | Enables or disables issuer checking when `oauth.valid.issuer.uri` is not set. |
@@ -1289,39 +1290,67 @@ These configuration options apply to the Kafka broker when using the Strimzi Kaf
 | `oauth.fallback.username.claim` | Identity mapping | Optional | Secondary claim used when the primary username claim is not present. |
 | `oauth.fallback.username.prefix` | Identity mapping | Optional | Prefix applied when the fallback claim is used. |
 | `oauth.custom.claim.check` | Policy enforcement | Optional | JSONPath filter expression used to restrict which tokens may authenticate. |
-| **JWKS caching** ||||
+
+#### JWKS caching
+
+| Option | Purpose | Required | Description |
+|--------|---------|----------|-------------|
 | `oauth.jwks.refresh.seconds` | JWKS refresh | Optional | Interval for refreshing JWKS keys. Default: 300 seconds. |
 | `oauth.jwks.expiry.seconds` | JWKS expiry | Optional | Time after which cached JWKS keys expire. Default: 360 seconds. |
 | `oauth.jwks.refresh.min.pause.seconds` | JWKS refresh behavior | Optional | Minimum pause between consecutive refresh attempts. Default: 1 second. |
 | `oauth.jwks.ignore.key.use` | JWKS behavior | Optional | Treat all keys in JWKS response as usable, ignoring `"use": "sig"`. |
 | `oauth.fail.fast` | Startup behavior | Optional | When `true`, broker exits if JWKS keys cannot be loaded at startup. |
-| **Token validation – Introspection / UserInfo** ||||
+
+#### Token validation – Introspection / UserInfo
+
+| Option | Purpose | Required | Description |
+|--------|---------|----------|-------------|
 | `oauth.introspection.endpoint.uri` | Introspection | Required for opaque tokens | URI of the introspection endpoint. |
 | `oauth.client.id` | Introspection | Required | OAuth client ID used when authenticating to the introspection endpoint. |
 | `oauth.client.secret` | Introspection | Required if endpoint requires client credentials | Secret used for authentication to the introspection endpoint. |
 | `oauth.valid.token.type` | Introspection | Optional | Expected `token_type` value returned by the introspection endpoint. |
 | `oauth.userinfo.endpoint.uri` | User identity | Optional | URI of the UserInfo endpoint used when introspection response does not include identifying information. |
 | `oauth.access.token.is.jwt` | Token format | Optional | Set to `false` to skip JWT parsing when using opaque tokens. |
-| **OAuth over PLAIN (server-side)** ||||
+
+#### OAuth over PLAIN (server-side)
+
+| Option | Purpose | Required | Description |
+|--------|---------|----------|-------------|
 | `oauth.token.endpoint.uri` | Token acquisition | Optional | Token endpoint used by the broker when performing OAuth over PLAIN. |
-| **`oauth.client.credentials.grant.type`** | Token acquisition | Optional | Grant type used when the broker obtains tokens from the token endpoint. Defaults to `client_credentials`. |
-| **Group extraction** ||||
+| `oauth.client.credentials.grant.type` | Token acquisition | Optional | Grant type used when the broker obtains tokens from the token endpoint. Defaults to `client_credentials`. |
+
+#### Group extraction
+
+| Option | Purpose | Required | Description |
+|--------|---------|----------|-------------|
 | `oauth.groups.claim` | Group extraction | Optional | JSONPath expression used to extract group names from the token. |
 | `oauth.groups.claim.delimiter` | Group extraction | Optional | Delimiter for parsing group lists encoded as a single string. |
-| **HTTP behavior** ||||
+
+#### HTTP behavior
+
+| Option | Purpose | Required | Description |
+|--------|---------|----------|-------------|
 | `oauth.http.retries` | HTTP retry | Optional | Number of retry attempts for failed HTTP calls to introspection or UserInfo endpoints. |
 | `oauth.http.retry.pause.millis` | HTTP retry | Optional | Pause between HTTP retry attempts. |
 | `oauth.connect.timeout.seconds` | HTTP timeout | Optional | Connect timeout for HTTP calls. |
 | `oauth.read.timeout.seconds` | HTTP timeout | Optional | Read timeout for HTTP calls. |
 | `oauth.include.accept.header` | HTTP headers | Optional | When `false`, removes the `Accept: application/json` header from outbound HTTP requests. |
-| **TLS truststore** ||||
+
+#### TLS truststore
+
+| Option | Purpose | Required | Description |
+|--------|---------|----------|-------------|
 | `oauth.ssl.truststore.location` | TLS | Optional | Path to JKS/PKCS12/PEM truststore. |
 | `oauth.ssl.truststore.password` | TLS | Optional | Password for JKS/PKCS12 truststore. |
 | `oauth.ssl.truststore.certificates` | TLS | Optional | Inlined PEM certificate values. |
 | `oauth.ssl.truststore.type` | TLS | Optional | Truststore type (`JKS`, `PKCS12`, `PEM`). |
 | `oauth.ssl.secure.random.implementation` | TLS | Optional | Java SecureRandom provider. |
 | `oauth.ssl.endpoint.identification.algorithm` | TLS | Optional | When empty, disables TLS hostname verification. |
-| **Metrics** ||||
+
+#### Metrics
+
+| Option | Purpose | Required | Description |
+|--------|---------|----------|-------------|
 | `oauth.enable.metrics` | Metrics | Optional | Enables exposing OAuth metrics on the broker. |
 | `oauth.config.id` | Metrics | Optional | Logical identifier included in metric names. |
 
@@ -1329,9 +1358,10 @@ These configuration options apply to the Kafka broker when using the Strimzi Kaf
 
 These configuration options apply to Kafka clients using the `OAUTHBEARER` SASL mechanism.
 
+#### Token acquisition – token endpoint flows
+
 | Option | Purpose | Required | Description |
 |--------|---------|----------|-------------|
-| **Token acquisition – token endpoint flows** ||||
 | `oauth.token.endpoint.uri` | Token acquisition | Required unless direct access token is set | OAuth 2.0 token endpoint. |
 | `oauth.client.id` | Client authentication | Required for most flows | OAuth client ID used when obtaining access tokens. |
 | `oauth.client.secret` | Client authentication | Required when using a client secret | Secret associated with the OAuth client ID. |
@@ -1339,39 +1369,79 @@ These configuration options apply to Kafka clients using the `OAUTHBEARER` SASL 
 | `oauth.client.assertion` | JWT-based client auth | Optional | Client assertion JWT for private_key_jwt authentication. |
 | `oauth.client.assertion.location` | JWT-based client auth | Optional | File path to a client assertion JWT. |
 | `oauth.client.assertion.type` | JWT-based client auth | Optional | Client assertion type string. |
-| **Refresh token authentication** ||||
+
+#### Refresh token authentication
+
+| Option | Purpose | Required | Description |
+|--------|---------|----------|-------------|
 | `oauth.refresh.token` | Refresh token | Optional | Refresh token used to obtain access tokens. |
 | `oauth.refresh.token.location` | Refresh token | Optional | Path to a file containing a refresh token. |
-| **Direct access token usage** ||||
+
+#### Direct access token usage
+
+| Option | Purpose | Required | Description |
+|--------|---------|----------|-------------|
 | `oauth.access.token` | Access token | Optional | Directly configured access token. |
 | `oauth.access.token.location` | Access token | Optional | Path to a file containing an access token. |
-| **Password grant** ||||
+
+#### Password grant
+
+| Option | Purpose | Required | Description |
+|--------|---------|----------|-------------|
 | `oauth.password.grant.username` | Password grant | Optional | Username used for Resource Owner Password Credentials flow. |
 | `oauth.password.grant.password` | Password grant | Optional | Password for the password grant. |
-| **Request parameters** ||||
+
+#### Request parameters
+
+| Option | Purpose | Required | Description |
+|--------|---------|----------|-------------|
 | `oauth.scope` | Token request | Optional | Scope parameter sent to the token endpoint. |
 | `oauth.audience` | Token request | Optional | Audience parameter sent to the token endpoint. |
-| **Identity mapping** ||||
+
+#### Identity mapping
+
+| Option | Purpose | Required | Description |
+|--------|---------|----------|-------------|
 | `oauth.username.claim` | Identity mapping | Optional | Claim used as the client-side user ID for logging. |
 | `oauth.access.token.is.jwt` | Token format | Optional | Set to `false` to avoid parsing opaque tokens as JWT. |
-| **HTTP behavior** ||||
+
+#### HTTP behavior
+
+| Option | Purpose | Required | Description |
+|--------|---------|----------|-------------|
 | `oauth.http.retries` | HTTP retry | Optional | Number of retry attempts for failed token endpoint calls. |
 | `oauth.http.retry.pause.millis` | HTTP retry | Optional | Pause between retry attempts. |
 | `oauth.connect.timeout.seconds` | HTTP timeout | Optional | Connect timeout for HTTP token endpoint calls. |
 | `oauth.read.timeout.seconds` | HTTP timeout | Optional | Read timeout for token endpoint calls. |
-| `oauth.include.accept.header` | HTTP behaviour | Optional | When `false`, removes the `Accept: application/json` header from outbound HTTP requests. |
-| **SASL Extensions** ||||
+| `oauth.include.accept.header` | HTTP behavior | Optional | When `false`, removes the `Accept: application/json` header from outbound HTTP requests. |
+
+#### SASL Extensions
+
+| Option | Purpose | Required | Description |
+|--------|---------|----------|-------------|
 | `oauth.sasl.extension.KEY` | SASL extension attributes | Optional | Sends SASL extension key–value pairs with the OAUTHBEARER exchange. Replace `KEY` with the extension name. |
-| **Token lifetime control** ||||
+
+#### Token lifetime control
+
+| Option | Purpose | Required | Description |
+|--------|---------|----------|-------------|
 | `oauth.max.token.expiry.seconds` | Token lifespan | Optional | Maximum time a token is considered valid on the client before refresh. |
-| **TLS truststore** ||||
+
+#### TLS truststore
+
+| Option | Purpose | Required | Description |
+|--------|---------|----------|-------------|
 | `oauth.ssl.truststore.location` | TLS | Optional | Path to JKS/PKCS12/PEM truststore. |
 | `oauth.ssl.truststore.password` | TLS | Optional | Password for the truststore. |
 | `oauth.ssl.truststore.certificates` | TLS | Optional | Inline PEM certificate values. |
 | `oauth.ssl.truststore.type` | TLS | Optional | Truststore type (`JKS`, `PKCS12`, `PEM`). |
 | `oauth.ssl.secure.random.implementation` | TLS | Optional | Java SecureRandom provider. |
 | `oauth.ssl.endpoint.identification.algorithm` | TLS | Optional | When empty, disables hostname verification. |
-| **Metrics** ||||
+
+#### Metrics
+
+| Option | Purpose | Required | Description |
+|--------|---------|----------|-------------|
 | `oauth.enable.metrics` | Metrics | Optional | Enables OAuth metrics for the client. |
 | `oauth.config.id` | Metrics | Optional | Logical configuration identifier included in metric names. |
 
@@ -1379,26 +1449,47 @@ These configuration options apply to Kafka clients using the `OAUTHBEARER` SASL 
 
 These configuration options apply when using the Strimzi **KeycloakAuthorizer** (`io.strimzi.kafka.oauth.server.authorizer.KeycloakAuthorizer`) on the Kafka broker.
 
+#### Core authorization settings
+
 | Option | Purpose | Required | Description |
 |--------|---------|----------|-------------|
-| **Core authorization settings** ||||
 | `strimzi.authorization.token.endpoint.uri` | Token acquisition for authorization | Required | Token endpoint used by KeycloakAuthorizer to retrieve authorization grants from Keycloak Authorization Services. Must match the realm used for authentication. |
 | `strimzi.authorization.client.id` | Broker identity in Keycloak | Required | OAuth client ID representing the Kafka broker in Authorization Services. Used when requesting grants. |
-| **Grant refresh and caching** ||||
+
+#### Grant refresh and caching
+
+| Option | Purpose | Required | Description |
+|--------|---------|----------|-------------|
 | `strimzi.authorization.grants.refresh.period.seconds` | Periodic refresh | Optional | Interval (seconds) for background refresh of cached grants. Default: 60 seconds. Setting to `0` disables periodic refresh. |
 | `strimzi.authorization.grants.refresh.pool.size` | Parallelism | Optional | Maximum number of parallel requests when refreshing grants. Default: 5. |
-| `strimzi.authorization.reuse.grants` | Cache behaviour | Optional | When `true` (default), cached grants for a user are reused for new sessions. When `false`, fresh grants are fetched for every session. |
+| `strimzi.authorization.reuse.grants` | Cache behavior | Optional | When `true` (default), cached grants for a user are reused for new sessions. When `false`, fresh grants are fetched for every session. |
 | `strimzi.authorization.grants.max.idle.time.seconds` | Grant eviction | Optional | Maximum idle time (seconds) before cached grants are removed. Default: 300 seconds. |
 | `strimzi.authorization.grants.gc.period.seconds` | Cache cleanup | Optional | Interval (seconds) for background cleanup of expired or idle grants. Default: 300 seconds. |
-| **HTTP behaviour for grant retrieval** ||||
+
+#### HTTP behavior for grant retrieval
+
+| Option | Purpose | Required | Description |
+|--------|---------|----------|-------------|
 | `strimzi.authorization.http.retries` | Retry attempts | Optional | Number of retry attempts when fetching grants fails. Default: 0 (no retries). |
 | `strimzi.authorization.connect.timeout.seconds` | HTTP timeout | Optional | Connect timeout for contacting the authorization server (overrides global OAuth timeout if set). |
 | `strimzi.authorization.read.timeout.seconds` | HTTP timeout | Optional | Read timeout for authorization server calls (overrides global OAuth timeout if set). |
-| **Integration with Kafka ACLs** ||||
+
+#### Integration with Kafka ACLs
+
+| Option | Purpose | Required | Description |
+|--------|---------|----------|-------------|
 | `strimzi.authorization.delegate.to.kafka.acl` | ACL fallback | Optional | When `true` (KRaft mode only), failed authorization checks fall back to Kafka’s ACL authorizer (`StandardAuthorizer`). |
-| **Cluster scoping for rules** ||||
+
+#### Cluster scoping for rules
+
+| Option | Purpose | Required | Description |
+|--------|---------|----------|-------------|
 | `strimzi.authorization.kafka.cluster.name` | Cluster identity | Optional | Logical cluster name used in Keycloak Authorization Services to scope resources and permissions. |
-| **Metrics** ||||
+
+#### Metrics
+
+| Option | Purpose | Required | Description |
+|--------|---------|----------|-------------|
 | `strimzi.authorization.enable.metrics` | Metrics | Optional | Enables KeycloakAuthorizer-specific metrics. Metrics respect global `OAUTH_ENABLE_METRICS`/`strimzi.oauth.metric.reporters` settings. |
 
 
