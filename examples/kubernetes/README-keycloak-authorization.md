@@ -32,7 +32,7 @@ Keycloak Authorization Services represent permissions using:
 - **Policies** – rules that evaluate access based on conditions (roles, groups, user attributes, etc.)
 - **Permissions** – associations between resources, scopes, and policies
 
-Access tokens issued by Keycloak contain grants describing the permissions available to the authenticated principal.
+Access tokens issued by Keycloak can be exchanged for a list of grants describing the permissions available to the authenticated principal.
 
 ### How the models align
 

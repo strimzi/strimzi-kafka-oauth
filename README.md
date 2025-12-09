@@ -392,7 +392,8 @@ The broker refreshes the JWKS keys at regular intervals. Refresh settings contro
 
 *Unknown signing keys*
 
-If a token references a kid that is not present in the cached JWKS set, the broker performs an immediate refresh before failing the authentication request.
+If a token includes a `kid` (key ID) that is not in the cached JWKS set, the broker triggers an immediate refresh but still fails the current authentication request without retrying. 
+The client must reattempt authentication after the refresh completes.
 
 *Performance profile*
 
