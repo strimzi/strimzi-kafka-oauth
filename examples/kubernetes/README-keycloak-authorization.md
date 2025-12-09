@@ -155,7 +155,7 @@ In Keycloak, you assign these operations as scopes to a topic resource, for exam
 
 ### Consumer group operations
 
-Consumer group–related operations include:
+Consumer group-related operations include:
 
 - `Read` – join a consumer group
 - `Describe` – view group information
