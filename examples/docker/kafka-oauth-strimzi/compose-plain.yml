@@ -89,3 +89,5 @@ services:
       KEYCLOAK_HOST: ${KEYCLOAK_HOST:-keycloak}
       REALM: ${REALM:-kafka-authz}
 
+      # On Kafka 4.x this is the default:
+      #KAFKA_LOG4J_OPTS: "-Dlog4j2.configurationFile=/opt/kafka/config/log4j2.yaml"
