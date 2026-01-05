@@ -184,7 +184,7 @@ Make sure the necessary classes are on the classpath:
 Let's try produce some messages to topic 'my-topic':
 
 ```
-bin/kafka-console-producer.sh --broker-list kafka:9092 --topic my-topic \
+bin/kafka-console-producer.sh --bootstrap-server kafka:9092 --topic my-topic \
   --producer.config=$HOME/team-a-client.properties
 First message
 ```

@@ -102,6 +102,9 @@ Configuration:
       # Kafka org.apache logger
       - name: org.apache.kafka
         level: INFO
+      # Strimzi OAuth logging
+      - name: io.strimzi
+        level: DEBUG
       # Kafka request logger
       - name: kafka.request.logger
         level: WARN
