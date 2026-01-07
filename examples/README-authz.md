@@ -10,7 +10,7 @@ Grants are cached, and enforced locally on the Kafka Broker for each user sessio
 
 ## Preparing the Environment
 
-Before continuing, make sure to follow the instructions in [README,md](./README.md) to properly set up the hostnames on your system.
+Before continuing, make sure to follow the instructions in [README.md](./README.md) to properly set up the hostnames on your system.
 
 
 ## Building the Example Project
