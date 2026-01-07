@@ -8,6 +8,11 @@ The list of grants (permissions) is first fetched during the first action after 
 Grants are cached, and enforced locally on the Kafka Broker for each user session in order to provide fast authorization decisions. Because they are refreshed, any changes at Keycloak side are detected and enforced.
 
 
+## Preparing the Environment
+
+Before continuing, make sure to follow the instructions in [README,md](./README.md) to properly set up the hostnames on your system.
+
+
 ## Building the Example Project
 
 Before using the example, we first need to build the project, and prepare resources.
@@ -45,7 +50,7 @@ When everything starts up without errors we should have one instance of `keycloa
  
 You can login to the Admin Console by opening `https://keycloak:8443/admin` and using `admin` as both username, and a password.
 
-For this example we are interested in the `kafka-authz` realm. Selecting the realm in the upper left drop-down list will open the realm.
+For this example we are interested in the `kafka-authz` realm. Selecting the realm under `Manage realms` will open the realm.
 
 In the left menu bar there are other sections we are interested in - `Groups`, `Realm roles`, `Clients` and `Users`.
 
@@ -72,7 +77,7 @@ The client with client id `kafka-cli` is a public client that can be used by the
 Clients `team-a-client`, and `team-b-client` are confidential clients representing services with partial access to certain Kafka topics.
 
 The authorization configuration is defined in the `kafka` client under `Authorization` tab.
-This tab becomes visible when `Authorization` is turned in the `Capability config` section of the `Settings` tab.
+This tab becomes visible when `Authorization` is turned on in the `Capability config` section of the `Settings` tab.
 
 
 ## Authorization Services - Resources, Authorization Scopes, Policies and Permissions
@@ -82,7 +87,7 @@ This tab becomes visible when `Authorization` is turned in the `Capability confi
 `Resources` define _what_ we are protecting from unauthorized access.
 Each resource can contain a list of `authorization scopes` - actions that are available on the resource, so that permission on a resource can be granted for one or a limited set of actions.
 `Policies` define the groups of users we want to target with permissions. Users can be targeted based on group membership, assigned roles, or individually.
-Finally, the `permissions` tie together specific `resources`, `action scopes` and `policies` to define that 'specific users U can perform certain actions A on the resource R'.
+Finally, the `Permissions` tie together specific `resources`, `authorization scopes` and `policies` to define that 'specific users U can perform certain actions A on the resource R'.
 
 You can read more about `Keycloak Authorization Services` on [project's web site](https://www.keycloak.org/docs/latest/authorization_services/index.html).
 
@@ -109,7 +114,7 @@ For this example the authorization scopes have already been imported as part of 
 
 Under the `Policies` sub-tab there are filters that match sets of users.
 Users can be explicitly listed, or they can be matched based on the Roles, or Groups they are assigned.
-Policies can even be programmatically defined using JavaScript where logic can take into account the context of the client session - e.g. client ip (that is client ip of the Kafka client).
+Policies can even be programmatically defined using JavaScript where logic can take into account the context of the client session, like client IP. However, that capability should not be used with Kafka clients due to userId-based grants caching on the brokers.
 
 Then, finally, there is the `Permissions` sub-tab, which defines 'role bindings' where `resources`, `scopes` and `policies` are tied together to apply a set of permissions on specific resources for certain users.
 
@@ -197,7 +202,7 @@ The topic named `my-topic` matches neither of those.
 Use CTRL-C to exit the CLI application, and let's try to write to topic `a_messages`.
 
 ```
-bin/kafka-console-producer.sh --broker-list kafka:9092 --topic a_messages \
+bin/kafka-console-producer.sh --bootstrap-server kafka:9092 --topic a_messages \
   --producer.config ~/team-a-client.properties
 First message
 Second message
@@ -267,15 +272,16 @@ sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthL
 EOF
 ```
 
-If we look at `team-b-client` client configuration in Keycloak, under `Service Account Roles` we can see that it has `Dev Team B` realm role assigned.
+If we look at `team-b-client` client configuration in Keycloak, under `Service account roles` we can see that it has `Dev Team B` realm role assigned.
 Looking in Keycloak Console at the `kafka` client's `Authorization` tab where `Permissions` are listed, we can see the permissions that start with 'Dev Team B ...'.
-These match the users and service accounts that have the `Dev Team B` realm role assigned to them. 
+You may need to change the number of results per page to 20 in order to see them all on the same page.
+These permissions match the users and service accounts that have the `Dev Team B` realm role assigned to them. 
 The `Dev Team B` users have full access to topics beginning with 'b_' on Kafka cluster `my-cluster` (which is the designated cluster name of the demo cluster we brought up), and read access on topics that start with 'x_'.
 
 Let's try produce some messages to topic `a_messages` as `team-b-client`:
 
 ```
-bin/kafka-console-producer.sh --broker-list kafka:9092 --topic a_messages \
+bin/kafka-console-producer.sh --bootstrap-server kafka:9092 --topic a_messages \
   --producer.config ~/team-b-client.properties
 Message 1
 ```
@@ -283,7 +289,7 @@ Message 1
 We get `Not authorized to access topics: [a_messages]` error as we expected. Let's try to produce to topic `b_messages`:
 
 ```
-bin/kafka-console-producer.sh --broker-list kafka:9092 --topic b_messages \
+bin/kafka-console-producer.sh --bootstrap-server kafka:9092 --topic b_messages \
   --producer.config ~/team-b-client.properties
 Message 1
 Message 2
@@ -295,7 +301,7 @@ This should work fine.
 What about producing to topic `x_messages`. `team-b-client` is only supposed to be able to read from such a topic.
 
 ```
-bin/kafka-console-producer.sh --broker-list kafka:9092 --topic x_messages \
+bin/kafka-console-producer.sh --bootstrap-server kafka:9092 --topic x_messages \
   --producer.config ~/team-b-client.properties
 Message 1
 ```
@@ -304,7 +310,7 @@ We get a `Not authorized to access topics: [x_messages]` error as we expected.
 Client `team-a-client`, on the other hand, should be able to write to such a topic:
 
 ```
-bin/kafka-console-producer.sh --broker-list kafka:9092 --topic x_messages \
+bin/kafka-console-producer.sh --bootstrap-server kafka:9092 --topic x_messages \
   --producer.config ~/team-a-client.properties
 Message 1
 ```
@@ -373,7 +379,7 @@ Roles `Dev Team A`, and `Dev Team B` both have `Describe` permission on topics t
 We can now again try to produce to the topic as `team-a-client`.
 
 ```
-bin/kafka-console-producer.sh --broker-list kafka:9092 --topic x_messages \
+bin/kafka-console-producer.sh --bootstrap-server kafka:9092 --topic x_messages \
   --producer.config ~/team-a-client.properties
 Message 1
 Message 2
@@ -385,7 +391,7 @@ This works.
 If we try the same as `team-b-client` it should fail.
 
 ```
-bin/kafka-console-producer.sh --broker-list kafka:9092 --topic x_messages \
+bin/kafka-console-producer.sh --bootstrap-server kafka:9092 --topic x_messages \
   --producer.config ~/team-b-client.properties
 Message 4
 Message 5
