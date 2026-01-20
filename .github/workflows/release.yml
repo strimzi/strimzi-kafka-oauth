@@ -1,0 +1,29 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      releaseVersion:
+        description: 'Release Version (e.g., 0.15.0 for GA or 0.15.0-rc1 for RC)'
+        required: true
+        type: string
+
+# Declare default permissions as read only
+permissions:
+  contents: read
+
+jobs:
+  release-artifacts:
+    name: Release OAuth artifacts to Maven Central
+    if: ${{ startsWith(github.ref, 'refs/heads/release-') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/build/release-artifacts
+        with:
+          releaseVersion: ${{ inputs.releaseVersion }}
+          runnerArch: "amd64"
+          gpgPassphrase: ${{ secrets.GPG_PASSPHRASE }}
+          gpgSigningKey: ${{ secrets.GPG_SIGNING_KEY }}
+          centralUsername: ${{ secrets.CENTRAL_USERNAME }}
+          centralPassword: ${{ secrets.CENTRAL_PASSWORD }}

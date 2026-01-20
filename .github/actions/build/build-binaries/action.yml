@@ -1,0 +1,107 @@
+name: "Build Kafka OAuth Binaries"
+description: "Build and test kafka-oauth binaries"
+
+inputs:
+  runnerArch:
+    description: "Architecture of GitHub runner"
+    required: false
+    default: "amd64"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Java
+      uses: strimzi/strimzi-kafka-operator/.github/actions/dependencies/setup-java@main
+      with:
+        javaVersion: "17"
+
+    - name: Restore Maven cache
+      uses: actions/cache/restore@v5
+      with:
+        path: ~/.m2/repository
+        key: maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          maven-
+
+    - name: Build & Test Java
+      shell: bash
+      run: mvn -e -V -B install
+      env:
+        BUILD_REASON: ${{ github.event_name }}
+        BRANCH: ${{ github.ref }}
+        TESTCONTAINERS_RYUK_DISABLED: "TRUE"
+        TESTCONTAINERS_CHECKS_DISABLE: "TRUE"
+
+    - name: Run Spotbugs
+      shell: bash
+      run: mvn -e -V -B spotbugs:check
+
+    - name: Test Docker Examples
+      shell: bash
+      run: mvn -e -V -B clean install -f examples/docker --no-transfer-progress
+
+    - name: Test Spring Example
+      shell: bash
+      run: |
+        cd examples/docker
+        ./spring/test-spring.sh
+
+    - name: Modify /etc/hosts for tests
+      shell: bash
+      run: |
+        echo "127.0.0.1 keycloak" | sudo tee -a /etc/hosts
+        echo "127.0.0.1 hydra" | sudo tee -a /etc/hosts
+        echo "127.0.0.1 hydra-jwt" | sudo tee -a /etc/hosts
+        echo "127.0.0.1 kafka" | sudo tee -a /etc/hosts
+        echo "127.0.0.1 mockoauth" | sudo tee -a /etc/hosts
+        echo "127.0.0.1 kerberos" | sudo tee -a /etc/hosts
+        echo "Modified /etc/hosts:"
+        cat /etc/hosts
+
+    - name: Install Docker Compose
+      shell: bash
+      run: |
+        sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+        sudo chmod +x /usr/local/bin/docker-compose
+
+    - name: Testsuite Compile & Spotbugs
+      shell: bash
+      run: mvn -e -V -B test-compile spotbugs:check -f testsuite
+
+    - name: Run Testsuite
+      shell: bash
+      run: mvn -e -V -B install -f testsuite --no-transfer-progress
+
+    - name: Create tarball with target directory
+      shell: bash
+      run: tar -cvpf oauth.tar ./target
+
+    - name: Upload binaries artifact
+      uses: actions/upload-artifact@v5
+      with:
+        name: oauth.tar
+        path: oauth.tar
+
+    - name: Clean external SNAPSHOT dependencies from Maven repository
+      if: github.ref == 'refs/heads/main'
+      shell: bash
+      run: |
+        mvn dependency:purge-local-repository \
+        -DsnapshotsOnly=true \
+        -DreResolve=false || true
+
+    - name: Save Maven cache
+      if: github.ref == 'refs/heads/main'
+      uses: actions/cache/save@v5
+      with:
+        path: ~/.m2/repository
+        key: maven-${{ hashFiles('**/pom.xml') }}
+
+    - name: Publish test results
+      uses: dorny/test-reporter@v2
+      if: always()
+      with:
+        name: 'Unit & Integration Tests'
+        path: '**/TEST-*.xml'
+        reporter: java-junit
+        fail-on-error: false
