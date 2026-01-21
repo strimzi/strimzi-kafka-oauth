@@ -3,7 +3,7 @@ name: Build
 on:
   push:
     branches:
-      - "gha-migration"
+      - "main"
       - "release-*"
   pull_request:
     branches:
