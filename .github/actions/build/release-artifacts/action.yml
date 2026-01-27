@@ -1,0 +1,61 @@
+name: "Build Release Artifacts"
+description: "Builds and releases OAuth artifacts to Maven Central"
+
+inputs:
+  releaseVersion:
+    description: "Release version (e.g., 0.15.0)"
+    required: true
+  runnerArch:
+    description: "Runner architecture (amd64, arm64)"
+    required: false
+    default: "amd64"
+  gpgPassphrase:
+    description: "GPG passphrase for signing"
+    required: true
+  gpgSigningKey:
+    description: "GPG signing key"
+    required: true
+  centralUsername:
+    description: "Maven Central username"
+    required: true
+  centralPassword:
+    description: "Maven Central password"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Java
+      uses: strimzi/strimzi-kafka-operator/.github/actions/dependencies/setup-java@main
+      with:
+        javaVersion: "17"
+
+    - name: Restore Maven cache
+      uses: actions/cache/restore@v5
+      with:
+        path: ~/.m2/repository
+        key: maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          maven-
+
+    - name: Set release version
+      shell: bash
+      run: mvn versions:set -DnewVersion=${{ inputs.releaseVersion }}
+      env:
+        RELEASE_VERSION: ${{ inputs.releaseVersion }}
+
+    - name: Build Java artifacts
+      shell: bash
+      run: mvn -B install -DskipTests
+
+    - name: Deploy Java artifacts to Maven Central
+      shell: bash
+      run: ./.azure/scripts/push-to-central.sh
+      env:
+        BUILD_REASON: "IndividualCI"
+        BRANCH: ${{ github.ref }}
+        GPG_PASSPHRASE: ${{ inputs.gpgPassphrase }}
+        GPG_SIGNING_KEY: ${{ inputs.gpgSigningKey }}
+        CENTRAL_USERNAME: ${{ inputs.centralUsername }}
+        CENTRAL_PASSWORD: ${{ inputs.centralPassword }}
+        MVN_ARGS: "-e -V -B"

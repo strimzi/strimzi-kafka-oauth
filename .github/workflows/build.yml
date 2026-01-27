@@ -1,0 +1,54 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - "main"
+      - "release-*"
+  pull_request:
+    branches:
+      - "*"
+
+# Declare default permissions as read only
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-kafka-oauth:
+    name: Build & Test Kafka OAuth
+    strategy:
+      matrix:
+        java:
+          # Java 17 is used as default version
+          # In case of adding new version make sure that build-containers and deploy-java has correct static version set
+          - version: "17"
+            mainBuild: true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/build/build-binaries
+        with:
+          javaVersion: ${{ matrix.java.version }}
+          mainBuild: ${{ matrix.java.mainBuild }}
+          runnerArch: "amd64"
+  
+  deploy-java:
+    name: Deploy Java artifacts to Maven Central
+    needs:
+      - build-kafka-oauth
+    if: ${{ github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/build/deploy-java
+        with:
+          javaVersion: "17"
+          runnerArch: "amd64"
+          gpgPassphrase: ${{ secrets.GPG_PASSPHRASE }}
+          gpgSigningKey: ${{ secrets.GPG_SIGNING_KEY }}
+          centralUsername: ${{ secrets.CENTRAL_USERNAME }}
+          centralPassword: ${{ secrets.CENTRAL_PASSWORD }}
