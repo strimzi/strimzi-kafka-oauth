@@ -34,7 +34,7 @@ spec:
       value: kcuserpass
     volumeMounts:
     - name: pg-volume
-      mountPath: /var/lib/postgresql/data
+      mountPath: /var/lib/postgresql
       subPath: postgres
   volumes:
   - name: pg-volume
