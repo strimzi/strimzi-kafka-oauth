@@ -21,7 +21,7 @@ import io.strimzi.kafka.oauth.common.TokenInfo;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,8 +45,8 @@ public class JwtManipulationTests {
 
     private static final Logger log = LoggerFactory.getLogger(JwtManipulationTests.class);
 
-    final String kafkaBootstrap = "kafka:9104";
-    final String hostPort = "keycloak:8080";
+    final String kafkaBootstrap = "localhost:9104";
+    final String hostPort = "localhost:8080";
     final String realm = "forge";
 
     void doTests() throws Exception {
@@ -67,7 +67,7 @@ public class JwtManipulationTests {
 
         SignedJWT producerJwt = SignedJWT.parse(producerToken);
         String kid = producerJwt.getHeader().getKeyID();
-        Assert.assertEquals("kid should match", newKid, kid);
+        Assertions.assertEquals(newKid, kid, "kid should match");
 
         testWithToken(producerToken);
 
@@ -127,9 +127,9 @@ public class JwtManipulationTests {
         signedToken = createSignedToken(kid, privateKey, claims4);
         try {
             testWithToken(signedToken);
-            Assert.fail("Should never be reached");
+            Assertions.fail("Should never be reached");
         } catch (Exception e) {
-            Assert.assertTrue("Token type not set error", e.toString().contains("Token type not set"));
+            Assertions.assertTrue(e.toString().contains("Token type not set"), "Token type not set error");
         }
 
         // Add 'token_typ' claim and see it pass
@@ -208,7 +208,7 @@ public class JwtManipulationTests {
             }
         }
 
-        Assert.assertNotNull("Realm not found", realmId);
+        Assertions.assertNotNull(realmId, "Realm not found");
 
         String body = "{\"name\":\"uploaded-rsa\",\"providerId\":\"rsa\",\"providerType\":\"org.keycloak.keys.KeyProvider\",\"parentId\":\"" + realmId +
                 "\",\"config\":{\"priority\":[\"104\"],\"enabled\":[\"true\"],\"active\":[\"true\"],\"algorithm\":[\"RS256\"],\"privateKey\":[\"" + keyPem +

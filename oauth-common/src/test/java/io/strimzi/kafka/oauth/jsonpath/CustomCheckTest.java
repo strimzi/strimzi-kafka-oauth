@@ -6,9 +6,9 @@ package io.strimzi.kafka.oauth.jsonpath;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.strimzi.kafka.oauth.common.JSONUtil;
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Formatter;
@@ -158,7 +158,7 @@ public class CustomCheckTest {
                 System.out.println("Test failing parse: " + errQuery);
 
                 JsonPathFilterQuery.parse(errQuery);
-                Assert.fail("Parsing the query should have failed: " + errQuery);
+                Assertions.fail("Parsing the query should have failed: " + errQuery);
 
             } catch (JsonPathQueryException expected) {
             }
@@ -175,11 +175,11 @@ public class CustomCheckTest {
             boolean result = q.matches(json);
             System.out.println("Test: " + query + " " + (result ? "MATCH" : "NO MATCH"));
 
-            Assert.assertEquals("Expected " + expected + " when testing: " + query, expected, result);
+            Assertions.assertEquals(expected, result, "Expected " + expected + " when testing: " + query);
         }
     }
 
-    @Ignore
+    @Disabled
     @Test
     public void testPerformance() throws Exception {
         String jsonTemplate = "{ " +
@@ -227,7 +227,7 @@ public class CustomCheckTest {
         }
     }
 
-    @Ignore
+    @Disabled
     @Test
     public void testComplexQuery() throws Exception {
         String jsonString = "{\n" +
@@ -260,6 +260,6 @@ public class CustomCheckTest {
 
         JsonNode json = JSONUtil.readJSON(jsonString, JsonNode.class);
         JsonPathFilterQuery q = JsonPathFilterQuery.parse(query);
-        Assert.assertTrue(q.matches(json));
+        Assertions.assertTrue(q.matches(json));
     }
 }

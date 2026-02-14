@@ -22,8 +22,8 @@ import org.apache.kafka.server.authorizer.AuthorizableRequestContext;
 import org.apache.kafka.server.authorizer.AuthorizationResult;
 import org.apache.kafka.server.authorizer.Authorizer;
 import org.apache.kafka.server.authorizer.AuthorizerServerInfo;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -56,9 +56,9 @@ public class OAuthSessionAuthorizerTest {
         authorizer.configure(config);
 
         MockAuthorizer delegateAuthorizer = mockAuthorizerTL.get();
-        Assert.assertNotNull("MockAuthorizer zero args constructor should be invoked", delegateAuthorizer);
-        Assert.assertEquals("Invocation log contains one entry", 1, delegateAuthorizer.invocationLog.size());
-        Assert.assertEquals("Configuration should be passed to delegate", config, delegateAuthorizer.invocationLog.getLast().config);
+        Assertions.assertNotNull(delegateAuthorizer, "MockAuthorizer zero args constructor should be invoked");
+        Assertions.assertEquals(1, delegateAuthorizer.invocationLog.size(), "Invocation log contains one entry");
+        Assertions.assertEquals(config, delegateAuthorizer.invocationLog.getLast().config, "Configuration should be passed to delegate");
 
         testNonOAuthUserWithDelegate(authorizer, delegateAuthorizer);
 
@@ -93,11 +93,11 @@ public class OAuthSessionAuthorizerTest {
         List<AuthorizationResult> results = authorizer.authorize(ctx, actions);
 
         MockAuthorizerLog lastEntry = delegateAuthorizer.invocationLog.getLast();
-        Assert.assertEquals("Invocation log should contain two entries", 2, delegateAuthorizer.invocationLog.size());
-        Assert.assertEquals("authorize() call should be delegated", MockAuthorizerType.AUTHORIZE, lastEntry.type);
-        Assert.assertEquals("Call args should be equal - context", ctx, lastEntry.context);
-        Assert.assertEquals("Call args should be equal - actions", actions, lastEntry.actions);
-        Assert.assertEquals("Should be allowed", AuthorizationResult.ALLOWED, results.get(0));
+        Assertions.assertEquals(2, delegateAuthorizer.invocationLog.size(), "Invocation log should contain two entries");
+        Assertions.assertEquals(MockAuthorizerType.AUTHORIZE, lastEntry.type, "authorize() call should be delegated");
+        Assertions.assertEquals(ctx, lastEntry.context, "Call args should be equal - context");
+        Assertions.assertEquals(actions, lastEntry.actions, "Call args should be equal - actions");
+        Assertions.assertEquals(AuthorizationResult.ALLOWED, results.get(0), "Should be allowed");
     }
 
     private void testOAuthUserWithDelegate(Authorizer authorizer, MockAuthorizer delegateAuthorizer) throws Exception {
@@ -122,12 +122,12 @@ public class OAuthSessionAuthorizerTest {
         List<AuthorizationResult> results = authorizer.authorize(ctx, actions);
 
         MockAuthorizerLog lastEntry = delegateAuthorizer.invocationLog.getLast();
-        Assert.assertEquals("Invocation log should contain three entries", 3, delegateAuthorizer.invocationLog.size());
-        Assert.assertEquals("authorize() call should be delegated", MockAuthorizerType.AUTHORIZE, lastEntry.type);
-        Assert.assertEquals("Call args should be equal - context", ctx, lastEntry.context);
-        Assert.assertEquals("Call args should be equal - session.token", token, ((OAuthKafkaPrincipal) lastEntry.context.principal()).getJwt());
-        Assert.assertEquals("Call args should be equal - actions", actions, lastEntry.actions);
-        Assert.assertEquals("Should be allowed", AuthorizationResult.ALLOWED, results.get(0));
+        Assertions.assertEquals(3, delegateAuthorizer.invocationLog.size(), "Invocation log should contain three entries");
+        Assertions.assertEquals(MockAuthorizerType.AUTHORIZE, lastEntry.type, "authorize() call should be delegated");
+        Assertions.assertEquals(ctx, lastEntry.context, "Call args should be equal - context");
+        Assertions.assertEquals(token, ((OAuthKafkaPrincipal) lastEntry.context.principal()).getJwt(), "Call args should be equal - session.token");
+        Assertions.assertEquals(actions, lastEntry.actions, "Call args should be equal - actions");
+        Assertions.assertEquals(AuthorizationResult.ALLOWED, results.get(0), "Should be allowed");
     }
 
     public void testOAuthUserWithExpiredTokenWithDelegate(Authorizer authorizer, MockAuthorizer delegateAuthorizer) throws Exception {
@@ -152,25 +152,25 @@ public class OAuthSessionAuthorizerTest {
         List<AuthorizationResult> results = authorizer.authorize(ctx, actions);
 
         MockAuthorizerLog lastEntry = delegateAuthorizer.invocationLog.getLast();
-        Assert.assertEquals("Invocation log should still contain three entries", 3, delegateAuthorizer.invocationLog.size());
-        Assert.assertEquals("Principal type should be OAuthKafkaPrincipal", OAuthKafkaPrincipal.class, lastEntry.context.principal().getClass());
-        Assert.assertNotEquals("Call args should be different - context.token", token, ((OAuthKafkaPrincipal) lastEntry.context.principal()).getJwt());
-        Assert.assertEquals("Should be denied", AuthorizationResult.DENIED, results.get(0));
+        Assertions.assertEquals(3, delegateAuthorizer.invocationLog.size(), "Invocation log should still contain three entries");
+        Assertions.assertEquals(OAuthKafkaPrincipal.class, lastEntry.context.principal().getClass(), "Principal type should be OAuthKafkaPrincipal");
+        Assertions.assertNotEquals(token, ((OAuthKafkaPrincipal) lastEntry.context.principal()).getJwt(), "Call args should be different - context.token");
+        Assertions.assertEquals(AuthorizationResult.DENIED, results.get(0), "Should be denied");
     }
 
     private Authorizer testConfiguringAuthorizerWithoutDelegate(Map<String, String> config) {
 
         // Test authorizer without the delegate
         config.remove("strimzi.authorizer.delegate.class.name");
-        Assert.assertEquals("Properties contain exactly 2 keys", 2, config.size());
+        Assertions.assertEquals(2, config.size(), "Properties contain exactly 2 keys");
 
         Authorizer authorizer = new OAuthSessionAuthorizer();
         try {
             authorizer.configure(config);
 
-            Assert.fail("Call to configure() should fail due to misconfiguration");
+            Assertions.fail("Call to configure() should fail due to misconfiguration");
         } catch (RuntimeException e) {
-            Assert.assertTrue(e.getMessage().contains("'strimzi.authorizer.grant.when.no.delegate=true' has to be specified"));
+            Assertions.assertTrue(e.getMessage().contains("'strimzi.authorizer.grant.when.no.delegate=true' has to be specified"));
         }
 
         // set the option to a bad value
@@ -180,7 +180,7 @@ public class OAuthSessionAuthorizerTest {
         try {
             authorizer.configure(config);
 
-            Assert.fail("Call to configure() should fail due to misconfiguration");
+            Assertions.fail("Call to configure() should fail due to misconfiguration");
         } catch (IllegalArgumentException ignored) {
         }
 
@@ -192,9 +192,9 @@ public class OAuthSessionAuthorizerTest {
         try {
             authorizer.configure(config);
 
-            Assert.fail("Call to configure() should fail due to misconfiguration");
+            Assertions.fail("Call to configure() should fail due to misconfiguration");
         } catch (RuntimeException e) {
-            Assert.assertTrue(e.getMessage().contains("'strimzi.authorizer.grant.when.no.delegate=true' has to be specified"));
+            Assertions.assertTrue(e.getMessage().contains("'strimzi.authorizer.grant.when.no.delegate=true' has to be specified"));
         }
 
         // set the option to the only valid value
@@ -220,7 +220,7 @@ public class OAuthSessionAuthorizerTest {
         // authorize() call should be delegated because the OAuthKafkaPrincipal contains a valid token
         List<AuthorizationResult> results = authorizer.authorize(ctx, actions);
 
-        Assert.assertEquals("Should be allowed", AuthorizationResult.ALLOWED, results.get(0));
+        Assertions.assertEquals(AuthorizationResult.ALLOWED, results.get(0), "Should be allowed");
     }
 
     private void testOAuthUserWithoutDelegate(Authorizer authorizer) throws Exception {
@@ -244,7 +244,7 @@ public class OAuthSessionAuthorizerTest {
         // authorize() call should not be delegated because the OAuthKafkaPrincipal contains an expired token
         List<AuthorizationResult> results = authorizer.authorize(ctx, actions);
 
-        Assert.assertEquals("Should be allowed", AuthorizationResult.ALLOWED, results.get(0));
+        Assertions.assertEquals(AuthorizationResult.ALLOWED, results.get(0), "Should be allowed");
     }
 
     private void testOAuthUserWithExpiredTokenWithoutDelegate(Authorizer authorizer) throws Exception {
@@ -266,7 +266,7 @@ public class OAuthSessionAuthorizerTest {
 
         // authorize() call should return DENIED
         List<AuthorizationResult> results = authorizer.authorize(requestContext(principal), actions);
-        Assert.assertEquals("Should be denied", AuthorizationResult.DENIED, results.get(0));
+        Assertions.assertEquals(AuthorizationResult.DENIED, results.get(0), "Should be denied");
     }
 
     private AuthorizableRequestContext requestContext(KafkaPrincipal principal) throws UnknownHostException {

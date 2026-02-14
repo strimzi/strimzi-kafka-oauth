@@ -12,7 +12,6 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.errors.AuthorizationException;
-import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +25,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithClientSecret;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.fail;
 
 @SuppressFBWarnings({"THROWS_METHOD_THROWS_RUNTIMEEXCEPTION", "THROWS_METHOD_THROWS_CLAUSE_THROWABLE"})
 public class FloodTest extends Common {
@@ -75,11 +76,11 @@ public class FloodTest extends Common {
         try {
             sendSingleMessage("kafka-producer-client-1", "kafka-producer-client-1-secret", "messages-2");
 
-            Assert.fail("Sending to 'messages-2' using 'kafka-producer-client-1' should fail with AuthorizationException");
+            fail("Sending to 'messages-2' using 'kafka-producer-client-1' should fail with AuthorizationException");
         } catch (InterruptedException e) {
             throw new InterruptedIOException("Interrupted");
         } catch (ExecutionException e) {
-            Assert.assertTrue("Exception type should be AuthorizationException", e.getCause() instanceof AuthorizationException);
+            assertInstanceOf(AuthorizationException.class, e.getCause(), "Exception type should be AuthorizationException");
         }
 
 

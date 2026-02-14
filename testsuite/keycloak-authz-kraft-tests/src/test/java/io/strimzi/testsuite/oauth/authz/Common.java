@@ -28,7 +28,6 @@ import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.common.resource.ResourcePatternFilter;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,17 +44,21 @@ import java.util.concurrent.ExecutionException;
 
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithClientSecret;
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 @SuppressFBWarnings({"THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION", "THROWS_METHOD_THROWS_RUNTIMEEXCEPTION", "RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT"})
 public class Common {
 
     private static final Logger log = LoggerFactory.getLogger(Common.class);
 
-    static final String HOST = "keycloak";
+    static final String HOST = "localhost";
     static final String REALM = "kafka-authz";
     static final String TOKEN_ENDPOINT_URI = "http://" + HOST + ":8080/realms/" + REALM + "/protocol/openid-connect/token";
 
-    private static final String PLAIN_LISTENER = "kafka:9100";
+    private static final String PLAIN_LISTENER = "localhost:9100";
     static final String TEAM_A_CLIENT = "team-a-client";
     static final String TEAM_B_CLIENT = "team-b-client";
     static final String BOB = "bob";
@@ -113,7 +116,7 @@ public class Common {
         consumer.seekToBeginning(Collections.singletonList(partition));
         ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(10));
 
-        Assert.assertTrue("Got message", records.count() >= 1);
+        assertTrue(records.count() >= 1, "Got message");
     }
 
     static void consumeFail(Consumer<String, String> consumer, String topic) {
@@ -128,7 +131,7 @@ public class Common {
             consumer.seekToBeginning(Collections.singletonList(partition));
             consumer.poll(Duration.ofSeconds(1));
 
-            Assert.fail("Should fail with TopicAuthorizationException");
+            fail("Should fail with TopicAuthorizationException");
         } catch (TopicAuthorizationException expected) {
             // ignored
         }
@@ -141,10 +144,9 @@ public class Common {
     static void produceFail(Producer<String, String> producer, String topic) throws InterruptedException {
         try {
             produce(producer, topic);
-            Assert.fail("Should not be able to send message");
+            fail("Should not be able to send message");
         } catch (ExecutionException e) {
-            // should get authorization exception
-            Assert.assertTrue("Should fail with TopicAuthorizationException", e.getCause() instanceof TopicAuthorizationException);
+            assertInstanceOf(TopicAuthorizationException.class, e.getCause(), "Should fail with TopicAuthorizationException");
         }
     }
 
@@ -288,7 +290,7 @@ public class Common {
         Map<String, String> config = new HashMap<>();
 
         String token = tokens.get(name);
-        Assert.assertNotNull("No token for user: " + name + ". Was the user authenticated?", token);
+        assertNotNull(token, "No token for user: " + name + ". Was the user authenticated?");
 
         config.put(ClientConfig.OAUTH_ACCESS_TOKEN, token);
         return config;

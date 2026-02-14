@@ -9,7 +9,7 @@ import io.strimzi.kafka.oauth.metrics.GlobalConfig;
 import io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler;
 import io.strimzi.kafka.oauth.server.ServerConfig;
 import io.strimzi.testsuite.oauth.common.LogLineReader;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 
 import javax.security.auth.login.AppConfigurationEntry;
 import java.io.IOException;
@@ -121,8 +121,8 @@ public class JaasServerConfigTest {
         try {
             handler.configure(serverProps, "OAUTHBEARER", Collections.singletonList(jaasConfig));
         } catch (Exception exception) {
-            Assert.assertEquals("Exception is ConfigException", ConfigException.class, exception.getClass());
-            Assert.assertTrue("Error message check", exception.getMessage().contains("'oauth.client.id' must be set when 'oauth.check.audience' is 'true'"));
+            Assertions.assertEquals(ConfigException.class, exception.getClass(), "Exception is ConfigException");
+            Assertions.assertTrue(exception.getMessage().contains("'oauth.client.id' must be set when 'oauth.check.audience' is 'true'"), "Error message check");
         }
 
         //   Check #3, relies on check #2
@@ -153,11 +153,11 @@ public class JaasServerConfigTest {
         logReader.readNext();
         try {
             handler.configure(serverProps, "OAUTHBEARER", Collections.singletonList(jaasConfig));
-            Assert.fail("Should have failed");
+            Assertions.fail("Should have failed");
 
         } catch (Exception exception) {
-            Assert.assertEquals("Exception is IllegalArgumentException", IllegalArgumentException.class, exception.getClass());
-            Assert.assertTrue("Error message check", exception.getMessage().contains("Can't use both clientId and bearerToken"));
+            Assertions.assertEquals(IllegalArgumentException.class, exception.getClass(), "Exception is IllegalArgumentException");
+            Assertions.assertTrue(exception.getMessage().contains("Can't use both clientId and bearerToken"), "Error message check");
         }
 
         //   Check #5
@@ -264,8 +264,8 @@ public class JaasServerConfigTest {
         try {
             handler.configure(serverProps, "OAUTHBEARER", Collections.singletonList(jaasConfig));
         } catch (Exception exception) {
-            Assert.assertEquals("Exception is ConfigException", ConfigException.class, exception.getClass());
-            Assert.assertTrue("Error message check", exception.getMessage().contains("'oauth.client.id' must be set when 'oauth.check.audience' is 'true'"));
+            Assertions.assertEquals(ConfigException.class, exception.getClass(), "Exception is ConfigException");
+            Assertions.assertTrue(exception.getMessage().contains("'oauth.client.id' must be set when 'oauth.check.audience' is 'true'"), "Error message check");
         }
 
         //   Check #3, relies on check #2
@@ -298,11 +298,11 @@ public class JaasServerConfigTest {
         logReader.readNext();
         try {
             handler.configure(serverProps, "OAUTHBEARER", Collections.singletonList(jaasConfig));
-            Assert.fail("Should have failed");
+            Assertions.fail("Should have failed");
 
         } catch (Exception exception) {
-            Assert.assertEquals("Exception is IllegalArgumentException", IllegalArgumentException.class, exception.getClass());
-            Assert.assertTrue("Error message check", exception.getMessage().contains("Can't use both clientId and bearerToken"));
+            Assertions.assertEquals(IllegalArgumentException.class, exception.getClass(), "Exception is IllegalArgumentException");
+            Assertions.assertTrue(exception.getMessage().contains("Can't use both clientId and bearerToken"), "Error message check");
         }
 
         //   Check #5

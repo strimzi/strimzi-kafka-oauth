@@ -13,7 +13,7 @@ import io.strimzi.testsuite.oauth.common.LogLineReader;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,8 +37,11 @@ public class MetricsTest {
 
     private final static int PAUSE_MILLIS = 15_000;
 
-    private static final String KAFKA_BOOTSTRAP = "kafka:9092";
-    private static final String TOKEN_ENDPOINT_URI = "https://mockoauth:8090/token";
+    private static final String KAFKA_BOOTSTRAP = "localhost:9092";
+
+    private static String getTokenEndpointUri() {
+        return "https://" + Common.getMockOAuthAuthHostPort() + "/token";
+    }
 
 
     public void doTest() throws Exception {
@@ -68,7 +71,7 @@ public class MetricsTest {
     private void testKafkaClientConfig() throws Exception {
 
         Map<String, String> oauthConfig = new HashMap<>();
-        oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, TOKEN_ENDPOINT_URI);
+        oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, getTokenEndpointUri());
         oauthConfig.put(ClientConfig.OAUTH_CLIENT_ID, "ignored");
         oauthConfig.put(ClientConfig.OAUTH_CLIENT_SECRET, "ignored");
         oauthConfig.put(ClientConfig.OAUTH_ENABLE_METRICS, "true");
@@ -83,14 +86,14 @@ public class MetricsTest {
 
         try {
             initJaas(oauthConfig, producerProps);
-            Assert.fail("Should have failed due to bad access token");
+            Assertions.fail("Should have failed due to bad access token");
 
         } catch (Exception e) {
             LOG.debug("[IGNORED] Failed as expected: {}", e.getMessage(), e);
         }
 
         List<String> lines = logReader.readNext();
-        Assert.assertTrue("Instantiated JMX Reporter", TestUtil.checkLogForRegex(lines, "reporters: \\[org\\.apache\\.kafka\\.common\\.metrics\\.JmxReporter"));
+        Assertions.assertTrue(TestUtil.checkLogForRegex(lines, "reporters: \\[org\\.apache\\.kafka\\.common\\.metrics\\.JmxReporter"), "Instantiated JMX Reporter");
 
 
         producerProps.put(GlobalConfig.STRIMZI_OAUTH_METRIC_REPORTERS, "io.strimzi.testsuite.oauth.common.metrics.TestMetricsReporter");
@@ -100,14 +103,14 @@ public class MetricsTest {
 
         try {
             initJaas(oauthConfig, producerProps);
-            Assert.fail("Should have failed due to bad access token");
+            Assertions.fail("Should have failed due to bad access token");
 
         } catch (Exception e) {
             LOG.debug("[IGNORED] Failed as expected: {}", e.getMessage(), e);
         }
 
         lines = logReader.readNext();
-        Assert.assertTrue("Instantiated TestMetricsReporter", TestUtil.checkLogForRegex(lines, "reporters: \\[io\\.strimzi\\.testsuite\\.oauth\\.common\\.metrics\\.TestMetricsReporter[^,]+\\]"));
+        Assertions.assertTrue(TestUtil.checkLogForRegex(lines, "reporters: \\[io\\.strimzi\\.testsuite\\.oauth\\.common\\.metrics\\.TestMetricsReporter[^,]+\\]"), "Instantiated TestMetricsReporter");
     }
 
     private void initJaas(Map<String, String> oauthConfig, Properties additionalProps) throws Exception {
@@ -131,7 +134,7 @@ public class MetricsTest {
 
         // We should not see any 503 errors yet because of more TLS errors due to CERT_TWO being used
         String value = metrics.getValueStartsWith("strimzi_oauth_http_requests_count", "context", "JWT", "outcome", "error", "error_type", "http", "status", "503");
-        Assert.assertNull("There should be no 503 errors", value);
+        Assertions.assertNull(value, "There should be no 503 errors");
         // Switch mockoauth auth server back to using cert no. 1
         changeAuthServerMode("server", "mode_cert_one_on");
 
@@ -141,12 +144,12 @@ public class MetricsTest {
 
         // We should see some 503 errors
         value = metrics.getValueStartsWith("strimzi_oauth_http_requests_count", "context", "JWT", "outcome", "error", "error_type", "http", "status", "503");
-        Assert.assertNotNull("Metric missing", value);
-        Assert.assertTrue("There should be some 503 errors", new BigDecimal(value).doubleValue() > 0.0);
+        Assertions.assertNotNull(value, "Metric missing");
+        Assertions.assertTrue(new BigDecimal(value).doubleValue() > 0.0, "There should be some 503 errors");
 
         value = metrics.getValueStartsWith("strimzi_oauth_http_requests_totaltimems", "context", "JWT", "outcome", "error", "error_type", "http", "status", "503");
-        Assert.assertNotNull("Metric missing", value);
-        Assert.assertTrue("There should be some 503 errors", new BigDecimal(value).doubleValue() > 0.0);
+        Assertions.assertNotNull(value, "Metric missing");
+        Assertions.assertTrue(new BigDecimal(value).doubleValue() > 0.0, "There should be some 503 errors");
     }
 
     private void testExpiredCert() throws IOException, InterruptedException {
@@ -160,12 +163,12 @@ public class MetricsTest {
 
         // We should see some TLS errors
         String value = metrics.getValueStartsWith("strimzi_oauth_http_requests_count", "context", "JWT", "outcome", "error", "error_type", "tls");
-        Assert.assertNotNull("Metric missing", value);
-        Assert.assertTrue("There should be some TLS errors", new BigDecimal(value).doubleValue() > 0.0);
+        Assertions.assertNotNull(value, "Metric missing");
+        Assertions.assertTrue(new BigDecimal(value).doubleValue() > 0.0, "There should be some TLS errors");
 
         value = metrics.getValueStartsWith("strimzi_oauth_http_requests_totaltimems", "context", "JWT", "outcome", "error", "error_type", "tls");
-        Assert.assertNotNull("Metric missing", value);
-        Assert.assertTrue("There should be some TLS errors", new BigDecimal(value).doubleValue() > 0.0);
+        Assertions.assertNotNull(value, "Metric missing");
+        Assertions.assertTrue(new BigDecimal(value).doubleValue() > 0.0, "There should be some TLS errors");
     }
 
     private void testNetworkErrors() throws IOException, InterruptedException {
@@ -179,62 +182,62 @@ public class MetricsTest {
 
         // See some network errors on JWT's
         String value = metrics.getValueStartsWith("strimzi_oauth_http_requests_count", "context", "JWT", "outcome", "error", "error_type", "connect");
-        Assert.assertNotNull("Metric missing", value);
-        Assert.assertTrue("There should be some network errors", new BigDecimal(value).doubleValue() > 0.0);
+        Assertions.assertNotNull(value, "Metric missing");
+        Assertions.assertTrue(new BigDecimal(value).doubleValue() > 0.0, "There should be some network errors");
 
         value = metrics.getValueStartsWith("strimzi_oauth_http_requests_totaltimems", "context", "JWT", "outcome", "error", "error_type", "connect");
-        Assert.assertNotNull("Metric missing", value);
-        Assert.assertTrue("There should be some network errors", new BigDecimal(value).doubleValue() > 0.0);
+        Assertions.assertNotNull(value, "Metric missing");
+        Assertions.assertTrue(new BigDecimal(value).doubleValue() > 0.0, "There should be some network errors");
     }
 
     private void postInitCheck() throws IOException {
-        Metrics metrics = getPrometheusMetrics(URI.create("http://kafka:9404/metrics"));
+        Metrics metrics = getPrometheusMetrics(URI.create("http://localhost:9404/metrics"));
 
         // mockoauth has JWKS endpoint configured to return 404
         // error counter for 404 for JWT should not be zero as at least one JWKS request should fail
         // during JWT listener's JWTSignatureValidator initialisation
         String value = metrics.getValueStartsWith("strimzi_oauth_http_requests_count", "context", "JWT", "outcome", "error", "error_type", "http", "status", "404");
-//        Assert.assertNotNull("Metric missing", value);
-//        Assert.assertTrue("There should be some 404 errors", new BigDecimal(value).doubleValue() > 0.0);
+//        Assertions.assertNotNull(value, "Metric missing");
+//        Assertions.assertTrue(new BigDecimal(value).doubleValue() > 0.0, "There should be some 404 errors");
 
         value = metrics.getValueStartsWith("strimzi_oauth_http_requests_totaltimems", "context", "JWT", "outcome", "error", "error_type", "http", "status", "404");
-//        Assert.assertNotNull("Metric missing", value);
-//        Assert.assertTrue("There should be some 404 errors", new BigDecimal(value).doubleValue() > 0.0);
+//        Assertions.assertNotNull(value, "Metric missing");
+//        Assertions.assertTrue(new BigDecimal(value).doubleValue() > 0.0, "There should be some 404 errors");
     }
 
     private void zeroCheck() throws IOException {
-        Metrics metrics = getPrometheusMetrics(URI.create("http://kafka:9404/metrics"));
+        Metrics metrics = getPrometheusMetrics(URI.create("http://localhost:9404/metrics"));
 
         // assumption check
         // JWT listener config (on port 9404 in docker-compose.yml) has no token endpoint so the next metric should not exist
         String value = metrics.getValueStartsWith("strimzi_oauth_validation_requests_count", "context", "JWT");
-        Assert.assertNull(value);
+        Assertions.assertNull(value);
 
 
         // initial checks - all success counters should be null
         value = metrics.getValueStartsWith("strimzi_oauth_http_requests_count", "context", "JWT", "outcome", "success");
-        Assert.assertNull(value);
+        Assertions.assertNull(value);
 
         value = metrics.getValueStartsWith("strimzi_oauth_http_requests_totaltimems", "context", "JWT", "outcome", "success");
-        Assert.assertNull(value);
+        Assertions.assertNull(value);
 
         value = metrics.getValueStartsWith("strimzi_oauth_http_requests_count", "context", "INTROSPECT", "outcome", "success");
-        Assert.assertNull(value);
+        Assertions.assertNull(value);
 
         value = metrics.getValueStartsWith("strimzi_oauth_http_requests_totaltimems", "context", "INTROSPECT", "outcome", "success");
-        Assert.assertNull(value);
+        Assertions.assertNull(value);
 
         value = metrics.getValueStartsWith("strimzi_oauth_http_requests_count", "context", "JWTPLAIN", "outcome", "success");
-        Assert.assertNull(value);
+        Assertions.assertNull(value);
 
         value = metrics.getValueStartsWith("strimzi_oauth_http_requests_totaltimems", "context", "JWTPLAIN", "outcome", "success");
-        Assert.assertNull(value);
+        Assertions.assertNull(value);
 
         value = metrics.getValueStartsWith("strimzi_oauth_http_requests_count", "context", "JWTPLAIN", "outcome", "success");
-        Assert.assertNull(value);
+        Assertions.assertNull(value);
 
         value = metrics.getValueStartsWith("strimzi_oauth_http_requests_totaltimems", "context", "JWTPLAIN", "outcome", "success");
-        Assert.assertNull(value);
+        Assertions.assertNull(value);
     }
 
     private void testOAuthMetricReporters() throws IOException, InterruptedException, TimeoutException {

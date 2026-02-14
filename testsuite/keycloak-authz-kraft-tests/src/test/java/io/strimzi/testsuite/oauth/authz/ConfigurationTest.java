@@ -4,39 +4,41 @@
  */
 package io.strimzi.testsuite.oauth.authz;
 
-import org.junit.Assert;
+import org.testcontainers.containers.GenericContainer;
 
 import java.util.List;
 
 import static io.strimzi.testsuite.oauth.common.TestUtil.getContainerLogsForString;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ConfigurationTest {
 
-    private final String kafkaContainer;
+    private final GenericContainer<?> kafkaContainer;
 
-    public ConfigurationTest(String kafkaContainer) {
+    public ConfigurationTest(GenericContainer<?> kafkaContainer) {
         this.kafkaContainer = kafkaContainer;
     }
 
     public void doTest() {
         // get kafka log and make sure KeycloakRBACAuthorizer has been configured with expected settings
         List<String> lines = getContainerLogsForString(kafkaContainer, "Configured KeycloakRBACAuthorizer");
-        Assert.assertTrue("Kafka log should contain string: 'KeycloakRBACAuthorizer'", lines.size() > 0);
+        assertTrue(lines.size() > 0, "Kafka log should contain string: 'KeycloakRBACAuthorizer'");
 
         String value = getLoggerAttribute(lines, "connectTimeoutSeconds");
-        Assert.assertEquals("'connectTimeoutSeconds' should be 20", "20", value);
+        assertEquals("20", value, "'connectTimeoutSeconds' should be 20");
 
         value = getLoggerAttribute(lines, "readTimeoutSeconds");
-        Assert.assertEquals("'readTimeoutSeconds' should be 45", "45", value);
+        assertEquals("45", value, "'readTimeoutSeconds' should be 45");
 
         value = getLoggerAttribute(lines, "enableMetrics");
-        Assert.assertEquals("'enableMetrics' should be true", "true", value);
+        assertEquals("true", value, "'enableMetrics' should be true");
 
         value = getLoggerAttribute(lines, "httpRetries");
-        Assert.assertEquals("'httpRetries' should be 1", "1", value);
+        assertEquals("1", value, "'httpRetries' should be 1");
 
         value = getLoggerAttribute(lines, "reuseGrants");
-        Assert.assertEquals("'reuseGrants' should be true", "true", value);
+        assertEquals("true", value, "'reuseGrants' should be true");
     }
 
     private static String getLoggerAttribute(List<String> lines, String name) {

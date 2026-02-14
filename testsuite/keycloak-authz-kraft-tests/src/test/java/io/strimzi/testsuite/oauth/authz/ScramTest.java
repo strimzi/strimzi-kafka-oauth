@@ -8,7 +8,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.strimzi.kafka.oauth.common.HttpException;
 import org.apache.kafka.common.errors.AuthenticationException;
 import org.apache.kafka.common.errors.AuthorizationException;
-import org.junit.Assert;
 
 import java.net.URI;
 import java.util.HashMap;
@@ -19,11 +18,14 @@ import java.util.concurrent.ExecutionException;
 import static io.strimzi.testsuite.oauth.authz.Common.buildProducerConfigScram;
 import static io.strimzi.testsuite.oauth.authz.Common.produceToTopic;
 import static io.strimzi.testsuite.oauth.common.TestUtil.assertTrueExtra;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.fail;
 
 @SuppressFBWarnings("THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION")
 public class ScramTest {
 
-    private static final String SCRAM_LISTENER = "kafka:9101";
+    private static final String SCRAM_LISTENER = "localhost:9101";
 
     private static Properties producerConfigScram(String kafkaBootstrap, String username, String password) {
         Map<String, String> scramConfig = new HashMap<>();
@@ -47,7 +49,7 @@ public class ScramTest {
         Properties producerProps = producerConfigScram(SCRAM_LISTENER, username, password);
         try {
             produceToTopic("KeycloakAuthorizationTest-multiSaslTest-scram", producerProps);
-            Assert.fail("Should have failed");
+            fail("Should have failed");
         } catch (ExecutionException e) {
             assertTrueExtra("Instance of authentication exception", e.getCause() instanceof AuthenticationException, e);
         }
@@ -63,20 +65,20 @@ public class ScramTest {
         produceToTopic("KeycloakAuthorizationTest-multiSaslTest-scram", producerProps);
         try {
             produceToTopic("KeycloakAuthorizationTest-multiSaslTest-scram-denied", producerProps);
-            Assert.fail("Should have failed");
+            fail("Should have failed");
         } catch (ExecutionException e) {
-            Assert.assertTrue("Instance of authorization exception", e.getCause() instanceof AuthorizationException);
+            assertInstanceOf(AuthorizationException.class, e.getCause(), "Instance of authorization exception");
         }
 
         // OAuth authentication using SCRAM password should fail
         try {
             Common.loginWithUsernamePassword(
-                    URI.create("http://keycloak:8080/realms/kafka-authz/protocol/openid-connect/token"),
+                    URI.create("http://localhost:8080/realms/kafka-authz/protocol/openid-connect/token"),
                     username, password, "kafka-cli");
 
-            Assert.fail("Should have failed");
+            fail("Should have failed");
         } catch (HttpException e) {
-            Assert.assertEquals("Status 401", 401, e.getStatus());
+            assertEquals(401, e.getStatus(), "Status 401");
         }
     }
 }

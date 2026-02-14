@@ -102,7 +102,7 @@
         <maven.compiler.release>11</maven.compiler.release>
         <maven.compiler.version>3.11.0</maven.compiler.version>
         <maven.dependency.version>3.5.0</maven.dependency.version>
-        <maven.surefire.version>3.0.0-M9</maven.surefire.version>
+        <maven.surefire.version>3.5.2</maven.surefire.version>
         <maven.javadoc.version>3.5.0</maven.javadoc.version>
         <maven.source.version>3.2.1</maven.source.version>
         <maven.gpg.version>3.0.1</maven.gpg.version>
@@ -115,9 +115,9 @@
         <jackson.databind.version>2.15.3</jackson.databind.version>
         <jsonpath.version>2.9.0</jsonpath.version>
         <jsonsmart.version>2.5.2</jsonsmart.version>
-        <junit.version>4.13.2</junit.version>
+        <junit-jupiter.version>5.11.4</junit-jupiter.version>
         <slf4j.version>1.7.36</slf4j.version>
-        <mockito.version>3.12.4</mockito.version>
+        <mockito.version>5.15.2</mockito.version>
         <nimbus.jose.version>10.0.2</nimbus.jose.version>
     </properties>
 
@@ -215,9 +215,15 @@
                 <version>${spotbugs.version}</version>
             </dependency>
             <dependency>
-                <groupId>junit</groupId>
-                <artifactId>junit</artifactId>
-                <version>${junit.version}</version>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-api</artifactId>
+                <version>${junit-jupiter.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>${junit-jupiter.version}</version>
                 <scope>test</scope>
             </dependency>
             <dependency>

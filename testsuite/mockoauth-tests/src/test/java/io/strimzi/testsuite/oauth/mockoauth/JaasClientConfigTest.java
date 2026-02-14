@@ -12,7 +12,7 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.KafkaException;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.LoginException;
@@ -47,8 +47,11 @@ import static io.strimzi.testsuite.oauth.mockoauth.Common.loginWithUsernameForRe
 
 public class JaasClientConfigTest {
 
-    private static final String KAFKA_BOOTSTRAP = "kafka:9092";
-    private static final String TOKEN_ENDPOINT_URI = "https://mockoauth:8090/token";
+    private static final String KAFKA_BOOTSTRAP = "localhost:9092";
+
+    private static String getTokenEndpointUri() {
+        return "https://" + Common.getMockOAuthAuthHostPort() + "/token";
+    }
     private static final String KAFKA_PRODUCER_CLIENT = "kafka-producer-client";
     private static final String KAFKA_PRODUCER_CLIENT_SECRET = "kafka-producer-client-secret";
     private static final String KAFKA_CLI = "kafka-cli";
@@ -127,8 +130,8 @@ public class JaasClientConfigTest {
         try {
             loginHandler.configure(clientProps, "OAUTHBEARER", Collections.singletonList(jaasConfig));
         } catch (Exception e) {
-            Assert.assertTrue("Is a ConfigException", e instanceof ConfigException);
-            Assert.assertTrue("Invalid sasl extension key: " + e.getMessage(), e.getMessage().contains("Invalid sasl extension key: 'group.ref'"));
+            Assertions.assertTrue(e instanceof ConfigException, "Is a ConfigException");
+            Assertions.assertTrue(e.getMessage().contains("Invalid sasl extension key: 'group.ref'"), "Invalid sasl extension key: " + e.getMessage());
         }
 
         logReader.readNext();
@@ -186,7 +189,7 @@ public class JaasClientConfigTest {
         try {
             loginHandler.configure(clientProps, "OAUTHBEARER", Collections.singletonList(jaasConfig));
         } catch (ConfigException e) {
-            Assert.assertTrue("location is invalid", e.getMessage().contains("Specified access token location is invalid"));
+            Assertions.assertTrue(e.getMessage().contains("Specified access token location is invalid"), "location is invalid");
         }
 
         createFiles(accessTokenPath,
@@ -210,11 +213,11 @@ public class JaasClientConfigTest {
 
     private void testMissingClientSecret() throws Exception {
         Map<String, String> oauthConfig = new HashMap<>();
-        oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, TOKEN_ENDPOINT_URI);
+        oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, getTokenEndpointUri());
         oauthConfig.put(ClientConfig.OAUTH_CLIENT_ID, KAFKA_CLI);
         try {
             initJaas(oauthConfig);
-            Assert.fail("Should have failed");
+            Assertions.fail("Should have failed");
 
         } catch (KafkaException e) {
             assertConfigException(e, "client credentials");
@@ -223,12 +226,12 @@ public class JaasClientConfigTest {
 
     private void testMissingPassword() throws Exception {
         Map<String, String> oauthConfig = new HashMap<>();
-        oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, TOKEN_ENDPOINT_URI);
+        oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, getTokenEndpointUri());
         oauthConfig.put(ClientConfig.OAUTH_CLIENT_ID, KAFKA_CLI);
         oauthConfig.put(ClientConfig.OAUTH_PASSWORD_GRANT_USERNAME, KAFKA_USER);
         try {
             initJaas(oauthConfig);
-            Assert.fail("Should have failed");
+            Assertions.fail("Should have failed");
 
         } catch (KafkaException e) {
             assertConfigException(e, "no password specified");
@@ -237,13 +240,13 @@ public class JaasClientConfigTest {
 
     private void testMissingTrustStore() throws Exception {
         Map<String, String> oauthConfig = new HashMap<>();
-        oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, TOKEN_ENDPOINT_URI);
+        oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, getTokenEndpointUri());
         oauthConfig.put(ClientConfig.OAUTH_CLIENT_ID, KAFKA_CLI);
         oauthConfig.put(ClientConfig.OAUTH_PASSWORD_GRANT_USERNAME, KAFKA_USER);
         oauthConfig.put(ClientConfig.OAUTH_PASSWORD_GRANT_PASSWORD, KAFKA_USER_PASSWORD);
         try {
             initJaas(oauthConfig);
-            Assert.fail("Should have failed due to missing truststore");
+            Assertions.fail("Should have failed due to missing truststore");
 
         } catch (KafkaException e) {
             assertLoginException(e);
@@ -252,10 +255,10 @@ public class JaasClientConfigTest {
 
     private void testNoClientId() throws Exception {
         Map<String, String> oauthConfig = new HashMap<>();
-        oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, TOKEN_ENDPOINT_URI);
+        oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, getTokenEndpointUri());
         try {
             initJaas(oauthConfig);
-            Assert.fail("Should have failed");
+            Assertions.fail("Should have failed");
 
         } catch (KafkaException e) {
             assertConfigException(e, "No client id specified ('oauth.client.id')");
@@ -265,7 +268,7 @@ public class JaasClientConfigTest {
         oauthConfig.put(ClientConfig.OAUTH_PASSWORD_GRANT_USERNAME, KAFKA_USER);
         try {
             initJaas(oauthConfig);
-            Assert.fail("Should have failed");
+            Assertions.fail("Should have failed");
 
         } catch (KafkaException e) {
             assertConfigException(e, "No client id specified ('oauth.client.id')");
@@ -275,7 +278,7 @@ public class JaasClientConfigTest {
         oauthConfig.put(ClientConfig.OAUTH_PASSWORD_GRANT_PASSWORD, KAFKA_USER_PASSWORD);
         try {
             initJaas(oauthConfig);
-            Assert.fail("Should have failed");
+            Assertions.fail("Should have failed");
 
         } catch (KafkaException e) {
             assertConfigException(e, "No client id specified ('oauth.client.id')");
@@ -286,7 +289,7 @@ public class JaasClientConfigTest {
         Map<String, String> oauthConfig = new HashMap<>();
         try {
             initJaas(oauthConfig);
-            Assert.fail("Should have failed");
+            Assertions.fail("Should have failed");
 
         } catch (KafkaException e) {
             assertConfigException(e, "Access token not specified ('oauth.access.token'");
@@ -295,7 +298,7 @@ public class JaasClientConfigTest {
         oauthConfig.put(ClientConfig.OAUTH_PASSWORD_GRANT_PASSWORD, KAFKA_USER_PASSWORD);
         try {
             initJaas(oauthConfig);
-            Assert.fail("Should have failed");
+            Assertions.fail("Should have failed");
 
         } catch (KafkaException e) {
             assertConfigException(e, "Access token not specified ('oauth.access.token'");
@@ -304,7 +307,7 @@ public class JaasClientConfigTest {
         oauthConfig.put(ClientConfig.OAUTH_CLIENT_SECRET, KAFKA_PRODUCER_CLIENT_SECRET);
         try {
             initJaas(oauthConfig);
-            Assert.fail("Should have failed");
+            Assertions.fail("Should have failed");
 
         } catch (KafkaException e) {
             assertConfigException(e, "Access token not specified ('oauth.access.token'");
@@ -314,7 +317,7 @@ public class JaasClientConfigTest {
         oauthConfig.put(ClientConfig.OAUTH_CLIENT_ID, KAFKA_PRODUCER_CLIENT);
         try {
             initJaas(oauthConfig);
-            Assert.fail("Should have failed");
+            Assertions.fail("Should have failed");
 
         } catch (KafkaException e) {
             assertConfigException(e, "Access token not specified ('oauth.access.token'");
@@ -324,7 +327,7 @@ public class JaasClientConfigTest {
         oauthConfig.put(ClientConfig.OAUTH_PASSWORD_GRANT_USERNAME, KAFKA_USER);
         try {
             initJaas(oauthConfig);
-            Assert.fail("Should have failed");
+            Assertions.fail("Should have failed");
 
         } catch (KafkaException e) {
             assertConfigException(e, "Access token not specified ('oauth.access.token'");
@@ -336,17 +339,17 @@ public class JaasClientConfigTest {
         oauthConfig.put(ClientConfig.OAUTH_CLIENT_SECRET, KAFKA_PRODUCER_CLIENT_SECRET);
         try {
             initJaas(oauthConfig);
-            Assert.fail("Should have failed");
+            Assertions.fail("Should have failed");
 
         } catch (KafkaException e) {
             assertConfigException(e, "Access token not specified ('oauth.access.token'");
         }
 
         // fix it by adding token endpoint
-        oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, TOKEN_ENDPOINT_URI);
+        oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, getTokenEndpointUri());
         try {
             initJaas(oauthConfig);
-            Assert.fail("Should have failed due to missing truststore");
+            Assertions.fail("Should have failed due to missing truststore");
 
         } catch (KafkaException e) {
             assertLoginException(e);
@@ -361,7 +364,7 @@ public class JaasClientConfigTest {
         oauthConfig.put(ClientConfig.OAUTH_ACCESS_TOKEN_IS_JWT, "false");
         try {
             initJaas(oauthConfig);
-            Assert.fail("Should have failed due to bad access token");
+            Assertions.fail("Should have failed due to bad access token");
 
         } catch (Exception e) {
             assertExecutionException(e);
@@ -372,7 +375,7 @@ public class JaasClientConfigTest {
         oauthConfig.put(ClientConfig.OAUTH_CLIENT_ID, KAFKA_CLI);
         try {
             initJaas(oauthConfig);
-            Assert.fail("Should have failed due to bad access token");
+            Assertions.fail("Should have failed due to bad access token");
 
         } catch (Exception e) {
             assertExecutionException(e);
@@ -388,11 +391,12 @@ public class JaasClientConfigTest {
         createOAuthClient(testClient, testSecret);
 
         Map<String, String> oauthConfig = new HashMap<>();
-        oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, TOKEN_ENDPOINT_URI);
+        oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, getTokenEndpointUri());
         oauthConfig.put(ClientConfig.OAUTH_CLIENT_ID, testClient);
         oauthConfig.put(ClientConfig.OAUTH_CLIENT_SECRET, testSecret);
         oauthConfig.put(ClientConfig.OAUTH_SSL_TRUSTSTORE_LOCATION, "../docker/target/kafka/certs/ca-truststore.p12");
         oauthConfig.put(ClientConfig.OAUTH_SSL_TRUSTSTORE_PASSWORD, "changeit");
+        oauthConfig.put(ClientConfig.OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM, "");
         oauthConfig.put(ClientConfig.OAUTH_SASL_EXTENSION_PREFIX + "extoption", "optionvalue");
 
         LogLineReader logReader = new LogLineReader(Common.LOG_PATH);
@@ -416,7 +420,7 @@ public class JaasClientConfigTest {
         changeAuthServerMode("token", "mode_200");
         createOAuthClient(testClient, testSecret);
 
-        String accessToken = loginWithClientSecret(TOKEN_ENDPOINT_URI, testClient, testSecret, "../docker/target/kafka/certs/ca-truststore.p12", "changeit");
+        String accessToken = loginWithClientSecret(getTokenEndpointUri(), testClient, testSecret, "../docker/target/kafka/certs/ca-truststore.p12", "changeit");
 
         Path accessTokenFilePath = Paths.get("target/access_token_file");
         Files.write(accessTokenFilePath, accessToken.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
@@ -434,10 +438,10 @@ public class JaasClientConfigTest {
 
             List<String> lines = logReader.readNext();
             boolean found = checkLogForRegex(lines, "should only give access to owner");
-            Assert.assertTrue("should see access permissions issue warning in log", found);
+            Assertions.assertTrue(found, "should see access permissions issue warning in log");
 
             found = checkLogForRegex(lines, "access token will be ignored");
-            Assert.assertTrue("should see access token ignored message in log", found);
+            Assertions.assertTrue(found, "should see access token ignored message in log");
 
             Files.delete(accessTokenFilePath);
 
@@ -451,7 +455,7 @@ public class JaasClientConfigTest {
             lines = logReader.readNext();
             found = checkLogForRegex(lines, "should only give access to owner");
 
-            Assert.assertFalse("should NOT see access permissions issue warning in log", found);
+            Assertions.assertFalse(found, "should NOT see access permissions issue warning in log");
 
         } finally {
             Files.delete(accessTokenFilePath);
@@ -470,7 +474,7 @@ public class JaasClientConfigTest {
         createOAuthClient(pubClient, "");
         createOAuthUser(testUser, testPassword);
 
-        String refreshToken = loginWithUsernameForRefreshToken(TOKEN_ENDPOINT_URI, testUser, testPassword, pubClient, "../docker/target/kafka/certs/ca-truststore.p12", "changeit");
+        String refreshToken = loginWithUsernameForRefreshToken(getTokenEndpointUri(), testUser, testPassword, pubClient, "../docker/target/kafka/certs/ca-truststore.p12", "changeit");
 
         Path refreshTokenFilePath = Paths.get("target/refresh_token_file");
         Files.write(refreshTokenFilePath, refreshToken.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE_NEW);
@@ -482,11 +486,12 @@ public class JaasClientConfigTest {
             oauthConfig.put(ClientConfig.OAUTH_CLIENT_ID, pubClient);
             oauthConfig.put(ClientConfig.OAUTH_REFRESH_TOKEN, "token-should-be-ignored");
             oauthConfig.put(ClientConfig.OAUTH_REFRESH_TOKEN_LOCATION, refreshTokenFilePath.toString());
-            oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, TOKEN_ENDPOINT_URI);
+            oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, getTokenEndpointUri());
 
             String truststoreLocation = Common.getProjectRoot() + "/../docker/certificates/ca-truststore.p12";
             oauthConfig.put(ClientConfig.OAUTH_SSL_TRUSTSTORE_LOCATION, truststoreLocation);
             oauthConfig.put(ClientConfig.OAUTH_SSL_TRUSTSTORE_PASSWORD, "changeit");
+            oauthConfig.put(ClientConfig.OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM, "");
 
             // If it fails with 'Unknown signing key' it means that Kafka has not managed to load JWKS keys yet
             // due to jwks endpoint returning status 404 initially
@@ -494,10 +499,10 @@ public class JaasClientConfigTest {
 
             List<String> lines = logReader.readNext();
             boolean found = checkLogForRegex(lines, "should only give access to owner");
-            Assert.assertTrue("should see access permissions issue warning in log", found);
+            Assertions.assertTrue(found, "should see access permissions issue warning in log");
 
             found = checkLogForRegex(lines, "refresh token will be ignored");
-            Assert.assertTrue("should see refresh token ignored message in log", found);
+            Assertions.assertTrue(found, "should see refresh token ignored message in log");
 
             Files.delete(refreshTokenFilePath);
 
@@ -511,7 +516,7 @@ public class JaasClientConfigTest {
             lines = logReader.readNext();
             found = checkLogForRegex(lines, "should only give access to owner");
 
-            Assert.assertFalse("should NOT see access permissions issue warning in log", found);
+            Assertions.assertFalse(found, "should NOT see access permissions issue warning in log");
 
         } finally {
             Files.delete(refreshTokenFilePath);
@@ -537,11 +542,12 @@ public class JaasClientConfigTest {
             oauthConfig.put(ClientConfig.OAUTH_CLIENT_ID, testClient);
             oauthConfig.put(ClientConfig.OAUTH_CLIENT_ASSERTION, "token-should-be-ignored");
             oauthConfig.put(ClientConfig.OAUTH_CLIENT_ASSERTION_LOCATION, clientAssertionFilePath.toString());
-            oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, TOKEN_ENDPOINT_URI);
+            oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, getTokenEndpointUri());
 
             String truststoreLocation = Common.getProjectRoot() + "/../docker/certificates/ca-truststore.p12";
             oauthConfig.put(ClientConfig.OAUTH_SSL_TRUSTSTORE_LOCATION, truststoreLocation);
             oauthConfig.put(ClientConfig.OAUTH_SSL_TRUSTSTORE_PASSWORD, "changeit");
+            oauthConfig.put(ClientConfig.OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM, "");
 
             // If it fails with 'Unknown signing key' it means that Kafka has not managed to load JWKS keys yet
             // due to jwks endpoint returning status 404 initially
@@ -549,10 +555,10 @@ public class JaasClientConfigTest {
 
             List<String> lines = logReader.readNext();
             boolean found = checkLogForRegex(lines, "should only give access to owner");
-            Assert.assertTrue("should see access permissions issue warning in log", found);
+            Assertions.assertTrue(found, "should see access permissions issue warning in log");
 
             found = checkLogForRegex(lines, "client assertion will be ignored");
-            Assert.assertTrue("should see client assertion ignored message in log", found);
+            Assertions.assertTrue(found, "should see client assertion ignored message in log");
 
             Files.delete(clientAssertionFilePath);
 
@@ -566,7 +572,7 @@ public class JaasClientConfigTest {
             lines = logReader.readNext();
             found = checkLogForRegex(lines, "should only give access to owner");
 
-            Assert.assertFalse("should NOT see access permissions issue warning in log", found);
+            Assertions.assertFalse(found, "should NOT see access permissions issue warning in log");
 
         } finally {
             Files.delete(clientAssertionFilePath);
@@ -582,18 +588,19 @@ public class JaasClientConfigTest {
         createOAuthClient(testClient, testSecret);
 
         Map<String, String> oauthConfig = new HashMap<>();
-        oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, TOKEN_ENDPOINT_URI);
+        oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, getTokenEndpointUri());
         oauthConfig.put(ClientConfig.OAUTH_CLIENT_ID, testClient);
         oauthConfig.put(ClientConfig.OAUTH_CLIENT_SECRET, testSecret);
         oauthConfig.put(ClientConfig.OAUTH_SSL_TRUSTSTORE_LOCATION, "../docker/target/kafka/certs/ca-truststore.p12");
         oauthConfig.put(ClientConfig.OAUTH_SSL_TRUSTSTORE_PASSWORD, "changeit");
+        oauthConfig.put(ClientConfig.OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM, "");
 
         // Confirm fails with invalid grant type
         oauthConfig.put(ClientConfig.OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE, "dummy-grant-type");
 
         try {
             initJaasWithRetry(oauthConfig);
-            Assert.fail("Should have failed");
+            Assertions.fail("Should have failed");
 
         } catch (KafkaException e) {
             assertLoginException(e);
@@ -608,7 +615,7 @@ public class JaasClientConfigTest {
         initJaasWithRetry(oauthConfig);
         List<String> lines = logReader.readNext();
         boolean found = checkLogForRegex(lines, "Login succeeded");
-        Assert.assertTrue("Login succeeded", found);
+        Assertions.assertTrue(found, "Login succeeded");
 
     }
 
@@ -645,29 +652,29 @@ public class JaasClientConfigTest {
 
     private void assertExecutionException(Throwable e) {
         Throwable cause = e.getCause();
-        Assert.assertEquals("is a ExecutionException", ExecutionException.class, e.getClass());
+        Assertions.assertEquals(ExecutionException.class, e.getClass(), "is a ExecutionException");
 
-        Assert.assertTrue("Failed to parse token error", cause.getMessage().contains("Failed to parse JWT"));
+        Assertions.assertTrue(cause.getMessage().contains("Failed to parse JWT"), "Failed to parse token error");
     }
 
     private void assertConfigException(Throwable e, String message) {
         Throwable cause = e.getCause();
-        Assert.assertEquals("is a KafkaException", KafkaException.class, e.getClass());
+        Assertions.assertEquals(KafkaException.class, e.getClass(), "is a KafkaException");
 
         Throwable nestedCause = getRootCause(cause);
-        Assert.assertNotNull("nestedCause not null", nestedCause);
-        Assert.assertEquals("is a ConfigException", ConfigException.class, nestedCause.getClass());
+        Assertions.assertNotNull(nestedCause, "nestedCause not null");
+        Assertions.assertEquals(ConfigException.class, nestedCause.getClass(), "is a ConfigException");
 
         String msg = nestedCause.getMessage();
-        Assert.assertTrue("Contains '" + message + "'", msg != null && msg.contains(message));
+        Assertions.assertTrue(msg != null && msg.contains(message), "Contains '" + message + "'");
     }
 
     private void assertLoginException(Throwable e) {
         Throwable cause = e.getCause();
-        Assert.assertEquals("is a KafkaException", KafkaException.class, e.getClass());
+        Assertions.assertEquals(KafkaException.class, e.getClass(), "is a KafkaException");
 
         Throwable nestedCause = getRootCause(cause);
-        Assert.assertEquals("is a LoginException", LoginException.class, nestedCause == null ? null : nestedCause.getClass());
+        Assertions.assertEquals(LoginException.class, nestedCause == null ? null : nestedCause.getClass(), "is a LoginException");
     }
 
     private void initJaas(Map<String, String> oauthConfig) throws Exception {

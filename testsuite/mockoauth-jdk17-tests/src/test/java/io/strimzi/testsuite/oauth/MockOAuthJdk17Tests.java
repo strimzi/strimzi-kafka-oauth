@@ -4,52 +4,46 @@
  */
 package io.strimzi.testsuite.oauth;
 
-import io.strimzi.testsuite.oauth.common.TestContainersLogCollector;
-import io.strimzi.testsuite.oauth.common.TestContainersWatcher;
+import io.strimzi.testsuite.oauth.common.OAuthTestLogCollector;
 import io.strimzi.testsuite.oauth.mockoauth.jdk17.KeycloakAuthorizerTest;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestRule;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.wait.strategy.Wait;
 
 import java.io.File;
 import java.io.IOException;
-import java.time.Duration;
 
 /**
  * Some tests rely on <code>resources/simplelogger.properties</code> to be configured to log to the file <code>target/test.log</code>.
  * <p>
  * Log output is analyzed in the test to make sure the behaviour is as expected.
  */
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class MockOAuthJdk17Tests {
 
-    @ClassRule
-    public static TestContainersWatcher environment =
-            initWatcher();
+    private MockOAuthJdk17TestEnvironment env;
 
-    private static TestContainersWatcher initWatcher() {
-        TestContainersWatcher watcher = new TestContainersWatcher(new File("docker-compose.yml"));
-        watcher.withServices("mockoauth", "kafka");
-        watcher.waitingFor("mockoauth", Wait.forLogMessage(".*Succeeded in deploying verticle.*", 1)
-                        .withStartupTimeout(Duration.ofSeconds(180)))
-                .waitingFor("kafka", Wait.forLogMessage(".*started \\(kafka.server.KafkaRaftServer\\).*", 1)
-                        .withStartupTimeout(Duration.ofSeconds(300)));
-
-        return watcher;
-    }
-
-    @Rule
-    public TestRule logCollector = new TestContainersLogCollector(environment);
+    @RegisterExtension
+    OAuthTestLogCollector logCollector = new OAuthTestLogCollector(() -> env != null ? env.getContainers() : null);
 
     private static final Logger log = LoggerFactory.getLogger(MockOAuthJdk17Tests.class);
 
-    @BeforeClass
-    public static void staticInit() throws IOException {
+    @BeforeAll
+    void setUp() throws IOException {
+        env = new MockOAuthJdk17TestEnvironment();
+        env.start();
         KeycloakAuthorizerTest.staticInit();
+    }
+
+    @AfterAll
+    void tearDown() {
+        if (env != null) {
+            env.stop();
+        }
     }
 
     @Test

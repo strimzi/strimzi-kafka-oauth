@@ -6,8 +6,8 @@ package io.strimzi.kafka.oauth.jsonpath;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.strimzi.kafka.oauth.common.JSONUtil;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -30,7 +30,7 @@ public class GroupsExtractionTest {
         List<String> groups;
         for (int i = 0; i < queryGroupsDelim.length; i++) {
             groups = getGroupsFromJWT(queryGroupsDelim[i], getJsonStringWithGroups(queryGroupsDelim[++i]), queryGroupsDelim[++i]);
-            Assert.assertEquals("Expected [\"group1\", \"group2\"]", Arrays.asList("group1", "group2"), groups);
+            Assertions.assertEquals(Arrays.asList("group1", "group2"), groups, "Expected [\"group1\", \"group2\"]");
         }
     }
 

@@ -9,7 +9,7 @@ import io.strimzi.kafka.oauth.client.ClientConfig;
 import io.strimzi.testsuite.oauth.common.TestMetrics;
 import org.apache.kafka.common.errors.AuthenticationException;
 import org.apache.kafka.common.errors.AuthorizationException;
-import org.junit.Assert;
+import org.testcontainers.containers.GenericContainer;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -25,18 +25,22 @@ import static io.strimzi.testsuite.oauth.authz.Common.buildProducerConfigPlain;
 import static io.strimzi.testsuite.oauth.authz.Common.produceToTopic;
 import static io.strimzi.testsuite.oauth.common.TestMetrics.getPrometheusMetrics;
 import static io.strimzi.testsuite.oauth.common.TestUtil.getContainerLogsForString;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 @SuppressFBWarnings("THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION")
 public class MultiSaslTest {
 
-    private static final String PLAIN_LISTENER = "kafka:9100";
+    private static final String PLAIN_LISTENER = "localhost:9100";
 
-    private static final String JWT_LISTENER = "kafka:9092";
-    private static final String JWTPLAIN_LISTENER = "kafka:9094";
+    private static final String JWT_LISTENER = "localhost:9092";
+    private static final String JWTPLAIN_LISTENER = "localhost:9094";
 
-    private final String kafkaContainer;
+    private final GenericContainer<?> kafkaContainer;
 
-    public MultiSaslTest(String kafkaContainer) {
+    public MultiSaslTest(GenericContainer<?> kafkaContainer) {
         this.kafkaContainer = kafkaContainer;
     }
 
@@ -58,9 +62,9 @@ public class MultiSaslTest {
 
         try {
             produceToTopic("KeycloakAuthorizationTest-multiSaslTest-plain-denied", producerProps);
-            Assert.fail("Should have failed");
+            fail("Should have failed");
         } catch (ExecutionException e) {
-            Assert.assertTrue("Instance of authorization exception", e.getCause() instanceof AuthorizationException);
+            assertInstanceOf(AuthorizationException.class, e.getCause(), "Instance of authorization exception");
         }
 
         // alice:alice-password
@@ -72,16 +76,16 @@ public class MultiSaslTest {
         producerProps = producerConfigPlain(PLAIN_LISTENER, username, password);
         try {
             produceToTopic("KeycloakAuthorizationTest-multiSaslTest-plain", producerProps);
-            Assert.fail("Should have failed");
+            fail("Should have failed");
         } catch (ExecutionException e) {
-            Assert.assertTrue("Instance of authentication exception", e.getCause() instanceof AuthenticationException);
+            assertInstanceOf(AuthenticationException.class, e.getCause(), "Instance of authentication exception");
         }
 
         int fetchGrantsCount = currentFetchGrantsLogCount();
 
         // Producing to JWT listener using SASL/OAUTHBEARER using access token should succeed
         String accessToken = Common.loginWithUsernamePassword(
-                URI.create("http://keycloak:8080/realms/kafka-authz/protocol/openid-connect/token"),
+                URI.create("http://localhost:8080/realms/kafka-authz/protocol/openid-connect/token"),
                 username, password, "kafka-cli");
         producerProps = producerConfigOAuthBearerAccessToken(JWT_LISTENER, accessToken);
         produceToTopic("KeycloakAuthorizationTest-multiSaslTest-oauthbearer", producerProps);
@@ -107,41 +111,41 @@ public class MultiSaslTest {
 
     private void checkGrantsFetchCountDiff(int previousFetchGrantsCount) {
         int current = currentFetchGrantsLogCount();
-        Assert.assertEquals("Expected one grants fetch", 1, current - previousFetchGrantsCount);
+        assertEquals(1, current - previousFetchGrantsCount, "Expected one grants fetch");
     }
 
     private static void checkGrantsMetrics(String authHostPort, String tokenPath) throws IOException {
-        TestMetrics metrics = getPrometheusMetrics(URI.create("http://kafka:9404/metrics"));
+        TestMetrics metrics = getPrometheusMetrics(URI.create("http://localhost:9404/metrics"));
         BigDecimal value = metrics.getStartsWithValueSum("strimzi_oauth_http_requests_count", "kind", "keycloak-authorization", "host", authHostPort, "path", tokenPath, "outcome", "success");
-        Assert.assertTrue("strimzi_oauth_http_requests_count for keycloak-authorization > 0", value.intValue() > 0);
+        assertTrue(value.intValue() > 0, "strimzi_oauth_http_requests_count for keycloak-authorization > 0");
 
         value = metrics.getStartsWithValueSum("strimzi_oauth_http_requests_totaltimems", "kind", "keycloak-authorization", "host", authHostPort, "path", tokenPath, "outcome", "success");
-        Assert.assertTrue("strimzi_oauth_http_requests_totaltimems for keycloak-authorization > 0", value.doubleValue() > 0.0);
+        assertTrue(value.doubleValue() > 0.0, "strimzi_oauth_http_requests_totaltimems for keycloak-authorization > 0");
 
         // There are 403 responses in Zookeeper mode, but not in KRaft mode
         // Apparently the inter-broker session to JWT listener is not attempted in KRaft mode
 
         //value = metrics.getValueSum("strimzi_oauth_http_requests_count", "kind", "keycloak-authorization", "host", authHostPort, "path", tokenPath, "outcome", "error", "status", "403");
-        //Assert.assertTrue("strimzi_oauth_http_requests_count with no-grants for keycloak-authorization > 0", value.intValue() > 0);
+        //assertTrue(value.intValue() > 0, "strimzi_oauth_http_requests_count with no-grants for keycloak-authorization > 0");
 
         //value = metrics.getValueSum("strimzi_oauth_http_requests_totaltimems", "kind", "keycloak-authorization", "host", authHostPort, "path", tokenPath, "outcome", "error", "status", "403");
-        //Assert.assertTrue("strimzi_oauth_http_requests_totaltimems with no-grants for keycloak-authorization > 0", value.doubleValue() > 0.0);
+        //assertTrue(value.doubleValue() > 0.0, "strimzi_oauth_http_requests_totaltimems with no-grants for keycloak-authorization > 0");
     }
 
     private static void checkAuthorizationRequestsMetrics(String authHostPort, String tokenPath) throws IOException {
-        TestMetrics metrics = getPrometheusMetrics(URI.create("http://kafka:9404/metrics"));
+        TestMetrics metrics = getPrometheusMetrics(URI.create("http://localhost:9404/metrics"));
 
         BigDecimal value = metrics.getStartsWithValueSum("strimzi_oauth_authorization_requests_count", "kind", "keycloak-authorization", "host", authHostPort, "path", tokenPath, "outcome", "success");
-        Assert.assertTrue("strimzi_oauth_authorization_requests_count for successful keycloak-authorization > 0", value.intValue() > 0);
+        assertTrue(value.intValue() > 0, "strimzi_oauth_authorization_requests_count for successful keycloak-authorization > 0");
 
         value = metrics.getStartsWithValueSum("strimzi_oauth_authorization_requests_totaltimems", "kind", "keycloak-authorization", "host", authHostPort, "path", tokenPath, "outcome", "success");
-        Assert.assertTrue("strimzi_oauth_authorization_requests_totaltimems for successful keycloak-authorization > 0", value.doubleValue() > 0.0);
+        assertTrue(value.doubleValue() > 0.0, "strimzi_oauth_authorization_requests_totaltimems for successful keycloak-authorization > 0");
 
         value = metrics.getStartsWithValueSum("strimzi_oauth_authorization_requests_count", "kind", "keycloak-authorization", "host", authHostPort, "path", tokenPath, "outcome", "error");
-        Assert.assertEquals("strimzi_oauth_authorization_requests_count for failed keycloak-authorization == 0", 0, value.intValue());
+        assertEquals(0, value.intValue(), "strimzi_oauth_authorization_requests_count for failed keycloak-authorization == 0");
 
         value = metrics.getStartsWithValueSum("strimzi_oauth_authorization_requests_totaltimems", "kind", "keycloak-authorization", "host", authHostPort, "path", tokenPath, "outcome", "error");
-        Assert.assertEquals("strimzi_oauth_authorization_requests_totaltimems for failed keycloak-authorization == 0", 0.0, value.doubleValue(), 0.0);
+        assertEquals(0.0, value.doubleValue(), "strimzi_oauth_authorization_requests_totaltimems for failed keycloak-authorization == 0");
     }
 
     private static Properties producerConfigPlain(String kafkaBootstrap, String username, String password) {

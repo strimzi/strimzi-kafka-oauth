@@ -12,7 +12,7 @@ import io.strimzi.kafka.oauth.common.TimeUtil;
 import io.strimzi.kafka.oauth.common.TokenInfo;
 import io.strimzi.testsuite.oauth.common.LogLineReader;
 import io.strimzi.testsuite.oauth.common.TestUtil;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 
 import java.io.IOException;
 import java.io.InterruptedIOException;
@@ -26,9 +26,19 @@ public class Common {
 
     public static final String LOG_PATH = "target/test.log";
 
+    public static String getMockOAuthAuthHostPort() {
+        return System.getProperty("mockoauth.host", "localhost") + ":" +
+                System.getProperty("mockoauth.port", "8090");
+    }
+
+    public static String getMockOAuthAdminHostPort() {
+        return System.getProperty("mockoauth.host", "localhost") + ":" +
+                System.getProperty("mockoauth.admin.port", "8091");
+    }
+
     public static void changeAuthServerMode(String resource, String mode) throws IOException {
-        String result = HttpUtil.post(URI.create("http://mockoauth:8091/admin/" + resource + "?mode=" + mode), null, "text/plain", "", String.class);
-        Assert.assertEquals("admin server response should be ", mode.toUpperCase(Locale.ROOT), result);
+        String result = HttpUtil.post(URI.create("http://" + getMockOAuthAdminHostPort() + "/admin/" + resource + "?mode=" + mode), null, "text/plain", "", String.class);
+        Assertions.assertEquals(mode.toUpperCase(Locale.ROOT), result, "admin server response should be ");
         if ("server".equals(resource)) {
             try {
                 // This is to work around a race condition when switching server mode
@@ -40,28 +50,28 @@ public class Common {
     }
 
     public static void createOAuthClient(String clientId, String secret) throws IOException {
-        HttpUtil.post(URI.create("http://mockoauth:8091/admin/clients"),
+        HttpUtil.post(URI.create("http://" + getMockOAuthAdminHostPort() + "/admin/clients"),
                 null,
                 "application/json",
                 "{\"clientId\": \"" + clientId + "\", \"secret\": \"" + secret + "\"}", String.class);
     }
 
     public static void createOAuthUser(String username, String password) throws IOException {
-        HttpUtil.post(URI.create("http://mockoauth:8091/admin/users"),
+        HttpUtil.post(URI.create("http://" + getMockOAuthAdminHostPort() + "/admin/users"),
                 null,
                 "application/json",
                 "{\"username\": \"" + username + "\", \"password\": \"" + password + "\"}", String.class);
     }
 
     public static void createOAuthUser(String username, String password, long expiresInSeconds) throws IOException {
-        HttpUtil.post(URI.create("http://mockoauth:8091/admin/users"),
+        HttpUtil.post(URI.create("http://" + getMockOAuthAdminHostPort() + "/admin/users"),
                 null,
                 "application/json",
                 "{\"username\": \"" + username + "\", \"password\": \"" + password + "\", \"expires_in\": " + expiresInSeconds + "}", String.class);
     }
 
     public static void addGrantsForToken(String token, String grants) throws IOException {
-        HttpUtil.post(URI.create("http://mockoauth:8091/admin/grants_map"),
+        HttpUtil.post(URI.create("http://" + getMockOAuthAdminHostPort() + "/admin/grants_map"),
                 null,
                 "application/json",
                 "{\"token\": \"" + token + "\", \"grants\": " + grants + "}", String.class);
@@ -74,7 +84,7 @@ public class Common {
         List<String> lines = logReader.readNext();
 
         for (int i = 0; i < args.length; i += 2) {
-            Assert.assertEquals(args[i] + " =~ " + args[i + 1], 1, TestUtil.countLogForRegex(lines, args[i] + ":.*" + args[i + 1]));
+            Assertions.assertEquals(1, TestUtil.countLogForRegex(lines, args[i] + ":.*" + args[i + 1]), args[i] + " =~ " + args[i + 1]);
         }
     }
 

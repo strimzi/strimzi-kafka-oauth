@@ -6,17 +6,19 @@ package io.strimzi.testsuite.oauth.authz;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.strimzi.testsuite.oauth.common.ContainerLogLineReader;
-import org.junit.Assert;
+import org.testcontainers.containers.GenericContainer;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 @SuppressFBWarnings("THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION")
 public class SingletonTest {
 
-    private final String kafkaContainer;
+    private final GenericContainer<?> kafkaContainer;
 
-    public SingletonTest(String kafkaContainer) {
+    public SingletonTest(GenericContainer<?> kafkaContainer) {
         this.kafkaContainer = kafkaContainer;
     }
 
@@ -33,7 +35,7 @@ public class SingletonTest {
         List<String> keycloakAuthorizerLines = lines.stream().filter(line -> line.contains("Configured KeycloakAuthorizer@")).collect(Collectors.toList());
         List<String> keycloakRBACAuthorizerLines = lines.stream().filter(line -> line.contains("Configured KeycloakRBACAuthorizer@")).collect(Collectors.toList());
 
-        Assert.assertEquals("Configured KeycloakAuthorizer", keycloakAuthorizersCount, keycloakAuthorizerLines.size());
-        Assert.assertEquals("Configured KeycloakRBACAuthorizer", 1, keycloakRBACAuthorizerLines.size());
+        assertEquals(keycloakAuthorizersCount, keycloakAuthorizerLines.size(), "Configured KeycloakAuthorizer");
+        assertEquals(1, keycloakRBACAuthorizerLines.size(), "Configured KeycloakRBACAuthorizer");
     }
 }

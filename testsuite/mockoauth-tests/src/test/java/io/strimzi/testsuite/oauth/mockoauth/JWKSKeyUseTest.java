@@ -12,7 +12,7 @@ import io.strimzi.kafka.oauth.common.TokenIntrospection;
 import io.strimzi.kafka.oauth.services.Services;
 import io.strimzi.kafka.oauth.validator.JWTSignatureValidator;
 import io.strimzi.kafka.oauth.validator.TokenValidationException;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,9 +45,9 @@ public class JWKSKeyUseTest {
 
         // Now get a new token
         TokenInfo tokenInfo = OAuthAuthenticator.loginWithClientSecret(
-                URI.create("https://mockoauth:8090/token"),
+                URI.create("https://" + Common.getMockOAuthAuthHostPort() + "/token"),
                 sslFactory,
-                null,
+                SSLUtil.createAnyHostHostnameVerifier(),
                 testClient,
                 testSecret,
                 true,
@@ -61,7 +61,7 @@ public class JWKSKeyUseTest {
         // It should fail
         try {
             validator.validate(tokenInfo.token());
-            Assert.fail("Token validation should fail");
+            Assertions.fail("Token validation should fail");
 
         } catch (TokenValidationException ignored) {
         }
@@ -79,9 +79,9 @@ public class JWKSKeyUseTest {
                 null,
                 null,
                 null,
-                "https://mockoauth:8090/jwks",
+                "https://" + Common.getMockOAuthAuthHostPort() + "/jwks",
                 sslFactory,
-                null,
+                SSLUtil.createAnyHostHostnameVerifier(),
                 new PrincipalExtractor(),
                 null,
                 null,

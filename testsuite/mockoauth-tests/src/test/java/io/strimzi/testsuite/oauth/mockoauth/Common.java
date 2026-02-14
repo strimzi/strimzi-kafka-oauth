@@ -15,7 +15,7 @@ import io.strimzi.testsuite.oauth.common.TestUtil;
 import io.strimzi.testsuite.oauth.mockoauth.metrics.Metrics;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -37,6 +37,16 @@ public class Common {
 
     static final String WWW_FORM_CONTENT_TYPE = "application/x-www-form-urlencoded";
     public static final String LOG_PATH = "target/test.log";
+
+    public static String getMockOAuthAuthHostPort() {
+        return System.getProperty("mockoauth.host", "localhost") + ":" +
+                System.getProperty("mockoauth.port", "8090");
+    }
+
+    public static String getMockOAuthAdminHostPort() {
+        return System.getProperty("mockoauth.host", "localhost") + ":" +
+                System.getProperty("mockoauth.admin.port", "8091");
+    }
 
     static String getJaasConfigOptionsString(Map<String, String> options) {
         StringBuilder sb = new StringBuilder();
@@ -105,7 +115,7 @@ public class Common {
         TokenInfo tokenInfo = OAuthAuthenticator.loginWithClientSecret(
                 URI.create(tokenEndpoint),
                 SSLUtil.createSSLFactory(truststorePath, null, truststorePass, null, null),
-                null,
+                SSLUtil.createAnyHostHostnameVerifier(),
                 clientId,
                 secret,
                 true,
@@ -148,7 +158,7 @@ public class Common {
         }
         JsonNode result = HttpUtil.post(URI.create(tokenEndpoint),
                 SSLUtil.createSSLFactory(truststorePath, null, truststorePass, null, null),
-                null,
+                SSLUtil.createAnyHostHostnameVerifier(),
                 authorization,
                 WWW_FORM_CONTENT_TYPE,
                 body.toString(),
@@ -165,7 +175,7 @@ public class Common {
 
         JsonNode result = HttpUtil.post(URI.create(tokenEndpointUri),
                 SSLUtil.createSSLFactory(truststorePath, null, truststorePass, null, null),
-                null,
+                SSLUtil.createAnyHostHostnameVerifier(),
                 null,
                 WWW_FORM_CONTENT_TYPE,
                 "grant_type=password&username=" + username + "&password=" + password + "&client_id=" + clientId,
@@ -239,8 +249,8 @@ public class Common {
     }
 
     public static void changeAuthServerMode(String resource, String mode) throws IOException {
-        String result = HttpUtil.post(URI.create("http://mockoauth:8091/admin/" + resource + "?mode=" + mode), null, "text/plain", "", String.class);
-        Assert.assertEquals("admin server response should be ", mode.toUpperCase(Locale.ROOT), result);
+        String result = HttpUtil.post(URI.create("http://" + getMockOAuthAdminHostPort() + "/admin/" + resource + "?mode=" + mode), null, "text/plain", "", String.class);
+        Assertions.assertEquals(mode.toUpperCase(Locale.ROOT), result, "admin server response should be ");
         if ("server".equals(resource)) {
             try {
                 // This is to work around a race condition when switching server mode
@@ -252,42 +262,42 @@ public class Common {
     }
 
     public static void createOAuthClient(String clientId, String secret) throws IOException {
-        HttpUtil.post(URI.create("http://mockoauth:8091/admin/clients"),
+        HttpUtil.post(URI.create("http://" + getMockOAuthAdminHostPort() + "/admin/clients"),
                 null,
                 "application/json",
                 "{\"clientId\": \"" + clientId + "\", \"secret\": \"" + secret + "\"}", String.class);
     }
 
     public static void createOAuthClientWithAssertion(String clientId, String clientAssertion) throws IOException {
-        HttpUtil.post(URI.create("http://mockoauth:8091/admin/clients"),
+        HttpUtil.post(URI.create("http://" + getMockOAuthAdminHostPort() + "/admin/clients"),
                 null,
                 "application/json",
                 "{\"clientId\": \"" + clientId + "\", \"clientAssertion\": \"" + clientAssertion + "\"}", String.class);
     }
 
     public static void createOAuthUser(String username, String password) throws IOException {
-        HttpUtil.post(URI.create("http://mockoauth:8091/admin/users"),
+        HttpUtil.post(URI.create("http://" + getMockOAuthAdminHostPort() + "/admin/users"),
                 null,
                 "application/json",
                 "{\"username\": \"" + username + "\", \"password\": \"" + password + "\"}", String.class);
     }
 
     public static void createOAuthUser(String username, String password, long expiresInSeconds) throws IOException {
-        HttpUtil.post(URI.create("http://mockoauth:8091/admin/users"),
+        HttpUtil.post(URI.create("http://" + getMockOAuthAdminHostPort() + "/admin/users"),
                 null,
                 "application/json",
                 "{\"username\": \"" + username + "\", \"password\": \"" + password + "\", \"expires_in\": " + expiresInSeconds + "}", String.class);
     }
 
     public static void revokeToken(String token) throws IOException {
-        HttpUtil.post(URI.create("http://mockoauth:8091/admin/revocations"),
+        HttpUtil.post(URI.create("http://" + getMockOAuthAdminHostPort() + "/admin/revocations"),
                 null,
                 "application/json",
                 "{\"token\": \"" + token + "\"}", String.class);
     }
 
     public static Metrics reloadMetrics() throws IOException {
-        return getPrometheusMetrics(URI.create("http://kafka:9404/metrics"));
+        return getPrometheusMetrics(URI.create("http://localhost:9404/metrics"));
     }
 
     public static String getProjectRoot() {
@@ -308,7 +318,7 @@ public class Common {
         List<String> lines = logReader.readNext();
 
         for (int i = 0; i < args.length; i += 2) {
-            Assert.assertEquals(args[i] + " =~ " + args[i + 1], 1, TestUtil.countLogForRegex(lines, args[i] + ":.*" + args[i + 1]));
+            Assertions.assertEquals(1, TestUtil.countLogForRegex(lines, args[i] + ":.*" + args[i + 1]), args[i] + " =~ " + args[i + 1]);
         }
     }
 }

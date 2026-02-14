@@ -15,10 +15,11 @@ import io.strimzi.kafka.oauth.common.PrincipalExtractor;
 import io.strimzi.kafka.oauth.common.SSLUtil;
 import io.strimzi.kafka.oauth.common.TokenInfo;
 import io.strimzi.kafka.oauth.common.TokenIntrospection;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSocketFactory;
 import java.net.URI;
 import java.text.ParseException;
@@ -56,14 +57,15 @@ public class PasswordAuthAndPrincipalExtractionTest {
         String projectRoot = Common.getProjectRoot();
         SSLSocketFactory sslFactory = SSLUtil.createSSLFactory(
                 projectRoot + "/../docker/certificates/ca-truststore.p12", null, "changeit", null, null);
+        HostnameVerifier hostnameVerifier = SSLUtil.createAnyHostHostnameVerifier();
 
         PrincipalExtractor principalExtractor = new PrincipalExtractor("username", "pref_", "clientId", "pref_service-account-");
 
         // authenticate user against token endpoint with the correct password
         TokenInfo tokenInfo = OAuthAuthenticator.loginWithPassword(
-                URI.create("https://mockoauth:8090/token"),
+                URI.create("https://" + Common.getMockOAuthAuthHostPort() + "/token"),
                 sslFactory,
-                null,
+                hostnameVerifier,
                 user1,
                 user1Pass,
                 client1,
@@ -75,55 +77,55 @@ public class PasswordAuthAndPrincipalExtractionTest {
                 true);
 
         String token = tokenInfo.token();
-        Assert.assertNotNull(token);
+        Assertions.assertNotNull(token);
 
         TokenIntrospection.debugLogJWT(log, token);
 
         String principal = principalExtractor.getPrincipal(JSONUtil.readJSON(getAccessTokenPayload(token), JsonNode.class));
-        Assert.assertEquals("Principal should be: 'pref_" + user1 + "'", "pref_" + user1, principal);
+        Assertions.assertEquals("pref_" + user1, principal, "Principal should be: 'pref_" + user1 + "'");
 
 
         ObjectNode json;
 
         // introspect the token using the introspection endpoint
-        json = HttpUtil.post(URI.create("https://mockoauth:8090/introspect"), sslFactory, null,
+        json = HttpUtil.post(URI.create("https://" + Common.getMockOAuthAuthHostPort() + "/introspect"), sslFactory, hostnameVerifier,
                 "Basic " + OAuthAuthenticator.base64encode(clientSrv + ':' + clientSrvSecret), WWW_FORM_CONTENT_TYPE, "token=" + token, ObjectNode.class);
 
         log.info("Got introspection endpoint response: " + json);
-        Assert.assertTrue("Token active", json.get("active").asBoolean());
-        Assert.assertEquals("Introspection endpoint response contains `username`", user1, json.get("username") != null ? json.get("username").asText() : null);
-        Assert.assertEquals("Introspection endpoint response contains `client_id`", client1, json.get("client_id") != null ? json.get("client_id").asText() : null);
+        Assertions.assertTrue(json.get("active").asBoolean(), "Token active");
+        Assertions.assertEquals(user1, json.get("username") != null ? json.get("username").asText() : null, "Introspection endpoint response contains `username`");
+        Assertions.assertEquals(client1, json.get("client_id") != null ? json.get("client_id").asText() : null, "Introspection endpoint response contains `client_id`");
 
         // revoke the token
         revokeToken(token);
 
         // introspect the token again
-        json = HttpUtil.post(URI.create("https://mockoauth:8090/introspect"), sslFactory, null,
+        json = HttpUtil.post(URI.create("https://" + Common.getMockOAuthAuthHostPort() + "/introspect"), sslFactory, hostnameVerifier,
                 "Basic " + OAuthAuthenticator.base64encode(clientSrv + ':' + clientSrvSecret), WWW_FORM_CONTENT_TYPE, "token=" + token, ObjectNode.class);
 
         log.info("Got introspection endpoint response: " + json);
-        Assert.assertFalse("Token not active", json.get("active").asBoolean());
+        Assertions.assertFalse(json.get("active").asBoolean(), "Token not active");
 
         // introspect an invalid token
-        json = HttpUtil.post(URI.create("https://mockoauth:8090/introspect"), sslFactory, null,
+        json = HttpUtil.post(URI.create("https://" + Common.getMockOAuthAuthHostPort() + "/introspect"), sslFactory, hostnameVerifier,
                 "Basic " + OAuthAuthenticator.base64encode(clientSrv + ':' + clientSrvSecret), WWW_FORM_CONTENT_TYPE, "token=invalidtoken", ObjectNode.class);
 
         log.info("Got introspection endpoint response: " + json);
-        Assert.assertFalse("Token not active", json.get("active").asBoolean());
+        Assertions.assertFalse(json.get("active").asBoolean(), "Token not active");
 
         // introspect the token using the introspection endpoint with a bad secret
         try {
-            HttpUtil.post(URI.create("https://mockoauth:8090/introspect"), sslFactory, null,
+            HttpUtil.post(URI.create("https://" + Common.getMockOAuthAuthHostPort() + "/introspect"), sslFactory, hostnameVerifier,
                     "Basic " + OAuthAuthenticator.base64encode(clientSrv + ":bad"), WWW_FORM_CONTENT_TYPE, "token=" + token, ObjectNode.class);
 
-            Assert.fail("Should have failed with 401");
+            Assertions.fail("Should have failed with 401");
         } catch (HttpException e) {
-            Assert.assertEquals("Expected status 401", 401, e.getStatus());
+            Assertions.assertEquals(401, e.getStatus(), "Expected status 401");
         }
 
         // Use client_credentials to authenticate
         tokenInfo = OAuthAuthenticator.loginWithClientSecret(
-                URI.create("https://mockoauth:8090/token"),
+                URI.create("https://" + Common.getMockOAuthAuthHostPort() + "/token"),
                 sslFactory,
                 null,
                 client1,
@@ -134,21 +136,21 @@ public class PasswordAuthAndPrincipalExtractionTest {
                 true);
 
         token = tokenInfo.token();
-        Assert.assertNotNull(token);
+        Assertions.assertNotNull(token);
 
         TokenIntrospection.debugLogJWT(log, token);
 
         principal = principalExtractor.getPrincipal(JSONUtil.readJSON(getAccessTokenPayload(token), JsonNode.class));
-        Assert.assertEquals("Principal should be: 'pref_service-account-" + client1 + "'", "pref_service-account-" + client1, principal);
+        Assertions.assertEquals("pref_service-account-" + client1, principal, "Principal should be: 'pref_service-account-" + client1 + "'");
 
         // introspect the token using the introspection endpoint
-        json = HttpUtil.post(URI.create("https://mockoauth:8090/introspect"), sslFactory, null,
+        json = HttpUtil.post(URI.create("https://" + Common.getMockOAuthAuthHostPort() + "/introspect"), sslFactory, hostnameVerifier,
                 "Basic " + OAuthAuthenticator.base64encode(clientSrv + ':' + clientSrvSecret), WWW_FORM_CONTENT_TYPE, "token=" + token, ObjectNode.class);
 
         log.info("Got introspection endpoint response: " + json);
-        Assert.assertTrue("Token active", json.get("active").asBoolean());
-        Assert.assertEquals("Introspection endpoint response contains `client_id`", client1, json.get("client_id") != null ? json.get("client_id").asText() : null);
-        Assert.assertNull("Introspection endpoint response does not contain `username`", json.get("username"));
+        Assertions.assertTrue(json.get("active").asBoolean(), "Token active");
+        Assertions.assertEquals(client1, json.get("client_id") != null ? json.get("client_id").asText() : null, "Introspection endpoint response contains `client_id`");
+        Assertions.assertNull(json.get("username"), "Introspection endpoint response does not contain `username`");
     }
 
     private String getAccessTokenPayload(String token) throws ParseException {

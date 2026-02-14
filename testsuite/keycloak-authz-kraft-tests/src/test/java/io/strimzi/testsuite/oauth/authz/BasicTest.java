@@ -12,20 +12,22 @@ import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
-import org.junit.Assert;
+import org.testcontainers.containers.GenericContainer;
 
 import java.util.List;
 import java.util.Properties;
 
 import static java.util.Collections.singletonList;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
 @SuppressFBWarnings("THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION")
 public class BasicTest extends Common {
 
-    private final String kafkaContainer;
+    protected final GenericContainer<?> kafkaContainer;
 
-    public BasicTest(String kafkaContainer, String kafkaBootstrap, boolean oauthOverPlain) {
+    public BasicTest(GenericContainer<?> kafkaContainer, String kafkaBootstrap, boolean oauthOverPlain) {
         super(kafkaBootstrap, oauthOverPlain);
         this.kafkaContainer = kafkaContainer;
     }
@@ -279,13 +281,13 @@ public class BasicTest extends Common {
 
         // check kafka log
         List<String> lines = TestUtil.getContainerLogsForString(kafkaContainer, "Saving non-null grants for user: zero");
-        Assert.assertEquals("Saved non-null grants", 1, lines.size());
+        assertEquals(1, lines.size(), "Saved non-null grants");
 
         lines = TestUtil.getContainerLogsForString(kafkaContainer, "Got grants for 'OAuthKafkaPrincipal(User:zero,");
-        Assert.assertTrue("Grants for user are: {}", lines.size() > 0);
+        assertTrue(lines.size() > 0, "Grants for user are: {}");
 
         for (String line: lines) {
-            Assert.assertTrue("Grants for user are: {}", line.contains(": {}"));
+            assertTrue(line.contains(": {}"), "Grants for user are: {}");
         }
     }
 }

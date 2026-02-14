@@ -11,10 +11,11 @@ import io.strimzi.kafka.oauth.common.OAuthAuthenticator;
 import io.strimzi.kafka.oauth.common.SSLUtil;
 import io.strimzi.kafka.oauth.common.TokenInfo;
 import io.strimzi.kafka.oauth.common.TokenIntrospection;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSocketFactory;
 import java.net.URI;
 
@@ -46,13 +47,14 @@ public class ClientAssertionAuthTest {
         String projectRoot = Common.getProjectRoot();
         SSLSocketFactory sslFactory = SSLUtil.createSSLFactory(
                 projectRoot + "/../docker/certificates/ca-truststore.p12", null, "changeit", null, null);
+        HostnameVerifier hostnameVerifier = SSLUtil.createAnyHostHostnameVerifier();
 
         try {
             // Use client_credentials to authenticate with wrong client_assertion
             TokenInfo tokenInfo = OAuthAuthenticator.loginWithClientAssertion(
-                    URI.create("https://mockoauth:8090/token"),
+                    URI.create("https://" + Common.getMockOAuthAuthHostPort() + "/token"),
                     sslFactory,
-                    null,
+                    hostnameVerifier,
                     client2,
                     "bad-client-assertion",
                     "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
@@ -61,18 +63,18 @@ public class ClientAssertionAuthTest {
                     null,
                     null);
 
-            Assert.fail("Should have failed with 401");
+            Assertions.fail("Should have failed with 401");
         } catch (Exception e) {
             Throwable cause = e.getCause();
-            Assert.assertTrue("Cause is HttpException", cause instanceof HttpException);
-            Assert.assertEquals("Expected status 401", 401, ((HttpException) cause).getStatus());
+            Assertions.assertTrue(cause instanceof HttpException, "Cause is HttpException");
+            Assertions.assertEquals(401, ((HttpException) cause).getStatus(), "Expected status 401");
         }
 
         // Use client_credentials to authenticate with correct client_assertion
         TokenInfo tokenInfo = OAuthAuthenticator.loginWithClientAssertion(
-                URI.create("https://mockoauth:8090/token"),
+                URI.create("https://" + Common.getMockOAuthAuthHostPort() + "/token"),
                 sslFactory,
-                null,
+                hostnameVerifier,
                 client2,
                 client2Assertion,
                 "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
@@ -82,17 +84,17 @@ public class ClientAssertionAuthTest {
                 null);
 
         String token = tokenInfo.token();
-        Assert.assertNotNull(token);
+        Assertions.assertNotNull(token);
 
         TokenIntrospection.debugLogJWT(log, token);
 
         // introspect the token using the introspection endpoint
-        ObjectNode json = HttpUtil.post(URI.create("https://mockoauth:8090/introspect"), sslFactory, null,
+        ObjectNode json = HttpUtil.post(URI.create("https://" + Common.getMockOAuthAuthHostPort() + "/introspect"), sslFactory, null,
                 "Basic " + OAuthAuthenticator.base64encode(clientSrv + ':' + clientSrvSecret), WWW_FORM_CONTENT_TYPE, "token=" + token, ObjectNode.class);
 
         log.info("Got introspection endpoint response: " + json);
-        Assert.assertTrue("Token active", json.get("active").asBoolean());
-        Assert.assertEquals("Introspection endpoint response contains `client_id`", client2, json.get("client_id") != null ? json.get("client_id").asText() : null);
-        Assert.assertNull("Introspection endpoint response does not contain `username`", json.get("username"));
+        Assertions.assertTrue(json.get("active").asBoolean(), "Token active");
+        Assertions.assertEquals(client2, json.get("client_id") != null ? json.get("client_id").asText() : null, "Introspection endpoint response contains `client_id`");
+        Assertions.assertNull(json.get("username"), "Introspection endpoint response does not contain `username`");
     }
 }

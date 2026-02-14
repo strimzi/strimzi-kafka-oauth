@@ -10,7 +10,8 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.errors.SaslAuthenticationException;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
+import org.testcontainers.containers.GenericContainer;
 
 import java.util.HashMap;
 import java.util.List;
@@ -35,9 +36,9 @@ public class RetriesTests {
     static final int JWKS_REFRESH_PERIOD_MILLIS = 10_000;
 
 
-    private final String kafkaContainer;
+    private final GenericContainer<?> kafkaContainer;
 
-    public RetriesTests(String kafkaContainer) {
+    public RetriesTests(GenericContainer<?> kafkaContainer) {
         this.kafkaContainer = kafkaContainer;
     }
 
@@ -58,7 +59,7 @@ public class RetriesTests {
 
         // Use FAILINGINTROSPECT kafka listener that uses /failing_introspect, /failing_userinfo,
         // and /failing_token, and supports OAuth over PLAIN
-        final String kafkaBootstrap = "kafka:9097";
+        final String kafkaBootstrap = "localhost:9097";
 
         String testClient = "testclient";
         String testSecret = "testsecret";
@@ -85,15 +86,15 @@ public class RetriesTests {
 
             // check that at least 9 seconds have passed - 3 for token retry, 3 for introspect retry, and 3 for userinfo retry
             // due to retry pause configured on the listener for 9097 (FAILINGINTROSPECT)
-            Assert.assertTrue("It should take at least 9 seconds to complete", System.currentTimeMillis() - start > 3 * PAUSE_MILLIS);
+            Assertions.assertTrue(System.currentTimeMillis() - start > 3 * PAUSE_MILLIS, "It should take at least 9 seconds to complete");
         }
     }
 
     private void testClientRetries() throws Exception {
         System.out.println("    ====    Check that Kafka client connecting to token endpoint uses http.retries config");
 
-        final String kafkaBootstrap = "kafka:9096";
-        final String hostPort = "mockoauth:8090";
+        final String kafkaBootstrap = "localhost:9096";
+        final String hostPort = Common.getMockOAuthAuthHostPort();
 
         final String tokenEndpointUri = "https://" + hostPort + "/failing_token";
 
@@ -111,6 +112,7 @@ public class RetriesTests {
         oauthConfig.put(ClientConfig.OAUTH_CLIENT_SECRET, testSecret);
         oauthConfig.put(ClientConfig.OAUTH_SSL_TRUSTSTORE_LOCATION, "../docker/target/kafka/certs/ca-truststore.p12");
         oauthConfig.put(ClientConfig.OAUTH_SSL_TRUSTSTORE_PASSWORD, "changeit");
+        oauthConfig.put(ClientConfig.OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM, "");
 
         Properties producerProps = buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
 
@@ -118,13 +120,13 @@ public class RetriesTests {
         try {
             new KafkaProducer<>(producerProps);
 
-            Assert.fail("Should fail with KafkaException");
+            Assertions.fail("Should fail with KafkaException");
         } catch (Exception e) {
             // token endpoint is tried and fails
             // get the exception
 
-            Assert.assertTrue("is instanceof KafkaException", e instanceof KafkaException);
-            Assert.assertTrue("Failed due to LoginException", getRootCause(e).toString().contains("LoginException"));
+            Assertions.assertTrue(e instanceof KafkaException, "is instanceof KafkaException");
+            Assertions.assertTrue(getRootCause(e).toString().contains("LoginException"), "Failed due to LoginException");
         }
 
         // repeat, it should succeed
@@ -143,7 +145,7 @@ public class RetriesTests {
 
         // token endpoint is tried and fails
         // should automatically retry and succeed
-        Assert.assertTrue("It should take at least 3 seconds to get a token", System.currentTimeMillis() - start > PAUSE_MILLIS);
+        Assertions.assertTrue(System.currentTimeMillis() - start > PAUSE_MILLIS, "It should take at least 3 seconds to get a token");
         p.close();
     }
 
@@ -151,7 +153,7 @@ public class RetriesTests {
         System.out.println("    ====    Check that broker connecting to token endpoint on PLAIN with configured JWKS endpoint uses http.retries config");
 
         // Use FAILINGJWT kafka listener that uses /failing_token, and supports OAuth over PLAIN
-        final String kafkaBootstrap = "kafka:9098";
+        final String kafkaBootstrap = "localhost:9098";
 
         String testClient = "testclient";
         String testSecret = "testsecret";
@@ -176,11 +178,11 @@ public class RetriesTests {
                 Thread.sleep(1000);
             }
 
-            List<String> log = getContainerLogsForString(kafkaContainer, "Response body");
-            matchedCount = log.stream().filter(s -> s.contains("https://mockoauth:8090/jwks")).count();
+            List<String> log = getContainerLogsForString(kafkaContainer, "JWKS keys change detected");
+            matchedCount = log.size();
         }
 
-        Assert.assertTrue("Detected JWKS keys refresh success within 10 seconds?", matchedCount > 0);
+        Assertions.assertTrue(matchedCount > 0, "Detected JWKS keys refresh success within 10 seconds?");
 
         // set failing_token endpoint to always return 500, so that the retry will fail
         changeAuthServerMode("failing_token", "mode_failing_500");
@@ -194,17 +196,17 @@ public class RetriesTests {
             start = System.currentTimeMillis();
             try {
                 producer.send(new ProducerRecord<>(topic, "The Message")).get();
-                Assert.fail("Should have failed due to failing_token set to always return 500");
+                Assertions.fail("Should have failed due to failing_token set to always return 500");
             } catch (ExecutionException e) {
                 // fails
                 if (!(e.getCause() instanceof SaslAuthenticationException)) {
-                    Assert.fail("Should have failed with AuthenticationException but was " + e.getCause());
+                    Assertions.fail("Should have failed with AuthenticationException but was " + e.getCause());
                 }
             }
 
             long diff = System.currentTimeMillis() - start;
             // check that at least 3 seconds have passed - due to token retry
-            Assert.assertTrue("It should take at least 3 seconds to fail (" + diff + ")", diff > PAUSE_MILLIS);
+            Assertions.assertTrue(diff > PAUSE_MILLIS, "It should take at least 3 seconds to fail (" + diff + ")");
 
 
             // configure failing_token endpoint so that they only fail every other time
@@ -215,7 +217,7 @@ public class RetriesTests {
 
             diff = System.currentTimeMillis() - start;
             // check that at least 3 seconds have passed - due to token retry
-            Assert.assertTrue("It should take at least 3 seconds due to token retry (" + diff + ")", diff > PAUSE_MILLIS);
+            Assertions.assertTrue(diff > PAUSE_MILLIS, "It should take at least 3 seconds due to token retry (" + diff + ")");
         }
     }
 
@@ -223,8 +225,8 @@ public class RetriesTests {
         System.out.println("    ====    Check that broker connecting to introspection and userinfo endpoints on OAUTHBEARER uses http.retries config");
 
         // use kafka listener that uses /failing_introspect and failing_userinfo
-        final String kafkaBootstrap = "kafka:9097";
-        final String hostPort = "mockoauth:8090";
+        final String kafkaBootstrap = "localhost:9097";
+        final String hostPort = Common.getMockOAuthAuthHostPort();
         final String tokenEndpointUri = "https://" + hostPort + "/token";
 
         String testClient = "testclient";
@@ -252,16 +254,16 @@ public class RetriesTests {
             long start = System.currentTimeMillis();
             try {
                 producer.send(new ProducerRecord<>(topic, "The Message")).get();
-                Assert.fail("Should have failed due to failing_introspect set to always return 500");
+                Assertions.fail("Should have failed due to failing_introspect set to always return 500");
             } catch (ExecutionException e) {
                 // fails
                 if (!(e.getCause() instanceof SaslAuthenticationException)) {
-                    Assert.fail("Should have failed with AuthenticationException but was " + e.getCause());
+                    Assertions.fail("Should have failed with AuthenticationException but was " + e.getCause());
                 }
             }
 
             // check that at least 3 seconds have passed - the retry pause configured on the listener for 9097 (FAILINGINTROSPECT)
-            Assert.assertTrue("It should take at least 3 seconds to fail", System.currentTimeMillis() - start > PAUSE_MILLIS);
+            Assertions.assertTrue(System.currentTimeMillis() - start > PAUSE_MILLIS, "It should take at least 3 seconds to fail");
 
 
             // set failing_introspect to mode_400, so it will fail but will be immediately retried and will succeed
@@ -274,16 +276,16 @@ public class RetriesTests {
             start = System.currentTimeMillis();
             try {
                 producer.send(new ProducerRecord<>(topic, "The Message")).get();
-                Assert.fail("Should have failed due to failing_introspect set to always return 500");
+                Assertions.fail("Should have failed due to failing_introspect set to always return 500");
             } catch (ExecutionException e) {
                 // fails
                 if (!(e.getCause() instanceof SaslAuthenticationException)) {
-                    Assert.fail("Should have failed with AuthenticationException but was " + e.getCause());
+                    Assertions.fail("Should have failed with AuthenticationException but was " + e.getCause());
                 }
             }
 
             // check that at least 6 seconds have passed due to two retries - the retry pause configured on the listener for 9097 (FAILINGINTROSPECT)
-            Assert.assertTrue("It should take at least 6 seconds to fail", System.currentTimeMillis() - start > 2 * PAUSE_MILLIS);
+            Assertions.assertTrue(System.currentTimeMillis() - start > 2 * PAUSE_MILLIS, "It should take at least 6 seconds to fail");
 
 
             // set failing_userinfo to mode_500 so that both failing_introspect and failing_userinfo can recover
@@ -294,7 +296,7 @@ public class RetriesTests {
             producer.send(new ProducerRecord<>(topic, "The Message")).get();
 
             // check that at least 6 seconds have passed due to two retries - the retry pause configured on the listener for 9097 (FAILINGINTROSPECT)
-            Assert.assertTrue("It should take at least 6 seconds for double recovery", System.currentTimeMillis() - start > 2 * PAUSE_MILLIS);
+            Assertions.assertTrue(System.currentTimeMillis() - start > 2 * PAUSE_MILLIS, "It should take at least 6 seconds for double recovery");
         }
     }
 }

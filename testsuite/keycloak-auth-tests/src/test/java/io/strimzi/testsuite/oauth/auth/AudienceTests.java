@@ -10,7 +10,7 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.errors.AuthenticationException;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,8 +33,8 @@ public class AudienceTests {
     static void clientCredentialsWithJwtAudience() throws Exception {
         System.out.println("    ====    KeycloakAuthenticationTest :: clientCredentialsWithJwtAudienceTest");
 
-        final String kafkaBootstrap = "kafka:9094";
-        final String hostPort = "keycloak:8080";
+        final String kafkaBootstrap = "localhost:9094";
+        final String hostPort = "localhost:8080";
         final String realm = "kafka-authz";
 
         final String tokenEndpointUri = "http://" + hostPort + "/realms/" + realm + "/protocol/openid-connect/token";
@@ -52,7 +52,7 @@ public class AudienceTests {
 
         RecordMetadata result = producer.send(new ProducerRecord<>(topic, "message")).get();
 
-        Assert.assertTrue("Has offset", result.hasOffset());
+        Assertions.assertTrue(result.hasOffset(), "Has offset");
         producer.close();
 
         log.debug("Produced The Message");
@@ -65,20 +65,20 @@ public class AudienceTests {
         producer = new KafkaProducer<>(producerProps);
         try {
             producer.send(new ProducerRecord<>(topic, "message2")).get();
-            Assert.fail();
+            Assertions.fail();
 
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
-            Assert.assertTrue("instanceOf AuthenticationException", cause instanceof AuthenticationException);
-            Assert.assertTrue("'audience not available' error mesage", cause.toString().contains("audience not available"));
+            Assertions.assertTrue(cause instanceof AuthenticationException, "instanceOf AuthenticationException");
+            Assertions.assertTrue(cause.toString().contains("audience not available"), "'audience not available' error mesage");
         }
     }
 
     static void clientCredentialsWithIntrospectionAudienceTest() throws Exception {
         System.out.println("    ====    KeycloakAuthenticationTest :: clientCredentialsWithIntrospectionAudienceTest");
 
-        final String kafkaBootstrap = "kafka:9095";
-        final String hostPort = "keycloak:8080";
+        final String kafkaBootstrap = "localhost:9095";
+        final String hostPort = "localhost:8080";
         final String realm = "kafka-authz";
 
         final String tokenEndpointUri = "http://" + hostPort + "/realms/" + realm + "/protocol/openid-connect/token";
@@ -96,7 +96,7 @@ public class AudienceTests {
 
         RecordMetadata result = producer.send(new ProducerRecord<>(topic, "message")).get();
 
-        Assert.assertTrue("Has offset", result.hasOffset());
+        Assertions.assertTrue(result.hasOffset(), "Has offset");
         producer.close();
 
         log.debug("Produced The Message");
@@ -109,12 +109,12 @@ public class AudienceTests {
         producer = new KafkaProducer<>(producerProps);
         try {
             producer.send(new ProducerRecord<>(topic, "message2")).get();
-            Assert.fail();
+            Assertions.fail();
 
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
-            Assert.assertTrue("instanceOf AuthenticationException", cause instanceof AuthenticationException);
-            Assert.assertTrue("'Invalid audience' error message", cause.toString().contains("Invalid audience"));
+            Assertions.assertTrue(cause instanceof AuthenticationException, "instanceOf AuthenticationException");
+            Assertions.assertTrue(cause.toString().contains("Invalid audience"), "'Invalid audience' error message");
         }
     }
 }

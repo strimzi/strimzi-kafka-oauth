@@ -5,8 +5,8 @@
 package io.strimzi.kafka.oauth.validator;
 
 import io.strimzi.kafka.oauth.services.CurrentTime;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,7 +43,7 @@ public class BackOffTaskSchedulerTest {
         dumpExecutorLog(executor);
 
         // Test that exactly one task is scheduled, and scheduled immediately
-        Assert.assertEquals("Executor log should have 1 entry", 1, executor.invocationLog().size());
+        Assertions.assertEquals(1, executor.invocationLog().size(), "Executor log should have 1 entry");
 
         MockScheduledExecutorLog entry = executor.invocationLog().getFirst();
         assertLogEntry(entry, MockExecutorLogActionType.SCHEDULE, 0, TimeUnit.MILLISECONDS);
@@ -77,19 +77,19 @@ public class BackOffTaskSchedulerTest {
         dumpExecutorLog(executor);
 
         // Test that the failing task is re-scheduled with exponential backoff
-        Assert.assertEquals("Executor log should have 6 entries", 6, executor.invocationLog().size());
+        Assertions.assertEquals(6, executor.invocationLog().size(), "Executor log should have 6 entries");
 
         Iterator<MockScheduledExecutorLog> it = executor.invocationLog().iterator();
 
-        Assert.assertTrue("Has more entries", it.hasNext());
+        Assertions.assertTrue(it.hasNext(), "Has more entries");
         assertLogEntry(it.next(), MockExecutorLogActionType.SCHEDULE, 0, TimeUnit.MILLISECONDS);
 
         for (int i : Arrays.asList(5, 5, 8, 16, 32)) {
-            Assert.assertTrue("Has more entries", it.hasNext());
+            Assertions.assertTrue(it.hasNext(), "Has more entries");
             assertLogEntry(it.next(), MockExecutorLogActionType.SCHEDULE, 1000 * i, TimeUnit.MILLISECONDS);
         }
 
-        Assert.assertFalse("Has no more entries", it.hasNext());
+        Assertions.assertFalse(it.hasNext(), "Has no more entries");
     }
 
     @Test
@@ -116,19 +116,19 @@ public class BackOffTaskSchedulerTest {
         dumpExecutorLog(executor);
 
         // Test that the failing task is re-scheduled with exponential backoff until the delay reaches 240 seconds
-        Assert.assertEquals("Executor log should have 8 entries", 8, executor.invocationLog().size());
+        Assertions.assertEquals(8, executor.invocationLog().size(), "Executor log should have 8 entries");
 
         Iterator<MockScheduledExecutorLog> it = executor.invocationLog().iterator();
 
-        Assert.assertTrue("Has more entries", it.hasNext());
+        Assertions.assertTrue(it.hasNext(), "Has more entries");
         assertLogEntry(it.next(), MockExecutorLogActionType.SCHEDULE, 0, TimeUnit.MILLISECONDS);
 
         for (int i : Arrays.asList(5, 5, 8, 16, 32, 64, 128)) {
-            Assert.assertTrue("Has more entries", it.hasNext());
+            Assertions.assertTrue(it.hasNext(), "Has more entries");
             assertLogEntry(it.next(), MockExecutorLogActionType.SCHEDULE, 1000 * i, TimeUnit.MILLISECONDS);
         }
 
-        Assert.assertFalse("Has no more entries", it.hasNext());
+        Assertions.assertFalse(it.hasNext(), "Has no more entries");
     }
 
     @Test
@@ -206,11 +206,11 @@ public class BackOffTaskSchedulerTest {
 
         // Test that a task was scheduled 60 seconds into the future
         List<MockScheduledExecutorLog> elog = executor.log();
-        Assert.assertEquals("Has 1 entry", 1, elog.size());
+        Assertions.assertEquals(1, elog.size(), "Has 1 entry");
         assertLogEntry(elog.get(0), MockExecutorLogActionType.SCHEDULE_AT_FIXED_RATE, regularSeconds, TimeUnit.SECONDS);
 
         // Assert execution count of The Task (which is scheduled from The Trigger Task)
-        Assert.assertEquals("Execution count zero", 0, theTaskCounter.get());
+        Assertions.assertEquals(0, theTaskCounter.get(), "Execution count zero");
 
         testFirstExecution(timeProvider, executor, theTaskCounter, regularSeconds);
         testSecondExecution(timeProvider, executor, theTaskCounter, minPauseSeconds);
@@ -244,7 +244,7 @@ public class BackOffTaskSchedulerTest {
 
         // The second call to executor happens when The Trigger Task is triggered, which which schedules The Task for immediate execution
         // It must exist, otherwise the counter couldn't have been incremented
-        Assert.assertTrue("Has at least 2 entries :: " + elog, elog.size() >= 2);
+        Assertions.assertTrue(elog.size() >= 2, "Has at least 2 entries :: " + elog);
         assertLogEntry(elog.get(1), MockExecutorLogActionType.SCHEDULE, 0, TimeUnit.MILLISECONDS);
 
         // Possibly wait some more for the next Trigger Task to be scheduled
@@ -252,11 +252,11 @@ public class BackOffTaskSchedulerTest {
         // It does that after the Trigger Task successfully completes
         elog = waitForEntryCount(executor, 3);
 
-        Assert.assertTrue("Has at least 3 entries :: " + elog, elog.size() >= 3);
+        Assertions.assertTrue(elog.size() >= 3, "Has at least 3 entries :: " + elog);
         MockScheduledExecutorLog entry = elog.get(2);
-        Assert.assertEquals("Entry is of type " + MockExecutorLogActionType.SCHEDULE_AT_FIXED_RATE, MockExecutorLogActionType.SCHEDULE_AT_FIXED_RATE, entry.type);
-        Assert.assertTrue("DelayOrPeriod is less or equal " + regularSeconds, entry.delayOrPeriod <= regularSeconds);
-        Assert.assertEquals("DelayUnit is " + TimeUnit.SECONDS, TimeUnit.SECONDS, entry.delayUnit);
+        Assertions.assertEquals(MockExecutorLogActionType.SCHEDULE_AT_FIXED_RATE, entry.type, "Entry is of type " + MockExecutorLogActionType.SCHEDULE_AT_FIXED_RATE);
+        Assertions.assertTrue(entry.delayOrPeriod <= regularSeconds, "DelayOrPeriod is less or equal " + regularSeconds);
+        Assertions.assertEquals(TimeUnit.SECONDS, entry.delayUnit, "DelayUnit is " + TimeUnit.SECONDS);
     }
 
     private void testSecondExecution(MockCurrentTimeProvider timeProvider, MockTimeProviderBasedScheduledExecutorService executor, AtomicInteger theTaskCounter, int minPauseSeconds) {
@@ -267,7 +267,7 @@ public class BackOffTaskSchedulerTest {
         // which is why it gets automatically re-scheduled
         List<MockScheduledExecutorLog> elog = waitForEntryCount(executor, 4);
 
-        Assert.assertTrue("Has at least 4 entries :: " + elog, elog.size() >= 4);
+        Assertions.assertTrue(elog.size() >= 4, "Has at least 4 entries :: " + elog);
         assertLogEntry(elog.get(3), MockExecutorLogActionType.SCHEDULE, minPauseSeconds * 1000, TimeUnit.MILLISECONDS);
 
         // Wait for The Task to be executed the second time
@@ -292,7 +292,7 @@ public class BackOffTaskSchedulerTest {
 
         // Now the exponential back-off should reach time greater than 5 seconds, which means
         // it will now delay execution for 8 seconds
-        Assert.assertTrue("Has at least 6 entries :: " + elog, elog.size() >= 6);
+        Assertions.assertTrue(elog.size() >= 6, "Has at least 6 entries :: " + elog);
         assertLogEntry(elog.get(5), MockExecutorLogActionType.SCHEDULE, 8000, TimeUnit.MILLISECONDS);
 
         // With taskDuration = 4 we should after 3 executions be at around 22 seconds (plus 60 seconds initial offset)
@@ -312,7 +312,7 @@ public class BackOffTaskSchedulerTest {
         List<MockScheduledExecutorLog> elog = waitForEntryCount(executor, 7);
 
         // it will now delay execution for 16 seconds
-        Assert.assertTrue("Has at least 7 entries :: " + elog, elog.size() >= 7);
+        Assertions.assertTrue(elog.size() >= 7, "Has at least 7 entries :: " + elog);
         assertLogEntry(elog.get(6), MockExecutorLogActionType.SCHEDULE, 16000, TimeUnit.MILLISECONDS);
 
         // With taskDuration = 4 we should after 4 executions be at around 34 seconds (plus 60 seconds initial offset)
@@ -332,7 +332,7 @@ public class BackOffTaskSchedulerTest {
         List<MockScheduledExecutorLog> elog = waitForEntryCount(executor, 8);
 
         // it will now delay next execution for 32 seconds
-        Assert.assertTrue("Has at least 8 entries :: " + elog, elog.size() >= 8);
+        Assertions.assertTrue(elog.size() >= 8, "Has at least 8 entries :: " + elog);
         assertLogEntry(elog.get(7), MockExecutorLogActionType.SCHEDULE, 32000, TimeUnit.MILLISECONDS);
 
         // With taskDuration = 4 we should after 5 executions be at around 54 seconds (plus 60 seconds initial offset)
@@ -343,7 +343,7 @@ public class BackOffTaskSchedulerTest {
     private void testSecondTriggerTask(MockCurrentTimeProvider timeProvider, MockTimeProviderBasedScheduledExecutorService executor, AtomicInteger theTaskCounter, AtomicInteger regularTriggerCounter) {
         // The Trigger Task has thus far been executed once or twice - most likely some race condition somewhere in mock classes :O
         int scheduledCount = regularTriggerCounter.get();
-        Assert.assertTrue("Trigger Task has been executed once", scheduledCount >= 1 && scheduledCount <= 2);
+        Assertions.assertTrue(scheduledCount >= 1 && scheduledCount <= 2, "Trigger Task has been executed once");
 
         // Move 10 secs into the future which should trigger The Trigger Task.
         // There is a failing task still holding The Task lock, so trigger will not schedule The Task execution
@@ -353,14 +353,14 @@ public class BackOffTaskSchedulerTest {
         sleepASecond();
 
         // The Task Counter is unchanged
-        Assert.assertEquals("Task counter should be unchanged at 5", 5, theTaskCounter.get());
+        Assertions.assertEquals(5, theTaskCounter.get(), "Task counter should be unchanged at 5");
 
         // But The Trigger Counter should have increased
-        Assert.assertEquals("Trigger Task has been executed twice", 2, regularTriggerCounter.get());
+        Assertions.assertEquals(2, regularTriggerCounter.get(), "Trigger Task has been executed twice");
 
         List<MockScheduledExecutorLog> elog = waitForEntryCount(executor, 9);
-        Assert.assertEquals("Entry is of type " + MockExecutorLogActionType.SCHEDULE_AT_FIXED_RATE,
-                MockExecutorLogActionType.SCHEDULE_AT_FIXED_RATE, elog.get(8).type);
+        Assertions.assertEquals(MockExecutorLogActionType.SCHEDULE_AT_FIXED_RATE, elog.get(8).type,
+                "Entry is of type " + MockExecutorLogActionType.SCHEDULE_AT_FIXED_RATE);
 
         log.info("Current time (5 - trigger): " + CurrentTime.currentTime());
         dumpExecutorLog(executor);
@@ -380,7 +380,7 @@ public class BackOffTaskSchedulerTest {
         // But this time there should be no additional scheduling of The Task
         // because this time it overshoots the cutoff limit of 60 seconds (it would be 64 seconds pause)
         List<MockScheduledExecutorLog> elog = executor.log();
-        Assert.assertEquals("Still has 9 entries", 9, elog.size());
+        Assertions.assertEquals(9, elog.size(), "Still has 9 entries");
 
         // With taskDuration = 4 we should after 6 executions be at around 125 seconds (plus 60 seconds initial offset)
         // immediate 4s execution + 2 x (5s pause + 4s execution) + 8s pause + 4s execution + 16s pause + 4s + 32s pause + 4s
@@ -389,7 +389,7 @@ public class BackOffTaskSchedulerTest {
 
     private void testThirdTriggerTask(MockCurrentTimeProvider timeProvider, MockTimeProviderBasedScheduledExecutorService executor, AtomicInteger theTaskCounter, AtomicInteger regularTriggerCounter) {
         // The Trigger Task has thus far been executed once
-        Assert.assertEquals("Trigger Task has been executed twice", 2, regularTriggerCounter.get());
+        Assertions.assertEquals(2, regularTriggerCounter.get(), "Trigger Task has been executed twice");
 
         // Move 38 secs into the future which should trigger The Trigger Task again
         timeProvider.addSeconds(38);
@@ -401,7 +401,7 @@ public class BackOffTaskSchedulerTest {
         List<MockScheduledExecutorLog> elog = waitForEntryCount(executor, 11);
         assertLogEntry(elog.get(9), MockExecutorLogActionType.SCHEDULE, 0, TimeUnit.MILLISECONDS);
 
-        Assert.assertEquals("Entry is of type " + MockExecutorLogActionType.SCHEDULE_AT_FIXED_RATE, MockExecutorLogActionType.SCHEDULE_AT_FIXED_RATE, elog.get(10).type);
+        Assertions.assertEquals(MockExecutorLogActionType.SCHEDULE_AT_FIXED_RATE, elog.get(10).type, "Entry is of type " + MockExecutorLogActionType.SCHEDULE_AT_FIXED_RATE);
         dumpExecutorLog(executor);
     }
 
@@ -448,7 +448,7 @@ public class BackOffTaskSchedulerTest {
             }
         }
         if (counter.get() < expected) {
-            Assert.fail("Target count hasn't reached " + expected + " within 5 secs");
+            Assertions.fail("Target count hasn't reached " + expected + " within 5 secs");
         }
     }
 
@@ -461,7 +461,7 @@ public class BackOffTaskSchedulerTest {
             }
         }
         if (executor.log().size() < expectedSize) {
-            Assert.fail("Executor log hasn't reached size " + expectedSize + " within 5 secs");
+            Assertions.fail("Executor log hasn't reached size " + expectedSize + " within 5 secs");
         }
         return executor.log();
     }
@@ -484,16 +484,16 @@ public class BackOffTaskSchedulerTest {
             scheduler.scheduleTask();
         }
 
-        Assert.assertEquals("Executor log should have 1 entry", 1, executor.invocationLog().size());
+        Assertions.assertEquals(1, executor.invocationLog().size(), "Executor log should have 1 entry");
 
         MockScheduledExecutorLog entry = executor.invocationLog().getFirst();
         assertLogEntry(entry, MockExecutorLogActionType.SCHEDULE, 0, TimeUnit.MILLISECONDS);
     }
 
     private static void assertLogEntry(MockScheduledExecutorLog entry, MockExecutorLogActionType type, int delayOrPeriod, TimeUnit delayUnit) {
-        Assert.assertEquals("Entry is of type " + type, type, entry.type);
-        Assert.assertEquals("DelayOrPeriod is " + delayOrPeriod, delayOrPeriod, entry.delayOrPeriod);
-        Assert.assertEquals("DelayUnit is " + delayUnit, delayUnit, entry.delayUnit);
+        Assertions.assertEquals(type, entry.type, "Entry is of type " + type);
+        Assertions.assertEquals(delayOrPeriod, entry.delayOrPeriod, "DelayOrPeriod is " + delayOrPeriod);
+        Assertions.assertEquals(delayUnit, entry.delayUnit, "DelayUnit is " + delayUnit);
     }
 
     private static void printTitle(String message) {

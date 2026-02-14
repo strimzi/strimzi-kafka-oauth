@@ -15,9 +15,10 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testcontainers.containers.GenericContainer;
 
 import java.math.BigDecimal;
 import java.net.URI;
@@ -42,9 +43,12 @@ public class BasicTests {
 
     private static final Logger log = LoggerFactory.getLogger(BasicTests.class);
 
-    private final String kafkaContainer;
+    // Keycloak host as seen by the broker (used in Prometheus metrics labels)
+    private static final String BROKER_KEYCLOAK_HOST = "keycloak:8080";
 
-    BasicTests(String kafkaContainer) {
+    private final GenericContainer<?> kafkaContainer;
+
+    BasicTests(GenericContainer<?> kafkaContainer) {
         this.kafkaContainer = kafkaContainer;
     }
 
@@ -65,59 +69,58 @@ public class BasicTests {
         // Test that MetricReporter config works as expected
         // Get kafka log and make sure the TestMetricReporter was initialised exactly twice
         List<String> lines = getContainerLogsForString(kafkaContainer, "TestMetricsReporter no. ");
-        Assert.assertEquals("Kafka log should contain: \"TestMetricsReporter no. \" exactly once", 1, lines.size());
-        Assert.assertTrue("Contains \"TestMetricsReporter no. 1\"", lines.get(0).contains("TestMetricsReporter no. 1 "));
+        Assertions.assertEquals(1, lines.size(), "Kafka log should contain: \"TestMetricsReporter no. \" exactly once");
+        Assertions.assertTrue(lines.get(0).contains("TestMetricsReporter no. 1 "), "Contains \"TestMetricsReporter no. 1\"");
 
         // Ensure the configuration was applied as expected
         lines = getContainerLogsForString(kafkaContainer, "Creating Metrics:");
         String line = lines.get(1);
-        Assert.assertTrue("samples: 3", line.contains("samples: 3"));
-        Assert.assertTrue("recordingLevel: DEBUG", line.contains("recordingLevel: DEBUG"));
-        Assert.assertTrue("timeWindowMs: 15000", line.contains("timeWindowMs: 15000"));
+        Assertions.assertTrue(line.contains("samples: 3"), "samples: 3");
+        Assertions.assertTrue(line.contains("recordingLevel: DEBUG"), "recordingLevel: DEBUG");
+        Assertions.assertTrue(line.contains("timeWindowMs: 15000"), "timeWindowMs: 15000");
 
         line = lines.get(2);
-        Assert.assertTrue("test.label=testvalue", line.contains("test.label=testvalue"));
-        Assert.assertTrue("_namespace=strimzi.oauth", line.contains("_namespace=strimzi.oauth"));
-        Assert.assertTrue("kafka.node.id=1", line.contains("kafka.node.id=1"));
+        Assertions.assertTrue(line.contains("test.label=testvalue"), "test.label=testvalue");
+        Assertions.assertTrue(line.contains("_namespace=strimzi.oauth"), "_namespace=strimzi.oauth");
+        Assertions.assertTrue(line.contains("kafka.node.id=1"), "kafka.node.id=1");
 
         line = lines.get(3);
-        Assert.assertTrue("io.strimzi.testsuite.oauth.common.metrics.TestMetricsReporter", line.contains("io.strimzi.testsuite.oauth.common.metrics.TestMetricsReporter"));
-        Assert.assertTrue("org.apache.kafka.common.metrics.JmxReporter", line.contains("org.apache.kafka.common.metrics.JmxReporter"));
+        Assertions.assertTrue(line.contains("io.strimzi.testsuite.oauth.common.metrics.TestMetricsReporter"), "io.strimzi.testsuite.oauth.common.metrics.TestMetricsReporter");
+        Assertions.assertTrue(line.contains("org.apache.kafka.common.metrics.JmxReporter"), "org.apache.kafka.common.metrics.JmxReporter");
     }
 
     void oauthMetricsClientAuth() throws Exception {
 
         System.out.println("    ====    KeycloakAuthenticationTest :: oauthMetricsClientAuthTest");
 
-        final String authHostPort = "keycloak:8080";
         final String realm = "demo";
         final String tokenPath = "/realms/" + realm + "/protocol/openid-connect/token";
 
         // Inter-broker communication uses INTROSPECT listener
         // We use that listener to test client authentication metrics. There are 2 inter-broker client connections established.
-        TestMetrics metrics = getPrometheusMetrics(URI.create("http://kafka:9404/metrics"));
+        TestMetrics metrics = getPrometheusMetrics(URI.create("http://localhost:9404/metrics"));
 
         // Request for token from login callback handler
         BigDecimal value = metrics.getStartsWithValueSum("strimzi_oauth_authentication_requests_count", "context", "INTROSPECT", "kind", "client-auth", "outcome", "success");
-        Assert.assertEquals("strimzi_oauth_authentication_requests_count for client-auth == 2", 2, value.intValue());
+        Assertions.assertEquals(2, value.intValue(), "strimzi_oauth_authentication_requests_count for client-auth == 2");
 
         value = metrics.getStartsWithValueSum("strimzi_oauth_authentication_requests_totaltimems", "context", "INTROSPECT", "kind", "client-auth", "outcome", "success");
-        Assert.assertTrue("strimzi_oauth_authentication_requests_totaltimems for client-auth > 0.0", value.doubleValue() > 0.0);
+        Assertions.assertTrue(value.doubleValue() > 0.0, "strimzi_oauth_authentication_requests_totaltimems for client-auth > 0.0");
 
-        // Authentication to keycloak to exchange clientId + cesret for an access token during login callback handler call
-        value = metrics.getStartsWithValueSum("strimzi_oauth_http_requests_count", "context", "INTROSPECT", "kind", "client-auth", "host", authHostPort, "path", tokenPath, "outcome", "success");
-        Assert.assertEquals("strimzi_oauth_http_requests_count for client-auth == 2", 2, value.intValue());
+        // Authentication to keycloak to exchange clientId + secret for an access token during login callback handler call
+        value = metrics.getStartsWithValueSum("strimzi_oauth_http_requests_count", "context", "INTROSPECT", "kind", "client-auth", "host", BROKER_KEYCLOAK_HOST, "path", tokenPath, "outcome", "success");
+        Assertions.assertEquals(2, value.intValue(), "strimzi_oauth_http_requests_count for client-auth == 2");
 
-        value = metrics.getStartsWithValueSum("strimzi_oauth_http_requests_totaltimems", "context", "INTROSPECT", "kind", "client-auth", "host", authHostPort, "path", tokenPath, "outcome", "success");
-        Assert.assertTrue("strimzi_oauth_http_requests_totaltimems for client-auth > 0.0", value.doubleValue() > 0.0);
+        value = metrics.getStartsWithValueSum("strimzi_oauth_http_requests_totaltimems", "context", "INTROSPECT", "kind", "client-auth", "host", BROKER_KEYCLOAK_HOST, "path", tokenPath, "outcome", "success");
+        Assertions.assertTrue(value.doubleValue() > 0.0, "strimzi_oauth_http_requests_totaltimems for client-auth > 0.0");
     }
 
     void clientCredentialsWithJwtECDSAValidation() throws Exception {
 
         System.out.println("    ====    KeycloakAuthenticationTest :: clientCredentialsWithJwtECDSAValidationTest");
 
-        final String kafkaBootstrap = "kafka:9092";
-        final String authHostPort = "keycloak:8080";
+        final String kafkaBootstrap = "localhost:9092";
+        final String authHostPort = "localhost:8080";
         final String realm = "demo-ec";
         final String path = "/realms/" + realm + "/protocol/openid-connect/token";
 
@@ -152,25 +155,25 @@ public class BasicTests {
 
             ConsumerRecords<String, String> records = poll(consumer);
 
-            Assert.assertEquals("Got message", 1, records.count());
-            Assert.assertEquals("Is message text: 'The Message'", "The Message", records.iterator().next().value());
+            Assertions.assertEquals(1, records.count(), "Got message");
+            Assertions.assertEquals("The Message", records.iterator().next().value(), "Is message text: 'The Message'");
         }
 
         // Check metrics
 
-        TestMetrics metrics = getPrometheusMetrics(URI.create("http://kafka:9404/metrics"));
-        BigDecimal value = metrics.getStartsWithValueSum("strimzi_oauth_http_requests_count", "kind", "jwks", "host", authHostPort, "path", jwksPath, "outcome", "success");
-        Assert.assertTrue("strimzi_oauth_http_requests_count for jwks > 0", value.doubleValue() > 0.0);
+        TestMetrics metrics = getPrometheusMetrics(URI.create("http://localhost:9404/metrics"));
+        BigDecimal value = metrics.getStartsWithValueSum("strimzi_oauth_http_requests_count", "kind", "jwks", "host", BROKER_KEYCLOAK_HOST, "path", jwksPath, "outcome", "success");
+        Assertions.assertTrue(value.doubleValue() > 0.0, "strimzi_oauth_http_requests_count for jwks > 0");
 
-        value = metrics.getStartsWithValueSum("strimzi_oauth_http_requests_totaltimems", "kind", "jwks", "host", authHostPort, "path", jwksPath, "outcome", "success");
-        Assert.assertTrue("strimzi_oauth_http_requests_totaltimems for jwks > 0.0", value.doubleValue() > 0.0);
+        value = metrics.getStartsWithValueSum("strimzi_oauth_http_requests_totaltimems", "kind", "jwks", "host", BROKER_KEYCLOAK_HOST, "path", jwksPath, "outcome", "success");
+        Assertions.assertTrue(value.doubleValue() > 0.0, "strimzi_oauth_http_requests_totaltimems for jwks > 0.0");
 
         value = metrics.getStartsWithValueSum("strimzi_oauth_validation_requests_count", "context", "JWT", "kind", "jwks", "mechanism", "OAUTHBEARER", "outcome", "success");
         // There is no inter-broker connection on this listener, producer did 2 validations, and consumer also did 2 validations
-        Assert.assertTrue("strimzi_oauth_validation_requests_count for jwks >= 4", value != null && value.intValue() >= 4);
+        Assertions.assertTrue(value != null && value.intValue() >= 4, "strimzi_oauth_validation_requests_count for jwks >= 4");
 
         value = metrics.getStartsWithValueSum("strimzi_oauth_validation_requests_totaltimems", "context", "JWT", "kind", "jwks", "mechanism", "OAUTHBEARER", "outcome", "success");
-        Assert.assertTrue("strimzi_oauth_http_requests_totaltimems for jwks > 0.0", value.doubleValue() > 0.0);
+        Assertions.assertTrue(value.doubleValue() > 0.0, "strimzi_oauth_http_requests_totaltimems for jwks > 0.0");
     }
 
     /**
@@ -185,8 +188,8 @@ public class BasicTests {
 
         System.out.println("    ====    KeycloakAuthenticationTest :: clientCredentialsWithJwtRSAValidation");
 
-        final String kafkaBootstrap = "kafka:9096";
-        final String authHostPort = "keycloak:8080";
+        final String kafkaBootstrap = "localhost:9096";
+        final String authHostPort = "localhost:8080";
         final String realm = "kafka-authz";
         final String path = "/realms/" + realm + "/protocol/openid-connect/token";
 
@@ -221,27 +224,27 @@ public class BasicTests {
 
             ConsumerRecords<String, String> records = poll(consumer);
 
-            Assert.assertEquals("Got message", 1, records.count());
-            Assert.assertEquals("Is message text: 'The Message'", "The Message", records.iterator().next().value());
+            Assertions.assertEquals(1, records.count(), "Got message");
+            Assertions.assertEquals("The Message", records.iterator().next().value(), "Is message text: 'The Message'");
         }
 
         // Check metrics
 
-        TestMetrics metrics = getPrometheusMetrics(URI.create("http://kafka:9404/metrics"));
-        BigDecimal value = metrics.getStartsWithValueSum("strimzi_oauth_validation_requests_count", "context", "JWTPLAIN", "kind", "jwks", "host", authHostPort, "path", jwksPath, "mechanism", "OAUTHBEARER", "outcome", "success");
+        TestMetrics metrics = getPrometheusMetrics(URI.create("http://localhost:9404/metrics"));
+        BigDecimal value = metrics.getStartsWithValueSum("strimzi_oauth_validation_requests_count", "context", "JWTPLAIN", "kind", "jwks", "host", BROKER_KEYCLOAK_HOST, "path", jwksPath, "mechanism", "OAUTHBEARER", "outcome", "success");
 
         // There is no inter-broker connection on this listener, producer did 2 validations, and consumer also did 2
-        Assert.assertTrue("strimzi_oauth_validation_requests_count for jwks >= 4", value != null && value.intValue() >= 4);
+        Assertions.assertTrue(value != null && value.intValue() >= 4, "strimzi_oauth_validation_requests_count for jwks >= 4");
 
-        value = metrics.getStartsWithValueSum("strimzi_oauth_validation_requests_totaltimems", "context", "JWTPLAIN", "kind", "jwks", "host", authHostPort, "path", jwksPath, "mechanism", "OAUTHBEARER", "outcome", "success");
-        Assert.assertTrue("strimzi_oauth_validation_requests_totaltimems for jwks > 0.0", value.doubleValue() > 0.0);
+        value = metrics.getStartsWithValueSum("strimzi_oauth_validation_requests_totaltimems", "context", "JWTPLAIN", "kind", "jwks", "host", BROKER_KEYCLOAK_HOST, "path", jwksPath, "mechanism", "OAUTHBEARER", "outcome", "success");
+        Assertions.assertTrue(value.doubleValue() > 0.0, "strimzi_oauth_validation_requests_totaltimems for jwks > 0.0");
     }
 
     void accessTokenWithIntrospection() throws Exception {
         System.out.println("    ====    KeycloakAuthenticationTest :: accessTokenWithIntrospectionTest");
 
-        final String kafkaBootstrap = "kafka:9093";
-        final String authHostPort = "keycloak:8080";
+        final String kafkaBootstrap = "localhost:9093";
+        final String authHostPort = "localhost:8080";
         final String realm = "demo";
         final String path = "/realms/" + realm + "/protocol/openid-connect/token";
 
@@ -279,27 +282,27 @@ public class BasicTests {
 
             ConsumerRecords<String, String> records = poll(consumer);
 
-            Assert.assertEquals("Got message", 1, records.count());
-            Assert.assertEquals("Is message text: 'The Message'", "The Message", records.iterator().next().value());
+            Assertions.assertEquals(1, records.count(), "Got message");
+            Assertions.assertEquals("The Message", records.iterator().next().value(), "Is message text: 'The Message'");
         }
 
         // Check metrics
-        TestMetrics metrics = getPrometheusMetrics(URI.create("http://kafka:9404/metrics"));
+        TestMetrics metrics = getPrometheusMetrics(URI.create("http://localhost:9404/metrics"));
 
-        BigDecimal value = metrics.getStartsWithValueSum("strimzi_oauth_http_requests_count", "kind", "introspect", "host", authHostPort, "path", introspectPath, "outcome", "success");
+        BigDecimal value = metrics.getStartsWithValueSum("strimzi_oauth_http_requests_count", "kind", "introspect", "host", BROKER_KEYCLOAK_HOST, "path", introspectPath, "outcome", "success");
         // Inter-broker connection did some validation, producer and consumer did some
-        Assert.assertTrue("strimzi_oauth_http_requests_count for introspect >= 5", value != null && value.intValue() >= 5);
+        Assertions.assertTrue(value != null && value.intValue() >= 5, "strimzi_oauth_http_requests_count for introspect >= 5");
 
-        value = metrics.getStartsWithValueSum("strimzi_oauth_http_requests_totaltimems", "kind", "introspect", "host", authHostPort, "path", introspectPath, "outcome", "success");
-        Assert.assertTrue("strimzi_oauth_http_requests_totaltimems for introspect > 0.0", value.doubleValue() > 0.0);
+        value = metrics.getStartsWithValueSum("strimzi_oauth_http_requests_totaltimems", "kind", "introspect", "host", BROKER_KEYCLOAK_HOST, "path", introspectPath, "outcome", "success");
+        Assertions.assertTrue(value.doubleValue() > 0.0, "strimzi_oauth_http_requests_totaltimems for introspect > 0.0");
     }
 
     void refreshTokenWithIntrospection() throws Exception {
 
         System.out.println("    ====    KeycloakAuthenticationTest :: refreshTokenWithIntrospectionTest");
 
-        final String kafkaBootstrap = "kafka:9093";
-        final String authHostPort = "keycloak:8080";
+        final String kafkaBootstrap = "localhost:9093";
+        final String authHostPort = "localhost:8080";
         final String realm = "demo";
         final String path = "/realms/" + realm + "/protocol/openid-connect/token";
 
@@ -342,26 +345,26 @@ public class BasicTests {
 
             ConsumerRecords<String, String> records = poll(consumer);
 
-            Assert.assertEquals("Got message", 1, records.count());
-            Assert.assertEquals("Is message text: 'The Message'", "The Message", records.iterator().next().value());
+            Assertions.assertEquals(1, records.count(), "Got message");
+            Assertions.assertEquals("The Message", records.iterator().next().value(), "Is message text: 'The Message'");
         }
 
         // Check metrics
-        TestMetrics metrics = getPrometheusMetrics(URI.create("http://kafka:9404/metrics"));
-        BigDecimal value = metrics.getStartsWithValueSum("strimzi_oauth_http_requests_count", "kind", "introspect", "host", authHostPort, "path", introspectPath, "outcome", "success");
+        TestMetrics metrics = getPrometheusMetrics(URI.create("http://localhost:9404/metrics"));
+        BigDecimal value = metrics.getStartsWithValueSum("strimzi_oauth_http_requests_count", "kind", "introspect", "host", BROKER_KEYCLOAK_HOST, "path", introspectPath, "outcome", "success");
         // On top of the access token test, producer and consumer together did 4 requests
-        Assert.assertTrue("strimzi_oauth_http_requests_count for introspect >= 9", value != null && value.intValue() >= 9);
+        Assertions.assertTrue(value != null && value.intValue() >= 9, "strimzi_oauth_http_requests_count for introspect >= 9");
 
-        value = metrics.getStartsWithValueSum("strimzi_oauth_http_requests_totaltimems", "kind", "introspect", "host", authHostPort, "path", introspectPath, "outcome", "success");
-        Assert.assertTrue("strimzi_oauth_http_requests_totaltimems for introspect > 0.0", value.doubleValue() > 0.0);
+        value = metrics.getStartsWithValueSum("strimzi_oauth_http_requests_totaltimems", "kind", "introspect", "host", BROKER_KEYCLOAK_HOST, "path", introspectPath, "outcome", "success");
+        Assertions.assertTrue(value.doubleValue() > 0.0, "strimzi_oauth_http_requests_totaltimems for introspect > 0.0");
     }
 
     void passwordGrantWithJwtRSAValidation() throws Exception {
 
         System.out.println("    ====    KeycloakAuthenticationTest :: passwordGrantWithJwtRSAValidationTest");
 
-        final String kafkaBootstrap = "kafka:9096";
-        final String authHostPort = "keycloak:8080";
+        final String kafkaBootstrap = "localhost:9096";
+        final String authHostPort = "localhost:8080";
         final String realm = "kafka-authz";
         final String path = "/realms/" + realm + "/protocol/openid-connect/token";
 
@@ -394,8 +397,8 @@ public class BasicTests {
 
             ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(1));
 
-            Assert.assertEquals("Got message", 1, records.count());
-            Assert.assertEquals("Is message text: 'The Message'", "The Message", records.iterator().next().value());
+            Assertions.assertEquals(1, records.count(), "Got message");
+            Assertions.assertEquals("The Message", records.iterator().next().value(), "Is message text: 'The Message'");
         }
     }
 
@@ -403,8 +406,8 @@ public class BasicTests {
     void passwordGrantWithIntrospection() throws Exception {
         System.out.println("    ====    KeycloakAuthenticationTest :: passwordGrantWithIntrospectionTest");
 
-        final String kafkaBootstrap = "kafka:9093";
-        final String authHostPort = "keycloak:8080";
+        final String kafkaBootstrap = "localhost:9093";
+        final String authHostPort = "localhost:8080";
         final String realm = "demo";
         final String path = "/realms/" + realm + "/protocol/openid-connect/token";
 
@@ -420,7 +423,7 @@ public class BasicTests {
         TokenInfo tokenInfo = introspectAccessToken(accessToken,
                 new PrincipalExtractor("preferred_username"));
 
-        Assert.assertEquals("Token contains 'preferred_username' claim with value equal to username", username, tokenInfo.principal());
+        Assertions.assertEquals(username, tokenInfo.principal(), "Token contains 'preferred_username' claim with value equal to username");
 
 
         Map<String, String> oauthConfig = new HashMap<>();
@@ -449,7 +452,7 @@ public class BasicTests {
         tokenInfo = introspectAccessToken(accessToken,
                 new PrincipalExtractor("preferred_username"));
 
-        Assert.assertEquals("Token contains 'preferred_username' claim with value equal to username", username, tokenInfo.principal());
+        Assertions.assertEquals(username, tokenInfo.principal(), "Token contains 'preferred_username' claim with value equal to username");
 
         oauthConfig.put(ClientConfig.OAUTH_CLIENT_ID, confidentialClientId);
         oauthConfig.put(ClientConfig.OAUTH_CLIENT_SECRET, confidentialClientSecret);
@@ -466,8 +469,8 @@ public class BasicTests {
 
             ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(1));
 
-            Assert.assertEquals("Got message", 1, records.count());
-            Assert.assertEquals("Is message text: 'The Message'", "The Message", records.iterator().next().value());
+            Assertions.assertEquals(1, records.count(), "Got message");
+            Assertions.assertEquals("The Message", records.iterator().next().value(), "Is message text: 'The Message'");
         }
     }
 }

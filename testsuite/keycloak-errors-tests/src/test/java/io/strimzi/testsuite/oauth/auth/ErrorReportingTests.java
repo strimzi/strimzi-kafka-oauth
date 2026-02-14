@@ -11,7 +11,8 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.errors.SaslAuthenticationException;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
+import org.testcontainers.containers.GenericContainer;
 
 import java.net.URI;
 import java.util.HashMap;
@@ -29,9 +30,9 @@ import static io.strimzi.testsuite.oauth.common.TestUtil.getRootCause;
 
 public class ErrorReportingTests {
 
-    private final String kafkaContainer;
+    private final GenericContainer<?> kafkaContainer;
 
-    ErrorReportingTests(String kafkaContainer) {
+    ErrorReportingTests(GenericContainer<?> kafkaContainer) {
         this.kafkaContainer = kafkaContainer;
     }
 
@@ -51,15 +52,15 @@ public class ErrorReportingTests {
     }
 
     String getKafkaBootstrap(int port) {
-        return "kafka:" + port;
+        return "localhost:" + port;
     }
 
     void commonChecks(Throwable cause) {
-        Assert.assertEquals("Expected SaslAuthenticationException", SaslAuthenticationException.class, cause.getClass());
+        Assertions.assertEquals(SaslAuthenticationException.class, cause.getClass(), "Expected SaslAuthenticationException");
     }
 
     void checkErrId(String message) {
-        Assert.assertTrue("Error message is sanitised", message.substring(message.length() - 16).startsWith("ErrId:"));
+        Assertions.assertTrue(message.substring(message.length() - 16).startsWith("ErrId:"), "Error message is sanitised");
     }
 
     private void unparseableJwtToken() throws Exception {
@@ -80,7 +81,7 @@ public class ErrorReportingTests {
 
         try {
             producer.send(new ProducerRecord<>(topic, "The Message")).get();
-            Assert.fail("Should fail with ExecutionException");
+            Assertions.fail("Should fail with ExecutionException");
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
             commonChecks(cause);
@@ -90,7 +91,7 @@ public class ErrorReportingTests {
 
     void checkUnparseableJwtTokenErrorMessage(String message) {
         checkErrId(message);
-        Assert.assertTrue(message.contains("Failed to parse JWT"));
+        Assertions.assertTrue(message.contains("Failed to parse JWT"), message);
     }
 
     private void corruptTokenIntrospect() throws Exception {
@@ -111,7 +112,7 @@ public class ErrorReportingTests {
 
         try {
             producer.send(new ProducerRecord<>(topic, "The Message")).get();
-            Assert.fail("Should fail with ExecutionException");
+            Assertions.fail("Should fail with ExecutionException");
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
             commonChecks(cause);
@@ -121,7 +122,7 @@ public class ErrorReportingTests {
 
     void checkCorruptTokenIntrospectErrorMessage(String message) {
         checkErrId(message);
-        Assert.assertTrue(message.contains("Token not active"));
+        Assertions.assertTrue(message.contains("Token not active"), message);
     }
 
     private void invalidJwtTokenKid() throws Exception {
@@ -129,7 +130,7 @@ public class ErrorReportingTests {
 
         // We authenticate against 'demo' realm, but use it with listener configured with 'kafka-authz' realm
         final String kafkaBootstrap = getKafkaBootstrap(9203);
-        final String hostPort = "keycloak:8080";
+        final String hostPort = "localhost:8080";
 
         final String tokenEndpointUri = "http://" + hostPort + "/realms/demo/protocol/openid-connect/token";
 
@@ -146,7 +147,7 @@ public class ErrorReportingTests {
 
         try {
             producer.send(new ProducerRecord<>(topic, "The Message")).get();
-            Assert.fail("Should fail with ExecutionException");
+            Assertions.fail("Should fail with ExecutionException");
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
             commonChecks(cause);
@@ -156,14 +157,14 @@ public class ErrorReportingTests {
 
     void checkInvalidJwtTokenKidErrorMessage(String message) {
         checkErrId(message);
-        Assert.assertTrue(message.contains("Unknown signing key (kid:"));
+        Assertions.assertTrue(message.contains("Unknown signing key (kid:"), message);
     }
 
     private void forgedJwtSig() throws Exception {
         System.out.println("    ====    KeycloakErrorsTest :: forgedJwtSig");
 
         final String kafkaBootstrap = getKafkaBootstrap(9201);
-        final String hostPort = "keycloak:8080";
+        final String hostPort = "localhost:8080";
         final String realm = "demo-ec";
 
         final String tokenEndpointUri = "http://" + hostPort + "/realms/" + realm + "/protocol/openid-connect/token";
@@ -187,7 +188,7 @@ public class ErrorReportingTests {
 
         try {
             producer.send(new ProducerRecord<>(topic, "The Message")).get();
-            Assert.fail("Should fail with ExecutionException");
+            Assertions.fail("Should fail with ExecutionException");
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
             commonChecks(cause);
@@ -197,14 +198,14 @@ public class ErrorReportingTests {
 
     void checkForgedJwtSigErrorMessage(String message) {
         checkErrId(message);
-        Assert.assertTrue(message.contains("Invalid token signature"));
+        Assertions.assertTrue(message.contains("Invalid token signature"), message);
     }
 
     private void forgedJwtSigIntrospect() throws Exception {
         System.out.println("    ====    KeycloakErrorsTest :: forgedJwtSigIntrospect");
 
         final String kafkaBootstrap = getKafkaBootstrap(9202);
-        final String hostPort = "keycloak:8080";
+        final String hostPort = "localhost:8080";
         final String realm = "demo";
 
         final String tokenEndpointUri = "http://" + hostPort + "/realms/" + realm + "/protocol/openid-connect/token";
@@ -228,7 +229,7 @@ public class ErrorReportingTests {
 
         try {
             producer.send(new ProducerRecord<>(topic, "The Message")).get();
-            Assert.fail("Should fail with ExecutionException");
+            Assertions.fail("Should fail with ExecutionException");
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
             commonChecks(cause);
@@ -238,14 +239,14 @@ public class ErrorReportingTests {
 
     void checkForgedJwtSigIntrospectErrorMessage(String message) {
         checkErrId(message);
-        Assert.assertTrue(message.contains("Token not active"));
+        Assertions.assertTrue(message.contains("Token not active"), message);
     }
 
     private void expiredJwtToken() throws Exception {
         System.out.println("    ====    KeycloakErrorsTest :: expiredJwtToken");
 
         final String kafkaBootstrap = getKafkaBootstrap(9205);
-        final String hostPort = "keycloak:8080";
+        final String hostPort = "localhost:8080";
         final String realm = "expiretest";
 
         final String tokenEndpointUri = "http://" + hostPort + "/realms/" + realm + "/protocol/openid-connect/token";
@@ -270,7 +271,7 @@ public class ErrorReportingTests {
 
         try {
             producer.send(new ProducerRecord<>(topic, "The Message")).get();
-            Assert.fail("Should fail with ExecutionException");
+            Assertions.fail("Should fail with ExecutionException");
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
             commonChecks(cause);
@@ -280,7 +281,7 @@ public class ErrorReportingTests {
 
     void checkExpiredJwtTokenErrorMessage(String message) {
         checkErrId(message);
-        Assert.assertTrue(message.contains("Token expired at: "));
+        Assertions.assertTrue(message.contains("Token expired at: "), message);
     }
 
     private void badClientIdOAuthOverPlain() throws Exception {
@@ -299,7 +300,7 @@ public class ErrorReportingTests {
 
         try {
             producer.send(new ProducerRecord<>(topic, "The Message")).get();
-            Assert.fail("Should fail with ExecutionException");
+            Assertions.fail("Should fail with ExecutionException");
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
             commonChecks(cause);
@@ -309,7 +310,7 @@ public class ErrorReportingTests {
 
     void checkBadClientIdOAuthOverPlainErrorMessage(String message) {
         // errId can not be propagated over PLAIN so it is not present
-        Assert.assertTrue(message.contains("credentials for user could not be verified"));
+        Assertions.assertTrue(message.contains("credentials for user could not be verified"), message);
     }
 
     private void badSecretOAuthOverPlain() throws Exception {
@@ -328,7 +329,7 @@ public class ErrorReportingTests {
 
         try {
             producer.send(new ProducerRecord<>(topic, "The Message")).get();
-            Assert.fail("Should fail with ExecutionException");
+            Assertions.fail("Should fail with ExecutionException");
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
             commonChecks(cause);
@@ -338,7 +339,7 @@ public class ErrorReportingTests {
 
     void checkBadCSecretOAuthOverPlainErrorMessage(String message) {
         // errId can not be propagated over PLAIN so it is not present
-        Assert.assertTrue(message.contains("credentials for user could not be verified"));
+        Assertions.assertTrue(message.contains("credentials for user could not be verified"), message);
     }
 
     private void cantConnectPlainWithClientCredentials() throws Exception {
@@ -357,7 +358,7 @@ public class ErrorReportingTests {
 
         try {
             producer.send(new ProducerRecord<>(topic, "The Message")).get();
-            Assert.fail("Should fail with ExecutionException");
+            Assertions.fail("Should fail with ExecutionException");
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
             commonChecks(cause);
@@ -367,15 +368,13 @@ public class ErrorReportingTests {
 
     void checkCantConnectPlainWithClientCredentialsErrorMessage(String message) {
         // errId can not be propagated over PLAIN so it is not present
-        Assert.assertTrue(message.contains("credentials for user could not be verified"));
+        Assertions.assertTrue(message.contains("credentials for user could not be verified"), message);
     }
 
     private void cantConnectIntrospect() throws Exception {
         System.out.println("    ====    KeycloakErrorsTest :: cantConnectIntrospect");
 
         final String kafkaBootstrap = getKafkaBootstrap(9207);
-        final String hostPort = "keycloak:8080";
-        final String realm = "kafka-authz";
 
         Map<String, String> oauthConfig = new HashMap<>();
         oauthConfig.put(ClientConfig.OAUTH_ACCESS_TOKEN, "mock.access.token");
@@ -387,7 +386,7 @@ public class ErrorReportingTests {
 
         try {
             producer.send(new ProducerRecord<>(topic, "The Message")).get();
-            Assert.fail("Should fail with ExecutionException");
+            Assertions.fail("Should fail with ExecutionException");
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
             commonChecks(cause);
@@ -397,15 +396,13 @@ public class ErrorReportingTests {
 
     void checkCantConnectIntrospectErrorMessage(String message) {
         checkErrId(message);
-        Assert.assertTrue(message.contains("Runtime failure during token validation"));
+        Assertions.assertTrue(message.contains("Runtime failure during token validation"), message);
     }
 
     private void cantConnectIntrospectWithTimeout() throws Exception {
         System.out.println("    ====    KeycloakErrorsTest :: cantConnectIntrospectWithTimeout");
 
         final String kafkaBootstrap = getKafkaBootstrap(9208);
-        final String hostPort = "keycloak:8080";
-        final String realm = "kafka-authz";
 
         Map<String, String> oauthConfig = new HashMap<>();
         oauthConfig.put(ClientConfig.OAUTH_ACCESS_TOKEN, "mock.access.token");
@@ -417,7 +414,7 @@ public class ErrorReportingTests {
 
         try {
             producer.send(new ProducerRecord<>(topic, "The Message")).get();
-            Assert.fail("Should fail with ExecutionException");
+            Assertions.fail("Should fail with ExecutionException");
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
             commonChecks(cause);
@@ -435,7 +432,7 @@ public class ErrorReportingTests {
         if (matchedCount == 0) {
             System.out.println("");
             matchedCount = log.stream().filter(s -> s.startsWith("Caused by:") && s.contains("Connection refused")).count();
-            Assert.assertTrue("Found 'connect timed out' or 'Connection refused' cause of the error? (" + errId + ") " + log, matchedCount > 0);
+            Assertions.assertTrue(matchedCount > 0, "Found 'connect timed out' or 'Connection refused' cause of the error? (" + errId + ") " + log);
             System.out.println("WARN: Found 'Connection refused' rather than 'Connect timed out'");
         }
     }
@@ -461,7 +458,7 @@ public class ErrorReportingTests {
         long start = System.currentTimeMillis();
         try {
             Producer<String, String> producer = new KafkaProducer<>(producerProps);
-            Assert.fail("Should fail with KafkaException");
+            Assertions.fail("Should fail with KafkaException");
         } catch (Exception e) {
             long diff = System.currentTimeMillis() - start;
 

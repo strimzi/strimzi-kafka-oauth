@@ -36,16 +36,19 @@
         <maven.resources.version>3.1.0</maven.resources.version>
         <maven.dependency.version>3.1.1</maven.dependency.version>
         <maven.checkstyle.version>3.1.0</maven.checkstyle.version>
-        <maven.surefire.version>2.22.1</maven.surefire.version>
+        <maven.surefire.version>3.5.2</maven.surefire.version>
         <fabric8-docker-plugin.version>0.45.1</fabric8-docker-plugin.version>
 
-        <testcontainers.version>1.20.4</testcontainers.version>
+        <testcontainers.version>2.0.2</testcontainers.version>
         <testcontainers.ryuk.disabled>true</testcontainers.ryuk.disabled>
         <commons.compress.version>1.26.0</commons.compress.version>
-        <version.junit>4.13.2</version.junit>
+        <commons.codec.version>1.16.1</commons.codec.version>
+        <junit-jupiter.version>5.11.4</junit-jupiter.version>
+        <strimzi-test-container.version>0.114.0</strimzi-test-container.version>
         <spotbugs.version>4.7.0</spotbugs.version>
         <jackson.annotation.version>2.15.2</jackson.annotation.version>
         <strimzi-oauth.version>1.0.0-SNAPSHOT</strimzi-oauth.version>
+        <log4j.version>2.19.0</log4j.version>
         <checkstyle.dir>..</checkstyle.dir>
 
         <kafka.docker.image>quay.io/strimzi/kafka:0.48.0-kafka-4.1.0</kafka.docker.image>
@@ -79,6 +82,11 @@
                 <version>${commons.compress.version}</version>
             </dependency>
             <dependency>
+                <groupId>commons-codec</groupId>
+                <artifactId>commons-codec</artifactId>
+                <version>${commons.codec.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
                 <version>3.18.0</version>
@@ -94,14 +102,35 @@
                 <version>${jackson.annotation.version}</version>
             </dependency>
             <dependency>
-                <groupId>junit</groupId>
-                <artifactId>junit</artifactId>
-                <version>${version.junit}</version>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>${junit-jupiter.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-api</artifactId>
+                <version>${junit-jupiter.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strimzi</groupId>
+                <artifactId>strimzi-test-container</artifactId>
+                <version>${strimzi-test-container.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.apache.logging.log4j</groupId>
+                        <artifactId>log4j-slf4j-impl</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>com.github.spotbugs</groupId>
                 <artifactId>spotbugs-annotations</artifactId>
                 <version>${spotbugs.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-api</artifactId>
+                <version>${log4j.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

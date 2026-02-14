@@ -9,8 +9,7 @@ import io.strimzi.kafka.oauth.common.ConfigProperties;
 import io.strimzi.kafka.oauth.common.ConfigUtil;
 import io.strimzi.kafka.oauth.common.OAuthAuthenticator;
 import io.strimzi.kafka.oauth.common.TokenInfo;
-import io.strimzi.testsuite.oauth.common.TestContainersLogCollector;
-import io.strimzi.testsuite.oauth.common.TestContainersWatcher;
+import io.strimzi.testsuite.oauth.common.OAuthTestLogCollector;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -22,16 +21,15 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestRule;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.wait.strategy.Wait;
 
-import java.io.File;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -52,19 +50,29 @@ import static io.strimzi.testsuite.oauth.common.TestUtil.logStart;
  *
  * There should be no authorization configured on the Kafka broker.
  */
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class HydraAuthenticationTest {
 
-    @ClassRule
-    public static TestContainersWatcher environment =
-            new TestContainersWatcher(new File("docker-compose.yml"))
-                    .withServices("hydra", "hydra-import", "hydra-jwt", "hydra-jwt-import", "kafka")
-                    .waitingFor("kafka", Wait.forLogMessage(".*started \\(kafka.server.KafkaRaftServer\\).*", 1)
-                            .withStartupTimeout(Duration.ofSeconds(300)));
-
-    @Rule
-    public TestRule logCollector = new TestContainersLogCollector(environment);
-
     private static final Logger log = LoggerFactory.getLogger(HydraAuthenticationTest.class);
+
+    private HydraTestEnvironment environment;
+
+    @RegisterExtension
+    OAuthTestLogCollector logCollector = new OAuthTestLogCollector(() ->
+            environment != null ? environment.getContainers() : null);
+
+    @BeforeAll
+    void setUp() {
+        environment = new HydraTestEnvironment();
+        environment.start();
+    }
+
+    @AfterAll
+    void tearDown() {
+        if (environment != null) {
+            environment.stop();
+        }
+    }
 
     @Test
     public void doTest() throws Exception {
@@ -124,8 +132,8 @@ public class HydraAuthenticationTest {
     public void opaqueAccessTokenWithIntrospectValidationTest(String title) throws Exception {
         System.out.println("    ====    " + title);
 
-        final String kafkaBootstrap = "kafka:9092";
-        final String hostPort = "hydra:4444";
+        final String kafkaBootstrap = "localhost:9092";
+        final String hostPort = "localhost:4444";
 
         final String tokenEndpointUri = "https://" + hostPort + "/oauth2/token";
 
@@ -166,15 +174,15 @@ public class HydraAuthenticationTest {
 
         consumer.close();
 
-        Assert.assertEquals("Got message", 1, records.count());
-        Assert.assertEquals("Is message text: 'The Message'", "The Message", records.iterator().next().value());
+        Assertions.assertEquals(1, records.count(), "Got message");
+        Assertions.assertEquals("The Message", records.iterator().next().value(), "Is message text: 'The Message'");
     }
 
     public void clientCredentialsWithJwtValidationTest(String title) throws Exception {
         System.out.println("    ====    " + title);
 
-        final String kafkaBootstrap = "kafka:9093";
-        final String hostPort = "hydra-jwt:4454";
+        final String kafkaBootstrap = "localhost:9093";
+        final String hostPort = "localhost:4454";
         final String tokenEndpointUri = "https://" + hostPort + "/oauth2/token";
 
         Map<String, String> oauthConfig = new HashMap<>();
@@ -207,8 +215,8 @@ public class HydraAuthenticationTest {
 
         consumer.close();
 
-        Assert.assertEquals("Got message", 1, records.count());
-        Assert.assertEquals("Is message text: 'The Message'", "The Message", records.iterator().next().value());
+        Assertions.assertEquals(1, records.count(), "Got message");
+        Assertions.assertEquals("The Message", records.iterator().next().value(), "Is message text: 'The Message'");
     }
 
 

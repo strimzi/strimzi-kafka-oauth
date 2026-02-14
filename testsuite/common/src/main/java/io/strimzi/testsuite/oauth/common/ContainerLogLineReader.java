@@ -4,10 +4,12 @@
  */
 package io.strimzi.testsuite.oauth.common;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.testcontainers.containers.GenericContainer;
+
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,16 +18,17 @@ import java.util.List;
  */
 public class ContainerLogLineReader {
 
-    private final String containerName;
+    private final GenericContainer<?> container;
     private int logLineOffset = 0;
 
     /**
-     * Create a new instance of the log for the specified container name
+     * Create a new instance of the log reader for the specified container.
      *
-     * @param containerName The name of the target docker container
+     * @param container The target container
      */
-    public ContainerLogLineReader(String containerName) {
-        this.containerName = containerName;
+    @SuppressFBWarnings("EI_EXPOSE_REP2")
+    public ContainerLogLineReader(GenericContainer<?> container) {
+        this.container = container;
     }
 
     /**
@@ -36,8 +39,8 @@ public class ContainerLogLineReader {
      */
     public List<String> readNext() throws IOException {
         List<String> lines = new ArrayList<>();
-        Process p = Runtime.getRuntime().exec(new String[] {"docker", "logs", containerName});
-        try (BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream(), StandardCharsets.ISO_8859_1))) {
+        String logs = container.getLogs();
+        try (BufferedReader r = new BufferedReader(new StringReader(logs))) {
             String line;
             while ((line = r.readLine()) != null) {
                 lines.add(line);

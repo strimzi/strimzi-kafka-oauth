@@ -8,8 +8,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.jayway.jsonpath.InvalidPathException;
 import io.strimzi.kafka.oauth.common.PrincipalExtractor;
 import io.strimzi.kafka.oauth.jsonpath.JsonPathQueryException;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
@@ -124,14 +124,14 @@ public class PrincipalExtractorTest {
 
             try {
                 PrincipalExtractor extractor = new PrincipalExtractor(query, usernamePrefix, null, null);
-                Assert.assertEquals(query + " top level works as primary", applyPrefix(usernamePrefix, expected), extractor.getPrincipal(json));
+                Assertions.assertEquals(applyPrefix(usernamePrefix, expected), extractor.getPrincipal(json), query + " top level works as primary");
             } catch (Exception e) {
                 throw new RuntimeException("Unexpected error while testing: " + query + " expecting it to return: " + applyPrefix(usernamePrefix, expected), e);
             }
 
             try {
                 PrincipalExtractor extractor = new PrincipalExtractor("nonexisting", usernamePrefix, query, fallbackUsernamePrefix);
-                Assert.assertEquals(query + " top level works as fallback", applyPrefix(fallbackUsernamePrefix, expected), extractor.getPrincipal(json));
+                Assertions.assertEquals(applyPrefix(fallbackUsernamePrefix, expected), extractor.getPrincipal(json), query + " top level works as fallback");
             } catch (Exception e) {
                 throw new RuntimeException("Unexpected error while testing: " + query + " expecting it to return: " + applyPrefix(fallbackUsernamePrefix, expected), e);
             }
@@ -141,9 +141,9 @@ public class PrincipalExtractorTest {
             try {
                 PrincipalExtractor extractor = new PrincipalExtractor(query, usernamePrefix, "nonexisting", fallbackUsernamePrefix);
                 extractor.getPrincipal(json);
-                Assert.fail("Should have failed");
+                Assertions.fail("Should have failed");
             } catch (JsonPathQueryException e) {
-                Assert.assertTrue("Cause instanceof InvalidPathException", e.getCause() instanceof InvalidPathException);
+                Assertions.assertTrue(e.getCause() instanceof InvalidPathException, "Cause instanceof InvalidPathException");
                 // ignored
             }
         }

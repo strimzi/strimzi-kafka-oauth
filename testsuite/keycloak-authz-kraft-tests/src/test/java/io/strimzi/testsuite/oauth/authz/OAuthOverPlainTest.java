@@ -4,9 +4,11 @@
  */
 package io.strimzi.testsuite.oauth.authz;
 
+import org.testcontainers.containers.GenericContainer;
+
 public class OAuthOverPlainTest extends BasicTest {
 
-    public OAuthOverPlainTest(String kafkaContainer, String kafkaBootstrap, boolean oauthOverPlain) {
+    public OAuthOverPlainTest(GenericContainer<?> kafkaContainer, String kafkaBootstrap, boolean oauthOverPlain) {
         super(kafkaContainer, kafkaBootstrap, oauthOverPlain);
     }
 }

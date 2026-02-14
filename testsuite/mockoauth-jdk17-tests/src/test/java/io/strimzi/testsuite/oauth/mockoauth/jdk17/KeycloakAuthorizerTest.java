@@ -35,7 +35,7 @@ import org.apache.kafka.common.security.oauthbearer.internals.OAuthBearerSaslSer
 import org.apache.kafka.server.authorizer.Action;
 import org.apache.kafka.server.authorizer.AuthorizableRequestContext;
 import org.apache.kafka.server.authorizer.AuthorizationResult;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,13 +78,26 @@ public class KeycloakAuthorizerTest {
     final static String TRUSTSTORE_PATH = "../docker/target/kafka/certs/ca-truststore.p12";
     final static String TRUSTSTORE_PASS = "changeit";
 
-    final static String TOKEN_ENDPOINT = "https://mockoauth:8090/token";
-    final static String FAILING_TOKEN_ENDPOINT = "https://mockoauth:8090/failing_token";
+    static String tokenEndpoint() {
+        return "https://" + Common.getMockOAuthAuthHostPort() + "/token";
+    }
 
-    final static String GRANTS_ENDPOINT = "https://mockoauth:8090/grants";
+    static String failingTokenEndpoint() {
+        return "https://" + Common.getMockOAuthAuthHostPort() + "/failing_token";
+    }
 
-    final static String JWKS_ENDPOINT = "https://mockoauth:8090/jwks";
-    final static String VALID_ISSUER_URI = "https://mockoauth:8090";
+    static String grantsEndpoint() {
+        return "https://" + Common.getMockOAuthAuthHostPort() + "/grants";
+    }
+
+    static String jwksEndpoint() {
+        return "https://" + Common.getMockOAuthAuthHostPort() + "/jwks";
+    }
+
+    static String validIssuerUri() {
+        // The issuer in the token is always the Docker-internal URL
+        return "https://mockoauth:8090";
+    }
 
 
     final static String CLIENT_SRV = "kafka";
@@ -124,14 +137,14 @@ public class KeycloakAuthorizerTest {
 
         List<String> lines;
         HashMap<String, String> props = configureAuthorizer();
-        props.put(AuthzConfig.STRIMZI_AUTHORIZATION_TOKEN_ENDPOINT_URI, "https://mockoauth:8090/grants");
+        props.put(AuthzConfig.STRIMZI_AUTHORIZATION_TOKEN_ENDPOINT_URI, grantsEndpoint());
         props.put(AuthzConfig.STRIMZI_AUTHORIZATION_GRANTS_REFRESH_PERIOD_SECONDS, "4");
 
         try (KeycloakAuthorizer authorizer = new KeycloakAuthorizer()) {
             authorizer.configure(props);
 
             // authentication
-            TokenInfo tokenInfo = login(TOKEN_ENDPOINT, USER_ALICE, USER_ALICE_PASS, 1);
+            TokenInfo tokenInfo = login(tokenEndpoint(), USER_ALICE, USER_ALICE_PASS, 1);
 
             //   simulate an authenticated session
             changeAuthServerMode("jwks", "MODE_200");
@@ -153,21 +166,21 @@ public class KeycloakAuthorizerTest {
                     1, true, true));
 
             List<AuthorizationResult> result = authorizer.authorize(ctx, actions);
-            Assert.assertNotNull("Authorizer has to return non-null", result);
-            Assert.assertEquals("Authorizer has to return as many results as it received inputs", result.size(), actions.size());
-            Assert.assertEquals("Authorizer should return ALLOWED", AuthorizationResult.ALLOWED, result.get(0));
+            Assertions.assertNotNull(result, "Authorizer has to return non-null");
+            Assertions.assertEquals(actions.size(), result.size(), "Authorizer has to return as many results as it received inputs");
+            Assertions.assertEquals(AuthorizationResult.ALLOWED, result.get(0), "Authorizer should return ALLOWED");
 
             lines = logReader.readNext();
-            Assert.assertTrue("Saving non-null grants", checkLogForRegex(lines, "Saving non-null grants"));
+            Assertions.assertTrue(checkLogForRegex(lines, "Saving non-null grants"), "Saving non-null grants");
 
             // Switch grants endpoint to 401 mode
             changeAuthServerMode("grants", "MODE_401");
 
             LOG.info("Waiting for: Done refreshing"); // Make sure to not repeat the below condition in the string here
             lines = logReader.waitFor("Done refreshing grants");
-            Assert.assertTrue("Failed to fetch", checkLogForRegex(lines, "Failed to fetch grants .* status 401"));
-            Assert.assertTrue("Removed user from grants cache", checkLogForRegex(lines, "Removed user from grants cache: alice"));
-            Assert.assertTrue("Removed invalid session", checkLogForRegex(lines, "Removed invalid session from sessions map \\(userId: alice"));
+            Assertions.assertTrue(checkLogForRegex(lines, "Failed to fetch grants .* status 401"), "Failed to fetch");
+            Assertions.assertTrue(checkLogForRegex(lines, "Removed user from grants cache: alice"), "Removed user from grants cache");
+            Assertions.assertTrue(checkLogForRegex(lines, "Removed invalid session from sessions map \\(userId: alice"), "Removed invalid session");
 
         } finally {
             changeAuthServerMode("grants", "MODE_200");
@@ -187,12 +200,12 @@ public class KeycloakAuthorizerTest {
 
         List<String> lines;
         HashMap<String, String> props = configureAuthorizer();
-        props.put(AuthzConfig.STRIMZI_AUTHORIZATION_TOKEN_ENDPOINT_URI, "https://mockoauth:8090/grants");
+        props.put(AuthzConfig.STRIMZI_AUTHORIZATION_TOKEN_ENDPOINT_URI, grantsEndpoint());
 
         try (KeycloakAuthorizer authorizer = new KeycloakAuthorizer()) {
             authorizer.configure(props);
 
-            TokenInfo tokenInfo = login(FAILING_TOKEN_ENDPOINT, USER_ALICE, USER_ALICE_PASS, 1);
+            TokenInfo tokenInfo = login(failingTokenEndpoint(), USER_ALICE, USER_ALICE_PASS, 1);
             KafkaPrincipal principal = new OAuthKafkaPrincipal(KafkaPrincipal.USER_TYPE, USER_ALICE, new Common.MockBearerTokenWithPayload(tokenInfo));
             AuthorizableRequestContext ctx = newAuthorizableRequestContext(principal);
 
@@ -203,14 +216,14 @@ public class KeycloakAuthorizerTest {
                     1, true, true));
 
             List<AuthorizationResult> result = authorizer.authorize(ctx, actions);
-            Assert.assertNotNull("Authorizer has to return non-null", result);
-            Assert.assertEquals("Authorizer has to return as many results as it received inputs", result.size(), actions.size());
-            Assert.assertEquals("Authorizer should return DENIED", AuthorizationResult.DENIED, result.get(0));
+            Assertions.assertNotNull(result, "Authorizer has to return non-null");
+            Assertions.assertEquals(actions.size(), result.size(), "Authorizer has to return as many results as it received inputs");
+            Assertions.assertEquals(AuthorizationResult.DENIED, result.get(0), "Authorizer should return DENIED");
 
             lines = logReader.readNext();
 
-            Assert.assertTrue("Saving non-null grants", checkLogForRegex(lines, "Saving non-null grants"));
-            Assert.assertTrue("grants for user: {}", checkLogForRegex(lines, "grants for .*: \\{\\}"));
+            Assertions.assertTrue(checkLogForRegex(lines, "Saving non-null grants"), "Saving non-null grants");
+            Assertions.assertTrue(checkLogForRegex(lines, "grants for .*: \\{\\}"), "grants for user: {}");
 
         } finally {
             changeAuthServerMode("grants", "MODE_200");
@@ -226,22 +239,22 @@ public class KeycloakAuthorizerTest {
         changeAuthServerMode("failing_token", "MODE_400");
 
         HashMap<String, String> props = configureAuthorizer();
-        props.put(AuthzConfig.STRIMZI_AUTHORIZATION_TOKEN_ENDPOINT_URI, "https://mockoauth:8090/failing_grants");
+        props.put(AuthzConfig.STRIMZI_AUTHORIZATION_TOKEN_ENDPOINT_URI, "https://" + Common.getMockOAuthAuthHostPort() + "/failing_grants");
 
         try (KeycloakAuthorizer authorizer = new KeycloakAuthorizer()) {
             authorizer.configure(props);
 
             try {
-                login(FAILING_TOKEN_ENDPOINT, USER_ALICE, USER_ALICE_PASS, 0);
+                login(failingTokenEndpoint(), USER_ALICE, USER_ALICE_PASS, 0);
 
-                Assert.fail("Should have failed while logging in with password");
+                Assertions.fail("Should have failed while logging in with password");
 
             } catch (Exception expected) {
-                login(FAILING_TOKEN_ENDPOINT, USER_ALICE, USER_ALICE_PASS, 0);
+                login(failingTokenEndpoint(), USER_ALICE, USER_ALICE_PASS, 0);
             }
 
             // Now try again
-            TokenInfo tokenInfo = login(FAILING_TOKEN_ENDPOINT, USER_ALICE, USER_ALICE_PASS, 1);
+            TokenInfo tokenInfo = login(failingTokenEndpoint(), USER_ALICE, USER_ALICE_PASS, 1);
             KafkaPrincipal principal = new OAuthKafkaPrincipal(KafkaPrincipal.USER_TYPE, USER_ALICE, new Common.MockBearerTokenWithPayload(tokenInfo));
             AuthorizableRequestContext ctx = newAuthorizableRequestContext(principal);
 
@@ -252,9 +265,9 @@ public class KeycloakAuthorizerTest {
                     1, true, true));
 
             List<AuthorizationResult> result = authorizer.authorize(ctx, actions);
-            Assert.assertNotNull("Authorizer has to return non-null", result);
-            Assert.assertEquals("Authorizer has to return as many results as it received inputs", result.size(), actions.size());
-            Assert.assertEquals("Authorizer should return ALLOWED", AuthorizationResult.ALLOWED, result.get(0));
+            Assertions.assertNotNull(result, "Authorizer has to return non-null");
+            Assertions.assertEquals(actions.size(), result.size(), "Authorizer has to return as many results as it received inputs");
+            Assertions.assertEquals(AuthorizationResult.ALLOWED, result.get(0), "Authorizer should return ALLOWED");
         }
 
         TestAuthzUtil.clearKeycloakAuthorizerService();
@@ -300,12 +313,12 @@ public class KeycloakAuthorizerTest {
             List<String> lines = logReader.readNext();
 
             if (withReuse) {
-                Assert.assertTrue("reuseGrants should be true", checkLogForRegex(lines, "reuseGrants: true"));
+                Assertions.assertTrue(checkLogForRegex(lines, "reuseGrants: true"), "reuseGrants should be true");
             } else {
-                Assert.assertTrue("reuseGrants should default to false", checkLogForRegex(lines, "reuseGrants: false"));
+                Assertions.assertTrue(checkLogForRegex(lines, "reuseGrants: false"), "reuseGrants should default to false");
             }
 
-            TokenInfo tokenInfo = login(FAILING_TOKEN_ENDPOINT, user, userPass, 1);
+            TokenInfo tokenInfo = login(failingTokenEndpoint(), user, userPass, 1);
             OAuthKafkaPrincipal principal = new OAuthKafkaPrincipal(KafkaPrincipal.USER_TYPE, user, TestTokenFactory.newTokenForUser(tokenInfo));
 
             addGrantsForToken(tokenInfo.token(), "[{\"scopes\":[\"Delete\",\"Write\",\"Describe\",\"Read\",\"Alter\",\"Create\",\"DescribeConfigs\",\"AlterConfigs\"],\"rsid\":\"ca6f195f-dbdc-48b7-a953-8e441d17f7fa\",\"rsname\":\"Topic:my-topic*\"}," +
@@ -318,7 +331,7 @@ public class KeycloakAuthorizerTest {
             ExecutorService executorService = Executors.newFixedThreadPool(2);
 
             try {
-                Assert.assertNull("payload should not be set yet: " + principal.getJwt().getPayload(), principal.getJwt().getPayload());
+                Assertions.assertNull(principal.getJwt().getPayload(), "payload should not be set yet: " + principal.getJwt().getPayload());
 
                 // In two parallel threads invoke authorize() passing packaged principal
                 Future<List<AuthorizationResult>> future = submitAuthorizationCall(authorizer, ctx, executorService, "my-topic");
@@ -332,20 +345,20 @@ public class KeycloakAuthorizerTest {
                 // It's the same whether reuseGrants is true or false - because concurrent requests are perceived by user to occur at the same time
                 lines = logReader.readNext();
 
-                Assert.assertEquals("One thread fetches grants", 1, TestUtil.countLogForRegex(lines, "Fetching grants from Keycloak for user user1"));
-                Assert.assertEquals("One thread waits", 1, TestUtil.countLogForRegex(lines, "Waiting on another thread to get grants"));
-                Assert.assertEquals("One grants fetch", 1, TestUtil.countLogForRegex(lines, "Response body for POST https://mockoauth:8090/grants"));
+                Assertions.assertEquals(1, TestUtil.countLogForRegex(lines, "Fetching grants from Keycloak for user user1"), "One thread fetches grants");
+                Assertions.assertEquals(1, TestUtil.countLogForRegex(lines, "Waiting on another thread to get grants"), "One thread waits");
+                Assertions.assertEquals(1, TestUtil.countLogForRegex(lines, "Response body for POST " + grantsEndpoint()), "One grants fetch");
 
                 // Check the authorization result
-                Assert.assertEquals("One result for my-topic action", 1, result.size());
-                Assert.assertEquals("One result for my-topic-2 action", 1, result2.size());
-                Assert.assertEquals("my-topic ALLOWED", AuthorizationResult.ALLOWED, result.get(0));
-                Assert.assertEquals("my-topic-2 ALLOWED", AuthorizationResult.ALLOWED, result.get(0));
+                Assertions.assertEquals(1, result.size(), "One result for my-topic action");
+                Assertions.assertEquals(1, result2.size(), "One result for my-topic-2 action");
+                Assertions.assertEquals(AuthorizationResult.ALLOWED, result.get(0), "my-topic ALLOWED");
+                Assertions.assertEquals(AuthorizationResult.ALLOWED, result.get(0), "my-topic-2 ALLOWED");
 
                 if (!withReuse) {
                     // Check that the BearerTokenWithJsonPayload has a payload
                     // That only gets set in no-reuse regime in order to be able to determine if grants were refreshed for the session
-                    Assert.assertNotNull("payload should be set now: " + principal.getJwt().getPayload(), principal.getJwt().getPayload());
+                    Assertions.assertNotNull(principal.getJwt().getPayload(), "payload should be set now: " + principal.getJwt().getPayload());
                 }
 
 
@@ -357,11 +370,11 @@ public class KeycloakAuthorizerTest {
                 // check log from last checkpoint on
                 lines = logReader.readNext();
 
-                Assert.assertEquals("No grants fetch", 0, TestUtil.countLogForRegex(lines, "Response body for POST https://mockoauth:8090/grants"));
+                Assertions.assertEquals(0, TestUtil.countLogForRegex(lines, "Response body for POST " + grantsEndpoint()), "No grants fetch");
 
                 // Check the authorization result
-                Assert.assertEquals("One result for x-topic-1 action", 1, result.size());
-                Assert.assertEquals("x-topic-1 DENIED", AuthorizationResult.DENIED, result.get(0));
+                Assertions.assertEquals(1, result.size(), "One result for x-topic-1 action");
+                Assertions.assertEquals(AuthorizationResult.DENIED, result.get(0), "x-topic-1 DENIED");
 
                 // Create a new Principal object for the same user
                 // Perform another authorization - grants should be fetched if reuseGrants is false
@@ -374,15 +387,15 @@ public class KeycloakAuthorizerTest {
                 lines = logReader.readNext();
                 if (!withReuse) {
                     // Check that grants have been fetched
-                    Assert.assertEquals("Grants fetched", 1, TestUtil.countLogForRegex(lines, "Response body for POST https://mockoauth:8090/grants"));
+                    Assertions.assertEquals(1, TestUtil.countLogForRegex(lines, "Response body for POST " + grantsEndpoint()), "Grants fetched");
                 } else {
                     // Check that grants have not been fetched again
-                    Assert.assertEquals("Grants not fetched", 0, TestUtil.countLogForRegex(lines, "Response body for POST https://mockoauth:8090/grants"));
+                    Assertions.assertEquals(0, TestUtil.countLogForRegex(lines, "Response body for POST " + grantsEndpoint()), "Grants not fetched");
                 }
 
                 // Check the authorization result
-                Assert.assertEquals("One result for x-topic-2 action", 1, result.size());
-                Assert.assertEquals("x-topic-2 DENIED", AuthorizationResult.DENIED, result.get(0));
+                Assertions.assertEquals(1, result.size(), "One result for x-topic-2 action");
+                Assertions.assertEquals(AuthorizationResult.DENIED, result.get(0), "x-topic-2 DENIED");
             } finally {
                 executorService.shutdown();
             }
@@ -400,9 +413,9 @@ public class KeycloakAuthorizerTest {
         try (KeycloakAuthorizer authorizer = new KeycloakAuthorizer()) {
             try {
                 authorizer.configure(config);
-                Assert.fail("Should have failed");
+                Assertions.fail("Should have failed");
             } catch (ConfigException e) {
-                Assert.assertTrue("'principal.builder.class' is missing", e.getMessage().contains("requires io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder as 'principal.builder.class'"));
+                Assertions.assertTrue(e.getMessage().contains("requires io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder as 'principal.builder.class'"), "'principal.builder.class' is missing");
             }
         }
         config.put("principal.builder.class", "io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder");
@@ -410,19 +423,19 @@ public class KeycloakAuthorizerTest {
         try (KeycloakAuthorizer authorizer = new KeycloakAuthorizer()) {
             try {
                 authorizer.configure(config);
-                Assert.fail("Should have failed");
+                Assertions.fail("Should have failed");
             } catch (ConfigException e) {
-                Assert.assertTrue("'strimzi.authorization.token.endpoint.uri' is missing", e.getMessage().contains("Token Endpoint ('strimzi.authorization.token.endpoint.uri') not set"));
+                Assertions.assertTrue(e.getMessage().contains("Token Endpoint ('strimzi.authorization.token.endpoint.uri') not set"), "'strimzi.authorization.token.endpoint.uri' is missing");
             }
         }
-        config.put(AuthzConfig.STRIMZI_AUTHORIZATION_TOKEN_ENDPOINT_URI, GRANTS_ENDPOINT);
+        config.put(AuthzConfig.STRIMZI_AUTHORIZATION_TOKEN_ENDPOINT_URI, grantsEndpoint());
 
         try (KeycloakAuthorizer authorizer = new KeycloakAuthorizer()) {
             try {
                 authorizer.configure(config);
-                Assert.fail("Should have failed");
+                Assertions.fail("Should have failed");
             } catch (ConfigException e) {
-                Assert.assertTrue("'strimzi.authorization.client.id' is missing", e.getMessage().contains("client id ('strimzi.authorization.client.id') not set"));
+                Assertions.assertTrue(e.getMessage().contains("client id ('strimzi.authorization.client.id') not set"), "'strimzi.authorization.client.id' is missing");
             }
         }
         config.put(AuthzConfig.STRIMZI_AUTHORIZATION_CLIENT_ID, "kafka");
@@ -437,7 +450,7 @@ public class KeycloakAuthorizerTest {
         }
 
         // Check the defaults
-        checkLog(logReader, "tokenEndpointUri", "https://mockoauth:8090/grants",
+        checkLog(logReader, "tokenEndpointUri", grantsEndpoint(),
             "clientId", "kafka",
             "sslSocketFactory", "null",
             "hostnameVerifier", "null",
@@ -474,9 +487,9 @@ public class KeycloakAuthorizerTest {
         try (KeycloakAuthorizer authorizer = new KeycloakAuthorizer()) {
             try {
                 authorizer.configure(config);
-                Assert.fail("Should have failed");
+                Assertions.fail("Should have failed");
             } catch (ConfigException e) {
-                Assert.assertEquals("Only one instance per JVM", "Only one authorizer configuration per JVM is supported", e.getMessage());
+                Assertions.assertEquals("Only one authorizer configuration per JVM is supported", e.getMessage(), "Only one instance per JVM");
             }
         }
 
@@ -543,7 +556,7 @@ public class KeycloakAuthorizerTest {
 
         // Setup config for Zookeeper mode
         config.put("principal.builder.class", "io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder");
-        config.put(AuthzConfig.STRIMZI_AUTHORIZATION_TOKEN_ENDPOINT_URI, GRANTS_ENDPOINT);
+        config.put(AuthzConfig.STRIMZI_AUTHORIZATION_TOKEN_ENDPOINT_URI, grantsEndpoint());
         config.put(AuthzConfig.STRIMZI_AUTHORIZATION_CLIENT_ID, "kafka");
 
         try (KeycloakAuthorizer authorizer = new KeycloakAuthorizer()) {
@@ -558,9 +571,9 @@ public class KeycloakAuthorizerTest {
         try (KeycloakAuthorizer authorizer = new KeycloakAuthorizer()) {
             try {
                 authorizer.configure(config);
-                Assert.fail("Should have failed");
+                Assertions.fail("Should have failed");
             } catch (ConfigException e) {
-                Assert.assertTrue("'strimzi.authorization.delegate.to.kafka.acl' in Zookeeper mode", e.getMessage().contains("Zookeeper mode detected (no 'process.roles' configured) and delegation to ACL Authorizer has been enabled. This is no longer supported. Either turn off the delegation or upgrade the broker to KRaft mode."));
+                Assertions.assertTrue(e.getMessage().contains("Zookeeper mode detected (no 'process.roles' configured) and delegation to ACL Authorizer has been enabled. This is no longer supported. Either turn off the delegation or upgrade the broker to KRaft mode."), "'strimzi.authorization.delegate.to.kafka.acl' in Zookeeper mode");
             }
         }
 
@@ -595,7 +608,7 @@ public class KeycloakAuthorizerTest {
             // That will populate the grantsCache map with a single entry and update already existing entry with the latest access token
 
             // authentication
-            TokenInfo tokenInfo = login(TOKEN_ENDPOINT, userOne, userOnePass, 0);
+            TokenInfo tokenInfo = login(tokenEndpoint(), userOne, userOnePass, 0);
 
             //   simulate an authenticated session
             changeAuthServerMode("jwks", "MODE_200");
@@ -628,11 +641,11 @@ public class KeycloakAuthorizerTest {
             //   perform authorization for the session
             LOG.info("Call authorize() as gcUser1");
             List<AuthorizationResult> result = authorizer.authorize(authzContext, actions);
-            Assert.assertEquals("Authz result: ALLOWED", AuthorizationResult.ALLOWED, result.get(0));
+            Assertions.assertEquals(AuthorizationResult.ALLOWED, result.get(0), "Authz result: ALLOWED");
 
             // check the logs for updated access token
             List<String> lines = logReader.readNext();
-            Assert.assertEquals("Fetch grants", 1, TestUtil.countLogForRegex(lines, "Fetching grants from Keycloak for user gcUser1"));
+            Assertions.assertEquals(1, TestUtil.countLogForRegex(lines, "Fetching grants from Keycloak for user gcUser1"), "Fetch grants");
 
 
             String userTwo = "gcUser2";
@@ -641,7 +654,7 @@ public class KeycloakAuthorizerTest {
 
             // Create a short-lived access token for a new user, that only has a 5 seconds lifetime
             // This allows us to test if after 5 seconds the triggered gc job cleans the cache, due to the expired token
-            tokenInfo = login(TOKEN_ENDPOINT, userTwo, userTwoPass, 0);
+            tokenInfo = login(tokenEndpoint(), userTwo, userTwoPass, 0);
 
             LOG.info("Authenticate (validate) gcUser2");
             principal = authenticate(authHandler, tokenInfo);
@@ -656,7 +669,7 @@ public class KeycloakAuthorizerTest {
 
             LOG.info("Call authorize() as gcUser2");
             result = authorizer.authorize(authzContext, actions);
-            Assert.assertEquals("Authz result: ALLOWED", AuthorizationResult.ALLOWED, result.get(0));
+            Assertions.assertEquals(AuthorizationResult.ALLOWED, result.get(0), "Authz result: ALLOWED");
 
             // wait for cgGrants run on 2 users and two grants cache entries
             LOG.info("Waiting for: active users count: 2, grantsCache size before: 2, grantsCache size after: 2"); // Make sure to not repeat the below condition in the string here
@@ -671,7 +684,7 @@ public class KeycloakAuthorizerTest {
             // authorization should now fail since the token has expired
             LOG.info("Authorize another action for gcUser2");
             result = authorizer.authorize(authzContext, actions);
-            Assert.assertEquals("Authz result: DENIED", AuthorizationResult.DENIED, result.get(0));
+            Assertions.assertEquals(AuthorizationResult.DENIED, result.get(0), "Authz result: DENIED");
         }
 
         TestAuthzUtil.clearKeycloakAuthorizerService();
@@ -684,7 +697,7 @@ public class KeycloakAuthorizerTest {
         try {
             tokenWithPayload = (BearerTokenWithPayload) authenticate(authHandler, tokenInfo.token());
         } catch (UnsupportedCallbackException e) {
-            Assert.fail("Test error - should never happen: " + e);
+            Assertions.fail("Test error - should never happen: " + e);
         }
 
         // mock up the authentication workflow part that creates the OAuthKafkaPrincipal
@@ -703,13 +716,14 @@ public class KeycloakAuthorizerTest {
     }
 
     private AuthenticateCallbackHandler configureJwtSignatureValidator() {
-        //JWTSignatureValidator validator = new JWTSignatureValidator("test-validator", JWKS_ENDPOINT, )
+        //JWTSignatureValidator validator = new JWTSignatureValidator("test-validator", jwksEndpoint(), )
         JaasServerOauthValidatorCallbackHandler authHandler = new JaasServerOauthValidatorCallbackHandler();
         Map<String, String> jaasProps = new HashMap<>();
-        jaasProps.put(ServerConfig.OAUTH_JWKS_ENDPOINT_URI, JWKS_ENDPOINT);
+        jaasProps.put(ServerConfig.OAUTH_JWKS_ENDPOINT_URI, jwksEndpoint());
         jaasProps.put(ServerConfig.OAUTH_SSL_TRUSTSTORE_LOCATION, TRUSTSTORE_PATH);
         jaasProps.put(ServerConfig.OAUTH_SSL_TRUSTSTORE_PASSWORD, TRUSTSTORE_PASS);
-        jaasProps.put(ServerConfig.OAUTH_VALID_ISSUER_URI, VALID_ISSUER_URI);
+        jaasProps.put(Config.OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM, "");
+        jaasProps.put(ServerConfig.OAUTH_VALID_ISSUER_URI, validIssuerUri());
         jaasProps.put(ServerConfig.OAUTH_CHECK_ACCESS_TOKEN_TYPE, "false");
 
         Map<String, String> configs = new HashMap<>();
@@ -734,7 +748,7 @@ public class KeycloakAuthorizerTest {
         changeAuthServerMode("token", "MODE_200");
 
         // login as some user - alice in our case, and get the token
-        TokenInfo tokenInfo = login(TOKEN_ENDPOINT, USER_ALICE, USER_ALICE_PASS, 0);
+        TokenInfo tokenInfo = login(tokenEndpoint(), USER_ALICE, USER_ALICE_PASS, 0);
         OAuthKafkaPrincipal principal = new OAuthKafkaPrincipal(KafkaPrincipal.USER_TYPE, USER_ALICE, TestTokenFactory.newTokenForUser(tokenInfo));
 
         // Mistyped resource type 'Topc' instead of 'Topic'
@@ -763,7 +777,7 @@ public class KeycloakAuthorizerTest {
 
             LOG.info("Call authorize() - test grants record with invalid resource type 'Topc'");
             List<AuthorizationResult> result = authorizer.authorize(authzContext, actions);
-            Assert.assertEquals("Authz result: DENIED", AuthorizationResult.DENIED, result.get(0));
+            Assertions.assertEquals(AuthorizationResult.DENIED, result.get(0), "Authz result: DENIED");
 
             // This is a first authorize() call on the KeycloakAuthorizer -> the grantsCache is empty
             LOG.info("Waiting for: unsupported segment type: Topc"); // Make sure to not repeat the below condition in the string here
@@ -782,7 +796,7 @@ public class KeycloakAuthorizerTest {
 
             LOG.info("Call authorize() - test grants record with malformed resource spec 'Topic;my-topic*' (no ':')");
             result = authorizer.authorize(authzContext, actions);
-            Assert.assertEquals("Authz result: DENIED", AuthorizationResult.DENIED, result.get(0));
+            Assertions.assertEquals(AuthorizationResult.DENIED, result.get(0), "Authz result: DENIED");
 
             LOG.info("Waiting for: doesn't follow TYPE:NAME pattern"); // Make sure to not repeat the below condition in the string here
             logReader.waitFor("part doesn't follow TYPE:NAME pattern");
@@ -798,7 +812,7 @@ public class KeycloakAuthorizerTest {
 
             LOG.info("Call authorize() - test grants record with malformed resource spec 'Topic:*-topic' ('*' only interpreted as asterisk at the end of resource spec)");
             result = authorizer.authorize(authzContext, actions);
-            Assert.assertEquals("Authz result: DENIED", AuthorizationResult.DENIED, result.get(0));
+            Assertions.assertEquals(AuthorizationResult.DENIED, result.get(0), "Authz result: DENIED");
 
 
             // unknown scope - 'Crate' (should be 'Create')
@@ -812,7 +826,7 @@ public class KeycloakAuthorizerTest {
 
             LOG.info("Call authorize() - test grants record with unknown / invalid scope 'Crate' (it should be 'Create')");
             result = authorizer.authorize(authzContext, actions);
-            Assert.assertEquals("Authz result: DENIED", AuthorizationResult.DENIED, result.get(0));
+            Assertions.assertEquals(AuthorizationResult.DENIED, result.get(0), "Authz result: DENIED");
         }
 
         TestAuthzUtil.clearKeycloakAuthorizerService();
@@ -832,7 +846,7 @@ public class KeycloakAuthorizerTest {
         changeAuthServerMode("token", "MODE_200");
 
         // login as some user - alice in our case, and get the token
-        TokenInfo tokenInfo = login(TOKEN_ENDPOINT, USER_ALICE, USER_ALICE_PASS, 0);
+        TokenInfo tokenInfo = login(tokenEndpoint(), USER_ALICE, USER_ALICE_PASS, 0);
         OAuthKafkaPrincipal principal = new OAuthKafkaPrincipal(KafkaPrincipal.USER_TYPE, USER_ALICE, TestTokenFactory.newTokenForUser(tokenInfo));
 
         // Set grants for the user to `grants1`
@@ -859,7 +873,7 @@ public class KeycloakAuthorizerTest {
 
             LOG.info("Call authorize() - create x_topic");
             List<AuthorizationResult> result = authorizer.authorize(authzContext, actions);
-            Assert.assertEquals("Authz result: DENIED", AuthorizationResult.DENIED, result.get(0));
+            Assertions.assertEquals(AuthorizationResult.DENIED, result.get(0), "Authz result: DENIED");
 
             // Check log for 'Saving non-null grants for user: alice'
             LOG.info("Waiting for: Saving non-null grants"); // Make sure to not repeat the below condition in the string here
@@ -885,10 +899,10 @@ public class KeycloakAuthorizerTest {
             LOG.info("Waiting for grants refresh to complete"); // Make sure to not repeat the below condition in the string here
             List<String> lines = logReader.waitFor("Done refreshing grants");
 
-            Assert.assertFalse("Grants have changed again ?!?", checkLogForRegex(lines, "Grants have changed for user"));
+            Assertions.assertFalse(checkLogForRegex(lines, "Grants have changed for user"), "Grants have changed again ?!?");
 
             result = authorizer.authorize(authzContext, actions);
-            Assert.assertEquals("Authz result: ALLOWED", AuthorizationResult.ALLOWED, result.get(0));
+            Assertions.assertEquals(AuthorizationResult.ALLOWED, result.get(0), "Authz result: ALLOWED");
         }
 
         TestAuthzUtil.clearKeycloakAuthorizerService();
@@ -914,8 +928,8 @@ public class KeycloakAuthorizerTest {
             List<String> keycloakAuthorizerLines = lines.stream().filter(line -> line.contains("Configured KeycloakAuthorizer@")).collect(Collectors.toList());
             List<String> keycloakRBACAuthorizerLines = lines.stream().filter(line -> line.contains("Configured KeycloakRBACAuthorizer@")).collect(Collectors.toList());
 
-            Assert.assertEquals("Configured KeycloakAuthorizer", 2, keycloakAuthorizerLines.size());
-            Assert.assertEquals("Configured KeycloakRBACAuthorizer", 1, keycloakRBACAuthorizerLines.size());
+            Assertions.assertEquals(2, keycloakAuthorizerLines.size(), "Configured KeycloakAuthorizer");
+            Assertions.assertEquals(1, keycloakRBACAuthorizerLines.size(), "Configured KeycloakRBACAuthorizer");
         }
 
         TestAuthzUtil.clearKeycloakAuthorizerService();
@@ -942,8 +956,9 @@ public class KeycloakAuthorizerTest {
         props.put(AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_LOCATION, trustStorePath);
         props.put(AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_PASSWORD, trustsStorePass);
         props.put(AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_TYPE, "pkcs12");
+        props.put(AuthzConfig.STRIMZI_AUTHORIZATION_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM, "");
         props.put(AuthzConfig.STRIMZI_AUTHORIZATION_ENABLE_METRICS, "true");
-        props.put(AuthzConfig.STRIMZI_AUTHORIZATION_TOKEN_ENDPOINT_URI, "https://mockoauth:8090/grants");
+        props.put(AuthzConfig.STRIMZI_AUTHORIZATION_TOKEN_ENDPOINT_URI, grantsEndpoint());
         props.put(AuthzConfig.STRIMZI_AUTHORIZATION_CLIENT_ID, clientSrv);
         props.put(AuthzConfig.STRIMZI_AUTHORIZATION_KAFKA_CLUSTER_NAME, "my-cluster");
         props.put(AuthzConfig.STRIMZI_AUTHORIZATION_DELEGATE_TO_KAFKA_ACL, "false");
@@ -971,7 +986,7 @@ public class KeycloakAuthorizerTest {
         return OAuthAuthenticator.loginWithPassword(
                 URI.create(tokenEndpoint),
                 SSLUtil.createSSLFactory(TRUSTSTORE_PATH, null, TRUSTSTORE_PASS, null, null),
-                null,
+                SSLUtil.createAnyHostHostnameVerifier(),
                 user,
                 userPass,
                 CLIENT_CLI,

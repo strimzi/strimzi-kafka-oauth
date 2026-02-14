@@ -5,11 +5,11 @@
 package io.strimzi.testsuite.oauth.common;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
+import org.testcontainers.containers.GenericContainer;
 
 import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
@@ -25,28 +25,28 @@ public class TestUtil {
     }
 
     /**
-     * Get Kafka log by executing 'docker logs kafka', then extract only the entries
+     * Get container log using container.getLogs(), then extract only the entries
      * (possibly multi-line when there's a stacktrace) that contain the passed filter.
      *
+     * @param container The container to get logs from
      * @param filters Strings to look for (not a regex) in the log - they all must be present in a line for the line to match
-     * @return A list of lines from the log that match the filter (logging entries that contain the filter string)
+     * @return A list of lines from the log that match the filter
      */
     @SuppressFBWarnings("THROWS_METHOD_THROWS_RUNTIMEEXCEPTION")
-    public static List<String> getContainerLogsForString(String containerName, String... filters) {
+    public static List<String> getContainerLogsForString(GenericContainer<?> container, String... filters) {
         try {
             boolean inmatch = false;
             ArrayList<String> result = new ArrayList<>();
             Pattern pat = Pattern.compile("\\[\\d\\d\\d\\d-\\d\\d-\\d\\d .*");
 
-            Process p = Runtime.getRuntime().exec(new String[] {"docker", "logs", containerName});
-            try (BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream(), StandardCharsets.ISO_8859_1))) {
+            String logs = container.getLogs();
+            try (BufferedReader r = new BufferedReader(new StringReader(logs))) {
                 String line;
                 while ((line = r.readLine()) != null) {
                     // is new logging entry?
                     if (pat.matcher(line).matches()) {
-                        // contains the err string?
                         // all filters have to match
-                        for (String filter: filters) {
+                        for (String filter : filters) {
                             inmatch = line.contains(filter);
                             if (!inmatch) {
                                 break;
@@ -61,24 +61,7 @@ public class TestUtil {
             return result;
 
         } catch (Throwable e) {
-            throw new RuntimeException("Failed to get '" + containerName + "' log", e);
-        }
-    }
-
-    /**
-     * Copy a file from a container to the host using 'docker cp'.
-     *
-     * @param containerName The name of the source container
-     * @param srcPath The path to the source file in the container
-     * @param destPath The path to the destination file on the host
-     */
-    @SuppressFBWarnings("THROWS_METHOD_THROWS_RUNTIMEEXCEPTION")
-    public static void copyFileFromContainer(String containerName, String srcPath, String destPath) {
-        try {
-            Process p = Runtime.getRuntime().exec(new String[] {"docker", "cp", containerName + ":" + srcPath, destPath});
-            p.waitFor();
-        } catch (Throwable e) {
-            throw new RuntimeException("Failed to copy file from container", e);
+            throw new RuntimeException("Failed to get container log", e);
         }
     }
 
@@ -157,7 +140,7 @@ public class TestUtil {
 
     public static void assertTrueExtra(String name, boolean condition, Throwable t) {
         try {
-            Assert.assertTrue(name, condition);
+            Assertions.assertTrue(condition, name);
         } catch (AssertionError e) {
             t.printStackTrace();
             throw new AssertionError(e.getMessage(), t);
@@ -166,7 +149,7 @@ public class TestUtil {
 
     public static void assertTrueExtra(String name, boolean condition, Throwable t, String extraInfo) {
         try {
-            Assert.assertTrue(name, condition);
+            Assertions.assertTrue(condition, name);
         } catch (AssertionError e) {
             throw new AssertionError(e.getMessage() + " " + extraInfo, t);
         }

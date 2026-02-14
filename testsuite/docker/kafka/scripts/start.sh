@@ -1,60 +1,41 @@
 #!/bin/bash
 set -e
 
-source functions.sh
+# Ensure strimzi libs directory exists and prepend to classpath.
+# This makes SNAPSHOT OAuth JARs take precedence over any bundled versions.
+mkdir -p /opt/kafka/libs/strimzi
+export CLASSPATH="/opt/kafka/libs/strimzi/*:${CLASSPATH:-}"
 
-URI=${KEYCLOAK_URI}
-if [ "" == "${URI}" ]; then
-    URI="http://${KEYCLOAK_HOST:-keycloak}:8080/admin"
+# Use custom log4j config if available (enables TRACE for io.strimzi)
+if [ -f /opt/kafka/config/strimzi/log4j.properties ]; then
+    export KAFKA_LOG4J_OPTS="-Dlog4j.configuration=file:/opt/kafka/config/strimzi/log4j.properties"
 fi
 
-wait_for_url $URI "Waiting for Keycloak to start"
-
-./simple_kafka_config.sh $1 | tee /tmp/strimzi.properties
-
-echo "Config created"
-
-KAFKA_DEBUG_PASSED=$KAFKA_DEBUG
-unset KAFKA_DEBUG
-
-# add extra jars to classpath
-export CLASSPATH="/opt/kafka/libs/strimzi/*:$CLASSPATH"
-echo "CLASSPATH=$CLASSPATH"
-
-
-KAFKA_CLUSTER_ID="$(/opt/kafka/bin/kafka-storage.sh random-uuid)"
-/opt/kafka/bin/kafka-storage.sh format -t $KAFKA_CLUSTER_ID -c /tmp/strimzi.properties \
-    --add-scram 'SCRAM-SHA-512=[name=admin,password=admin-secret]' \
-    --add-scram 'SCRAM-SHA-512=[name=alice,password=alice-secret]'
-echo "Initialised kafka storage for KRaft and added user secrets for SCRAM"
-
-
-export KAFKA_DEBUG=$KAFKA_DEBUG_PASSED
-
-
-# set log dir to writable directory
-if [ "$LOG_DIR" == "" ]; then
-  export LOG_DIR=/tmp/logs
+# Set up Prometheus JMX agent if metrics config is provided
+if [ -n "$OAUTH_METRICS_CONFIG" ]; then
+    PROMETHEUS_AGENT_VERSION=$(ls /opt/kafka/libs/strimzi/jmx_prometheus* 2>/dev/null \
+        | sed -E -n 's/.*([0-9]+\.[0-9]+\.[0-9]+).*$/\1/p' | head -1)
+    if [ -n "$PROMETHEUS_AGENT_VERSION" ]; then
+        export KAFKA_OPTS="-javaagent:/opt/kafka/libs/strimzi/jmx_prometheus_javaagent-${PROMETHEUS_AGENT_VERSION}.jar=9404:${OAUTH_METRICS_CONFIG} ${KAFKA_OPTS:-}"
+    fi
 fi
 
-# set log4j properties file to custom one
-if [ "$KAFKA_LOG4J_OPTS" == "" ]; then
-  export KAFKA_LOG4J_OPTS="-Dlog4j.configuration=file:/opt/kafka/config/strimzi/log4j.properties"
+# Wait for StrimziKafkaContainer.containerIsStarting() to write server.properties
+while [ ! -f /opt/kafka/config/kraft/server.properties ]; do sleep 0.1; done
+
+# Build SCRAM user args if configured
+# OAUTH_SCRAM_USERS format: "SCRAM-SHA-512=[name=admin,password=admin-secret];SCRAM-SHA-512=[name=alice,password=alice-secret]"
+SCRAM_ARGS=""
+if [ -n "$OAUTH_SCRAM_USERS" ]; then
+    IFS=';' read -ra USERS <<< "$OAUTH_SCRAM_USERS"
+    for user in "${USERS[@]}"; do
+        SCRAM_ARGS="${SCRAM_ARGS} --add-scram ${user}"
+    done
 fi
-echo "KAFKA_LOG4J_OPTS=$KAFKA_LOG4J_OPTS"
 
-# Prometheus JMX agent config
-if [ "$PROMETHEUS_AGENT_CONFIG" == "" ]; then
+# Format storage and start Kafka
+/opt/kafka/bin/kafka-storage.sh format \
+    -t "$(/opt/kafka/bin/kafka-storage.sh random-uuid)" \
+    -c /opt/kafka/config/kraft/server.properties $SCRAM_ARGS
 
-  if [ "$PROMETHEUS_AGENT_VERSION" == "" ]; then
-    PROMETHEUS_AGENT_VERSION=$(ls /opt/kafka/libs/strimzi/jmx_prometheus* | sed -E -n 's/.*([0-9]+\.[0-9]+\.[0-9]+).*$/\1/p')
-  fi
-
-  export PROMETHEUS_AGENT_CONFIG="-javaagent:/opt/kafka/libs/strimzi/jmx_prometheus_javaagent-$PROMETHEUS_AGENT_VERSION.jar=9404:/opt/kafka/config/strimzi/metrics-config.yml"
-fi
-echo "PROMETHEUS_AGENT_CONFIG=$PROMETHEUS_AGENT_CONFIG"
-
-export KAFKA_OPTS="$PROMETHEUS_AGENT_CONFIG $KAFKA_OPTS"
-echo "KAFKA_OPTS=$KAFKA_OPTS"
-
-exec /opt/kafka/bin/kafka-server-start.sh /tmp/strimzi.properties
+exec /opt/kafka/bin/kafka-server-start.sh /opt/kafka/config/kraft/server.properties

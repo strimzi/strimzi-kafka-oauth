@@ -12,13 +12,13 @@ import io.strimzi.kafka.oauth.services.Services;
 import org.apache.kafka.common.security.auth.KafkaPrincipal;
 import org.apache.kafka.common.security.auth.SaslAuthenticationContext;
 import org.apache.kafka.common.security.plain.internals.PlainSaslServer;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -50,12 +50,12 @@ public class OAuthKafkaPrincipalBuilderTest {
 
         // Invoke the principal builder the first time
         KafkaPrincipal principal = principalBuilder.build(context);
-        assertEquals("The Principal from authentication should be returned", authenticatedPrincipal, principal);
-        assertNull("The Principal should have been taken from Credentials", credentials.takeCredentials(USERNAME));
-        assertNotNull("The Principal should have been stored in Principals", principals.getPrincipal(saslServer));
+        assertEquals(authenticatedPrincipal, principal, "The Principal from authentication should be returned");
+        assertNull(credentials.takeCredentials(USERNAME), "The Principal should have been taken from Credentials");
+        assertNotNull(principals.getPrincipal(saslServer), "The Principal should have been stored in Principals");
 
         // Invoke the principal builder the second time
         principal = principalBuilder.build(context);
-        assertEquals("The Principal from authentication should be returned", authenticatedPrincipal, principal);
+        assertEquals(authenticatedPrincipal, principal, "The Principal from authentication should be returned");
     }
 }

@@ -4,18 +4,14 @@
  */
 package io.strimzi.testsuite.oauth.auth;
 
-import io.strimzi.testsuite.oauth.common.TestContainersLogCollector;
-import io.strimzi.testsuite.oauth.common.TestContainersWatcher;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestRule;
+import io.strimzi.testsuite.oauth.common.OAuthTestLogCollector;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.wait.strategy.Wait;
-
-import java.io.File;
-import java.time.Duration;
 
 /**
  * Tests for OAuth authentication using Keycloak
@@ -25,27 +21,31 @@ import java.time.Duration;
  *
  * There is no authorization configured on the Kafka broker.
  */
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class KeycloakAuthenticationTest {
 
-    @ClassRule
-    public static TestContainersWatcher environment =
-            new TestContainersWatcher(new File("docker-compose.yml"))
-                    .withServices("keycloak", "kafka")
-                    .waitingFor("kafka", Wait.forLogMessage(".*started \\(kafka.server.KafkaRaftServer\\).*", 1)
-                            .withStartupTimeout(Duration.ofSeconds(300)));
-
-    @Rule
-    public TestRule logCollector = new TestContainersLogCollector(environment);
-
     static final Logger log = LoggerFactory.getLogger(KeycloakAuthenticationTest.class);
+
+    private final KeycloakAuthTestEnvironment env = new KeycloakAuthTestEnvironment();
+
+    @RegisterExtension
+    OAuthTestLogCollector logCollector = new OAuthTestLogCollector(env::getContainers);
+
+    @BeforeAll
+    public void setUp() {
+        env.start();
+    }
+
+    @AfterAll
+    public void tearDown() {
+        env.stop();
+    }
 
     @Test
     public void doTest() throws Exception {
         try {
-            String kafkaContainer = environment.getContainerByServiceName("kafka_1").get().getContainerInfo().getName().substring(1);
-
             logStart("KeycloakAuthenticationTest :: BasicTests");
-            new BasicTests(kafkaContainer).doTests();
+            new BasicTests(env.getKafka()).doTests();
 
             logStart("KeycloakAuthenticationTest :: OAuthOverPlainTests");
             OAuthOverPlainTests.doTests();
@@ -57,7 +57,7 @@ public class KeycloakAuthenticationTest {
             CustomCheckTests.doTests();
 
             logStart("KeycloakAuthenticationTest :: GroupsExtractionTests");
-            new GroupsExtractionTests(kafkaContainer).doTests();
+            new GroupsExtractionTests(env.getKafka()).doTests();
 
             logStart("KeycloakAuthenticationTest :: MultiSaslTests");
             MultiSaslTests.doTests();

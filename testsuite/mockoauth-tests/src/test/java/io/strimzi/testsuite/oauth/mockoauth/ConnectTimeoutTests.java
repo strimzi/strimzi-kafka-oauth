@@ -10,7 +10,8 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.errors.SaslAuthenticationException;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
+import org.testcontainers.containers.GenericContainer;
 
 import java.util.HashMap;
 import java.util.List;
@@ -25,9 +26,9 @@ import static io.strimzi.testsuite.oauth.common.TestUtil.getRootCause;
 
 public class ConnectTimeoutTests {
 
-    private final String kafkaContainer;
+    private final GenericContainer<?> kafkaContainer;
 
-    public ConnectTimeoutTests(String kafkaContainer) {
+    public ConnectTimeoutTests(GenericContainer<?> kafkaContainer) {
         this.kafkaContainer = kafkaContainer;
     }
 
@@ -39,7 +40,7 @@ public class ConnectTimeoutTests {
     private void cantConnectIntrospect() throws Exception {
         System.out.println("    ====    Check the error returned if connection to the introspection endpoint fails");
 
-        final String kafkaBootstrap = "kafka:9096";
+        final String kafkaBootstrap = "localhost:9096";
 
         // Turn off the mockoauth server
         changeAuthServerMode("server", "mode_off");
@@ -53,7 +54,7 @@ public class ConnectTimeoutTests {
             final String topic = "ConnectTimeoutTests-cantConnectIntrospect";
             try {
                 producer.send(new ProducerRecord<>(topic, "The Message")).get();
-                Assert.fail("Should fail with ExecutionException");
+                Assertions.fail("Should fail with ExecutionException");
             } catch (ExecutionException e) {
                 Throwable cause = e.getCause();
                 commonChecks(cause);
@@ -69,8 +70,8 @@ public class ConnectTimeoutTests {
     private void connectAuthServerWithTimeout() throws Exception {
         System.out.println("    ====    Check the error returned if request to the introspection endpoint times out");
 
-        final String kafkaBootstrap = "kafka:9096";
-        final String hostPort = "mockoauth:8090";
+        final String kafkaBootstrap = "localhost:9096";
+        final String hostPort = Common.getMockOAuthAuthHostPort();
 
         final String tokenEndpointUri = "https://" + hostPort + "/token";
 
@@ -89,18 +90,19 @@ public class ConnectTimeoutTests {
         oauthConfig.put(ClientConfig.OAUTH_READ_TIMEOUT_SECONDS, String.valueOf(ignoredTimeout));
         oauthConfig.put(ClientConfig.OAUTH_SSL_TRUSTSTORE_LOCATION, "../docker/target/kafka/certs/ca-truststore.p12");
         oauthConfig.put(ClientConfig.OAUTH_SSL_TRUSTSTORE_PASSWORD, "changeit");
+        oauthConfig.put(ClientConfig.OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM, "");
 
         Properties producerProps = buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
 
         long start = System.currentTimeMillis();
         try (KafkaProducer<String, String> ignored = new KafkaProducer<>(producerProps)) {
 
-            Assert.fail("Should fail with KafkaException");
+            Assertions.fail("Should fail with KafkaException");
         } catch (Exception e) {
             long diff = System.currentTimeMillis() - start;
-            Assert.assertTrue("is instanceof KafkaException", e instanceof KafkaException);
-            Assert.assertTrue("Failed due to LoginException", getRootCause(e).toString().contains("LoginException"));
-            Assert.assertTrue("Unexpected diff: " + diff, diff > timeoutOverride * 1000 && diff < timeoutOverride * 1000 + 1000);
+            Assertions.assertTrue(e instanceof KafkaException, "is instanceof KafkaException");
+            Assertions.assertTrue(getRootCause(e).toString().contains("LoginException"), "Failed due to LoginException");
+            Assertions.assertTrue(diff > timeoutOverride * 1000 && diff < timeoutOverride * 1000 + 1000, "Unexpected diff: " + diff);
         } finally {
             changeAuthServerMode("token", "mode_200");
             System.clearProperty("oauth.read.timeout.seconds");
@@ -114,22 +116,26 @@ public class ConnectTimeoutTests {
     }
 
     void commonChecks(Throwable cause) {
-        Assert.assertEquals("Expected SaslAuthenticationException", SaslAuthenticationException.class, cause.getClass());
+        Assertions.assertEquals(SaslAuthenticationException.class, cause.getClass(), "Expected SaslAuthenticationException");
     }
 
     void checkCantConnectIntrospectErrorMessage(String message) {
         checkErrId(message);
-        Assert.assertTrue(message.contains("Runtime failure during token validation"));
+        Assertions.assertTrue(message.contains("Runtime failure during token validation"));
     }
 
     void checkErrId(String message) {
-        Assert.assertTrue("Error message is sanitised", message.substring(message.length() - 16).startsWith("ErrId:"));
+        Assertions.assertTrue(message.substring(message.length() - 16).startsWith("ErrId:"), "Error message is sanitised");
     }
 
     private void checkKafkaLogConnectionRefused(String message) {
         String errId = message.substring(message.length() - 16, message.length() - 1);
-        List<String> log = getContainerLogsForString(kafkaContainer, errId);
+        // Verify the authentication failure with this errId was logged
+        List<String> errIdLog = getContainerLogsForString(kafkaContainer, errId);
+        Assertions.assertFalse(errIdLog.isEmpty(), "Error with " + errId + " should appear in container logs");
+        // The detailed cause is in a separate log entry in newer Kafka versions
+        List<String> log = getContainerLogsForString(kafkaContainer, "Action failed");
         long matchedCount = log.stream().filter(s -> s.startsWith("Caused by:") && s.contains("Connection refused")).count();
-        Assert.assertTrue("Found 'connection refused' cause of the error? (" + errId + ")", matchedCount > 0);
+        Assertions.assertTrue(matchedCount > 0, "Found 'connection refused' cause of the error? (" + errId + ")");
     }
 }

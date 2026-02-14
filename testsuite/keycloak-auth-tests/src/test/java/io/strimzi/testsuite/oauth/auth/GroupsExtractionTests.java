@@ -8,9 +8,10 @@ import io.strimzi.kafka.oauth.client.ClientConfig;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testcontainers.containers.GenericContainer;
 
 import java.util.HashMap;
 import java.util.List;
@@ -24,9 +25,9 @@ public class GroupsExtractionTests {
 
     private static final Logger log = LoggerFactory.getLogger(GroupsExtractionTests.class);
 
-    private final String kafkaContainer;
+    private final GenericContainer<?> kafkaContainer;
 
-    GroupsExtractionTests(String kafkaContainer) {
+    GroupsExtractionTests(GenericContainer<?> kafkaContainer) {
         this.kafkaContainer = kafkaContainer;
     }
 
@@ -37,17 +38,17 @@ public class GroupsExtractionTests {
 
     private void groupsExtractionWithJwtTest() throws Exception {
         System.out.println("    ====    KeycloakAuthenticationTest :: groupsExtractionWithJwtTest");
-        runTest("kafka:9098", "principalName: service-account-team-b-client, groups: [offline_access, Dev Team B]");
+        runTest("localhost:9098", "principalName: service-account-team-b-client, groups: [offline_access, Dev Team B]");
     }
 
     private void groupsExtractionWithIntrospectionTest() throws Exception {
         System.out.println("    ====    KeycloakAuthenticationTest :: groupsExtractionWithIntrospectionTest");
-        runTest("kafka:9099", "principalName: service-account-team-b-client, groups: [kafka-user]");
+        runTest("localhost:9099", "principalName: service-account-team-b-client, groups: [kafka-user]");
     }
 
     private void runTest(String kafkaBootstrap, String logFilter) throws Exception {
 
-        final String hostPort = "keycloak:8080";
+        final String hostPort = "localhost:8080";
         final String realm = "kafka-authz";
 
         final String tokenEndpointUri = "http://" + hostPort + "/realms/" + realm + "/protocol/openid-connect/token";
@@ -71,7 +72,7 @@ public class GroupsExtractionTests {
 
         // get kafka log and make sure groups were extracted during authentication
         List<String> lines = getContainerLogsForString(kafkaContainer, logFilter);
-        Assert.assertTrue("Kafka log should contain: \"" + logFilter + "\"", lines.size() > 0);
+        Assertions.assertTrue(lines.size() > 0, "Kafka log should contain: \"" + logFilter + "\"");
     }
 
 }

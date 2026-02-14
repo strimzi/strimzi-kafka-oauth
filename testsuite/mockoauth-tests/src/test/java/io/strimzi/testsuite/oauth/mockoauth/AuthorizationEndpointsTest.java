@@ -14,7 +14,7 @@ import io.strimzi.kafka.oauth.server.ServerConfig;
 import io.strimzi.kafka.oauth.services.ServiceException;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerValidatorCallback;
 import org.jetbrains.annotations.NotNull;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 
 import javax.net.ssl.SSLSocketFactory;
 import javax.security.auth.callback.UnsupportedCallbackException;
@@ -59,9 +59,9 @@ public class AuthorizationEndpointsTest {
 
         // Login with client app's client_id + secret to obtain an access token
         TokenInfo tokenInfo = OAuthAuthenticator.loginWithClientSecret(
-                URI.create("https://mockoauth:8090/token"),
+                URI.create("https://" + Common.getMockOAuthAuthHostPort() + "/token"),
                 sslFactory,
-                null,
+                SSLUtil.createAnyHostHostnameVerifier(),
                 clientApp,
                 clientAppSecret,
                 true,
@@ -90,8 +90,8 @@ public class AuthorizationEndpointsTest {
         Map<String, String> attrs = new HashMap<>();
 
         //attrs.put(ServerConfig.OAUTH_CONFIG_ID, "config-id-introspect");
-        attrs.put(ServerConfig.OAUTH_INTROSPECTION_ENDPOINT_URI, "https://mockoauth:8090/introspect");
-        attrs.put(ServerConfig.OAUTH_USERINFO_ENDPOINT_URI, "https://mockoauth:8090/userinfo");
+        attrs.put(ServerConfig.OAUTH_INTROSPECTION_ENDPOINT_URI, "https://" + Common.getMockOAuthAuthHostPort() + "/introspect");
+        attrs.put(ServerConfig.OAUTH_USERINFO_ENDPOINT_URI, "https://" + Common.getMockOAuthAuthHostPort() + "/userinfo");
         attrs.put(ServerConfig.OAUTH_USERNAME_CLAIM, "uid");
         attrs.put(ServerConfig.OAUTH_CLIENT_ID, "bad-client-id");
         attrs.put(ServerConfig.OAUTH_CLIENT_SECRET, "bad-client-secret");
@@ -106,13 +106,13 @@ public class AuthorizationEndpointsTest {
         //     validate token
         try {
             handler.handle(oauthCallbacks);
-            Assert.fail("Should have failed");
+            Assertions.fail("Should have failed");
         } catch (Exception exception) {
-            Assert.assertEquals("Exception is OAuthSaslAuthenticationException", OAuthSaslAuthenticationException.class, exception.getClass());
+            Assertions.assertEquals(OAuthSaslAuthenticationException.class, exception.getClass(), "Exception is OAuthSaslAuthenticationException");
             Throwable cause = getRootCause(exception);
-            Assert.assertNotNull("Exception has a cause", cause);
-            Assert.assertEquals("Cause is HttpException", HttpException.class, cause.getClass());
-            Assert.assertTrue("Error message check", cause.getMessage().contains("introspect failed with status 401"));
+            Assertions.assertNotNull(cause, "Exception has a cause");
+            Assertions.assertEquals(HttpException.class, cause.getClass(), "Cause is HttpException");
+            Assertions.assertTrue(cause.getMessage().contains("introspect failed with status 401"), "Error message check");
         }
         handler.close();
 
@@ -137,13 +137,13 @@ public class AuthorizationEndpointsTest {
         //     validate token
         try {
             handler.handle(oauthCallbacks);
-            Assert.fail("Should have failed");
+            Assertions.fail("Should have failed");
         } catch (Exception exception) {
-            Assert.assertEquals("Exception is OAuthSaslAuthenticationException", OAuthSaslAuthenticationException.class, exception.getClass());
+            Assertions.assertEquals(OAuthSaslAuthenticationException.class, exception.getClass(), "Exception is OAuthSaslAuthenticationException");
             Throwable cause = getRootCause(exception);
-            Assert.assertNotNull("Exception has a cause", cause);
-            Assert.assertEquals("Cause is HttpException", HttpException.class, cause.getClass());
-            Assert.assertTrue("Error message check", cause.getMessage().contains("introspect failed with status 401"));
+            Assertions.assertNotNull(cause, "Exception has a cause");
+            Assertions.assertEquals(HttpException.class, cause.getClass(), "Cause is HttpException");
+            Assertions.assertTrue(cause.getMessage().contains("introspect failed with status 401"), "Error message check");
         }
         handler.close();
 
@@ -183,7 +183,7 @@ public class AuthorizationEndpointsTest {
         //attrs.put(ServerConfig.OAUTH_CONFIG_ID, "config-id-jwks");
         attrs.put(ServerConfig.OAUTH_CLIENT_ID, "bad-client-id");
         attrs.put(ServerConfig.OAUTH_CLIENT_SECRET, "bad-client-secret");
-        attrs.put(ServerConfig.OAUTH_JWKS_ENDPOINT_URI, "https://mockoauth:8090/jwks");
+        attrs.put(ServerConfig.OAUTH_JWKS_ENDPOINT_URI, "https://" + Common.getMockOAuthAuthHostPort() + "/jwks");
         attrs.put(ServerConfig.OAUTH_VALID_ISSUER_URI, "https://mockoauth:8090");
         attrs.put(ServerConfig.OAUTH_CHECK_ACCESS_TOKEN_TYPE, "false");
         attrs.put(ServerConfig.OAUTH_SSL_TRUSTSTORE_LOCATION, "../docker/target/kafka/certs/ca-truststore.p12");
@@ -195,11 +195,11 @@ public class AuthorizationEndpointsTest {
         try {
             reconfigureHandler(attrs);
         } catch (Exception exception) {
-            Assert.assertEquals("Exception is ServiceException", ServiceException.class, exception.getClass());
-            Assert.assertTrue("Error message check", exception.getMessage().contains("Failed to fetch public keys"));
+            Assertions.assertEquals(ServiceException.class, exception.getClass(), "Exception is ServiceException");
+            Assertions.assertTrue(exception.getMessage().contains("Failed to fetch public keys"), "Error message check");
             Throwable cause = exception.getCause();
-            Assert.assertEquals("Cause is HttpException", HttpException.class, cause.getClass());
-            Assert.assertTrue("Cause message check", cause.getMessage().contains("jwks failed with status 401"));
+            Assertions.assertEquals(HttpException.class, cause.getClass(), "Cause is HttpException");
+            Assertions.assertTrue(cause.getMessage().contains("jwks failed with status 401"), "Cause message check");
 
         }
 
@@ -223,11 +223,11 @@ public class AuthorizationEndpointsTest {
         try {
             reconfigureHandler(attrs);
         } catch (Exception exception) {
-            Assert.assertEquals("Exception is ServiceException", ServiceException.class, exception.getClass());
-            Assert.assertTrue("Error message check", exception.getMessage().contains("Failed to fetch public keys"));
+            Assertions.assertEquals(ServiceException.class, exception.getClass(), "Exception is ServiceException");
+            Assertions.assertTrue(exception.getMessage().contains("Failed to fetch public keys"), "Error message check");
             Throwable cause = exception.getCause();
-            Assert.assertEquals("Cause is HttpException", HttpException.class, cause.getClass());
-            Assert.assertTrue("Cause message check", cause.getMessage().contains("jwks failed with status 401"));
+            Assertions.assertEquals(HttpException.class, cause.getClass(), "Cause is HttpException");
+            Assertions.assertTrue(cause.getMessage().contains("jwks failed with status 401"), "Cause message check");
         }
 
         //     configure validator with correct bearer token

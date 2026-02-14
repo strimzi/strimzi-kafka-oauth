@@ -61,7 +61,7 @@ public class JwtExtractTest {
 
         // Now get a new token
         String accessToken = loginWithClientSecretAndExtraAttrs(
-                "https://mockoauth:8090/token",
+                "https://" + Common.getMockOAuthAuthHostPort() + "/token",
                 testClient,
                 testSecret,
                 trustStorePath,
@@ -80,9 +80,9 @@ public class JwtExtractTest {
                 null,
                 null,
                 null,
-                "https://mockoauth:8090/jwks",
+                "https://" + Common.getMockOAuthAuthHostPort() + "/jwks",
                 sslFactory,
-                null,
+                SSLUtil.createAnyHostHostnameVerifier(),
                 new PrincipalExtractor(),
                 null,
                 null,

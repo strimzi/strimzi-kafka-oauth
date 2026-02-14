@@ -54,24 +54,6 @@ runs:
         cd examples/docker
         ./spring/test-spring.sh
 
-    - name: Modify /etc/hosts for tests
-      shell: bash
-      run: |
-        echo "127.0.0.1 keycloak" | sudo tee -a /etc/hosts
-        echo "127.0.0.1 hydra" | sudo tee -a /etc/hosts
-        echo "127.0.0.1 hydra-jwt" | sudo tee -a /etc/hosts
-        echo "127.0.0.1 kafka" | sudo tee -a /etc/hosts
-        echo "127.0.0.1 mockoauth" | sudo tee -a /etc/hosts
-        echo "127.0.0.1 kerberos" | sudo tee -a /etc/hosts
-        echo "Modified /etc/hosts:"
-        cat /etc/hosts
-
-    - name: Install Docker Compose
-      shell: bash
-      run: |
-        sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-        sudo chmod +x /usr/local/bin/docker-compose
-
     - name: Testsuite Compile & Spotbugs
       shell: bash
       run: mvn -e -V -B test-compile spotbugs:check -f testsuite

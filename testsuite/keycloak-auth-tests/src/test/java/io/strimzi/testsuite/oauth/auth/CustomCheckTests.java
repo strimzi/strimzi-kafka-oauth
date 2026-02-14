@@ -9,7 +9,7 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.errors.AuthenticationException;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,17 +33,17 @@ public class CustomCheckTests {
 
     private static void customClaimCheckWithJwtTest() throws Exception {
         System.out.println("    ====    KeycloakAuthenticationTest :: customClaimCheckWithJwtTest");
-        runTest("kafka:9098");
+        runTest("localhost:9098");
     }
 
     private static void customClaimCheckWithIntrospectionTest() throws Exception {
         System.out.println("    ====    KeycloakAuthenticationTest :: customClaimCheckWithIntrospectionTest");
-        runTest("kafka:9099");
+        runTest("localhost:9099");
     }
 
     private static void runTest(String kafkaBootstrap) throws Exception {
 
-        final String hostPort = "keycloak:8080";
+        final String hostPort = "localhost:8080";
         final String realm = "kafka-authz";
 
         final String tokenEndpointUri = "http://" + hostPort + "/realms/" + realm + "/protocol/openid-connect/token";
@@ -79,11 +79,11 @@ public class CustomCheckTests {
 
         try {
             producer.send(new ProducerRecord<>(topic, "Bob's Message")).get();
-            Assert.fail("Producing the message should have failed");
+            Assertions.fail("Producing the message should have failed");
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
-            Assert.assertTrue("instanceOf AuthenticationException", cause instanceof AuthenticationException);
-            Assert.assertTrue("custom claim check failed", cause.toString().contains("Custom claim check failed"));
+            Assertions.assertTrue(cause instanceof AuthenticationException, "instanceOf AuthenticationException");
+            Assertions.assertTrue(cause.toString().contains("Custom claim check failed"), "custom claim check failed");
         }
 
     }
