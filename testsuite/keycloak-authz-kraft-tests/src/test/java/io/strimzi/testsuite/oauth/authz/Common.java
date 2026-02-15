@@ -69,7 +69,7 @@ public class Common {
     static final String TOPIC_X = "x_messages";
 
 
-    final String kafkaBootstrap;
+    String kafkaBootstrap;
 
     boolean usePlain;
 

@@ -37,6 +37,7 @@
         <maven.dependency.version>3.1.1</maven.dependency.version>
         <maven.checkstyle.version>3.1.0</maven.checkstyle.version>
         <maven.surefire.version>3.5.2</maven.surefire.version>
+        <maven.failsafe.version>3.5.2</maven.failsafe.version>
         <fabric8-docker-plugin.version>0.45.1</fabric8-docker-plugin.version>
 
         <testcontainers.version>2.0.2</testcontainers.version>
@@ -334,9 +335,19 @@
                     </execution>
                 </executions>
             </plugin>
+            <!-- Disable surefire - no unit tests currently, only integration tests -->
             <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${maven.surefire.version}</version>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
+            
+            <!-- Use failsafe for integration tests -->
+            <plugin>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>${maven.failsafe.version}</version>
                 <configuration>
                     <systemPropertyVariables>
                         <KAFKA_DOCKER_IMAGE>${kafka.docker.image}</KAFKA_DOCKER_IMAGE>
@@ -346,7 +357,14 @@
                     </environmentVariables>
                     <argLine>-Djava.security.krb5.conf=${project.basedir}/../docker/kerberos/krb5.conf</argLine>
                 </configuration>
-
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
