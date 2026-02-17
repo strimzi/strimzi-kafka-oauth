@@ -13,14 +13,7 @@
     <name>Strimzi Kafka OAuth testsuite</name>
     <artifactId>testsuite</artifactId>
 
-    <packaging>pom</packaging>
-
-    <modules>
-        <module>common</module>
-        <module>mock-oauth-server</module>
-        <module>docker</module>
-        <module>integration-tests</module>
-    </modules>
+    <packaging>jar</packaging>
 
     <licenses>
         <license>
@@ -31,35 +24,39 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.surefire.version>3.5.2</maven.surefire.version>
-        <maven.failsafe.version>3.5.2</maven.failsafe.version>
         <fabric8-docker-plugin.version>0.45.1</fabric8-docker-plugin.version>
 
         <testcontainers.version>2.0.2</testcontainers.version>
         <testcontainers.ryuk.disabled>true</testcontainers.ryuk.disabled>
         <commons.compress.version>1.26.0</commons.compress.version>
         <commons.codec.version>1.16.1</commons.codec.version>
-        <junit-jupiter.version>5.11.4</junit-jupiter.version>
         <strimzi-test-container.version>0.114.0</strimzi-test-container.version>
         <docker-java.version>3.7.0</docker-java.version>
         <toxiproxy-java.version>2.1.11</toxiproxy-java.version>
-        <jackson.annotation.version>2.15.2</jackson.annotation.version>
+        <jackson.annotation.version>2.15.3</jackson.annotation.version>
         <log4j.version>2.19.0</log4j.version>
         <checkstyle.dir>..</checkstyle.dir>
 
         <kafka.docker.image>quay.io/strimzi/kafka:0.48.0-kafka-4.1.0</kafka.docker.image>
+
+        <!-- From mock-oauth-server -->
+        <vertx.version>4.5.18</vertx.version>
+        <logback.version>1.3.15</logback.version>
+        <maven-shade-plugin.version>3.2.4</maven-shade-plugin.version>
+        <exec-maven-plugin.version>3.0.0</exec-maven-plugin.version>
+        <main.verticle>io.strimzi.testsuite.oauth.server.MockOAuthServerMainVerticle</main.verticle>
+        <launcher.class>io.vertx.core.Launcher</launcher.class>
     </properties>
 
     <dependencyManagement>
         <dependencies>
+            <!-- Vertx BOM (from mock-oauth-server) -->
             <dependency>
-                <groupId>io.strimzi</groupId>
-                <artifactId>oauth</artifactId>
-            </dependency>
-            <dependency>
-                <groupId>io.strimzi</groupId>
-                <artifactId>common</artifactId>
-                <version>${project.version}</version>
+                <groupId>io.vertx</groupId>
+                <artifactId>vertx-stack-depchain</artifactId>
+                <version>${vertx.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
             <dependency>
                 <groupId>org.testcontainers</groupId>
@@ -67,11 +64,6 @@
                 <version>${testcontainers.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>eu.rekawek.toxiproxy</groupId>
-                <artifactId>toxiproxy-java</artifactId>
-                <version>${toxiproxy.java.version}</version>
             </dependency>
 
             <!-- Remove this when testcontainers version is bumped -->
@@ -99,6 +91,17 @@
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-annotations</artifactId>
                 <version>${jackson.annotation.version}</version>
+            </dependency>
+            <!-- Jackson version overrides (from mock-oauth-server) -->
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-core</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson.databind.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.junit.jupiter</groupId>
@@ -144,6 +147,142 @@
         </dependencies>
     </dependencyManagement>
 
+    <!-- ============================================================ -->
+    <!-- Dependencies                                                 -->
+    <!-- Compile-scope: code from common + mock-oauth-server (src/main)  -->
+    <!-- Test-scope: code from integration-tests (src/test)             -->
+    <!-- ============================================================ -->
+    <dependencies>
+        <!-- ========== Compile scope (src/main) ========== -->
+
+        <!-- From common -->
+        <dependency>
+            <groupId>io.strimzi</groupId>
+            <artifactId>kafka-oauth-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-toxiproxy</artifactId>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>eu.rekawek.toxiproxy</groupId>
+            <artifactId>toxiproxy-java</artifactId>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.strimzi</groupId>
+            <artifactId>strimzi-test-container</artifactId>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.github.docker-java</groupId>
+            <artifactId>docker-java-api</artifactId>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-clients</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
+        </dependency>
+
+        <!-- From mock-oauth-server -->
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-core</artifactId>
+            <version>${vertx.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-codec-http</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>${logback.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.nimbusds</groupId>
+            <artifactId>nimbus-jose-jwt</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+
+        <!-- Provided scope -->
+        <dependency>
+            <groupId>com.github.spotbugs</groupId>
+            <artifactId>spotbugs-annotations</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- ========== Test scope (src/test) ========== -->
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.strimzi</groupId>
+            <artifactId>kafka-oauth-client</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.strimzi</groupId>
+            <artifactId>kafka-oauth-server</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.strimzi</groupId>
+            <artifactId>kafka-oauth-keycloak-authorizer</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka_2.13</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Needed by maven-dependency-plugin copy execution -->
+        <dependency>
+            <groupId>io.strimzi</groupId>
+            <artifactId>kafka-oauth-server-plain</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.jayway.jsonpath</groupId>
+            <artifactId>json-path</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
     <build>
         <pluginManagement>
             <plugins>
@@ -175,22 +314,259 @@
             </plugins>
         </pluginManagement>
         <plugins>
+            <!-- Dependency analysis + copy OAuth JARs for Kafka container -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
                 <executions>
                     <execution>
                         <id>analyze-deps</id>
+                        <phase>process-test-classes</phase>
                         <configuration>
                             <ignoredUnusedDeclaredDependencies>
                                 <ignoredUnusedDeclaredDependency>org.slf4j:slf4j-simple</ignoredUnusedDeclaredDependency>
+                                <!-- Runtime SLF4J binding for mock-oauth-server -->
+                                <ignoredUnusedDeclaredDependency>ch.qos.logback:logback-classic</ignoredUnusedDeclaredDependency>
                                 <!-- Runtime dependency of commons-compress, required by testcontainers -->
                                 <ignoredUnusedDeclaredDependency>commons-codec:commons-codec</ignoredUnusedDeclaredDependency>
+                                <!-- Required for compilation (ClusterMetadataAuthorizer, AutoCloseable types)
+                                     but not detected by bytecode analysis -->
+                                <ignoredUnusedDeclaredDependency>org.apache.kafka:kafka_2.13</ignoredUnusedDeclaredDependency>
+                                <!-- Needed by maven-dependency-plugin copy but not direct code usage -->
+                                <ignoredUnusedDeclaredDependency>io.strimzi:kafka-oauth-server-plain</ignoredUnusedDeclaredDependency>
+                                <ignoredUnusedDeclaredDependency>com.jayway.jsonpath:json-path</ignoredUnusedDeclaredDependency>
                             </ignoredUnusedDeclaredDependencies>
+                        </configuration>
+                    </execution>
+                    <!-- Copy OAuth JARs to target/kafka/libs for Kafka container (from docker module) -->
+                    <execution>
+                        <id>copy-kafka-oauth-libs</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>io.strimzi</groupId>
+                                    <artifactId>kafka-oauth-client</artifactId>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>io.strimzi</groupId>
+                                    <artifactId>kafka-oauth-keycloak-authorizer</artifactId>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>io.strimzi</groupId>
+                                    <artifactId>kafka-oauth-server</artifactId>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>io.strimzi</groupId>
+                                    <artifactId>kafka-oauth-server-plain</artifactId>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>io.strimzi</groupId>
+                                    <artifactId>kafka-oauth-common</artifactId>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>com.nimbusds</groupId>
+                                    <artifactId>nimbus-jose-jwt</artifactId>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>com.jayway.jsonpath</groupId>
+                                    <artifactId>json-path</artifactId>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>io.prometheus.jmx</groupId>
+                                    <artifactId>jmx_prometheus_javaagent</artifactId>
+                                    <version>1.0.1</version>
+                                </artifactItem>
+                            </artifactItems>
+                            <outputDirectory>target/kafka/libs</outputDirectory>
+                            <overWriteReleases>false</overWriteReleases>
+                            <overWriteSnapshots>true</overWriteSnapshots>
                         </configuration>
                     </execution>
                 </executions>
             </plugin>
+
+            <!-- Copy certificates for Kafka / Keycloak / Hydra containers (from docker module) -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>${maven.resources.version}</version>
+                <executions>
+                    <execution>
+                        <id>copy-kafka-example-truststore</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>target/kafka/certs</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${basedir}/docker/certificates</directory>
+                                    <includes>
+                                        <include>ca-truststore.p12</include>
+                                    </includes>
+                                    <filtering>false</filtering>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copy-keycloak-example-keystore</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>target/keycloak/certs</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${basedir}/docker/certificates</directory>
+                                    <includes>
+                                        <include>keycloak.server.keystore.p12</include>
+                                    </includes>
+                                    <filtering>false</filtering>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copy-hydra-example-certs</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>target/hydra/certs</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${basedir}/docker/certificates</directory>
+                                    <includes>
+                                        <include>hydra.crt</include>
+                                        <include>hydra.key</include>
+                                        <include>hydra-jwt.crt</include>
+                                        <include>hydra-jwt.key</include>
+                                    </includes>
+                                    <filtering>false</filtering>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copy-hydra-import-example-certs</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>target/hydra-import/certs</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${basedir}/docker/certificates</directory>
+                                    <includes>
+                                        <include>ca.crt</include>
+                                    </includes>
+                                    <filtering>false</filtering>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Shade plugin for mock-oauth-server fat JAR -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>${maven-shade-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <artifactSet>
+                                <includes>
+                                    <include>io.strimzi:testsuite</include>
+                                    <include>io.strimzi:kafka-oauth-common</include>
+                                    <include>io.vertx:*</include>
+                                    <include>io.netty:*</include>
+                                    <include>com.fasterxml.jackson.core:*</include>
+                                    <include>ch.qos.logback:*</include>
+                                    <include>org.slf4j:slf4j-api</include>
+                                    <include>com.nimbusds:nimbus-jose-jwt</include>
+                                    <include>net.minidev:*</include>
+                                    <include>org.ow2.asm:asm</include>
+                                </includes>
+                            </artifactSet>
+                            <transformers>
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <manifestEntries>
+                                        <Main-Class>${launcher.class}</Main-Class>
+                                        <Main-Verticle>${main.verticle}</Main-Verticle>
+                                    </manifestEntries>
+                                </transformer>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                            </transformers>
+                            <outputFile>${project.build.directory}/${project.artifactId}-${project.version}-fat.jar
+                            </outputFile>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Exec plugin for running mock-oauth-server locally -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>${exec-maven-plugin.version}</version>
+                <configuration>
+                    <mainClass>io.vertx.core.Launcher</mainClass>
+                    <arguments>
+                        <argument>run</argument>
+                        <argument>${main.verticle}</argument>
+                    </arguments>
+                </configuration>
+            </plugin>
+
+            <!-- Docker image builds -->
+            <plugin>
+                <groupId>io.fabric8</groupId>
+                <artifactId>docker-maven-plugin</artifactId>
+
+                <executions>
+                    <execution>
+                        <id>build</id>
+                        <phase>pre-integration-test</phase>
+                        <goals>
+                            <goal>build</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <images>
+                        <image>
+                            <name>testsuite/mock-oauth-server:latest</name>
+                            <build>
+                                <dockerFile>${project.basedir}/mock-oauth-server/Dockerfile</dockerFile>
+                                <contextDir>${project.basedir}</contextDir>
+                            </build>
+                        </image>
+                        <image>
+                            <name>testsuite/hydra-import:latest</name>
+                            <build>
+                                <dockerFileDir>${project.basedir}/docker/hydra-import</dockerFileDir>
+                            </build>
+                        </image>
+                    </images>
+                </configuration>
+            </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
@@ -211,7 +587,6 @@
                             <headerLocation>${checkstyle.dir}/.checkstyle/java.header</headerLocation>
                             <suppressionsLocation>${checkstyle.dir}/.checkstyle/suppressions.xml</suppressionsLocation>
                             <includeTestSourceDirectory>true</includeTestSourceDirectory>
-                            <encoding>UTF-8</encoding>
                             <consoleOutput>true</consoleOutput>
                             <failsOnError>true</failsOnError>
                         </configuration>
@@ -226,7 +601,7 @@
                 <artifactId>spotbugs-maven-plugin</artifactId>
                 <version>4.6.0.0</version>
                 <dependencies>
-                    <!-- overwrite dependency on spotbugs if you want to specify the version of˓→spotbugs -->
+                    <!-- overwrite dependency on spotbugs if you want to specify the version of spotbugs -->
                     <dependency>
                         <groupId>com.github.spotbugs</groupId>
                         <artifactId>spotbugs</artifactId>
@@ -270,11 +645,11 @@
                     <skip>true</skip>
                 </configuration>
             </plugin>
-            
+
             <!-- Use failsafe for integration tests -->
             <plugin>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <version>${maven.failsafe.version}</version>
+                <version>${maven.surefire.version}</version>
                 <configuration>
                     <!-- Each test class starts its own containers on fixed ports.
                          Without separate JVM forks, stale Kafka clients from a previous
@@ -289,7 +664,7 @@
                     <environmentVariables>
                         <TESTCONTAINERS_RYUK_DISABLED>${testcontainers.ryuk.disabled}</TESTCONTAINERS_RYUK_DISABLED>
                     </environmentVariables>
-                    <argLine>-Djava.security.krb5.conf=${project.basedir}/../docker/kerberos/krb5.conf</argLine>
+                    <argLine>-Djava.security.krb5.conf=${project.basedir}/docker/kerberos/krb5.conf</argLine>
                 </configuration>
                 <executions>
                     <execution>
@@ -400,12 +775,6 @@
             <properties>
                 <maven.compiler.release>17</maven.compiler.release>
             </properties>
-            <modules>
-                <module>common</module>
-                <module>mock-oauth-server</module>
-                <module>docker</module>
-                <module>integration-tests</module>
-            </modules>
         </profile>
 
     </profiles>
