@@ -6,6 +6,9 @@ package io.strimzi.kafka.oauth.server;
 
 import io.strimzi.kafka.oauth.common.TokenInfo;
 
+/**
+ * This class overrides package-private class from OAuth library and has to be in that module structure!
+ */
 public class TestTokenFactory {
 
     public static BearerTokenWithJsonPayload newTokenForUser(TokenInfo tokenInfo) {

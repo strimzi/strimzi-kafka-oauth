@@ -4,6 +4,9 @@
  */
 package io.strimzi.kafka.oauth.server.authorizer;
 
+/**
+ * This class overrides package-private class from OAuth library and has to be in that module structure!
+ */
 public class TestAuthzUtil {
 
     public static void clearKeycloakAuthorizerService() {

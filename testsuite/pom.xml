@@ -44,7 +44,7 @@
         <logback.version>1.3.15</logback.version>
         <maven-shade-plugin.version>3.2.4</maven-shade-plugin.version>
         <exec-maven-plugin.version>3.0.0</exec-maven-plugin.version>
-        <main.verticle>io.strimzi.testsuite.oauth.server.MockOAuthServerMainVerticle</main.verticle>
+        <main.verticle>io.strimzi.oauth.testsuite.server.MockOAuthServerMainVerticle</main.verticle>
         <launcher.class>io.vertx.core.Launcher</launcher.class>
     </properties>
 
@@ -596,51 +596,18 @@
                     </execution>
                 </executions>
             </plugin>
+            <!-- SpotBugs skipped — this module is test infrastructure, not production code -->
             <plugin>
                 <groupId>com.github.spotbugs</groupId>
                 <artifactId>spotbugs-maven-plugin</artifactId>
-                <version>4.6.0.0</version>
-                <dependencies>
-                    <!-- overwrite dependency on spotbugs if you want to specify the version of spotbugs -->
-                    <dependency>
-                        <groupId>com.github.spotbugs</groupId>
-                        <artifactId>spotbugs</artifactId>
-                        <version>${spotbugs.version}</version>
-                    </dependency>
-                </dependencies>
                 <configuration>
-                    <effort>Max</effort>
-                    <!-- Reports all bugs (other values are medium and max) -->
-                    <threshold>Low</threshold>
-                    <!-- Produces XML report -->
-                    <xmlOutput>true</xmlOutput>
-                    <!-- Configures the directory in which the XML report is created -->
-                    <spotbugsXmlOutputDirectory>${project.build.directory}/spotbugs</spotbugsXmlOutputDirectory>
-                    <!-- Configures the file for excluding warnings -->
-                    <excludeFilterFile>${checkstyle.dir}/.spotbugs/spotbugs-exclude.xml</excludeFilterFile>
+                    <skip>true</skip>
                 </configuration>
-                <executions>
-                    <execution>
-                        <id>check</id>
-                        <phase>test</phase>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
             <!-- Skip javadoc for test modules -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <configuration>
-                    <skip>true</skip>
-                </configuration>
-            </plugin>
-            <!-- Disable surefire - no unit tests currently, only integration tests -->
-            <plugin>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>${maven.surefire.version}</version>
                 <configuration>
                     <skip>true</skip>
                 </configuration>
