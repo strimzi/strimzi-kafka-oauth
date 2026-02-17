@@ -4,9 +4,14 @@
 
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>io.strimzi.oauth.testsuite</groupId>
-    <artifactId>kafka-oauth-testsuite</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <parent>
+        <groupId>io.strimzi</groupId>
+        <artifactId>oauth</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <name>Strimzi Kafka OAuth testsuite</name>
+    <artifactId>testsuite</artifactId>
 
     <packaging>pom</packaging>
 
@@ -14,11 +19,7 @@
         <module>common</module>
         <module>mock-oauth-server</module>
         <module>docker</module>
-        <module>mockoauth-tests</module>
-        <module>keycloak-auth-tests</module>
-        <module>keycloak-authz-kraft-tests</module>
-        <module>keycloak-errors-tests</module>
-        <module>hydra-test</module>
+        <module>integration-tests</module>
     </modules>
 
     <licenses>
@@ -30,12 +31,6 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
-        <maven.compiler.version>3.8.1</maven.compiler.version>
-        <maven.resources.version>3.1.0</maven.resources.version>
-        <maven.dependency.version>3.1.1</maven.dependency.version>
-        <maven.checkstyle.version>3.1.0</maven.checkstyle.version>
         <maven.surefire.version>3.5.2</maven.surefire.version>
         <maven.failsafe.version>3.5.2</maven.failsafe.version>
         <fabric8-docker-plugin.version>0.45.1</fabric8-docker-plugin.version>
@@ -46,9 +41,9 @@
         <commons.codec.version>1.16.1</commons.codec.version>
         <junit-jupiter.version>5.11.4</junit-jupiter.version>
         <strimzi-test-container.version>0.114.0</strimzi-test-container.version>
-        <spotbugs.version>4.7.0</spotbugs.version>
+        <docker-java.version>3.7.0</docker-java.version>
+        <toxiproxy-java.version>2.1.11</toxiproxy-java.version>
         <jackson.annotation.version>2.15.2</jackson.annotation.version>
-        <strimzi-oauth.version>1.0.0-SNAPSHOT</strimzi-oauth.version>
         <log4j.version>2.19.0</log4j.version>
         <checkstyle.dir>..</checkstyle.dir>
 
@@ -60,12 +55,9 @@
             <dependency>
                 <groupId>io.strimzi</groupId>
                 <artifactId>oauth</artifactId>
-                <version>${strimzi-oauth.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
             </dependency>
             <dependency>
-                <groupId>io.strimzi.oauth.testsuite</groupId>
+                <groupId>io.strimzi</groupId>
                 <artifactId>common</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -76,6 +68,12 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <dependency>
+                <groupId>eu.rekawek.toxiproxy</groupId>
+                <artifactId>toxiproxy-java</artifactId>
+                <version>${toxiproxy.java.version}</version>
+            </dependency>
+
             <!-- Remove this when testcontainers version is bumped -->
             <dependency>
                 <groupId>org.apache.commons</groupId>
@@ -124,6 +122,16 @@
                 </exclusions>
             </dependency>
             <dependency>
+                <groupId>com.github.docker-java</groupId>
+                <artifactId>docker-java-api</artifactId>
+                <version>${docker-java.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>eu.rekawek.toxiproxy</groupId>
+                <artifactId>toxiproxy-java</artifactId>
+                <version>${toxiproxy-java.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>com.github.spotbugs</groupId>
                 <artifactId>spotbugs-annotations</artifactId>
                 <version>${spotbugs.version}</version>
@@ -169,108 +177,19 @@
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-resources-plugin</artifactId>
-                <version>${maven.resources.version}</version>
-                <executions>
-                    <execution>
-                        <id>copy-kafka-example-truststore</id>
-                        <phase>install</phase>
-                        <goals>
-                            <goal>copy-resources</goal>
-                        </goals>
-                        <configuration>
-                            <outputDirectory>target/kafka/certs</outputDirectory>
-                            <resources>
-                                <resource>
-                                    <directory>${basedir}/../examples/docker/certificates</directory>
-                                    <includes>
-                                        <include>ca-truststore.p12</include>
-                                    </includes>
-                                    <filtering>false</filtering>
-                                </resource>
-                            </resources>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>copy-keycloak-example-keystore</id>
-                        <phase>install</phase>
-                        <goals>
-                            <goal>copy-resources</goal>
-                        </goals>
-                        <configuration>
-                            <outputDirectory>target/keycloak/certs</outputDirectory>
-                            <resources>
-                                <resource>
-                                    <directory>${basedir}/../examples/docker/keycloak/certificates</directory>
-                                    <includes>
-                                        <include>keycloak.server.keystore.p12</include>
-                                    </includes>
-                                    <filtering>false</filtering>
-                                </resource>
-                            </resources>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>copy-mockoauth-keystore</id>
-                        <phase>install</phase>
-                        <goals>
-                            <goal>copy-resources</goal>
-                        </goals>
-                        <configuration>
-                            <outputDirectory>target/mockoauth/certs</outputDirectory>
-                            <resources>
-                                <resource>
-                                    <directory>${basedir}/../examples/docker/keycloak/certificates</directory>
-                                    <includes>
-                                        <include>keycloak.server.keystore.p12</include>
-                                    </includes>
-                                    <filtering>false</filtering>
-                                </resource>
-                            </resources>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
-                <version>${maven.dependency.version}</version>
                 <executions>
                     <execution>
-                        <id>copy</id>
-                        <phase>install</phase>
-                        <goals>
-                            <goal>copy</goal>
-                        </goals>
+                        <id>analyze-deps</id>
+                        <configuration>
+                            <ignoredUnusedDeclaredDependencies>
+                                <ignoredUnusedDeclaredDependency>org.slf4j:slf4j-simple</ignoredUnusedDeclaredDependency>
+                                <!-- Runtime dependency of commons-compress, required by testcontainers -->
+                                <ignoredUnusedDeclaredDependency>commons-codec:commons-codec</ignoredUnusedDeclaredDependency>
+                            </ignoredUnusedDeclaredDependencies>
+                        </configuration>
                     </execution>
                 </executions>
-                <configuration>
-                    <artifactItems>
-                        <artifactItem>
-                            <groupId>io.strimzi</groupId>
-                            <artifactId>kafka-oauth-client</artifactId>
-                        </artifactItem>
-                        <artifactItem>
-                            <groupId>io.strimzi</groupId>
-                            <artifactId>kafka-oauth-server</artifactId>
-                        </artifactItem>
-                        <artifactItem>
-                            <groupId>io.strimzi</groupId>
-                            <artifactId>kafka-oauth-server-plain</artifactId>
-                        </artifactItem>
-                        <artifactItem>
-                            <groupId>io.strimzi</groupId>
-                            <artifactId>kafka-oauth-common</artifactId>
-                        </artifactItem>
-                        <artifactItem>
-                            <groupId>com.nimbusds</groupId>
-                            <artifactId>nimbus-jose-jwt</artifactId>
-                        </artifactItem>
-                    </artifactItems>
-                    <outputDirectory>target/kafka/libs</outputDirectory>
-                    <overWriteReleases>false</overWriteReleases>
-                    <overWriteSnapshots>true</overWriteSnapshots>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -335,6 +254,14 @@
                     </execution>
                 </executions>
             </plugin>
+            <!-- Skip javadoc for test modules -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
             <!-- Disable surefire - no unit tests currently, only integration tests -->
             <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>
@@ -349,6 +276,13 @@
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <version>${maven.failsafe.version}</version>
                 <configuration>
+                    <!-- Each test class starts its own containers on fixed ports.
+                         Without separate JVM forks, stale Kafka clients from a previous
+                         test class persist in the JVM and reconnect to the next class's
+                         containers on the same ports, causing interference.
+                         reuseForks=false restores the per-module JVM isolation that
+                         existed before test modules were consolidated. -->
+                    <reuseForks>false</reuseForks>
                     <systemPropertyVariables>
                         <KAFKA_DOCKER_IMAGE>${kafka.docker.image}</KAFKA_DOCKER_IMAGE>
                     </systemPropertyVariables>
@@ -470,12 +404,7 @@
                 <module>common</module>
                 <module>mock-oauth-server</module>
                 <module>docker</module>
-                <module>mockoauth-tests</module>
-                <module>mockoauth-jdk17-tests</module>
-                <module>keycloak-auth-tests</module>
-                <module>keycloak-authz-kraft-tests</module>
-                <module>keycloak-errors-tests</module>
-                <module>hydra-test</module>
+                <module>integration-tests</module>
             </modules>
         </profile>
 

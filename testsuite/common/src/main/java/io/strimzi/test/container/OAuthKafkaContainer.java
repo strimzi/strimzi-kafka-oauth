@@ -40,6 +40,11 @@ public class OAuthKafkaContainer extends StrimziKafkaContainer {
     private Map<String, String> kafkaConfig = new HashMap<>();
     private int nodeId;
 
+    /**
+     * Create a new OAuthKafkaContainer with the given Docker image.
+     *
+     * @param dockerImageName The Docker image name to use
+     */
     public OAuthKafkaContainer(String dockerImageName) {
         super(dockerImageName);
         withCopyToContainer(
@@ -53,24 +58,28 @@ public class OAuthKafkaContainer extends StrimziKafkaContainer {
     // cannot access inherited methods through it. These overrides provide public
     // access with OAuthKafkaContainer return types.
 
+    /** {@inheritDoc} */
     @Override
     public OAuthKafkaContainer withNetwork(Network network) {
         super.withNetwork(network);
         return this;
     }
 
+    /** {@inheritDoc} */
     @Override
     public OAuthKafkaContainer withNetworkAliases(String... aliases) {
         super.withNetworkAliases(aliases);
         return this;
     }
 
+    /** {@inheritDoc} */
     @Override
     public OAuthKafkaContainer waitingFor(WaitStrategy waitStrategy) {
         super.waitingFor(waitStrategy);
         return this;
     }
 
+    /** {@inheritDoc} */
     @Override
     public OAuthKafkaContainer withKafkaConfigurationMap(Map<String, String> additionalConfig) {
         this.kafkaConfig = new HashMap<>(additionalConfig);
@@ -78,12 +87,14 @@ public class OAuthKafkaContainer extends StrimziKafkaContainer {
         return this;
     }
 
+    /** {@inheritDoc} */
     @Override
     public OAuthKafkaContainer withCopyToContainer(Transferable transferable, String containerPath) {
         super.withCopyToContainer(transferable, containerPath);
         return this;
     }
 
+    /** {@inheritDoc} */
     @Override
     public OAuthKafkaContainer withNodeId(int nodeId) {
         this.nodeId = nodeId;

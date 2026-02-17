@@ -129,6 +129,7 @@
         <module>oauth-keycloak-authorizer</module>
         <module>examples/consumer</module>
         <module>examples/producer</module>
+        <module>testsuite</module>
     </modules>
 
     <dependencyManagement>

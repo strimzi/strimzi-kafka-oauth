@@ -16,8 +16,17 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
+/**
+ * Utility methods for integration tests.
+ */
 public class TestUtil {
 
+    /**
+     * Remove surrounding double quotes from a string value.
+     *
+     * @param value The value to unquote
+     * @return The unquoted value
+     */
     public static String unquote(String value) {
         return value.startsWith("\"") ?
                 value.substring(1, value.length() - 1) :
@@ -89,12 +98,23 @@ public class TestUtil {
         } while (!done);
     }
 
+    /**
+     * Log a test section start message.
+     *
+     * @param msg The message to log
+     */
     public static void logStart(String msg) {
         System.out.println();
         System.out.println("========    "  + msg);
         System.out.println();
     }
 
+    /**
+     * Log a formatted message to stdout.
+     *
+     * @param format The format string
+     * @param objects The format arguments
+     */
     public static void log(String format, String... objects) {
         if (objects == null || objects.length == 0) {
             System.out.println(format);
@@ -103,6 +123,13 @@ public class TestUtil {
         }
     }
 
+    /**
+     * Find the first line in the log matching the given regex.
+     *
+     * @param log The log lines to search
+     * @param regex The regex pattern to match
+     * @return The index of the first matching line, or -1 if not found
+     */
     public static int findFirstMatchingInLog(List<String> log, String regex) {
         int lineNum = 0;
         Pattern pattern = Pattern.compile(regex);
@@ -115,10 +142,24 @@ public class TestUtil {
         return -1;
     }
 
+    /**
+     * Check if any line in the log matches the given regex.
+     *
+     * @param log The log lines to search
+     * @param regex The regex pattern to match
+     * @return {@code true} if a matching line is found
+     */
     public static boolean checkLogForRegex(List<String> log, String regex) {
         return findFirstMatchingInLog(log, regex) != -1;
     }
 
+    /**
+     * Count lines in the log matching the given regex.
+     *
+     * @param log The log lines to search
+     * @param regex The regex pattern to match
+     * @return The number of matching lines
+     */
     public static int countLogForRegex(List<String> log, String regex) {
         int count = 0;
         Pattern pattern = Pattern.compile(regex);
@@ -130,6 +171,12 @@ public class TestUtil {
         return count;
     }
 
+    /**
+     * Walk the exception cause chain and return the root cause.
+     *
+     * @param e The exception to inspect
+     * @return The root cause, or {@code null} if the exception has no cause
+     */
     public static Throwable getRootCause(Throwable e) {
         Throwable cause = e;
         while (cause != null && cause.getCause() != null) {
@@ -138,6 +185,13 @@ public class TestUtil {
         return cause == e ? null : cause;
     }
 
+    /**
+     * Assert a condition, attaching extra exception info on failure.
+     *
+     * @param name The assertion description
+     * @param condition The condition to assert
+     * @param t The exception to attach as cause on failure
+     */
     public static void assertTrueExtra(String name, boolean condition, Throwable t) {
         try {
             Assertions.assertTrue(condition, name);
@@ -147,6 +201,14 @@ public class TestUtil {
         }
     }
 
+    /**
+     * Assert a condition, attaching extra exception and message info on failure.
+     *
+     * @param name The assertion description
+     * @param condition The condition to assert
+     * @param t The exception to attach as cause on failure
+     * @param extraInfo Additional info appended to the failure message
+     */
     public static void assertTrueExtra(String name, boolean condition, Throwable t, String extraInfo) {
         try {
             Assertions.assertTrue(condition, name);

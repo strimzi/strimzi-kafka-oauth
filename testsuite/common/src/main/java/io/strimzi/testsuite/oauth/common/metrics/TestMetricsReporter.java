@@ -13,6 +13,9 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+/**
+ * A Kafka {@link org.apache.kafka.common.metrics.MetricsReporter} implementation that logs metric events for testing.
+ */
 public class TestMetricsReporter implements org.apache.kafka.common.metrics.MetricsReporter {
 
     private static final Logger log = LoggerFactory.getLogger(TestMetricsReporter.class);

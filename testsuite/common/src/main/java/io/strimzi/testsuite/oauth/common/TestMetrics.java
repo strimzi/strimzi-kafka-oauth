@@ -17,6 +17,9 @@ import java.util.Map;
 
 import static io.strimzi.testsuite.oauth.common.TestUtil.unquote;
 
+/**
+ * Helper class for fetching and querying Prometheus metrics from an HTTP endpoint.
+ */
 public class TestMetrics {
 
     ArrayList<MetricEntry> entries = new ArrayList<>();
