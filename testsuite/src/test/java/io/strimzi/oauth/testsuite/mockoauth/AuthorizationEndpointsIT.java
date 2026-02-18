@@ -13,6 +13,7 @@ import io.strimzi.kafka.oauth.server.OAuthSaslAuthenticationException;
 import io.strimzi.kafka.oauth.server.ServerConfig;
 import io.strimzi.kafka.oauth.services.ServiceException;
 import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
+import io.strimzi.oauth.testsuite.common.TestTags;
 import io.strimzi.oauth.testsuite.environment.MockOAuthTestEnvironment;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerValidatorCallback;
 
@@ -107,7 +108,7 @@ public class AuthorizationEndpointsIT {
 
     @Test
     @DisplayName("Introspection endpoint should handle authentication with client credentials and bearer tokens")
-    @Tag("auth")
+    @Tag(TestTags.AUTH)
     void testIntrospectEndpointAuthentication() throws IOException, UnsupportedCallbackException {
         // introspect with clientid + secret
 
@@ -200,9 +201,9 @@ public class AuthorizationEndpointsIT {
 
     @Test
     @DisplayName("JWKS endpoint should handle authentication with client credentials and bearer tokens")
-    @Tag("auth")
-    @Tag("jwt")
-    @Tag("jwks")
+    @Tag(TestTags.AUTH)
+    @Tag(TestTags.JWT)
+    @Tag(TestTags.JWKS)
     void testJwksEndpointAuthentication() throws IOException, UnsupportedCallbackException {
         // jwks with clientid + secret
 

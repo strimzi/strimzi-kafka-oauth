@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.strimzi.kafka.oauth.common.HttpUtil;
 import io.strimzi.oauth.testsuite.environment.KeycloakAuthzKRaftTestEnvironment;
 import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
+import io.strimzi.oauth.testsuite.common.TestTags;
 import org.apache.kafka.clients.producer.Producer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -59,8 +60,8 @@ public class RefreshIT extends Common {
     }
 
     @Test
-    @Tag("authorization")
-    @Tag("refresh")
+    @Tag(TestTags.AUTHORIZATION)
+    @Tag(TestTags.REFRESH)
     public void testPermissionRefresh() throws Exception {
         // Run the basic authorization scenario first to create topics and establish initial state
         doTestTeamAClientPart1();

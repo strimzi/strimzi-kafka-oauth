@@ -7,6 +7,7 @@ package io.strimzi.oauth.testsuite.authz;
 import io.strimzi.kafka.oauth.common.HttpException;
 import io.strimzi.oauth.testsuite.environment.KeycloakAuthzKRaftTestEnvironment;
 import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
+import io.strimzi.oauth.testsuite.common.TestTags;
 import org.apache.kafka.common.errors.AuthenticationException;
 import org.apache.kafka.common.errors.AuthorizationException;
 import org.junit.jupiter.api.AfterAll;
@@ -59,8 +60,8 @@ public class ScramIT {
 
     @Test
     @DisplayName("Test SCRAM authenticated sessions")
-    @Tag("scram")
-    @Tag("authentication")
+    @Tag(TestTags.SCRAM)
+    @Tag(TestTags.AUTHENTICATION)
     public void testScramAuthenticatedSessions() throws Exception {
         // bobby:bobby-secret is defined in docker-compose.yaml in the PLAIN listener configuration (port 9100)
         String username = "bobby";

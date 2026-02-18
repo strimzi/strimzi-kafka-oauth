@@ -12,6 +12,7 @@ import io.strimzi.kafka.oauth.common.SSLUtil;
 import io.strimzi.kafka.oauth.common.TokenInfo;
 import io.strimzi.kafka.oauth.common.TokenIntrospection;
 import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
+import io.strimzi.oauth.testsuite.common.TestTags;
 import io.strimzi.oauth.testsuite.environment.MockOAuthTestEnvironment;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
@@ -63,8 +64,8 @@ public class ClientAssertionAuthIT {
 
     @Test
     @DisplayName("Client assertion authentication should work with correct assertion and fail with incorrect one")
-    @Tag("auth")
-    @Tag("client-assertion")
+    @Tag(TestTags.AUTH)
+    @Tag(TestTags.CLIENT_ASSERTION)
     void testClientAssertionAuthentication() throws Exception {
 
         changeAuthServerMode("token", "MODE_200");

@@ -6,6 +6,7 @@ package io.strimzi.oauth.testsuite.auth;
 
 import io.strimzi.kafka.oauth.client.ClientConfig;
 import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
+import io.strimzi.oauth.testsuite.common.TestTags;
 import io.strimzi.oauth.testsuite.environment.KeycloakAuthTestEnvironment;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
@@ -55,16 +56,16 @@ public class GroupsExtractionIT {
 
     @Test
     @DisplayName("Groups extraction with JWT validation")
-    @Tag("jwt")
-    @Tag("groups")
+    @Tag(TestTags.JWT)
+    @Tag(TestTags.GROUPS)
     void groupsExtractionWithJwtTest() throws Exception {
         runTest("localhost:9098", "principalName: service-account-team-b-client, groups: [offline_access, Dev Team B]");
     }
 
     @Test
     @DisplayName("Groups extraction with introspection validation")
-    @Tag("introspection")
-    @Tag("groups")
+    @Tag(TestTags.INTROSPECTION)
+    @Tag(TestTags.GROUPS)
     void groupsExtractionWithIntrospectionTest() throws Exception {
         runTest("localhost:9099", "principalName: service-account-team-b-client, groups: [kafka-user]");
     }

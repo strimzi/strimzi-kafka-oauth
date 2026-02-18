@@ -121,7 +121,7 @@ public class Common {
         consumer.assign(Collections.singletonList(partition));
 
         while (consumer.partitionsFor(topic, Duration.ofSeconds(1)).size() == 0) {
-            System.out.println("No assignment yet for consumer");
+            log.debug("No assignment yet for consumer");
         }
 
         consumer.seekToBeginning(Collections.singletonList(partition));
@@ -136,7 +136,7 @@ public class Common {
 
         try {
             while (consumer.partitionsFor(topic, Duration.ofSeconds(1)).size() == 0) {
-                System.out.println("No assignment yet for consumer");
+                log.debug("No assignment yet for consumer");
             }
 
             consumer.seekToBeginning(Collections.singletonList(partition));

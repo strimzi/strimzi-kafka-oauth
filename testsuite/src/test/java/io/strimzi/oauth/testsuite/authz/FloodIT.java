@@ -6,6 +6,7 @@ package io.strimzi.oauth.testsuite.authz;
 
 import io.strimzi.oauth.testsuite.environment.KeycloakAuthzKRaftTestEnvironment;
 import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
+import io.strimzi.oauth.testsuite.common.TestTags;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -82,9 +83,9 @@ public class FloodIT extends Common {
      */
     @Test
     @DisplayName("Test concurrent client credentials with flood")
-    @Tag("authorization")
-    @Tag("concurrent")
-    @Tag("flood")
+    @Tag(TestTags.AUTHORIZATION)
+    @Tag(TestTags.CONCURRENT)
+    @Tag(TestTags.FLOOD)
     public void clientCredentialsWithFloodTest() throws IOException {
 
         String producerPrefix = "kafka-producer-client-";
@@ -101,7 +102,7 @@ public class FloodIT extends Common {
             }
             this.tokens = tokens;
         }
-        System.out.println("    ====    Test sending to unauthorized topic");
+
         // Try write to the mismatched topic - we should get AuthorizationException
         try {
             sendSingleMessage("kafka-producer-client-1", "kafka-producer-client-1-secret", "messages-2");
@@ -115,7 +116,7 @@ public class FloodIT extends Common {
 
         // Do 5 iterations - each time hitting the broker with 10 parallel requests
         for (int run = 0; run < 5; run++) {
-            System.out.println("\n*** Run " + (run + 1) + "/5\n");
+            log.info("*** Run {}/5", run + 1);
             for (int i = 1; i <= clientCount; i++) {
                 String topic = "messages-" + i;
 
@@ -139,10 +140,6 @@ public class FloodIT extends Common {
             // Prepare for the next run
             clearThreads();
         }
-
-        System.out.println();
-        System.out.println("    ====    Test flooding a single topic using kafka-producer-client-1 and kafka-consumer-client-1");
-        System.out.println();
 
         // Now try the same with a single topic
         for (int run = 0; run < 5; run++) {

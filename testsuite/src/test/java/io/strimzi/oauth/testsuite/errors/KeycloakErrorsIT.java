@@ -7,6 +7,7 @@ package io.strimzi.oauth.testsuite.errors;
 import io.strimzi.kafka.oauth.client.ClientConfig;
 import io.strimzi.kafka.oauth.common.TokenInfo;
 import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
+import io.strimzi.oauth.testsuite.common.TestTags;
 import io.strimzi.oauth.testsuite.environment.KeycloakErrorsTestEnvironment;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
@@ -72,8 +73,8 @@ public class KeycloakErrorsIT {
 
     @Test
     @DisplayName("Unparseable JWT token should fail with proper error message")
-    @Tag("error-handling")
-    @Tag("jwt")
+    @Tag(TestTags.ERROR_HANDLING)
+    @Tag(TestTags.JWT)
     public void unparseableJwtToken() throws Exception {
         String token = "unparseable";
 
@@ -99,8 +100,8 @@ public class KeycloakErrorsIT {
 
     @Test
     @DisplayName("Corrupt token with introspection should fail with proper error message")
-    @Tag("error-handling")
-    @Tag("introspection")
+    @Tag(TestTags.ERROR_HANDLING)
+    @Tag(TestTags.INTROSPECTION)
     public void corruptTokenIntrospect() throws Exception {
         String token = "corrupt";
 
@@ -126,8 +127,8 @@ public class KeycloakErrorsIT {
 
     @Test
     @DisplayName("Invalid JWT token kid should fail with proper error message")
-    @Tag("error-handling")
-    @Tag("jwt")
+    @Tag(TestTags.ERROR_HANDLING)
+    @Tag(TestTags.JWT)
     public void invalidJwtTokenKid() throws Exception {
         // We authenticate against 'demo' realm, but use it with listener configured with 'kafka-authz' realm
         final String kafkaBootstrap = getKafkaBootstrap(9203);
@@ -157,8 +158,8 @@ public class KeycloakErrorsIT {
 
     @Test
     @DisplayName("Forged JWT signature should fail with proper error message")
-    @Tag("error-handling")
-    @Tag("jwt")
+    @Tag(TestTags.ERROR_HANDLING)
+    @Tag(TestTags.JWT)
     public void forgedJwtSig() throws Exception {
         final String kafkaBootstrap = getKafkaBootstrap(9201);
         final String hostPort = environment.getKeycloakHostPort();
@@ -194,8 +195,8 @@ public class KeycloakErrorsIT {
 
     @Test
     @DisplayName("Forged JWT signature with introspection should fail with proper error message")
-    @Tag("error-handling")
-    @Tag("introspection")
+    @Tag(TestTags.ERROR_HANDLING)
+    @Tag(TestTags.INTROSPECTION)
     public void forgedJwtSigIntrospect() throws Exception {
         final String kafkaBootstrap = getKafkaBootstrap(9202);
         final String hostPort = environment.getKeycloakHostPort();
@@ -231,8 +232,8 @@ public class KeycloakErrorsIT {
 
     @Test
     @DisplayName("Expired JWT token should fail with proper error message")
-    @Tag("error-handling")
-    @Tag("jwt")
+    @Tag(TestTags.ERROR_HANDLING)
+    @Tag(TestTags.JWT)
     public void expiredJwtToken() throws Exception {
         final String kafkaBootstrap = getKafkaBootstrap(9205);
         final String hostPort = environment.getKeycloakHostPort();
@@ -269,8 +270,8 @@ public class KeycloakErrorsIT {
 
     @Test
     @DisplayName("Bad client ID with OAuth over PLAIN should fail with proper error message")
-    @Tag("error-handling")
-    @Tag("plain")
+    @Tag(TestTags.ERROR_HANDLING)
+    @Tag(TestTags.PLAIN)
     public void badClientIdOAuthOverPlain() throws Exception {
         final String kafkaBootstrap = getKafkaBootstrap(9204);
 
@@ -294,8 +295,8 @@ public class KeycloakErrorsIT {
 
     @Test
     @DisplayName("Bad secret with OAuth over PLAIN should fail with proper error message")
-    @Tag("error-handling")
-    @Tag("plain")
+    @Tag(TestTags.ERROR_HANDLING)
+    @Tag(TestTags.PLAIN)
     public void badSecretOAuthOverPlain() throws Exception {
         final String kafkaBootstrap = getKafkaBootstrap(9204);
 
@@ -319,8 +320,8 @@ public class KeycloakErrorsIT {
 
     @Test
     @DisplayName("Cannot connect PLAIN with client credentials should fail with proper error message")
-    @Tag("error-handling")
-    @Tag("plain")
+    @Tag(TestTags.ERROR_HANDLING)
+    @Tag(TestTags.PLAIN)
     public void cantConnectPlainWithClientCredentials() throws Exception {
         final String kafkaBootstrap = getKafkaBootstrap(9206);
 
@@ -344,8 +345,8 @@ public class KeycloakErrorsIT {
 
     @Test
     @DisplayName("Cannot connect with introspection should fail with proper error message")
-    @Tag("error-handling")
-    @Tag("introspection")
+    @Tag(TestTags.ERROR_HANDLING)
+    @Tag(TestTags.INTROSPECTION)
     public void cantConnectIntrospect() throws Exception {
         final String kafkaBootstrap = getKafkaBootstrap(9207);
 
@@ -368,9 +369,9 @@ public class KeycloakErrorsIT {
 
     @Test
     @DisplayName("Cannot connect with introspection and timeout should fail with proper error message")
-    @Tag("error-handling")
-    @Tag("introspection")
-    @Tag("timeout")
+    @Tag(TestTags.ERROR_HANDLING)
+    @Tag(TestTags.INTROSPECTION)
+    @Tag(TestTags.TIMEOUT)
     public void cantConnectIntrospectWithTimeout() throws Exception {
         final String kafkaBootstrap = getKafkaBootstrap(9208);
 
@@ -395,8 +396,8 @@ public class KeycloakErrorsIT {
 
     @Test
     @DisplayName("Cannot connect to Keycloak with timeout should fail with proper error message")
-    @Tag("error-handling")
-    @Tag("timeout")
+    @Tag(TestTags.ERROR_HANDLING)
+    @Tag(TestTags.TIMEOUT)
     public void cantConnectKeycloakWithTimeout() {
         final String kafkaBootstrap = getKafkaBootstrap(9208);
         final String hostPort = "172.0.0.221:8080";
@@ -494,10 +495,9 @@ public class KeycloakErrorsIT {
         // For JDK 17 the ConnectionTimeoutException error message was fixed to start with upper case
         long matchedCount = log.stream().filter(s -> s.startsWith("Caused by:") && s.contains("onnect timed out")).count();
         if (matchedCount == 0) {
-            System.out.println("");
             matchedCount = log.stream().filter(s -> s.startsWith("Caused by:") && s.contains("Connection refused")).count();
             Assertions.assertTrue(matchedCount > 0, "Found 'connect timed out' or 'Connection refused' cause of the error? (" + errId + ") " + log);
-            System.out.println("WARN: Found 'Connection refused' rather than 'Connect timed out'");
+            KeycloakErrorsIT.log.warn("Found 'Connection refused' rather than 'Connect timed out'");
         }
     }
 }

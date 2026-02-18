@@ -7,6 +7,7 @@ package io.strimzi.oauth.testsuite.mockoauth;
 import io.strimzi.kafka.oauth.client.ClientConfig;
 import io.strimzi.kafka.oauth.common.Config;
 import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
+import io.strimzi.oauth.testsuite.common.TestTags;
 import io.strimzi.oauth.testsuite.environment.MockOAuthTestEnvironment;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -74,9 +75,9 @@ public class RetriesIT {
     @Test
     @Order(1)
     @DisplayName("Broker should retry token, introspection, and userinfo endpoints on PLAIN")
-    @Tag("retry")
-    @Tag("plain")
-    @Tag("introspection")
+    @Tag(TestTags.RETRY)
+    @Tag(TestTags.PLAIN)
+    @Tag(TestTags.INTROSPECTION)
     void testPlainIntrospectAndUserinfoEndpointsRetries() throws Exception {
         // Use FAILINGINTROSPECT kafka listener that uses /failing_introspect, /failing_userinfo,
         // and /failing_token, and supports OAuth over PLAIN
@@ -115,8 +116,8 @@ public class RetriesIT {
     @Test
     @Order(2)
     @DisplayName("Client should retry token endpoint requests according to http.retries config")
-    @Tag("retry")
-    @Tag("client")
+    @Tag(TestTags.RETRY)
+    @Tag(TestTags.CLIENT)
     void testClientRetries() throws Exception {
         final String kafkaBootstrap = "localhost:9096";
         final String hostPort = Common.getMockOAuthAuthHostPort();
@@ -178,9 +179,9 @@ public class RetriesIT {
     @Test
     @Order(3)
     @DisplayName("Broker should retry token endpoint on PLAIN with JWKS endpoint configured")
-    @Tag("retry")
-    @Tag("plain")
-    @Tag("jwks")
+    @Tag(TestTags.RETRY)
+    @Tag(TestTags.PLAIN)
+    @Tag(TestTags.JWKS)
     void testPlainRetriesWithJWKS() throws Exception {
         // Use FAILINGJWT kafka listener that uses /failing_token, and supports OAuth over PLAIN
         final String kafkaBootstrap = "localhost:9098";
@@ -243,8 +244,8 @@ public class RetriesIT {
     @Test
     @Order(4)
     @DisplayName("Broker should retry introspection and userinfo endpoint requests on OAUTHBEARER")
-    @Tag("retry")
-    @Tag("introspection")
+    @Tag(TestTags.RETRY)
+    @Tag(TestTags.INTROSPECTION)
     void testIntrospectAndUserinfoEndpointsRetries() throws Exception {
         // use kafka listener that uses /failing_introspect and failing_userinfo
         final String kafkaBootstrap = "localhost:9097";

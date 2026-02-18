@@ -8,6 +8,7 @@ import io.strimzi.kafka.oauth.client.ClientConfig;
 import io.strimzi.kafka.oauth.common.PrincipalExtractor;
 import io.strimzi.kafka.oauth.common.TokenInfo;
 import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
+import io.strimzi.oauth.testsuite.common.TestTags;
 import io.strimzi.oauth.testsuite.common.TestMetrics;
 import io.strimzi.oauth.testsuite.common.metrics.TestMetricsReporter;
 import io.strimzi.oauth.testsuite.environment.KeycloakAuthTestEnvironment;
@@ -77,7 +78,7 @@ public class BasicIT {
 
     @Test
     @DisplayName("OAuth metrics config integration test")
-    @Tag("metrics")
+    @Tag(TestTags.METRICS)
     void oauthMetricsConfigIntegration() {
         // Test that MetricReporter config works as expected
         // Get kafka log and make sure the TestMetricReporter was initialised exactly twice
@@ -104,7 +105,7 @@ public class BasicIT {
 
     @Test
     @DisplayName("OAuth metrics client authentication test")
-    @Tag("metrics")
+    @Tag(TestTags.METRICS)
     void oauthMetricsClientAuth() throws Exception {
         final String realm = "demo";
         final String tokenPath = "/realms/" + realm + "/protocol/openid-connect/token";
@@ -130,8 +131,8 @@ public class BasicIT {
 
     @Test
     @DisplayName("Client credentials with JWT ECDSA validation")
-    @Tag("jwt")
-    @Tag("ecdsa")
+    @Tag(TestTags.JWT)
+    @Tag(TestTags.ECDSA)
     void clientCredentialsWithJwtECDSAValidation() throws Exception {
         final String kafkaBootstrap = "localhost:9092";
         final String authHostPort = environment.getKeycloakHostPort();
@@ -163,7 +164,7 @@ public class BasicIT {
             consumer.assign(singletonList(partition));
 
             while (consumer.partitionsFor(topic, Duration.ofSeconds(1)).size() == 0) {
-                System.out.println("No assignment yet for consumer");
+                log.debug("No assignment yet for consumer");
             }
             consumer.seekToBeginning(singletonList(partition));
 
@@ -192,8 +193,8 @@ public class BasicIT {
 
     @Test
     @DisplayName("Client credentials with JWT RSA validation")
-    @Tag("jwt")
-    @Tag("rsa")
+    @Tag(TestTags.JWT)
+    @Tag(TestTags.RSA)
     void clientCredentialsWithJwtRSAValidation() throws Exception {
         final String kafkaBootstrap = "localhost:9096";
         final String authHostPort = environment.getKeycloakHostPort();
@@ -225,7 +226,7 @@ public class BasicIT {
             consumer.assign(singletonList(partition));
 
             while (consumer.partitionsFor(topic, Duration.ofSeconds(1)).size() == 0) {
-                System.out.println("No assignment yet for consumer");
+                log.debug("No assignment yet for consumer");
             }
             consumer.seekToBeginning(singletonList(partition));
 
@@ -249,7 +250,7 @@ public class BasicIT {
 
     @Test
     @DisplayName("Access token with introspection")
-    @Tag("introspection")
+    @Tag(TestTags.INTROSPECTION)
     void accessTokenWithIntrospection() throws Exception {
         final String kafkaBootstrap = "localhost:9093";
         final String authHostPort = environment.getKeycloakHostPort();
@@ -284,7 +285,7 @@ public class BasicIT {
             consumer.assign(singletonList(partition));
 
             while (consumer.partitionsFor(topic, Duration.ofSeconds(1)).size() == 0) {
-                System.out.println("No assignment yet for consumer");
+                log.debug("No assignment yet for consumer");
             }
             consumer.seekToBeginning(singletonList(partition));
 
@@ -307,7 +308,7 @@ public class BasicIT {
 
     @Test
     @DisplayName("Refresh token with introspection")
-    @Tag("introspection")
+    @Tag(TestTags.INTROSPECTION)
     void refreshTokenWithIntrospection() throws Exception {
         final String kafkaBootstrap = "localhost:9093";
         final String authHostPort = environment.getKeycloakHostPort();
@@ -347,7 +348,7 @@ public class BasicIT {
             consumer.assign(singletonList(partition));
 
             while (consumer.partitionsFor(topic, Duration.ofSeconds(1)).size() == 0) {
-                System.out.println("No assignment yet for consumer");
+                log.debug("No assignment yet for consumer");
             }
             consumer.seekToBeginning(singletonList(partition));
 
@@ -369,8 +370,8 @@ public class BasicIT {
 
     @Test
     @DisplayName("Password grant with JWT RSA validation")
-    @Tag("jwt")
-    @Tag("password-grant")
+    @Tag(TestTags.JWT)
+    @Tag(TestTags.PASSWORD_GRANT)
     void passwordGrantWithJwtRSAValidation() throws Exception {
         final String kafkaBootstrap = "localhost:9096";
         final String authHostPort = environment.getKeycloakHostPort();
@@ -400,7 +401,7 @@ public class BasicIT {
             consumer.assign(singletonList(partition));
 
             while (consumer.partitionsFor(topic, Duration.ofSeconds(1)).size() == 0) {
-                System.out.println("No assignment yet for consumer");
+                log.debug("No assignment yet for consumer");
             }
             consumer.seekToBeginning(singletonList(partition));
 
@@ -413,8 +414,8 @@ public class BasicIT {
 
     @Test
     @DisplayName("Password grant with introspection")
-    @Tag("introspection")
-    @Tag("password-grant")
+    @Tag(TestTags.INTROSPECTION)
+    @Tag(TestTags.PASSWORD_GRANT)
     void passwordGrantWithIntrospection() throws Exception {
         final String kafkaBootstrap = "localhost:9093";
         final String authHostPort = environment.getKeycloakHostPort();
@@ -473,7 +474,7 @@ public class BasicIT {
             consumer.assign(singletonList(partition));
 
             while (consumer.partitionsFor(topic, Duration.ofSeconds(1)).size() == 0) {
-                System.out.println("No assignment yet for consumer");
+                log.debug("No assignment yet for consumer");
             }
             consumer.seekToBeginning(singletonList(partition));
 

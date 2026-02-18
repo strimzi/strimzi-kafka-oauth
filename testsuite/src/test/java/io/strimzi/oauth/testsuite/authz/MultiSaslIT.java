@@ -7,6 +7,7 @@ package io.strimzi.oauth.testsuite.authz;
 import io.strimzi.kafka.oauth.client.ClientConfig;
 import io.strimzi.oauth.testsuite.environment.KeycloakAuthzKRaftTestEnvironment;
 import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
+import io.strimzi.oauth.testsuite.common.TestTags;
 import io.strimzi.oauth.testsuite.common.TestMetrics;
 import org.apache.kafka.common.errors.AuthenticationException;
 import org.apache.kafka.common.errors.AuthorizationException;
@@ -71,8 +72,8 @@ public class MultiSaslIT {
 
     @Test
     @DisplayName("Test multiple SASL mechanisms with authorization")
-    @Tag("multi-sasl")
-    @Tag("authorization")
+    @Tag(TestTags.MULTI_SASL)
+    @Tag(TestTags.AUTHORIZATION)
     public void testMultipleSaslMechanisms() throws Exception {
 
         // bobby:bobby-secret is defined in docker-compose.yaml in the PLAIN listener configuration (port 9100)

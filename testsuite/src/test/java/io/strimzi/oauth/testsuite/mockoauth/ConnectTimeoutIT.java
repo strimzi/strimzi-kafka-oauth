@@ -6,6 +6,7 @@ package io.strimzi.oauth.testsuite.mockoauth;
 
 import io.strimzi.kafka.oauth.client.ClientConfig;
 import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
+import io.strimzi.oauth.testsuite.common.TestTags;
 import io.strimzi.oauth.testsuite.environment.MockOAuthTestEnvironment;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
@@ -20,6 +21,8 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
 
 import java.util.HashMap;
@@ -39,6 +42,8 @@ import static io.strimzi.oauth.testsuite.common.TestUtil.getRootCause;
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class ConnectTimeoutIT {
+
+    private static final Logger log = LoggerFactory.getLogger(ConnectTimeoutIT.class);
 
     private MockOAuthTestEnvironment environment;
     private GenericContainer<?> kafkaContainer;
@@ -63,11 +68,9 @@ public class ConnectTimeoutIT {
 
     @Test
     @DisplayName("Connection failure to introspection endpoint should be properly reported")
-    @Tag("timeout")
-    @Tag("introspection")
+    @Tag(TestTags.TIMEOUT)
+    @Tag(TestTags.INTROSPECTION)
     void testCantConnectIntrospect() throws Exception {
-        System.out.println("    ====    Check the error returned if connection to the introspection endpoint fails");
-
         final String kafkaBootstrap = "localhost:9096";
 
         // Turn off the mockoauth server
@@ -98,7 +101,7 @@ public class ConnectTimeoutIT {
 
     @Test
     @DisplayName("Request timeout to token endpoint should be properly handled")
-    @Tag("timeout")
+    @Tag(TestTags.TIMEOUT)
     void testConnectAuthServerWithTimeout() throws Exception {
         final String kafkaBootstrap = "localhost:9096";
         final String hostPort = Common.getMockOAuthAuthHostPort();
@@ -165,8 +168,9 @@ public class ConnectTimeoutIT {
         // Verify the authentication failure with this errId was logged
         List<String> errIdLog = getContainerLogsForString(kafkaContainer, errId);
         Assertions.assertFalse(errIdLog.isEmpty(), "Error with " + errId + " should appear in container logs");
-        // The detailed cause is in a separate log entry in newer Kafka versions
-        List<String> log = getContainerLogsForString(kafkaContainer, "Action failed");
+        // The full stack trace with "Connection refused" is in the "Runtime failure" log entry,
+        // not in the "Action failed" entries which are single-line
+        List<String> log = getContainerLogsForString(kafkaContainer, "Runtime failure during token validation");
         long matchedCount = log.stream()
             .filter(s -> s.startsWith("Caused by:") && s.contains("Connection refused"))
             .count();

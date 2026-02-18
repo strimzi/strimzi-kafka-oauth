@@ -10,6 +10,7 @@ import io.strimzi.kafka.oauth.common.TokenIntrospection;
 import io.strimzi.kafka.oauth.services.Services;
 import io.strimzi.kafka.oauth.validator.JWTSignatureValidator;
 import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
+import io.strimzi.oauth.testsuite.common.TestTags;
 import io.strimzi.oauth.testsuite.environment.MockOAuthTestEnvironment;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -62,7 +63,7 @@ public class JwtExtractIT {
 
     @Test
     @DisplayName("JWT validation should handle 'exp' attribute overflow correctly")
-    @Tag("jwt")
+    @Tag(TestTags.JWT)
     void testExpiresAtOverflow() throws Exception {
         Services.configure(new HashMap<>());
 

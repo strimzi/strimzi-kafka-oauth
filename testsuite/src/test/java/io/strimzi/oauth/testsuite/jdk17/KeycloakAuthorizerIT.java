@@ -21,6 +21,7 @@ import io.strimzi.kafka.oauth.server.authorizer.KeycloakAuthorizer;
 import io.strimzi.kafka.oauth.server.authorizer.TestAuthzUtil;
 import io.strimzi.oauth.testsuite.common.LogLineReader;
 import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
+import io.strimzi.oauth.testsuite.common.TestTags;
 import io.strimzi.oauth.testsuite.common.TestUtil;
 import io.strimzi.oauth.testsuite.environment.MockOAuthJdk17TestEnvironment;
 import org.apache.kafka.common.acl.AclOperation;
@@ -132,9 +133,9 @@ public class KeycloakAuthorizerIT {
 
     @Test
     @DisplayName("Grants 401 (invalid token) test")
-    @Tag("authorization")
-    @Tag("grants")
-    @Tag("error-handling")
+    @Tag(TestTags.AUTHORIZATION)
+    @Tag(TestTags.GRANTS)
+    @Tag(TestTags.ERROR_HANDLING)
     public void doGrants401Test() throws IOException, InterruptedException, TimeoutException {
         changeAuthServerMode("token", "MODE_200");
 
@@ -197,9 +198,9 @@ public class KeycloakAuthorizerIT {
 
     @Test
     @DisplayName("Grants 403 (forbidden) test")
-    @Tag("authorization")
-    @Tag("grants")
-    @Tag("error-handling")
+    @Tag(TestTags.AUTHORIZATION)
+    @Tag(TestTags.GRANTS)
+    @Tag(TestTags.ERROR_HANDLING)
     public void doGrants403Test() throws IOException {
         // Switch grants endpoint to 403 mode
         changeAuthServerMode("grants", "MODE_403");
@@ -243,9 +244,9 @@ public class KeycloakAuthorizerIT {
 
     @Test
     @DisplayName("HTTP retries test")
-    @Tag("authorization")
-    @Tag("http")
-    @Tag("retries")
+    @Tag(TestTags.AUTHORIZATION)
+    @Tag(TestTags.HTTP)
+    @Tag(TestTags.RETRIES)
     public void doHttpRetriesTest() throws IOException {
         changeAuthServerMode("token", "MODE_200");
         changeAuthServerMode("failing_token", "MODE_400");
@@ -295,9 +296,9 @@ public class KeycloakAuthorizerIT {
      */
     @Test
     @DisplayName("Concurrent grants refresh test")
-    @Tag("authorization")
-    @Tag("grants")
-    @Tag("concurrency")
+    @Tag(TestTags.AUTHORIZATION)
+    @Tag(TestTags.GRANTS)
+    @Tag(TestTags.CONCURRENCY)
     public void doConcurrentGrantsRefreshTest() throws IOException, ExecutionException, InterruptedException {
         // create a test user 'user1'
         String userOne = "user1";
@@ -421,8 +422,8 @@ public class KeycloakAuthorizerIT {
 
     @Test
     @DisplayName("Configuration tests")
-    @Tag("authorization")
-    @Tag("config")
+    @Tag(TestTags.AUTHORIZATION)
+    @Tag(TestTags.CONFIG)
     public void doConfigTests() throws IOException {
         HashMap<String, String> config = new HashMap<>();
         config.put("process.roles", "broker,controller");
@@ -566,9 +567,9 @@ public class KeycloakAuthorizerIT {
 
     @Test
     @DisplayName("ACL delegation configuration tests")
-    @Tag("authorization")
-    @Tag("config")
-    @Tag("acl")
+    @Tag(TestTags.AUTHORIZATION)
+    @Tag(TestTags.CONFIG)
+    @Tag(TestTags.ACL)
     public void doAclDelegationConfigTests() throws IOException {
         HashMap<String, String> config = new HashMap<>();
 
@@ -604,8 +605,8 @@ public class KeycloakAuthorizerIT {
 
     @Test
     @DisplayName("Grants garbage collection tests")
-    @Tag("authorization")
-    @Tag("grants")
+    @Tag(TestTags.AUTHORIZATION)
+    @Tag(TestTags.GRANTS)
     public void doGrantsGCTests() throws Exception {
         // Hold on to the created principals to prevent JVM gc() clearing the sessions
         List<OAuthKafkaPrincipal> principals = new LinkedList<>();
@@ -767,8 +768,8 @@ public class KeycloakAuthorizerIT {
      */
     @Test
     @DisplayName("Malformed grants tests")
-    @Tag("authorization")
-    @Tag("grants")
+    @Tag(TestTags.AUTHORIZATION)
+    @Tag(TestTags.GRANTS)
     public void doMalformedGrantsTests() throws IOException, InterruptedException, TimeoutException {
         // make sure the token endpoint works fine
         changeAuthServerMode("token", "MODE_200");
@@ -863,8 +864,8 @@ public class KeycloakAuthorizerIT {
      */
     @Test
     @DisplayName("Grants semantic equals test")
-    @Tag("authorization")
-    @Tag("grants")
+    @Tag(TestTags.AUTHORIZATION)
+    @Tag(TestTags.GRANTS)
     public void doGrantsSemanticEqualsTest() throws Exception {
         String grants1 = "[{\"scopes\":[\"Write\",\"Describe\"],\"rsid\":\"a92a050d-b4f1-4e91-ac65-dbe10f17ee36\",\"rsname\":\"Topic:x_*\"},{\"scopes\":[\"Read\",\"Write\",\"Delete\",\"Describe\",\"Alter\",\"Create\",\"DescribeConfigs\",\"AlterConfigs\"],\"rsid\":\"5098d4c2-0e7f-4121-8fd2-9964111370a2\",\"rsname\":\"Topic:a_*\"},{\"scopes\":[\"Read\",\"Describe\"],\"rsid\":\"916ed684-5bd0-42b1-b7ab-3b23448d3f50\",\"rsname\":\"Group:a_*\"},{\"scopes\":[\"IdempotentWrite\"],\"rsid\":\"d71850c3-5ea8-47ef-9a61-4fab9c1df363\",\"rsname\":\"kafka-cluster:my-cluster,Cluster:*\"}]";
         String grants2 = "[{\"scopes\":[\"Write\",\"Describe\",\"Create\"],\"rsid\":\"a92a050d-b4f1-4e91-ac65-dbe10f17ee36\",\"rsname\":\"Topic:x_*\"},{\"scopes\":[\"Read\",\"Write\",\"Delete\",\"Describe\",\"Alter\",\"Create\",\"DescribeConfigs\",\"AlterConfigs\"],\"rsid\":\"5098d4c2-0e7f-4121-8fd2-9964111370a2\",\"rsname\":\"Topic:a_*\"},{\"scopes\":[\"Read\",\"Describe\"],\"rsid\":\"916ed684-5bd0-42b1-b7ab-3b23448d3f50\",\"rsname\":\"Group:a_*\"},{\"scopes\":[\"IdempotentWrite\"],\"rsid\":\"d71850c3-5ea8-47ef-9a61-4fab9c1df363\",\"rsname\":\"kafka-cluster:my-cluster,Cluster:*\"}]";
@@ -938,8 +939,8 @@ public class KeycloakAuthorizerIT {
 
     @Test
     @DisplayName("Singleton authorizer test")
-    @Tag("authorization")
-    @Tag("config")
+    @Tag(TestTags.AUTHORIZATION)
+    @Tag(TestTags.CONFIG)
     public void doSingletonTest() throws Exception {
         HashMap<String, String> config = configureAuthorizer();
 

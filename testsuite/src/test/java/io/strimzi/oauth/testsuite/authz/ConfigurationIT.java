@@ -6,6 +6,7 @@ package io.strimzi.oauth.testsuite.authz;
 
 import io.strimzi.oauth.testsuite.environment.KeycloakAuthzKRaftTestEnvironment;
 import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
+import io.strimzi.oauth.testsuite.common.TestTags;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -47,7 +48,7 @@ public class ConfigurationIT {
 
     @Test
     @DisplayName("Verify KeycloakRBACAuthorizer configuration settings")
-    @Tag("configuration")
+    @Tag(TestTags.CONFIGURATION)
     public void verifyAuthorizerConfiguration() {
         // get kafka log and make sure KeycloakRBACAuthorizer has been configured with expected settings
         List<String> lines = getContainerLogsForString(environment.getKafka(), "Configured KeycloakRBACAuthorizer");

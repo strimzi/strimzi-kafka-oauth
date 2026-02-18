@@ -6,6 +6,7 @@ package io.strimzi.oauth.testsuite.authz;
 
 import io.strimzi.oauth.testsuite.environment.KeycloakAuthzKRaftTestEnvironment;
 import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
+import io.strimzi.oauth.testsuite.common.TestTags;
 import io.strimzi.oauth.testsuite.common.TestMetrics;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -57,7 +58,7 @@ public class MetricsIT {
 
     @Test
     @DisplayName("Verify JWKS and client authentication metrics")
-    @Tag("metrics")
+    @Tag(TestTags.METRICS)
     public void verifyJwksAndClientAuthMetrics() throws Exception {
         TestMetrics metrics = getPrometheusMetrics(URI.create("http://localhost:9404/metrics"));
         BigDecimal value = metrics.getStartsWithValueSum("strimzi_oauth_http_requests_count", "kind", "jwks", "host", AUTH_HOST_PORT, "path", JWKS_PATH, "outcome", "success");
@@ -76,7 +77,7 @@ public class MetricsIT {
 
     @Test
     @DisplayName("Verify validation and authorization metrics")
-    @Tag("metrics")
+    @Tag(TestTags.METRICS)
     @Disabled("TODO - try to find why it is failing")
     public void verifyValidationAndAuthorizationMetrics() throws Exception {
         TestMetrics metrics = getPrometheusMetrics(URI.create("http://localhost:9404/metrics"));

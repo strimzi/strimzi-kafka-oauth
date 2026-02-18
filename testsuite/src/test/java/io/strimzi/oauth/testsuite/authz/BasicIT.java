@@ -6,6 +6,7 @@ package io.strimzi.oauth.testsuite.authz;
 
 import io.strimzi.oauth.testsuite.environment.KeycloakAuthzKRaftTestEnvironment;
 import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
+import io.strimzi.oauth.testsuite.common.TestTags;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -49,7 +50,7 @@ public class BasicIT extends Common {
     }
 
     @Test
-    @Tag("authorization")
+    @Tag(TestTags.AUTHORIZATION)
     public void testAuthorization() throws Exception {
         doTestTeamAClientPart1();
         doTestTeamBClientPart1();

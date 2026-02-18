@@ -6,6 +6,7 @@ package io.strimzi.oauth.testsuite.auth;
 
 import io.strimzi.kafka.oauth.client.ClientConfig;
 import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
+import io.strimzi.oauth.testsuite.common.TestTags;
 import io.strimzi.oauth.testsuite.environment.KeycloakAuthTestEnvironment;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
@@ -56,8 +57,8 @@ public class AudienceIT {
 
     @Test
     @DisplayName("Client credentials with JWT audience validation")
-    @Tag("jwt")
-    @Tag("audience")
+    @Tag(TestTags.JWT)
+    @Tag(TestTags.AUDIENCE)
     void clientCredentialsWithJwtAudience() throws Exception {
         final String kafkaBootstrap = "localhost:9094";
         final String hostPort = environment.getKeycloakHostPort();
@@ -101,8 +102,8 @@ public class AudienceIT {
 
     @Test
     @DisplayName("Client credentials with introspection audience validation")
-    @Tag("introspection")
-    @Tag("audience")
+    @Tag(TestTags.INTROSPECTION)
+    @Tag(TestTags.AUDIENCE)
     void clientCredentialsWithIntrospectionAudienceTest() throws Exception {
         final String kafkaBootstrap = "localhost:9095";
         final String hostPort = environment.getKeycloakHostPort();

@@ -7,6 +7,7 @@ package io.strimzi.oauth.testsuite.authz;
 import io.strimzi.oauth.testsuite.environment.KeycloakAuthzKRaftTestEnvironment;
 import io.strimzi.oauth.testsuite.common.ContainerLogLineReader;
 import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
+import io.strimzi.oauth.testsuite.common.TestTags;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -53,8 +54,8 @@ public class SingletonIT {
      */
     @Test
     @DisplayName("Test KeycloakAuthorizer singleton behavior")
-    @Tag("singleton")
-    @Tag("authorization")
+    @Tag(TestTags.SINGLETON)
+    @Tag(TestTags.AUTHORIZATION)
     public void testKeycloakAuthorizerSingleton() throws Exception {
         // In KRaft mode, there are 3 KeycloakAuthorizer instances
         int keycloakAuthorizersCount = 2;

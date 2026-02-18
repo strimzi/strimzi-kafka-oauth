@@ -19,6 +19,7 @@ import io.strimzi.kafka.oauth.common.JSONUtil;
 import io.strimzi.kafka.oauth.common.OAuthAuthenticator;
 import io.strimzi.kafka.oauth.common.TokenInfo;
 import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
+import io.strimzi.oauth.testsuite.common.TestTags;
 import io.strimzi.oauth.testsuite.environment.KeycloakAuthTestEnvironment;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
@@ -81,8 +82,8 @@ public class JwtManipulationIT {
 
     @Test
     @DisplayName("JWT manipulation and validation test")
-    @Tag("jwt")
-    @Tag("manipulation")
+    @Tag(TestTags.JWT)
+    @Tag(TestTags.MANIPULATION)
     // TODO - change name?
     void doTests() throws Exception {
 

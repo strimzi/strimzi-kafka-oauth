@@ -6,6 +6,7 @@ package io.strimzi.oauth.testsuite.auth;
 
 import io.strimzi.kafka.oauth.client.ClientConfig;
 import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
+import io.strimzi.oauth.testsuite.common.TestTags;
 import io.strimzi.oauth.testsuite.environment.KeycloakAuthTestEnvironment;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
@@ -64,7 +65,7 @@ public class MultiSaslIT {
 
     @Test
     @DisplayName("Multi SASL mechanism test")
-    @Tag("multi-sasl")
+    @Tag(TestTags.MULTI_SASL)
     // TODO - change name?
     void doTests() throws Exception {
         // bobby:bobby-secret

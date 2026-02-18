@@ -10,6 +10,7 @@ import io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler;
 import io.strimzi.kafka.oauth.server.ServerConfig;
 import io.strimzi.oauth.testsuite.common.LogLineReader;
 import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
+import io.strimzi.oauth.testsuite.common.TestTags;
 import io.strimzi.oauth.testsuite.common.metrics.TestMetricsReporter;
 import io.strimzi.oauth.testsuite.environment.MockOAuthTestEnvironment;
 import org.junit.jupiter.api.AfterAll;
@@ -55,9 +56,9 @@ public class JaasServerConfigIT {
 
     @Test
     @DisplayName("JWKS validator should handle all configuration options correctly")
-    @Tag("config")
-    @Tag("jwt")
-    @Tag("jwks")
+    @Tag(TestTags.CONFIG)
+    @Tag(TestTags.JWT)
+    @Tag(TestTags.JWKS)
     void testJwksValidatorOptions() throws IOException {
         // Fast local JWT check
 
@@ -210,8 +211,8 @@ public class JaasServerConfigIT {
 
     @Test
     @DisplayName("Introspection validator should handle all configuration options correctly")
-    @Tag("config")
-    @Tag("introspection")
+    @Tag(TestTags.CONFIG)
+    @Tag(TestTags.INTROSPECTION)
     void testIntrospectValidatorOptions() throws IOException {
         LogLineReader logReader = new LogLineReader(Common.LOG_PATH);
         logReader.readNext();

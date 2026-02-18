@@ -99,31 +99,6 @@ public class TestUtil {
     }
 
     /**
-     * Log a test section start message.
-     *
-     * @param msg The message to log
-     */
-    public static void logStart(String msg) {
-        System.out.println();
-        System.out.println("========    "  + msg);
-        System.out.println();
-    }
-
-    /**
-     * Log a formatted message to stdout.
-     *
-     * @param format The format string
-     * @param objects The format arguments
-     */
-    public static void log(String format, String... objects) {
-        if (objects == null || objects.length == 0) {
-            System.out.println(format);
-        } else {
-            System.out.printf(format, (Object[]) objects);
-        }
-    }
-
-    /**
      * Find the first line in the log matching the given regex.
      *
      * @param log The log lines to search

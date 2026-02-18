@@ -7,6 +7,7 @@ package io.strimzi.oauth.testsuite.errors;
 import io.strimzi.kafka.oauth.client.ClientConfig;
 import io.strimzi.kafka.oauth.common.TokenInfo;
 import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
+import io.strimzi.oauth.testsuite.common.TestTags;
 import io.strimzi.oauth.testsuite.environment.KeycloakErrorsTestEnvironment;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
@@ -21,6 +22,8 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
 
 import java.net.URI;
@@ -43,6 +46,8 @@ import static io.strimzi.oauth.testsuite.common.TestUtil.getRootCause;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DisplayName("Error Reporting Tests")
 public class ErrorReportingIT {
+
+    private static final Logger log = LoggerFactory.getLogger(ErrorReportingIT.class);
 
     private GenericContainer<?> kafkaContainer;
     private KeycloakErrorsTestEnvironment environment;
@@ -78,7 +83,7 @@ public class ErrorReportingIT {
     }
 
     @Test
-    @Tag("jwt")
+    @Tag(TestTags.JWT)
     @DisplayName("Unparseable JWT token")
     void testUnparseableJwtToken() throws Exception {
         String token = "unparseable";
@@ -109,7 +114,7 @@ public class ErrorReportingIT {
     }
 
     @Test
-    @Tag("introspection")
+    @Tag(TestTags.INTROSPECTION)
     @DisplayName("Corrupt token with introspection")
     void testCorruptTokenIntrospect() throws Exception {
         String token = "corrupt";
@@ -140,7 +145,7 @@ public class ErrorReportingIT {
     }
 
     @Test
-    @Tag("jwt")
+    @Tag(TestTags.JWT)
     @DisplayName("Invalid JWT token kid")
     void testInvalidJwtTokenKid() throws Exception {
         // We authenticate against 'demo' realm, but use it with listener configured with 'kafka-authz' realm
@@ -175,7 +180,7 @@ public class ErrorReportingIT {
     }
 
     @Test
-    @Tag("jwt")
+    @Tag(TestTags.JWT)
     @DisplayName("Forged JWT signature")
     void testForgedJwtSig() throws Exception {
         final String kafkaBootstrap = getKafkaBootstrap(9201);
@@ -216,7 +221,7 @@ public class ErrorReportingIT {
     }
 
     @Test
-    @Tag("introspection")
+    @Tag(TestTags.INTROSPECTION)
     @DisplayName("Forged JWT signature with introspection")
     void testForgedJwtSigIntrospect() throws Exception {
         final String kafkaBootstrap = getKafkaBootstrap(9202);
@@ -257,7 +262,7 @@ public class ErrorReportingIT {
     }
 
     @Test
-    @Tag("jwt")
+    @Tag(TestTags.JWT)
     @DisplayName("Expired JWT token")
     void testExpiredJwtToken() throws Exception {
         final String kafkaBootstrap = getKafkaBootstrap(9205);
@@ -299,7 +304,7 @@ public class ErrorReportingIT {
     }
 
     @Test
-    @Tag("plain")
+    @Tag(TestTags.PLAIN)
     @DisplayName("Bad client ID with OAuth over PLAIN")
     void testBadClientIdOAuthOverPlain() throws Exception {
         final String kafkaBootstrap = getKafkaBootstrap(9204);
@@ -328,7 +333,7 @@ public class ErrorReportingIT {
     }
 
     @Test
-    @Tag("plain")
+    @Tag(TestTags.PLAIN)
     @DisplayName("Bad secret with OAuth over PLAIN")
     void testBadSecretOAuthOverPlain() throws Exception {
         final String kafkaBootstrap = getKafkaBootstrap(9204);
@@ -357,7 +362,7 @@ public class ErrorReportingIT {
     }
 
     @Test
-    @Tag("plain")
+    @Tag(TestTags.PLAIN)
     @DisplayName("Can't connect PLAIN with client credentials")
     void testCantConnectPlainWithClientCredentials() throws Exception {
         final String kafkaBootstrap = getKafkaBootstrap(9206);
@@ -386,7 +391,7 @@ public class ErrorReportingIT {
     }
 
     @Test
-    @Tag("introspection")
+    @Tag(TestTags.INTROSPECTION)
     @DisplayName("Can't connect to introspection endpoint")
     void testCantConnectIntrospect() throws Exception {
         final String kafkaBootstrap = getKafkaBootstrap(9207);
@@ -414,8 +419,8 @@ public class ErrorReportingIT {
     }
 
     @Test
-    @Tag("introspection")
-    @Tag("timeout")
+    @Tag(TestTags.INTROSPECTION)
+    @Tag(TestTags.TIMEOUT)
     @DisplayName("Can't connect to introspection endpoint with timeout")
     void testCantConnectIntrospectWithTimeout() throws Exception {
         final String kafkaBootstrap = getKafkaBootstrap(9208);
@@ -445,15 +450,14 @@ public class ErrorReportingIT {
         // For JDK 17 the ConnectionTimeoutException error message was fixed to start with upper case
         long matchedCount = log.stream().filter(s -> s.startsWith("Caused by:") && s.contains("onnect timed out")).count();
         if (matchedCount == 0) {
-            System.out.println("");
             matchedCount = log.stream().filter(s -> s.startsWith("Caused by:") && s.contains("Connection refused")).count();
             Assertions.assertTrue(matchedCount > 0, "Found 'connect timed out' or 'Connection refused' cause of the error? (" + errId + ") " + log);
-            System.out.println("WARN: Found 'Connection refused' rather than 'Connect timed out'");
+            ErrorReportingIT.log.warn("Found 'Connection refused' rather than 'Connect timed out'");
         }
     }
 
     @Test
-    @Tag("timeout")
+    @Tag(TestTags.TIMEOUT)
     @DisplayName("Can't connect to Keycloak with timeout")
     void testCantConnectKeycloakWithTimeout() {
         final String kafkaBootstrap = getKafkaBootstrap(9208);

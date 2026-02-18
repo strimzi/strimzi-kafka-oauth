@@ -10,6 +10,7 @@ import io.strimzi.kafka.oauth.common.ConfigUtil;
 import io.strimzi.kafka.oauth.common.OAuthAuthenticator;
 import io.strimzi.kafka.oauth.common.TokenInfo;
 import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
+import io.strimzi.oauth.testsuite.common.TestTags;
 import io.strimzi.oauth.testsuite.environment.HydraTestEnvironment;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -39,7 +40,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 
-import static io.strimzi.oauth.testsuite.common.TestUtil.logStart;
 import static io.strimzi.oauth.testsuite.utils.KafkaClientConfig.buildConsumerConfigOAuthBearer;
 import static io.strimzi.oauth.testsuite.utils.KafkaClientConfig.buildProducerConfigOAuthBearer;
 import static io.strimzi.oauth.testsuite.utils.KafkaClientConfig.poll;
@@ -78,10 +78,9 @@ public class HydraAuthenticationIT {
 
     @Test
     @DisplayName("Authentication with PKCS12 truststore")
-    @Tag("authentication")
-    @Tag("pkcs12")
+    @Tag(TestTags.AUTHENTICATION)
+    @Tag(TestTags.PKCS12)
     public void testWithPKCS() throws Exception {
-        logStart("HydraAuthenticationTest :: Authentication with PKCS12 truststore");
         Properties defaults = new Properties();
         defaults.setProperty(ClientConfig.OAUTH_SSL_TRUSTSTORE_LOCATION, "target/kafka/certs/ca-truststore.p12");
         defaults.setProperty(ClientConfig.OAUTH_SSL_TRUSTSTORE_PASSWORD, "changeit");
@@ -99,10 +98,9 @@ public class HydraAuthenticationIT {
 
     @Test
     @DisplayName("Authentication with PEM truststore from file")
-    @Tag("authentication")
-    @Tag("pem")
+    @Tag(TestTags.AUTHENTICATION)
+    @Tag(TestTags.PEM)
     public void testWithPemFromFile() throws Exception {
-        logStart("HydraAuthenticationTest :: Authentication with PEM truststore from file");
         Properties defaults = new Properties();
         defaults.setProperty(ClientConfig.OAUTH_SSL_TRUSTSTORE_LOCATION, "docker/certificates/ca.crt");
         defaults.setProperty(ClientConfig.OAUTH_SSL_TRUSTSTORE_TYPE, "PEM");
@@ -119,10 +117,9 @@ public class HydraAuthenticationIT {
 
     @Test
     @DisplayName("Authentication with PEM truststore from string")
-    @Tag("authentication")
-    @Tag("pem")
+    @Tag(TestTags.AUTHENTICATION)
+    @Tag(TestTags.PEM)
     public void testWithPemFromString() throws Exception {
-        logStart("HydraAuthenticationTest :: Authentication with PEM truststore from string");
         Properties defaults = new Properties();
         defaults.setProperty(ClientConfig.OAUTH_SSL_TRUSTSTORE_CERTIFICATES, new String(Files.readAllBytes(Paths.get("docker/certificates/ca.crt"))));
         //defaults.setProperty(ClientConfig.OAUTH_SSL_TRUSTSTORE_LOCATION, null);
@@ -139,8 +136,6 @@ public class HydraAuthenticationIT {
     }
 
     private void opaqueAccessTokenWithIntrospectValidationTest(String title) throws Exception {
-        System.out.println("    ====    " + title);
-
         final String kafkaBootstrap = "localhost:9092";
         final String hostPort = System.getProperty("hydra.host") + ":" + System.getProperty("hydra.port");
 
@@ -172,7 +167,7 @@ public class HydraAuthenticationIT {
             consumer.assign(Collections.singletonList(partition));
 
             while (consumer.partitionsFor(topic, Duration.ofSeconds(1)).size() == 0) {
-                System.out.println("No assignment yet for consumer");
+                log.debug("No assignment yet for consumer");
             }
             consumer.seekToBeginning(Collections.singletonList(partition));
 
@@ -184,8 +179,6 @@ public class HydraAuthenticationIT {
     }
 
     private void clientCredentialsWithJwtValidationTest(String title) throws Exception {
-        System.out.println("    ====    " + title);
-
         final String kafkaBootstrap = "localhost:9093";
         final String hostPort = System.getProperty("hydra.jwt.host") + ":" + System.getProperty("hydra.jwt.port");
         final String tokenEndpointUri = "https://" + hostPort + "/oauth2/token";
@@ -210,7 +203,7 @@ public class HydraAuthenticationIT {
             consumer.assign(Collections.singletonList(partition));
 
             while (consumer.partitionsFor(topic, Duration.ofSeconds(1)).size() == 0) {
-                System.out.println("No assignment yet for consumer");
+                log.debug("No assignment yet for consumer");
             }
             consumer.seekToBeginning(Collections.singletonList(partition));
 

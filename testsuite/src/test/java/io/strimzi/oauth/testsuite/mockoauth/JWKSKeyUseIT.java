@@ -13,6 +13,7 @@ import io.strimzi.kafka.oauth.services.Services;
 import io.strimzi.kafka.oauth.validator.JWTSignatureValidator;
 import io.strimzi.kafka.oauth.validator.TokenValidationException;
 import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
+import io.strimzi.oauth.testsuite.common.TestTags;
 import io.strimzi.oauth.testsuite.environment.MockOAuthTestEnvironment;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
@@ -62,8 +63,8 @@ public class JWKSKeyUseIT {
 
     @Test
     @DisplayName("Token validation should fail when JWKS key lacks 'use' attribute and enforcement is enabled")
-    @Tag("jwt")
-    @Tag("jwks")
+    @Tag(TestTags.JWT)
+    @Tag(TestTags.JWKS)
     void testJWKSKeyUseEnforcement() throws Exception {
         Services.configure(new HashMap<>());
 
@@ -105,8 +106,8 @@ public class JWKSKeyUseIT {
 
     @Test
     @DisplayName("Token validation should succeed when ignoreKeyUse is enabled")
-    @Tag("jwt")
-    @Tag("jwks")
+    @Tag(TestTags.JWT)
+    @Tag(TestTags.JWKS)
     void testJWKSKeyUseIgnored() throws Exception {
         Services.configure(new HashMap<>());
 

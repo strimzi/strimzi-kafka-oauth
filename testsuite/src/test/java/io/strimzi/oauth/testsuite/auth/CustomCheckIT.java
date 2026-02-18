@@ -6,6 +6,7 @@ package io.strimzi.oauth.testsuite.auth;
 
 import io.strimzi.kafka.oauth.client.ClientConfig;
 import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
+import io.strimzi.oauth.testsuite.common.TestTags;
 import io.strimzi.oauth.testsuite.environment.KeycloakAuthTestEnvironment;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
@@ -57,16 +58,16 @@ public class CustomCheckIT {
 
     @Test
     @DisplayName("Custom claim check with JWT validation")
-    @Tag("jwt")
-    @Tag("custom-check")
+    @Tag(TestTags.JWT)
+    @Tag(TestTags.CUSTOM_CHECK)
     void customClaimCheckWithJwtTest() throws Exception {
         runTest("localhost:9098");
     }
 
     @Test
     @DisplayName("Custom claim check with introspection validation")
-    @Tag("introspection")
-    @Tag("custom-check")
+    @Tag(TestTags.INTROSPECTION)
+    @Tag(TestTags.CUSTOM_CHECK)
     void customClaimCheckWithIntrospectionTest() throws Exception {
         runTest("localhost:9099");
     }

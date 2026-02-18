@@ -9,6 +9,7 @@ import io.strimzi.kafka.oauth.metrics.GlobalConfig;
 import io.strimzi.kafka.oauth.services.Services;
 import io.strimzi.oauth.testsuite.common.LogLineReader;
 import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
+import io.strimzi.oauth.testsuite.common.TestTags;
 import io.strimzi.oauth.testsuite.common.TestUtil;
 import io.strimzi.oauth.testsuite.common.metrics.TestMetricsReporter;
 import io.strimzi.oauth.testsuite.environment.MockOAuthTestEnvironment;
@@ -70,7 +71,7 @@ public class MetricsIT {
         environment.start(false);  // start without switching endpoints to MODE_200
 
         // Initial zero check - verify no Prometheus metrics errors before tests run
-        System.out.println("See log at: " + new File("target/test.log").getAbsolutePath());
+        LOG.info("See log at: {}", new File("target/test.log").getAbsolutePath());
         zeroCheck();
 
         environment.initEndpoints();  // now switch to MODE_200
@@ -90,7 +91,7 @@ public class MetricsIT {
     @Test
     @Order(1)
     @DisplayName("Check initial JWKS endpoint errors show in Prometheus metrics")
-    @Tag("metrics")
+    @Tag(TestTags.METRICS)
     public void testPostInitCheck() throws Exception {
         postInitCheck();
     }
@@ -98,7 +99,7 @@ public class MetricsIT {
     @Test
     @Order(2)
     @DisplayName("Check network errors show in Prometheus metrics")
-    @Tag("metrics")
+    @Tag(TestTags.METRICS)
     public void testNetworkErrors() throws Exception {
         testNetworkErrorsImpl();
     }
@@ -106,7 +107,7 @@ public class MetricsIT {
     @Test
     @Order(3)
     @DisplayName("Check TLS errors show in Prometheus metrics")
-    @Tag("metrics")
+    @Tag(TestTags.METRICS)
     public void testExpiredCert() throws Exception {
         testExpiredCertImpl();
     }
@@ -114,7 +115,7 @@ public class MetricsIT {
     @Test
     @Order(4)
     @DisplayName("Check 5xx errors show in Prometheus metrics")
-    @Tag("metrics")
+    @Tag(TestTags.METRICS)
     public void testInternalServerErrors() throws Exception {
         testInternalServerErrorsImpl();
     }
@@ -122,7 +123,7 @@ public class MetricsIT {
     @Test
     @Order(5)
     @DisplayName("Check `strimzi.oauth.metric.reporters` configuration handling")
-    @Tag("metrics")
+    @Tag(TestTags.METRICS)
     public void testOAuthMetricReporters() throws Exception {
         testOAuthMetricReportersImpl();
     }
@@ -130,7 +131,7 @@ public class MetricsIT {
     @Test
     @Order(6)
     @DisplayName("Check enabling metrics with JMX for the Kafka client")
-    @Tag("metrics")
+    @Tag(TestTags.METRICS)
     public void testKafkaClientConfig() throws Exception {
         testKafkaClientConfigImpl();
     }

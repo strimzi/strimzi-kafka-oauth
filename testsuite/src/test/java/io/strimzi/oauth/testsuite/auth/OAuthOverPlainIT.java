@@ -6,6 +6,7 @@ package io.strimzi.oauth.testsuite.auth;
 
 import io.strimzi.kafka.oauth.common.TokenInfo;
 import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
+import io.strimzi.oauth.testsuite.common.TestTags;
 import io.strimzi.oauth.testsuite.common.TestMetrics;
 import io.strimzi.oauth.testsuite.environment.KeycloakAuthTestEnvironment;
 import org.apache.kafka.clients.consumer.Consumer;
@@ -72,8 +73,8 @@ public class OAuthOverPlainIT {
     @Test
     @Order(1)
     @DisplayName("Client credentials over PLAIN with JWT")
-    @Tag("plain")
-    @Tag("jwt")
+    @Tag(TestTags.PLAIN)
+    @Tag(TestTags.JWT)
     void clientCredentialsOverPlainWithJwt() throws Exception {
         final String kafkaBootstrap = "localhost:9096";
         final String hostPort = environment.getKeycloakHostPort();
@@ -100,7 +101,7 @@ public class OAuthOverPlainIT {
             consumer.assign(singletonList(partition));
 
             while (consumer.partitionsFor(topic, Duration.ofSeconds(1)).size() == 0) {
-                System.out.println("No assignment yet for consumer");
+                log.debug("No assignment yet for consumer");
             }
             consumer.seekToBeginning(singletonList(partition));
 
@@ -133,8 +134,8 @@ public class OAuthOverPlainIT {
     @Test
     @Order(2)
     @DisplayName("Client credentials over PLAIN with introspection")
-    @Tag("plain")
-    @Tag("introspection")
+    @Tag(TestTags.PLAIN)
+    @Tag(TestTags.INTROSPECTION)
     void clientCredentialsOverPlainWithIntrospection() throws Exception {
         final String kafkaBootstrap = "localhost:9097";
 
@@ -162,7 +163,7 @@ public class OAuthOverPlainIT {
             consumer.assign(singletonList(partition));
 
             while (consumer.partitionsFor(topic, Duration.ofSeconds(1)).size() == 0) {
-                System.out.println("No assignment yet for consumer");
+                log.debug("No assignment yet for consumer");
             }
             consumer.seekToBeginning(singletonList(partition));
 
@@ -195,8 +196,8 @@ public class OAuthOverPlainIT {
     @Test
     @Order(3)
     @DisplayName("Access token over PLAIN with introspection")
-    @Tag("plain")
-    @Tag("introspection")
+    @Tag(TestTags.PLAIN)
+    @Tag(TestTags.INTROSPECTION)
     void accessTokenOverPlainWithIntrospection() throws Exception {
         final String kafkaBootstrap = "localhost:9097";
         final String hostPort = environment.getKeycloakHostPort();
@@ -229,7 +230,7 @@ public class OAuthOverPlainIT {
             consumer.assign(singletonList(partition));
 
             while (consumer.partitionsFor(topic, Duration.ofSeconds(1)).size() == 0) {
-                System.out.println("No assignment yet for consumer");
+                log.debug("No assignment yet for consumer");
             }
             consumer.seekToBeginning(singletonList(partition));
 
@@ -259,8 +260,8 @@ public class OAuthOverPlainIT {
     @Test
     @Order(4)
     @DisplayName("Client credentials over PLAIN with flood test")
-    @Tag("plain")
-    @Tag("performance")
+    @Tag(TestTags.PLAIN)
+    @Tag(TestTags.PERFORMANCE)
     void clientCredentialsOverPlainWithFloodTest() {
         final String kafkaBootstrap = "localhost:9102";
 
@@ -294,7 +295,7 @@ public class OAuthOverPlainIT {
     @Test
     @Order(5)
     @DisplayName("Access token over PLAIN with client credentials disabled")
-    @Tag("plain")
+    @Tag(TestTags.PLAIN)
     void accessTokenOverPlainWithClientCredentialsDisabled() throws Exception {
         final String kafkaBootstrap = "localhost:9103";
         final String hostPort = environment.getKeycloakHostPort();
@@ -328,7 +329,7 @@ public class OAuthOverPlainIT {
             consumer.assign(singletonList(partition));
 
             while (consumer.partitionsFor(topic, Duration.ofSeconds(1)).size() == 0) {
-                System.out.println("No assignment yet for consumer");
+                log.debug("No assignment yet for consumer");
             }
             consumer.seekToBeginning(singletonList(partition));
 
