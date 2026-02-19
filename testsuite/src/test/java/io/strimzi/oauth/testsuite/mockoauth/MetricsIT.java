@@ -2,7 +2,7 @@
  * Copyright 2017-2021, Strimzi authors.
  * License: Apache License 2.0 (see the file LICENSE or http://apache.org/licenses/LICENSE-2.0.html).
  */
-package io.strimzi.oauth.testsuite.mockoauth.metrics;
+package io.strimzi.oauth.testsuite.mockoauth;
 
 import io.strimzi.kafka.oauth.client.ClientConfig;
 import io.strimzi.kafka.oauth.metrics.GlobalConfig;
@@ -10,10 +10,12 @@ import io.strimzi.kafka.oauth.services.Services;
 import io.strimzi.oauth.testsuite.common.LogLineReader;
 import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
 import io.strimzi.oauth.testsuite.common.TestTags;
-import io.strimzi.oauth.testsuite.common.TestUtil;
-import io.strimzi.oauth.testsuite.common.metrics.TestMetricsReporter;
+import io.strimzi.oauth.testsuite.utils.TestUtil;
+import io.strimzi.oauth.testsuite.metrics.TestMetricsReporter;
 import io.strimzi.oauth.testsuite.environment.MockOAuthTestEnvironment;
-import io.strimzi.oauth.testsuite.mockoauth.Common;
+import io.strimzi.oauth.testsuite.metrics.TestMetrics;
+import io.strimzi.oauth.testsuite.clients.KafkaClientsConfig;
+import io.strimzi.oauth.testsuite.clients.MockOAuthAdmin;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -41,9 +43,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.TimeoutException;
 
-import static io.strimzi.oauth.testsuite.mockoauth.Common.changeAuthServerMode;
-import static io.strimzi.oauth.testsuite.mockoauth.Common.getPrometheusMetrics;
-import static io.strimzi.oauth.testsuite.mockoauth.Common.reloadMetrics;
+import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.changeAuthServerMode;
 
 /**
  * Tests for OAuth metrics functionality.
@@ -85,7 +85,7 @@ public class MetricsIT {
     }
 
     private static String getTokenEndpointUri() {
-        return "https://" + Common.getMockOAuthAuthHostPort() + "/token";
+        return "https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/token";
     }
 
     @Test
@@ -146,7 +146,7 @@ public class MetricsIT {
 
         Properties producerProps = new Properties();
 
-        LogLineReader logReader = new LogLineReader(Common.LOG_PATH);
+        LogLineReader logReader = new LogLineReader("target/test.log");
         logReader.readNext();
 
         // Clear the configured metrics in order to trigger reinitialisation
@@ -182,7 +182,7 @@ public class MetricsIT {
     }
 
     private void initJaas(Map<String, String> oauthConfig, Properties additionalProps) throws Exception {
-        Properties producerProps = Common.buildProducerConfigOAuthBearer(KAFKA_BOOTSTRAP, oauthConfig);
+        Properties producerProps = KafkaClientsConfig.buildProducerConfigOAuthBearer(KAFKA_BOOTSTRAP, oauthConfig);
         producerProps.putAll(additionalProps);
         try (Producer<String, String> producer = new KafkaProducer<>(producerProps)) {
             producer.send(new ProducerRecord<>("Test-testTopic", "The Message")).get();
@@ -197,7 +197,7 @@ public class MetricsIT {
         changeAuthServerMode("server", "mode_cert_two_on");
 
         Thread.sleep(PAUSE_MILLIS);
-        Metrics metrics = reloadMetrics();
+        TestMetrics metrics = TestMetrics.getPrometheusMetrics(URI.create("http://localhost:9404/metrics"));
 
 
         // We should not see any 503 errors yet because of more TLS errors due to CERT_TWO being used
@@ -207,7 +207,7 @@ public class MetricsIT {
         changeAuthServerMode("server", "mode_cert_one_on");
 
         Thread.sleep(PAUSE_MILLIS);
-        metrics = reloadMetrics();
+        metrics = TestMetrics.getPrometheusMetrics(URI.create("http://localhost:9404/metrics"));
 
 
         // We should see some 503 errors
@@ -226,7 +226,7 @@ public class MetricsIT {
         changeAuthServerMode("server", "mode_expired_cert_on");
 
         Thread.sleep(PAUSE_MILLIS);
-        Metrics metrics = reloadMetrics();
+        TestMetrics metrics = TestMetrics.getPrometheusMetrics(URI.create("http://localhost:9404/metrics"));
 
 
         // We should see some TLS errors
@@ -245,7 +245,7 @@ public class MetricsIT {
         changeAuthServerMode("server", "mode_off");
 
         Thread.sleep(PAUSE_MILLIS * 2);
-        Metrics metrics = reloadMetrics();
+        TestMetrics metrics = TestMetrics.getPrometheusMetrics(URI.create("http://localhost:9404/metrics"));
 
 
         // See some network errors on JWT's
@@ -259,7 +259,7 @@ public class MetricsIT {
     }
 
     private void postInitCheck() throws IOException {
-        Metrics metrics = getPrometheusMetrics(URI.create("http://localhost:9404/metrics"));
+        TestMetrics metrics = TestMetrics.getPrometheusMetrics(URI.create("http://localhost:9404/metrics"));
 
         // mockoauth has JWKS endpoint configured to return 404
         // error counter for 404 for JWT should not be zero as at least one JWKS request should fail
@@ -274,7 +274,7 @@ public class MetricsIT {
     }
 
     private void zeroCheck() throws IOException {
-        Metrics metrics = getPrometheusMetrics(URI.create("http://localhost:9404/metrics"));
+        TestMetrics metrics = TestMetrics.getPrometheusMetrics(URI.create("http://localhost:9404/metrics"));
 
         // assumption check
         // JWT listener config (on port 9404 in docker-compose.yml) has no token endpoint so the next metric should not exist.
@@ -315,7 +315,7 @@ public class MetricsIT {
 
     private void testOAuthMetricReportersImpl() throws IOException, InterruptedException, TimeoutException {
 
-        LogLineReader logReader = new LogLineReader(Common.LOG_PATH);
+        LogLineReader logReader = new LogLineReader("target/test.log");
         // seek to the end of log file
         logReader.readNext();
 

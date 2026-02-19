@@ -27,15 +27,15 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import static io.strimzi.oauth.testsuite.utils.KafkaClientConfig.buildProducerConfigOAuthBearer;
-import static io.strimzi.oauth.testsuite.utils.KafkaClientConfig.buildProducerConfigPlain;
-import static io.strimzi.oauth.testsuite.utils.KafkaClientConfig.buildProducerConfigScram;
-import static io.strimzi.oauth.testsuite.utils.KafkaClientConfig.loginWithUsernamePassword;
+import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.buildProducerConfigOAuthBearer;
+import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.buildProducerConfigPlain;
+import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.buildProducerConfigScram;
+import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.loginWithUsernamePassword;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class MultiSaslIT {
+public class AuthMultiSaslIT {
 
-    private static final Logger log = LoggerFactory.getLogger(MultiSaslIT.class);
+    private static final Logger log = LoggerFactory.getLogger(AuthMultiSaslIT.class);
 
     private static final String KAFKA_PLAIN_LISTENER = "localhost:9100";
     private static final String KAFKA_SCRAM_LISTENER = "localhost:9101";

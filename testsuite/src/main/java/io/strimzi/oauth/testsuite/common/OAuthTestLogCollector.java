@@ -19,6 +19,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
 
+import static io.strimzi.oauth.testsuite.environment.TestContainerFactory.CONTAINER_LABEL_KEY;
+
 /**
  * JUnit Jupiter extension that collects and dumps container logs when a test fails.
  */
@@ -86,11 +88,7 @@ public class OAuthTestLogCollector implements TestWatcher, BeforeTestExecutionCa
 
     private void writeContainerLog(GenericContainer<?> container, File dir) {
         try {
-            String name = Optional.ofNullable(container.getNetworkAliases())
-                    .filter(aliases -> !aliases.isEmpty())
-                    .map(aliases -> aliases.get(0))
-                    .orElseGet(() -> container.getDockerImageName());
-            String sanitizedName = sanitize(name);
+            String sanitizedName = sanitize(container.getLabels().get(CONTAINER_LABEL_KEY));
             File logFile = new File(dir, sanitizedName + ".log");
             try (FileWriter writer = new FileWriter(logFile)) {
                 writer.write(container.getLogs());

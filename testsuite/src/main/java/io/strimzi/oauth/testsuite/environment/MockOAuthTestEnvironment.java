@@ -5,7 +5,7 @@
 package io.strimzi.oauth.testsuite.environment;
 
 import io.strimzi.test.container.OAuthKafkaContainer;
-import io.strimzi.oauth.testsuite.utils.MockOAuthAdmin;
+import io.strimzi.oauth.testsuite.clients.MockOAuthAdmin;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.wait.strategy.Wait;

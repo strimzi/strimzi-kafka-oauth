@@ -48,8 +48,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import static io.strimzi.oauth.testsuite.utils.KafkaClientConfig.buildProducerConfigOAuthBearer;
-import static io.strimzi.oauth.testsuite.utils.KafkaClientConfig.loginWithUsernamePassword;
+import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.buildProducerConfigOAuthBearer;
+import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.loginWithUsernamePassword;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class JwtManipulationIT {

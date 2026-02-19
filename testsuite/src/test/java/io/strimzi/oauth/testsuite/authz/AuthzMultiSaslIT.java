@@ -8,7 +8,8 @@ import io.strimzi.kafka.oauth.client.ClientConfig;
 import io.strimzi.oauth.testsuite.environment.KeycloakAuthzKRaftTestEnvironment;
 import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
 import io.strimzi.oauth.testsuite.common.TestTags;
-import io.strimzi.oauth.testsuite.common.TestMetrics;
+import io.strimzi.oauth.testsuite.metrics.TestMetrics;
+import io.strimzi.oauth.testsuite.clients.KafkaClientsConfig;
 import org.apache.kafka.common.errors.AuthenticationException;
 import org.apache.kafka.common.errors.AuthorizationException;
 import org.junit.jupiter.api.AfterAll;
@@ -29,11 +30,11 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 
-import static io.strimzi.oauth.testsuite.authz.Common.buildProducerConfigOAuthBearer;
-import static io.strimzi.oauth.testsuite.authz.Common.buildProducerConfigPlain;
-import static io.strimzi.oauth.testsuite.authz.Common.produceToTopic;
-import static io.strimzi.oauth.testsuite.common.TestMetrics.getPrometheusMetrics;
-import static io.strimzi.oauth.testsuite.common.TestUtil.getContainerLogsForString;
+import static io.strimzi.oauth.testsuite.authz.AbstractAuthzIT.buildProducerConfigOAuthBearer;
+import static io.strimzi.oauth.testsuite.authz.AbstractAuthzIT.buildProducerConfigPlain;
+import static io.strimzi.oauth.testsuite.authz.AbstractAuthzIT.produceToTopic;
+import static io.strimzi.oauth.testsuite.metrics.TestMetrics.getPrometheusMetrics;
+import static io.strimzi.oauth.testsuite.utils.TestUtil.getContainerLogsForString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -43,7 +44,7 @@ import static org.junit.jupiter.api.Assertions.fail;
  * Tests for multiple SASL mechanisms (PLAIN, OAUTHBEARER, OAuth over PLAIN)
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class MultiSaslIT {
+public class AuthzMultiSaslIT {
 
     private static final String PLAIN_LISTENER = "localhost:9100";
     private static final String JWT_LISTENER = "localhost:9092";
@@ -114,8 +115,8 @@ public class MultiSaslIT {
         int fetchGrantsCount = currentFetchGrantsLogCount();
 
         // Producing to JWT listener using SASL/OAUTHBEARER using access token should succeed
-        String accessToken = Common.loginWithUsernamePassword(
-                URI.create(Common.tokenEndpointUri()),
+        String accessToken = KafkaClientsConfig.loginWithUsernamePasswordInBody(
+                URI.create(environment.getTokenEndpointUri()),
                 username, password, "kafka-cli");
         producerProps = producerConfigOAuthBearerAccessToken(JWT_LISTENER, accessToken);
         produceToTopic("KeycloakAuthorizationTest-multiSaslTest-oauthbearer", producerProps);

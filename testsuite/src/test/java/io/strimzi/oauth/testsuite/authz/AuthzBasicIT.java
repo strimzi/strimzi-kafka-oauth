@@ -7,6 +7,7 @@ package io.strimzi.oauth.testsuite.authz;
 import io.strimzi.oauth.testsuite.environment.KeycloakAuthzKRaftTestEnvironment;
 import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
 import io.strimzi.oauth.testsuite.common.TestTags;
+import io.strimzi.oauth.testsuite.clients.KafkaClientsConfig;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -15,11 +16,13 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.testcontainers.containers.GenericContainer;
 
+import java.util.Properties;
+
 /**
  * Basic authorization tests for Keycloak with KRaft
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class BasicIT extends Common {
+public class AuthzBasicIT extends AbstractAuthzIT {
 
     private GenericContainer<?> kafkaContainer;
     private KeycloakAuthzKRaftTestEnvironment environment;
@@ -28,8 +31,19 @@ public class BasicIT extends Common {
     OAuthTestLogCollector logCollector = new OAuthTestLogCollector(() ->
             environment != null ? environment.getContainers() : null);
 
-    public BasicIT() {
-        super("localhost:9092", false);
+    @Override
+    protected String kafkaBootstrap() {
+        return "localhost:9092";
+    }
+
+    @Override
+    protected Properties buildProducerConfigForAccount(String name) {
+        return buildProducerConfigOAuthBearer(kafkaBootstrap(), buildAuthConfigForOAuthBearer(name));
+    }
+
+    @Override
+    protected Properties buildConsumerConfigForAccount(String name) {
+        return KafkaClientsConfig.buildConsumerConfigOAuthBearer(kafkaBootstrap(), buildAuthConfigForOAuthBearer(name));
     }
 
     @BeforeAll
@@ -38,7 +52,7 @@ public class BasicIT extends Common {
         environment.start();
         kafkaContainer = environment.getKafka();
 
-        authenticateAllActors();
+        authenticateAllActors(environment.getTokenEndpointUri());
     }
 
     @AfterAll

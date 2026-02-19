@@ -4,12 +4,10 @@
  */
 package io.strimzi.oauth.testsuite.authz;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.strimzi.kafka.oauth.client.ClientConfig;
-import io.strimzi.kafka.oauth.common.HttpUtil;
-import io.strimzi.oauth.testsuite.common.TestUtil;
-import io.strimzi.oauth.testsuite.utils.KafkaClientConfig;
+import io.strimzi.oauth.testsuite.utils.TestUtil;
+import io.strimzi.oauth.testsuite.clients.KafkaClientsConfig;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.Consumer;
@@ -21,13 +19,7 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.acl.AccessControlEntryFilter;
-import org.apache.kafka.common.acl.AclBinding;
-import org.apache.kafka.common.acl.AclBindingFilter;
-import org.apache.kafka.common.acl.AclOperation;
-import org.apache.kafka.common.acl.AclPermissionType;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
-import org.apache.kafka.common.resource.ResourcePatternFilter;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,7 +29,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.time.Duration;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -46,7 +37,6 @@ import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithClientSecret;
-import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
 import static java.util.Collections.singletonList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -55,21 +45,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 @SuppressFBWarnings({"THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION", "THROWS_METHOD_THROWS_RUNTIMEEXCEPTION", "RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT"})
-public class Common {
+public abstract class AbstractAuthzIT {
 
-    private static final Logger log = LoggerFactory.getLogger(Common.class);
+    private static final Logger log = LoggerFactory.getLogger(AbstractAuthzIT.class);
 
     static final String REALM = "kafka-authz";
 
-    static String keycloakHostPort() {
-        return System.getProperty("keycloak.host", "localhost") + ":" + System.getProperty("keycloak.port", "8080");
-    }
-
-    static String tokenEndpointUri() {
-        return "http://" + keycloakHostPort() + "/realms/" + REALM + "/protocol/openid-connect/token";
-    }
-
-    private static final String PLAIN_LISTENER = "localhost:9100";
     static final String TEAM_A_CLIENT = "team-a-client";
     static final String TEAM_B_CLIENT = "team-b-client";
     static final String BOB = "bob";
@@ -79,11 +60,6 @@ public class Common {
     static final String TOPIC_B = "b_messages";
     static final String TOPIC_X = "x_messages";
 
-
-    String kafkaBootstrap;
-
-    boolean usePlain;
-
     HashMap<String, String> tokens = new HashMap<>();
 
     Producer<String, String> teamAProducer;
@@ -92,10 +68,11 @@ public class Common {
     Producer<String, String> teamBProducer;
     Consumer<String, String> teamBConsumer;
 
-    Common(String kafkaBootstrap, boolean oauthOverPlain) {
-        this.kafkaBootstrap = kafkaBootstrap;
-        this.usePlain = oauthOverPlain;
-    }
+    protected abstract String kafkaBootstrap();
+
+    protected abstract Properties buildProducerConfigForAccount(String name);
+
+    protected abstract Properties buildConsumerConfigForAccount(String name);
 
     static void produceToTopic(String topic, Properties config) throws Exception {
 
@@ -105,14 +82,14 @@ public class Common {
         }
     }
 
-    void authenticateAllActors() throws IOException {
-        tokens.put(TEAM_A_CLIENT, loginWithClientSecret(URI.create(tokenEndpointUri()), null, null,
+    void authenticateAllActors(String tokenEndpointUri) throws IOException {
+        tokens.put(TEAM_A_CLIENT, loginWithClientSecret(URI.create(tokenEndpointUri), null, null,
                 TEAM_A_CLIENT, TEAM_A_CLIENT + "-secret", true, null, null, true).token());
-        tokens.put(TEAM_B_CLIENT, loginWithClientSecret(URI.create(tokenEndpointUri()), null, null,
+        tokens.put(TEAM_B_CLIENT, loginWithClientSecret(URI.create(tokenEndpointUri), null, null,
                 TEAM_B_CLIENT, TEAM_B_CLIENT + "-secret", true, null, null, true).token());
-        tokens.put(BOB, loginWithUsernamePassword(URI.create(tokenEndpointUri()),
+        tokens.put(BOB, KafkaClientsConfig.loginWithUsernamePasswordInBody(URI.create(tokenEndpointUri),
                 BOB, BOB + "-password", "kafka-cli"));
-        tokens.put(ZERO, loginWithUsernamePassword(URI.create(tokenEndpointUri()),
+        tokens.put(ZERO, KafkaClientsConfig.loginWithUsernamePasswordInBody(URI.create(tokenEndpointUri),
                 ZERO, ZERO + "-password", "kafka-cli"));
     }
 
@@ -159,53 +136,6 @@ public class Common {
         } catch (ExecutionException e) {
             assertInstanceOf(TopicAuthorizationException.class, e.getCause(), "Should fail with TopicAuthorizationException");
         }
-    }
-
-    /**
-     * Login with username and password using client_id in the request body (not Basic Auth).
-     * This is the authz-specific variant needed by Keycloak authorization tests.
-     */
-    public static String loginWithUsernamePassword(URI tokenEndpointUri, String username, String password, String clientId) throws IOException {
-
-        String body = "grant_type=password&username=" + urlencode(username) +
-                "&password=" + urlencode(password) + "&client_id=" + urlencode(clientId);
-
-        JsonNode result = HttpUtil.post(tokenEndpointUri,
-                null,
-                null,
-                null,
-                "application/x-www-form-urlencoded",
-                body,
-                JsonNode.class);
-
-        JsonNode token = result.get("access_token");
-        if (token == null) {
-            throw new IllegalStateException("Invalid response from authorization server: no access_token");
-        }
-        return token.asText();
-    }
-
-
-    public static void waitForACLs() throws Exception {
-
-        // Create admin client using user `admin:admin-password` over PLAIN listener (port 9100)
-        TestUtil.waitForCondition(() -> {
-            try (AdminClient adminClient = buildAdminClientForPlain(PLAIN_LISTENER, "admin")) {
-                try {
-                    Collection<AclBinding> result = adminClient.describeAcls(new AclBindingFilter(ResourcePatternFilter.ANY,
-                            new AccessControlEntryFilter("User:alice", null, AclOperation.IDEMPOTENT_WRITE, AclPermissionType.ALLOW))).values().get();
-                    for (AclBinding acl : result) {
-                        if (AclOperation.IDEMPOTENT_WRITE.equals(acl.entry().operation())) {
-                            return true;
-                        }
-                    }
-                    return false;
-
-                } catch (Throwable e) {
-                    throw new RuntimeException("ACLs for User:alice could not be retrieved: ", e);
-                }
-            }
-        }, 2000, 210);
     }
 
     Producer<String, String> getProducer(final String name) {
@@ -283,24 +213,6 @@ public class Common {
         return buildProducerConfigForAccount(name);
     }
 
-    Properties buildProducerConfigForAccount(String name) {
-        return usePlain
-            ? buildProducerConfigPlain(kafkaBootstrap, buildAuthConfigForPlain(name))
-            : buildProducerConfigOAuthBearer(kafkaBootstrap, buildAuthConfigForOAuthBearer(name));
-    }
-
-    Properties buildConsumerConfigForAccount(String name) {
-        return usePlain
-            ? KafkaClientConfig.buildConsumerConfigPlain(kafkaBootstrap, buildAuthConfigForPlain(name))
-            : KafkaClientConfig.buildConsumerConfigOAuthBearer(kafkaBootstrap, buildAuthConfigForOAuthBearer(name));
-    }
-
-    Properties buildConsumerConfig(String kafkaBootstrap, boolean usePlain, String clientId, String secret) {
-        return usePlain ?
-                KafkaClientConfig.buildConsumerConfigPlain(kafkaBootstrap, buildAuthConfigForPlain(clientId, secret)) :
-                KafkaClientConfig.buildConsumerConfigOAuthBearer(kafkaBootstrap, buildAuthConfigForOAuthBearer(clientId));
-    }
-
     Map<String, String> buildAuthConfigForOAuthBearer(String name) {
         Map<String, String> config = new HashMap<>();
 
@@ -330,7 +242,7 @@ public class Common {
 
     // Authz-specific producer config with RETRIES=10 and MAX_BLOCK_MS=300000
     public static Properties buildProducerConfigOAuthBearer(String kafkaBootstrap, Map<String, String> oauthConfig) {
-        Properties p = KafkaClientConfig.buildCommonConfigOAuthBearer(oauthConfig);
+        Properties p = KafkaClientsConfig.buildCommonConfigOAuthBearer(oauthConfig);
         setCommonProducerProperties(kafkaBootstrap, p);
         return p;
     }
@@ -345,27 +257,16 @@ public class Common {
         p.setProperty(ProducerConfig.MAX_BLOCK_MS_CONFIG, "300000");
     }
 
-    Properties buildProducerConfig(String kafkaBootstrap, boolean usePlain, String clientId, String secret) {
-        return usePlain ?
-                buildProducerConfigPlain(kafkaBootstrap, buildAuthConfigForPlain(clientId, secret)) :
-                buildProducerConfigOAuthBearer(kafkaBootstrap, buildAuthConfigForOAuthBearer(clientId));
-    }
-
     public static Properties buildProducerConfigPlain(String kafkaBootstrap, Map<String, String> plainConfig) {
-        Properties p = KafkaClientConfig.buildCommonConfigPlain(plainConfig);
+        Properties p = KafkaClientsConfig.buildCommonConfigPlain(plainConfig);
         setCommonProducerProperties(kafkaBootstrap, p);
         return p;
     }
 
     public static Properties buildProducerConfigScram(String kafkaBootstrap, Map<String, String> scramConfig) {
-        Properties p = KafkaClientConfig.buildCommonConfigScram(scramConfig);
+        Properties p = KafkaClientsConfig.buildCommonConfigScram(scramConfig);
         setCommonProducerProperties(kafkaBootstrap, p);
         return p;
-    }
-
-    public static AdminClient buildAdminClientForPlain(String kafkaBootstrap, String user) {
-        Properties adminProps = buildProducerConfigPlain(kafkaBootstrap, buildAuthConfigForPlain(user, user + "-password"));
-        return AdminClient.create(adminProps);
     }
 
     void cleanup() {

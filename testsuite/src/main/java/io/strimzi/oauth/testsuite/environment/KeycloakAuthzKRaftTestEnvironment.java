@@ -12,11 +12,23 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.wait.strategy.Wait;
 
+import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.common.acl.AccessControlEntryFilter;
+import org.apache.kafka.common.acl.AclBinding;
+import org.apache.kafka.common.acl.AclBindingFilter;
+import org.apache.kafka.common.acl.AclOperation;
+import org.apache.kafka.common.acl.AclPermissionType;
+import org.apache.kafka.common.resource.ResourcePatternFilter;
+
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
+
+import static io.strimzi.oauth.testsuite.utils.TestUtil.waitForCondition;
 
 /**
  * Manages the Docker containers for Keycloak Authorization KRaft tests using programmatic Testcontainers.
@@ -176,6 +188,51 @@ public class KeycloakAuthzKRaftTestEnvironment {
      */
     public String getKeycloakHostPort() {
         return keycloak.getHost() + ":" + keycloak.getMappedPort(8080);
+    }
+
+    /**
+     * Get the token endpoint URI for the kafka-authz realm.
+     *
+     * @return The token endpoint URI string
+     */
+    public String getTokenEndpointUri() {
+        return "http://" + getKeycloakHostPort() + "/realms/kafka-authz/protocol/openid-connect/token";
+    }
+
+    /**
+     * Wait for ACLs to be set up and visible in the Kafka broker.
+     * Polls every 2 seconds for up to 210 seconds until the ACL for User:alice is found.
+     *
+     * @throws Exception If an error occurs or the timeout is reached
+     */
+    public void waitForACLs() throws Exception {
+        String plainListener = "localhost:9100";
+
+        waitForCondition(() -> {
+            Map<String, String> plainConfig = new HashMap<>();
+            plainConfig.put("username", "admin");
+            plainConfig.put("password", "admin-password");
+            Properties adminProps = new Properties();
+            adminProps.setProperty("security.protocol", "SASL_PLAINTEXT");
+            adminProps.setProperty("sasl.mechanism", "PLAIN");
+            adminProps.setProperty("sasl.jaas.config", "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"admin\" password=\"admin-password\" ;");
+            adminProps.setProperty("bootstrap.servers", plainListener);
+
+            try (AdminClient adminClient = AdminClient.create(adminProps)) {
+                try {
+                    Collection<AclBinding> result = adminClient.describeAcls(new AclBindingFilter(ResourcePatternFilter.ANY,
+                            new AccessControlEntryFilter("User:alice", null, AclOperation.IDEMPOTENT_WRITE, AclPermissionType.ALLOW))).values().get();
+                    for (AclBinding acl : result) {
+                        if (AclOperation.IDEMPOTENT_WRITE.equals(acl.entry().operation())) {
+                            return true;
+                        }
+                    }
+                    return false;
+                } catch (Throwable e) {
+                    throw new RuntimeException("ACLs for User:alice could not be retrieved: ", e);
+                }
+            }
+        }, 2000, 210);
     }
 
     private static Map<String, String> buildKafkaConfigMap() {

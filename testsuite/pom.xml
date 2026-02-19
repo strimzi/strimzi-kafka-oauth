@@ -41,7 +41,6 @@
 
         <!-- From mock-oauth-server -->
         <vertx.version>4.5.18</vertx.version>
-        <logback.version>1.3.15</logback.version>
         <maven-shade-plugin.version>3.2.4</maven-shade-plugin.version>
         <exec-maven-plugin.version>3.0.0</exec-maven-plugin.version>
         <main.verticle>io.strimzi.oauth.testsuite.server.MockOAuthServerMainVerticle</main.verticle>
@@ -229,11 +228,6 @@
             <artifactId>netty-codec-http</artifactId>
         </dependency>
         <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <version>${logback.version}</version>
-        </dependency>
-        <dependency>
             <groupId>com.nimbusds</groupId>
             <artifactId>nimbus-jose-jwt</artifactId>
         </dependency>
@@ -332,8 +326,6 @@
                             <ignoredUnusedDeclaredDependencies>
                                 <ignoredUnusedDeclaredDependency>org.apache.logging.log4j:log4j-slf4j-impl</ignoredUnusedDeclaredDependency>
                                 <ignoredUnusedDeclaredDependency>org.apache.logging.log4j:log4j-core</ignoredUnusedDeclaredDependency>
-                                <!-- Runtime SLF4J binding for mock-oauth-server -->
-                                <ignoredUnusedDeclaredDependency>ch.qos.logback:logback-classic</ignoredUnusedDeclaredDependency>
                                 <!-- Runtime dependency of commons-compress, required by testcontainers -->
                                 <ignoredUnusedDeclaredDependency>commons-codec:commons-codec</ignoredUnusedDeclaredDependency>
                                 <!-- Required for compilation (ClusterMetadataAuthorizer, AutoCloseable types)
@@ -404,7 +396,7 @@
                 <executions>
                     <execution>
                         <id>copy-kafka-example-truststore</id>
-                        <phase>package</phase>
+                        <phase>process-test-resources</phase>
                         <goals>
                             <goal>copy-resources</goal>
                         </goals>
@@ -503,7 +495,7 @@
                                     <include>io.vertx:*</include>
                                     <include>io.netty:*</include>
                                     <include>com.fasterxml.jackson.core:*</include>
-                                    <include>ch.qos.logback:*</include>
+                                    <include>org.apache.logging.log4j:*</include>
                                     <include>org.slf4j:slf4j-api</include>
                                     <include>com.nimbusds:nimbus-jose-jwt</include>
                                     <include>net.minidev:*</include>
@@ -617,6 +609,20 @@
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <configuration>
                     <skip>true</skip>
+                </configuration>
+            </plugin>
+
+            <!-- Unit tests (*Test) that use testcontainers need the same config as failsafe -->
+            <plugin>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven.surefire.version}</version>
+                <configuration>
+                    <systemPropertyVariables>
+                        <KAFKA_DOCKER_IMAGE>${kafka.docker.image}</KAFKA_DOCKER_IMAGE>
+                    </systemPropertyVariables>
+                    <environmentVariables>
+                        <TESTCONTAINERS_RYUK_DISABLED>${testcontainers.ryuk.disabled}</TESTCONTAINERS_RYUK_DISABLED>
+                    </environmentVariables>
                 </configuration>
             </plugin>
 

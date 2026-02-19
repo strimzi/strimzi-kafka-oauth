@@ -40,9 +40,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 
-import static io.strimzi.oauth.testsuite.utils.KafkaClientConfig.buildConsumerConfigOAuthBearer;
-import static io.strimzi.oauth.testsuite.utils.KafkaClientConfig.buildProducerConfigOAuthBearer;
-import static io.strimzi.oauth.testsuite.utils.KafkaClientConfig.poll;
+import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.buildConsumerConfigOAuthBearer;
+import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.buildProducerConfigOAuthBearer;
+import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.poll;
 
 /**
  * Tests for OAuth authentication using Hydra

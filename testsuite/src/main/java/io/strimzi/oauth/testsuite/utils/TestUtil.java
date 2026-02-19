@@ -2,7 +2,7 @@
  * Copyright 2017-2022, Strimzi authors.
  * License: Apache License 2.0 (see the file LICENSE or http://apache.org/licenses/LICENSE-2.0.html).
  */
-package io.strimzi.oauth.testsuite.common;
+package io.strimzi.oauth.testsuite.utils;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.junit.jupiter.api.Assertions;
@@ -190,5 +190,14 @@ public class TestUtil {
         } catch (AssertionError e) {
             throw new AssertionError(e.getMessage() + " " + extraInfo, t);
         }
+    }
+
+    /**
+     * Get the project root directory.
+     *
+     * @return The project root directory path
+     */
+    public static String getProjectRoot() {
+        return System.getProperty("user.dir");
     }
 }

@@ -11,9 +11,7 @@ import io.strimzi.oauth.testsuite.common.TestTags;
 import io.strimzi.oauth.testsuite.environment.KeycloakErrorsTestEnvironment;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
-import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.KafkaException;
-import org.apache.kafka.common.errors.SaslAuthenticationException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -30,14 +28,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.ExecutionException;
 
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithClientSecret;
-import io.strimzi.oauth.testsuite.utils.KafkaClientConfig;
+import io.strimzi.oauth.testsuite.clients.KafkaClientsConfig;
 
-import static io.strimzi.oauth.testsuite.common.TestUtil.assertTrueExtra;
-import static io.strimzi.oauth.testsuite.common.TestUtil.getContainerLogsForString;
-import static io.strimzi.oauth.testsuite.common.TestUtil.getRootCause;
+import static io.strimzi.oauth.testsuite.utils.KafkaClientsUtils.expectSaslAuthFailure;
+import static io.strimzi.oauth.testsuite.utils.TestUtil.assertTrueExtra;
+import static io.strimzi.oauth.testsuite.utils.TestUtil.getContainerLogsForString;
+import static io.strimzi.oauth.testsuite.utils.TestUtil.getRootCause;
 
 /**
  * Tests for errors during OAuth authentication using Keycloak
@@ -84,18 +82,11 @@ public class KeycloakErrorsIT {
         oauthConfig.put(ClientConfig.OAUTH_ACCESS_TOKEN, token);
         oauthConfig.put(ClientConfig.OAUTH_ACCESS_TOKEN_IS_JWT, "false");
 
-        Properties producerProps = KafkaClientConfig.buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
+        Properties producerProps = KafkaClientsConfig.buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
 
         final String topic = "KeycloakErrorsTest-unparseableJwtTokenTest";
 
-        try (Producer<String, String> producer = new KafkaProducer<>(producerProps)) {
-            producer.send(new ProducerRecord<>(topic, "The Message")).get();
-            Assertions.fail("Should fail with ExecutionException");
-        } catch (ExecutionException e) {
-            Throwable cause = e.getCause();
-            commonChecks(cause);
-            checkUnparseableJwtTokenErrorMessage(cause.toString());
-        }
+        expectSaslAuthFailure(producerProps, topic, this::checkUnparseableJwtTokenErrorMessage);
     }
 
     @Test
@@ -111,18 +102,11 @@ public class KeycloakErrorsIT {
         oauthConfig.put(ClientConfig.OAUTH_ACCESS_TOKEN, token);
         oauthConfig.put(ClientConfig.OAUTH_ACCESS_TOKEN_IS_JWT, "false");
 
-        Properties producerProps = KafkaClientConfig.buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
+        Properties producerProps = KafkaClientsConfig.buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
 
         final String topic = "KeycloakErrorsTest-corruptTokenIntrospect";
 
-        try (Producer<String, String> producer = new KafkaProducer<>(producerProps)) {
-            producer.send(new ProducerRecord<>(topic, "The Message")).get();
-            Assertions.fail("Should fail with ExecutionException");
-        } catch (ExecutionException e) {
-            Throwable cause = e.getCause();
-            commonChecks(cause);
-            checkCorruptTokenIntrospectErrorMessage(cause.getMessage());
-        }
+        expectSaslAuthFailure(producerProps, topic, this::checkCorruptTokenIntrospectErrorMessage);
     }
 
     @Test
@@ -142,18 +126,11 @@ public class KeycloakErrorsIT {
         oauthConfig.put(ClientConfig.OAUTH_CLIENT_SECRET, "kafka-producer-client-secret");
         oauthConfig.put(ClientConfig.OAUTH_USERNAME_CLAIM, "username");
 
-        Properties producerProps = KafkaClientConfig.buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
+        Properties producerProps = KafkaClientsConfig.buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
 
         final String topic = "KeycloakErrorsTest-invalidJwtTokenKidTest";
 
-        try (Producer<String, String> producer = new KafkaProducer<>(producerProps)) {
-            producer.send(new ProducerRecord<>(topic, "The Message")).get();
-            Assertions.fail("Should fail with ExecutionException");
-        } catch (ExecutionException e) {
-            Throwable cause = e.getCause();
-            commonChecks(cause);
-            checkInvalidJwtTokenKidErrorMessage(cause.getMessage());
-        }
+        expectSaslAuthFailure(producerProps, topic, this::checkInvalidJwtTokenKidErrorMessage);
     }
 
     @Test
@@ -179,18 +156,11 @@ public class KeycloakErrorsIT {
         oauthConfig.put(ClientConfig.OAUTH_ACCESS_TOKEN, tokenWithBrokenSig);
         oauthConfig.put(ClientConfig.OAUTH_USERNAME_CLAIM, "username");
 
-        Properties producerProps = KafkaClientConfig.buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
+        Properties producerProps = KafkaClientsConfig.buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
 
         final String topic = "KeycloakErrorsTest-forgedJwtSig";
 
-        try (Producer<String, String> producer = new KafkaProducer<>(producerProps)) {
-            producer.send(new ProducerRecord<>(topic, "The Message")).get();
-            Assertions.fail("Should fail with ExecutionException");
-        } catch (ExecutionException e) {
-            Throwable cause = e.getCause();
-            commonChecks(cause);
-            checkForgedJwtSigErrorMessage(cause.getMessage());
-        }
+        expectSaslAuthFailure(producerProps, topic, this::checkForgedJwtSigErrorMessage);
     }
 
     @Test
@@ -216,18 +186,11 @@ public class KeycloakErrorsIT {
         oauthConfig.put(ClientConfig.OAUTH_ACCESS_TOKEN, tokenWithBrokenSig);
         oauthConfig.put(ClientConfig.OAUTH_USERNAME_CLAIM, "username");
 
-        Properties producerProps = KafkaClientConfig.buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
+        Properties producerProps = KafkaClientsConfig.buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
 
         final String topic = "KeycloakErrorsTest-forgedJwtSigIntrospect";
 
-        try (Producer<String, String> producer = new KafkaProducer<>(producerProps)) {
-            producer.send(new ProducerRecord<>(topic, "The Message")).get();
-            Assertions.fail("Should fail with ExecutionException");
-        } catch (ExecutionException e) {
-            Throwable cause = e.getCause();
-            commonChecks(cause);
-            checkForgedJwtSigIntrospectErrorMessage(cause.getMessage());
-        }
+        expectSaslAuthFailure(producerProps, topic, this::checkForgedJwtSigIntrospectErrorMessage);
     }
 
     @Test
@@ -254,18 +217,11 @@ public class KeycloakErrorsIT {
         // sleep for 6s for token to expire
         Thread.sleep(6000);
 
-        Properties producerProps = KafkaClientConfig.buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
+        Properties producerProps = KafkaClientsConfig.buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
 
         final String topic = "KeycloakErrorsTest-expiredJwtTokenTest";
 
-        try (Producer<String, String> producer = new KafkaProducer<>(producerProps)) {
-            producer.send(new ProducerRecord<>(topic, "The Message")).get();
-            Assertions.fail("Should fail with ExecutionException");
-        } catch (ExecutionException e) {
-            Throwable cause = e.getCause();
-            commonChecks(cause);
-            checkExpiredJwtTokenErrorMessage(cause.getMessage());
-        }
+        expectSaslAuthFailure(producerProps, topic, this::checkExpiredJwtTokenErrorMessage);
     }
 
     @Test
@@ -279,18 +235,11 @@ public class KeycloakErrorsIT {
         plainConfig.put("username", "team-a-inexistent");
         plainConfig.put("password", "team-a-client-secret");
 
-        Properties producerProps = KafkaClientConfig.buildProducerConfigPlain(kafkaBootstrap, plainConfig);
+        Properties producerProps = KafkaClientsConfig.buildProducerConfigPlain(kafkaBootstrap, plainConfig);
 
         final String topic = "KeycloakErrorsTest-badClientIdOAuthOverPlainTest";
 
-        try (Producer<String, String> producer = new KafkaProducer<>(producerProps)) {
-            producer.send(new ProducerRecord<>(topic, "The Message")).get();
-            Assertions.fail("Should fail with ExecutionException");
-        } catch (ExecutionException e) {
-            Throwable cause = e.getCause();
-            commonChecks(cause);
-            checkBadClientIdOAuthOverPlainErrorMessage(cause.getMessage());
-        }
+        expectSaslAuthFailure(producerProps, topic, this::checkBadClientIdOAuthOverPlainErrorMessage);
     }
 
     @Test
@@ -304,18 +253,11 @@ public class KeycloakErrorsIT {
         plainConfig.put("username", "team-a-client");
         plainConfig.put("password", "team-a-client-bad-secret");
 
-        Properties producerProps = KafkaClientConfig.buildProducerConfigPlain(kafkaBootstrap, plainConfig);
+        Properties producerProps = KafkaClientsConfig.buildProducerConfigPlain(kafkaBootstrap, plainConfig);
 
         final String topic = "KeycloakErrorsTest-badSecretOAuthOverPlainTest";
 
-        try (Producer<String, String> producer = new KafkaProducer<>(producerProps)) {
-            producer.send(new ProducerRecord<>(topic, "The Message")).get();
-            Assertions.fail("Should fail with ExecutionException");
-        } catch (ExecutionException e) {
-            Throwable cause = e.getCause();
-            commonChecks(cause);
-            checkBadSecretOAuthOverPlainErrorMessage(cause.getMessage());
-        }
+        expectSaslAuthFailure(producerProps, topic, this::checkBadSecretOAuthOverPlainErrorMessage);
     }
 
     @Test
@@ -329,18 +271,11 @@ public class KeycloakErrorsIT {
         plainConfig.put("username", "team-a-client");
         plainConfig.put("password", "team-a-client-secret");
 
-        Properties producerProps = KafkaClientConfig.buildProducerConfigPlain(kafkaBootstrap, plainConfig);
+        Properties producerProps = KafkaClientsConfig.buildProducerConfigPlain(kafkaBootstrap, plainConfig);
 
         final String topic = "KeycloakErrorsTest-cantConnectPlainWithClientCredentials";
 
-        try (Producer<String, String> producer = new KafkaProducer<>(producerProps)) {
-            producer.send(new ProducerRecord<>(topic, "The Message")).get();
-            Assertions.fail("Should fail with ExecutionException");
-        } catch (ExecutionException e) {
-            Throwable cause = e.getCause();
-            commonChecks(cause);
-            checkCantConnectPlainWithClientCredentialsErrorMessage(cause.getMessage());
-        }
+        expectSaslAuthFailure(producerProps, topic, this::checkCantConnectPlainWithClientCredentialsErrorMessage);
     }
 
     @Test
@@ -353,18 +288,11 @@ public class KeycloakErrorsIT {
         Map<String, String> oauthConfig = new HashMap<>();
         oauthConfig.put(ClientConfig.OAUTH_ACCESS_TOKEN, "mock.access.token");
 
-        Properties producerProps = KafkaClientConfig.buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
+        Properties producerProps = KafkaClientsConfig.buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
 
         final String topic = "KeycloakErrorsTest-cantConnectIntrospect";
 
-        try (Producer<String, String> producer = new KafkaProducer<>(producerProps)) {
-            producer.send(new ProducerRecord<>(topic, "The Message")).get();
-            Assertions.fail("Should fail with ExecutionException");
-        } catch (ExecutionException e) {
-            Throwable cause = e.getCause();
-            commonChecks(cause);
-            checkCantConnectIntrospectErrorMessage(cause.getMessage());
-        }
+        expectSaslAuthFailure(producerProps, topic, this::checkCantConnectIntrospectErrorMessage);
     }
 
     @Test
@@ -378,20 +306,15 @@ public class KeycloakErrorsIT {
         Map<String, String> oauthConfig = new HashMap<>();
         oauthConfig.put(ClientConfig.OAUTH_ACCESS_TOKEN, "mock.access.token");
 
-        Properties producerProps = KafkaClientConfig.buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
+        Properties producerProps = KafkaClientsConfig.buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
 
         final String topic = "KeycloakErrorsTest-cantConnectIntrospectWithTimeout";
 
-        try (Producer<String, String> producer = new KafkaProducer<>(producerProps)) {
-            producer.send(new ProducerRecord<>(topic, "The Message")).get();
-            Assertions.fail("Should fail with ExecutionException");
-        } catch (ExecutionException e) {
-            Throwable cause = e.getCause();
-            commonChecks(cause);
-            checkCantConnectIntrospectErrorMessage(cause.getMessage());
+        expectSaslAuthFailure(producerProps, topic, message -> {
+            checkCantConnectIntrospectErrorMessage(message);
             // get kafka log, parse it, find the errId, find 'connect timed out' string.
-            checkKafkaLogConnectTimedOut(cause.getMessage());
-        }
+            checkKafkaLogConnectTimedOut(message);
+        });
     }
 
     @Test
@@ -413,7 +336,7 @@ public class KeycloakErrorsIT {
         oauthConfig.put(ClientConfig.OAUTH_USERNAME_CLAIM, "username");
         oauthConfig.put(ClientConfig.OAUTH_CONNECT_TIMEOUT_SECONDS, String.valueOf(timeout));
 
-        Properties producerProps = KafkaClientConfig.buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
+        Properties producerProps = KafkaClientsConfig.buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
         long start = System.currentTimeMillis();
         try (Producer<String, String> producer = new KafkaProducer<>(producerProps)) {
             Assertions.fail("Should fail with KafkaException");
@@ -429,10 +352,6 @@ public class KeycloakErrorsIT {
 
     String getKafkaBootstrap(int port) {
         return "localhost:" + port;
-    }
-
-    void commonChecks(Throwable cause) {
-        Assertions.assertEquals(SaslAuthenticationException.class, cause.getClass(), "Expected SaslAuthenticationException");
     }
 
     void checkErrId(String message) {

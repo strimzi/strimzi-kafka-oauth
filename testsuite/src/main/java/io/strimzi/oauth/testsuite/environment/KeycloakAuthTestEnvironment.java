@@ -4,7 +4,7 @@
  */
 package io.strimzi.oauth.testsuite.environment;
 
-import io.strimzi.oauth.testsuite.common.metrics.TestMetricsReporter;
+import io.strimzi.oauth.testsuite.metrics.TestMetricsReporter;
 import io.strimzi.test.container.OAuthKafkaContainer;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;

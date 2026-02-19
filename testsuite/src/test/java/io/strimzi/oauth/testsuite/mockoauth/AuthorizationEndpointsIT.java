@@ -14,7 +14,9 @@ import io.strimzi.kafka.oauth.server.ServerConfig;
 import io.strimzi.kafka.oauth.services.ServiceException;
 import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
 import io.strimzi.oauth.testsuite.common.TestTags;
+import io.strimzi.oauth.testsuite.utils.TestUtil;
 import io.strimzi.oauth.testsuite.environment.MockOAuthTestEnvironment;
+import io.strimzi.oauth.testsuite.clients.MockOAuthAdmin;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerValidatorCallback;
 
 import org.junit.jupiter.api.AfterAll;
@@ -36,9 +38,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static io.strimzi.kafka.oauth.common.IOUtil.randomHexString;
-import static io.strimzi.oauth.testsuite.common.TestUtil.getRootCause;
-import static io.strimzi.oauth.testsuite.mockoauth.Common.changeAuthServerMode;
-import static io.strimzi.oauth.testsuite.mockoauth.Common.createOAuthClient;
+import static io.strimzi.oauth.testsuite.utils.TestUtil.getRootCause;
+import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.changeAuthServerMode;
+import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.createOAuthClient;
 
 /**
  * Tests for authorization endpoint authentication.
@@ -80,13 +82,13 @@ public class AuthorizationEndpointsIT {
         createOAuthClient(clientApp, clientAppSecret);
 
         // prepare TLS support
-        String projectRoot = Common.getProjectRoot();
+        String projectRoot = TestUtil.getProjectRoot();
         SSLSocketFactory sslFactory = SSLUtil.createSSLFactory(
                 projectRoot + "/docker/certificates/ca-truststore.p12", null, "changeit", null, null);
 
         // Login with client app's client_id + secret to obtain an access token
         TokenInfo tokenInfo = OAuthAuthenticator.loginWithClientSecret(
-                URI.create("https://" + Common.getMockOAuthAuthHostPort() + "/token"),
+                URI.create("https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/token"),
                 sslFactory,
                 SSLUtil.createAnyHostHostnameVerifier(),
                 clientApp,
@@ -120,8 +122,8 @@ public class AuthorizationEndpointsIT {
         Map<String, String> attrs = new HashMap<>();
 
         //attrs.put(ServerConfig.OAUTH_CONFIG_ID, "config-id-introspect");
-        attrs.put(ServerConfig.OAUTH_INTROSPECTION_ENDPOINT_URI, "https://" + Common.getMockOAuthAuthHostPort() + "/introspect");
-        attrs.put(ServerConfig.OAUTH_USERINFO_ENDPOINT_URI, "https://" + Common.getMockOAuthAuthHostPort() + "/userinfo");
+        attrs.put(ServerConfig.OAUTH_INTROSPECTION_ENDPOINT_URI, "https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/introspect");
+        attrs.put(ServerConfig.OAUTH_USERINFO_ENDPOINT_URI, "https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/userinfo");
         attrs.put(ServerConfig.OAUTH_USERNAME_CLAIM, "uid");
         attrs.put(ServerConfig.OAUTH_CLIENT_ID, "bad-client-id");
         attrs.put(ServerConfig.OAUTH_CLIENT_SECRET, "bad-client-secret");
@@ -216,7 +218,7 @@ public class AuthorizationEndpointsIT {
         //attrs.put(ServerConfig.OAUTH_CONFIG_ID, "config-id-jwks");
         attrs.put(ServerConfig.OAUTH_CLIENT_ID, "bad-client-id");
         attrs.put(ServerConfig.OAUTH_CLIENT_SECRET, "bad-client-secret");
-        attrs.put(ServerConfig.OAUTH_JWKS_ENDPOINT_URI, "https://" + Common.getMockOAuthAuthHostPort() + "/jwks");
+        attrs.put(ServerConfig.OAUTH_JWKS_ENDPOINT_URI, "https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/jwks");
         attrs.put(ServerConfig.OAUTH_VALID_ISSUER_URI, "https://mockoauth:8090");
         attrs.put(ServerConfig.OAUTH_CHECK_ACCESS_TOKEN_TYPE, "false");
         attrs.put(ServerConfig.OAUTH_SSL_TRUSTSTORE_LOCATION, "target/kafka/certs/ca-truststore.p12");

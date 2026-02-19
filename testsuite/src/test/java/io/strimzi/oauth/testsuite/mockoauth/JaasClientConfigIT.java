@@ -9,7 +9,10 @@ import io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler;
 import io.strimzi.kafka.oauth.common.ConfigException;
 import io.strimzi.oauth.testsuite.common.LogLineReader;
 import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
+import io.strimzi.oauth.testsuite.clients.KafkaClientsConfig;
+import io.strimzi.oauth.testsuite.clients.MockOAuthAdmin;
 import io.strimzi.oauth.testsuite.environment.MockOAuthTestEnvironment;
+import io.strimzi.oauth.testsuite.utils.TestUtil;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -46,14 +49,14 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
-import static io.strimzi.oauth.testsuite.common.TestUtil.checkLogForRegex;
-import static io.strimzi.oauth.testsuite.common.TestUtil.getRootCause;
-import static io.strimzi.oauth.testsuite.mockoauth.Common.changeAuthServerMode;
-import static io.strimzi.oauth.testsuite.mockoauth.Common.createOAuthClient;
-import static io.strimzi.oauth.testsuite.mockoauth.Common.createOAuthClientWithAssertion;
-import static io.strimzi.oauth.testsuite.mockoauth.Common.createOAuthUser;
-import static io.strimzi.oauth.testsuite.mockoauth.Common.loginWithClientSecret;
-import static io.strimzi.oauth.testsuite.mockoauth.Common.loginWithUsernameForRefreshToken;
+import static io.strimzi.oauth.testsuite.utils.TestUtil.checkLogForRegex;
+import static io.strimzi.oauth.testsuite.utils.TestUtil.getRootCause;
+import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.changeAuthServerMode;
+import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.createOAuthClient;
+import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.createOAuthClientWithAssertion;
+import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.createOAuthUser;
+import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.loginWithClientSecret;
+import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.loginWithUsernameForRefreshToken;
 
 /**
  * Tests for JAAS client configuration validation and functionality.
@@ -91,7 +94,7 @@ public class JaasClientConfigIT {
     }
 
     private static String getTokenEndpointUri() {
-        return "https://" + Common.getMockOAuthAuthHostPort() + "/token";
+        return "https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/token";
     }
 
     @Test
@@ -324,7 +327,7 @@ public class JaasClientConfigIT {
         clientProps.put("security.protocol", "SASL_PLAINTEXT");
         clientProps.put("sasl.mechanism", "OAUTHBEARER");
 
-        LogLineReader logReader = new LogLineReader(Common.LOG_PATH);
+        LogLineReader logReader = new LogLineReader("target/test.log");
         logReader.readNext();
 
         try {
@@ -342,7 +345,7 @@ public class JaasClientConfigIT {
 
         loginHandler.configure(clientProps, "OAUTHBEARER", Collections.singletonList(jaasConfig));
 
-        Common.checkLog(logReader, "configId", "config-id",
+        MockOAuthAdmin.checkLog(logReader, "configId", "config-id",
             "refreshToken", "r\\*\\*",
             "tokenEndpointUri", "https://sso/token",
             "clientId", "client-id",
@@ -400,7 +403,7 @@ public class JaasClientConfigIT {
         try {
             loginHandler.configure(clientProps, "OAUTHBEARER", Collections.singletonList(jaasConfig));
 
-            Common.checkLog(logReader, "token", "a\\*\\*",
+            MockOAuthAdmin.checkLog(logReader, "token", "a\\*\\*",
                 "tokenLocation", accessTokenPath.toString(),
                 "refreshTokenLocation", refreshTokenPath.toString(),
                 "clientAssertionLocation", clientAssertionPath.toString(),
@@ -433,7 +436,7 @@ public class JaasClientConfigIT {
         oauthConfig.put(ClientConfig.OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM, "");
         oauthConfig.put(ClientConfig.OAUTH_SASL_EXTENSION_PREFIX + "extoption", "optionvalue");
 
-        LogLineReader logReader = new LogLineReader(Common.LOG_PATH);
+        LogLineReader logReader = new LogLineReader("target/test.log");
         logReader.readNext();
 
         // If it fails with 'Unknown signing key' it means that Kafka has not managed to load JWKS keys yet
@@ -462,7 +465,7 @@ public class JaasClientConfigIT {
         Path accessTokenFilePath = Paths.get("target/access_token_file");
         Files.write(accessTokenFilePath, accessToken.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
         try {
-            LogLineReader logReader = new LogLineReader(Common.LOG_PATH);
+            LogLineReader logReader = new LogLineReader("target/test.log");
             logReader.readNext();
 
             Map<String, String> oauthConfig = new HashMap<>();
@@ -519,7 +522,7 @@ public class JaasClientConfigIT {
         Path refreshTokenFilePath = Paths.get("target/refresh_token_file");
         Files.write(refreshTokenFilePath, refreshToken.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE_NEW);
         try {
-            LogLineReader logReader = new LogLineReader(Common.LOG_PATH);
+            LogLineReader logReader = new LogLineReader("target/test.log");
             logReader.readNext();
 
             Map<String, String> oauthConfig = new HashMap<>();
@@ -528,7 +531,7 @@ public class JaasClientConfigIT {
             oauthConfig.put(ClientConfig.OAUTH_REFRESH_TOKEN_LOCATION, refreshTokenFilePath.toString());
             oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, getTokenEndpointUri());
 
-            String truststoreLocation = Common.getProjectRoot() + "/docker/certificates/ca-truststore.p12";
+            String truststoreLocation = TestUtil.getProjectRoot() + "/docker/certificates/ca-truststore.p12";
             oauthConfig.put(ClientConfig.OAUTH_SSL_TRUSTSTORE_LOCATION, truststoreLocation);
             oauthConfig.put(ClientConfig.OAUTH_SSL_TRUSTSTORE_PASSWORD, "changeit");
             oauthConfig.put(ClientConfig.OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM, "");
@@ -578,7 +581,7 @@ public class JaasClientConfigIT {
         Path clientAssertionFilePath = Paths.get("target/client_assertion_file");
         Files.write(clientAssertionFilePath, testAssertion.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE_NEW);
         try {
-            LogLineReader logReader = new LogLineReader(Common.LOG_PATH);
+            LogLineReader logReader = new LogLineReader("target/test.log");
             logReader.readNext();
 
             Map<String, String> oauthConfig = new HashMap<>();
@@ -587,7 +590,7 @@ public class JaasClientConfigIT {
             oauthConfig.put(ClientConfig.OAUTH_CLIENT_ASSERTION_LOCATION, clientAssertionFilePath.toString());
             oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, getTokenEndpointUri());
 
-            String truststoreLocation = Common.getProjectRoot() + "/docker/certificates/ca-truststore.p12";
+            String truststoreLocation = TestUtil.getProjectRoot() + "/docker/certificates/ca-truststore.p12";
             oauthConfig.put(ClientConfig.OAUTH_SSL_TRUSTSTORE_LOCATION, truststoreLocation);
             oauthConfig.put(ClientConfig.OAUTH_SSL_TRUSTSTORE_PASSWORD, "changeit");
             oauthConfig.put(ClientConfig.OAUTH_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM, "");
@@ -655,7 +658,7 @@ public class JaasClientConfigIT {
         // Confirm succeeds with valid grant type
         oauthConfig.put(ClientConfig.OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE, ClientConfig.OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_DEFAULT_VALUE);
 
-        LogLineReader logReader = new LogLineReader(Common.LOG_PATH);
+        LogLineReader logReader = new LogLineReader("target/test.log");
         logReader.readNext();
 
         initJaasWithRetry(oauthConfig);
@@ -725,7 +728,7 @@ public class JaasClientConfigIT {
     }
 
     private void initJaas(Map<String, String> oauthConfig) throws Exception {
-        Properties producerProps = Common.buildProducerConfigOAuthBearer(KAFKA_BOOTSTRAP, oauthConfig);
+        Properties producerProps = KafkaClientsConfig.buildProducerConfigOAuthBearer(KAFKA_BOOTSTRAP, oauthConfig);
         try (Producer<String, String> producer = new KafkaProducer<>(producerProps)) {
             producer.send(new ProducerRecord<>("Test-testTopic", "The Message"))
                 .get();

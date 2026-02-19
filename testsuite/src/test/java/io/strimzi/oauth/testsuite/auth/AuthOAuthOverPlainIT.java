@@ -7,15 +7,12 @@ package io.strimzi.oauth.testsuite.auth;
 import io.strimzi.kafka.oauth.common.TokenInfo;
 import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
 import io.strimzi.oauth.testsuite.common.TestTags;
-import io.strimzi.oauth.testsuite.common.TestMetrics;
+import io.strimzi.oauth.testsuite.metrics.TestMetrics;
+import io.strimzi.oauth.testsuite.clients.ConcurrentKafkaClientsRunner;
 import io.strimzi.oauth.testsuite.environment.KeycloakAuthTestEnvironment;
-import org.apache.kafka.clients.consumer.Consumer;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -32,23 +29,20 @@ import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.net.URI;
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithClientSecret;
-import static io.strimzi.oauth.testsuite.utils.KafkaClientConfig.buildConsumerConfigPlain;
-import static io.strimzi.oauth.testsuite.utils.KafkaClientConfig.buildProducerConfigPlain;
-import static io.strimzi.oauth.testsuite.utils.KafkaClientConfig.poll;
-import static io.strimzi.oauth.testsuite.common.TestMetrics.getPrometheusMetrics;
-import static java.util.Collections.singletonList;
+import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.buildProducerConfigPlain;
+import static io.strimzi.oauth.testsuite.utils.KafkaClientsUtils.produceAndConsumePlain;
+import static io.strimzi.oauth.testsuite.metrics.TestMetrics.getPrometheusMetrics;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class OAuthOverPlainIT {
+public class AuthOAuthOverPlainIT {
 
-    private static final Logger log = LoggerFactory.getLogger(OAuthOverPlainIT.class);
+    private static final Logger log = LoggerFactory.getLogger(AuthOAuthOverPlainIT.class);
     private static final String BROKER_KEYCLOAK_HOST = "keycloak:8080";
 
     private KeycloakAuthTestEnvironment environment;
@@ -89,27 +83,7 @@ public class OAuthOverPlainIT {
 
         final String topic = "KeycloakAuthenticationTest-clientCredentialsOverPlainWithJwt";
 
-        Properties producerProps = buildProducerConfigPlain(kafkaBootstrap, plainConfig);
-        try (Producer<String, String> producer = new KafkaProducer<>(producerProps)) {
-            producer.send(new ProducerRecord<>(topic, "The Message")).get();
-            log.debug("Produced The Message");
-        }
-
-        Properties consumerProps = buildConsumerConfigPlain(kafkaBootstrap, plainConfig);
-        try (Consumer<String, String> consumer = new KafkaConsumer<>(consumerProps)) {
-            TopicPartition partition = new TopicPartition(topic, 0);
-            consumer.assign(singletonList(partition));
-
-            while (consumer.partitionsFor(topic, Duration.ofSeconds(1)).size() == 0) {
-                log.debug("No assignment yet for consumer");
-            }
-            consumer.seekToBeginning(singletonList(partition));
-
-            ConsumerRecords<String, String> records = poll(consumer);
-
-            Assertions.assertEquals(1, records.count(), "Got message");
-            Assertions.assertEquals("The Message", records.iterator().next().value(), "Is message text: 'The Message'");
-        }
+        produceAndConsumePlain(kafkaBootstrap, plainConfig, topic, "The Message");
 
         // Check metrics
 
@@ -151,27 +125,7 @@ public class OAuthOverPlainIT {
 
         final String topic = "KeycloakAuthenticationTest-clientCredentialsOverPlainWithIntrospection";
 
-        Properties producerProps = buildProducerConfigPlain(kafkaBootstrap, plainConfig);
-        try (Producer<String, String> producer = new KafkaProducer<>(producerProps)) {
-            producer.send(new ProducerRecord<>(topic, "The Message")).get();
-            log.debug("Produced The Message");
-        }
-
-        Properties consumerProps = buildConsumerConfigPlain(kafkaBootstrap, plainConfig);
-        try (Consumer<String, String> consumer = new KafkaConsumer<>(consumerProps)) {
-            TopicPartition partition = new TopicPartition(topic, 0);
-            consumer.assign(singletonList(partition));
-
-            while (consumer.partitionsFor(topic, Duration.ofSeconds(1)).size() == 0) {
-                log.debug("No assignment yet for consumer");
-            }
-            consumer.seekToBeginning(singletonList(partition));
-
-            ConsumerRecords<String, String> records = poll(consumer);
-
-            Assertions.assertEquals(1, records.count(), "Got message");
-            Assertions.assertEquals("The Message", records.iterator().next().value(), "Is message text: 'The Message'");
-        }
+        produceAndConsumePlain(kafkaBootstrap, plainConfig, topic, "The Message");
 
         // Check metrics
 
@@ -218,27 +172,7 @@ public class OAuthOverPlainIT {
 
         final String topic = "KeycloakAuthenticationTest-accessTokenOverPlainWithIntrospection";
 
-        Properties producerProps = buildProducerConfigPlain(kafkaBootstrap, plainConfig);
-        try (Producer<String, String> producer = new KafkaProducer<>(producerProps)) {
-            producer.send(new ProducerRecord<>(topic, "The Message")).get();
-            log.debug("Produced The Message");
-        }
-
-        Properties consumerProps = buildConsumerConfigPlain(kafkaBootstrap, plainConfig);
-        try (Consumer<String, String> consumer = new KafkaConsumer<>(consumerProps)) {
-            TopicPartition partition = new TopicPartition(topic, 0);
-            consumer.assign(singletonList(partition));
-
-            while (consumer.partitionsFor(topic, Duration.ofSeconds(1)).size() == 0) {
-                log.debug("No assignment yet for consumer");
-            }
-            consumer.seekToBeginning(singletonList(partition));
-
-            ConsumerRecords<String, String> records = poll(consumer);
-
-            Assertions.assertEquals(1, records.count(), "Got message");
-            Assertions.assertEquals("The Message", records.iterator().next().value(), "Is message text: 'The Message'");
-        }
+        produceAndConsumePlain(kafkaBootstrap, plainConfig, topic, "The Message");
 
         // Check metrics
 
@@ -262,10 +196,12 @@ public class OAuthOverPlainIT {
     @DisplayName("Client credentials over PLAIN with flood test")
     @Tag(TestTags.PLAIN)
     @Tag(TestTags.PERFORMANCE)
-    void clientCredentialsOverPlainWithFloodTest() {
+    void clientCredentialsOverPlainWithFloodTest() throws Exception {
         final String kafkaBootstrap = "localhost:9102";
 
         String clientPrefix = "kafka-producer-client-";
+
+        ConcurrentKafkaClientsRunner runner = new ConcurrentKafkaClientsRunner();
 
         // We do 5 iterations - each time hitting the broker with 10 parallel requests
         for (int run = 0; run < 5; run++) {
@@ -275,20 +211,21 @@ public class OAuthOverPlainIT {
                 String secret = clientId + "-secret";
                 String topic = "messages-" + i;
 
-                FloodProducer.addProducerThread(kafkaBootstrap, clientId, secret, topic);
+                Map<String, String> plainConfig = new HashMap<>();
+                plainConfig.put("username", clientId);
+                plainConfig.put("password", secret);
+                Properties props = buildProducerConfigPlain(kafkaBootstrap, plainConfig);
+
+                runner.addTask(() -> {
+                    try (Producer<String, String> producer = new KafkaProducer<>(props)) {
+                        producer.send(new ProducerRecord<>(topic, "Message 0")).get();
+                    }
+                    return null;
+                });
             }
 
-            // Start all threads
-            FloodProducer.startThreads();
-
-            // Wait for all threads to finish
-            FloodProducer.joinThreads();
-
-            // Check for errors
-            FloodProducer.checkExceptions();
-
-            // Prepare for the next run
-            FloodProducer.clearThreads();
+            runner.executeAll(60);
+            runner.clear();
         }
     }
 
@@ -317,27 +254,7 @@ public class OAuthOverPlainIT {
 
         final String topic = "KeycloakAuthenticationTest-accessTokenOverPlainWithClientCredentialsDisabled";
 
-        Properties producerProps = buildProducerConfigPlain(kafkaBootstrap, plainConfig);
-        try (Producer<String, String> producer = new KafkaProducer<>(producerProps)) {
-            producer.send(new ProducerRecord<>(topic, "The Message")).get();
-            log.debug("Produced The Message");
-        }
-
-        Properties consumerProps = buildConsumerConfigPlain(kafkaBootstrap, plainConfig);
-        try (Consumer<String, String> consumer = new KafkaConsumer<>(consumerProps)) {
-            TopicPartition partition = new TopicPartition(topic, 0);
-            consumer.assign(singletonList(partition));
-
-            while (consumer.partitionsFor(topic, Duration.ofSeconds(1)).size() == 0) {
-                log.debug("No assignment yet for consumer");
-            }
-            consumer.seekToBeginning(singletonList(partition));
-
-            ConsumerRecords<String, String> records = poll(consumer);
-
-            Assertions.assertEquals(1, records.count(), "Got message");
-            Assertions.assertEquals("The Message", records.iterator().next().value(), "Is message text: 'The Message'");
-        }
+        produceAndConsumePlain(kafkaBootstrap, plainConfig, topic, "The Message");
 
         // Check metrics
 

@@ -2,11 +2,11 @@
  * Copyright 2017-2020, Strimzi authors.
  * License: Apache License 2.0 (see the file LICENSE or http://apache.org/licenses/LICENSE-2.0.html).
  */
-package io.strimzi.oauth.testsuite.utils;
+package io.strimzi.oauth.testsuite.clients;
 
 import io.strimzi.kafka.oauth.common.HttpUtil;
 import io.strimzi.oauth.testsuite.common.LogLineReader;
-import io.strimzi.oauth.testsuite.common.TestUtil;
+import io.strimzi.oauth.testsuite.utils.TestUtil;
 import org.junit.jupiter.api.Assertions;
 
 import java.io.IOException;

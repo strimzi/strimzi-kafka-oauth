@@ -12,6 +12,7 @@ import io.strimzi.kafka.oauth.validator.JWTSignatureValidator;
 import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
 import io.strimzi.oauth.testsuite.common.TestTags;
 import io.strimzi.oauth.testsuite.environment.MockOAuthTestEnvironment;
+import io.strimzi.oauth.testsuite.clients.MockOAuthAdmin;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -28,10 +29,10 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
-import static io.strimzi.oauth.testsuite.mockoauth.Common.changeAuthServerMode;
-import static io.strimzi.oauth.testsuite.mockoauth.Common.createOAuthClient;
-import static io.strimzi.oauth.testsuite.mockoauth.Common.getProjectRoot;
-import static io.strimzi.oauth.testsuite.mockoauth.Common.loginWithClientSecretAndExtraAttrs;
+import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.changeAuthServerMode;
+import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.createOAuthClient;
+import static io.strimzi.oauth.testsuite.utils.TestUtil.getProjectRoot;
+import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.loginWithClientSecretAndExtraAttrs;
 
 /**
  * Tests for JWT token extraction and handling of edge cases.
@@ -92,7 +93,7 @@ public class JwtExtractIT {
 
         // Now get a new token
         String accessToken = loginWithClientSecretAndExtraAttrs(
-            "https://" + Common.getMockOAuthAuthHostPort() + "/token",
+            "https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/token",
             testClient,
             testSecret,
             trustStorePath,
@@ -111,7 +112,7 @@ public class JwtExtractIT {
             null,
             null,
             null,
-            "https://" + Common.getMockOAuthAuthHostPort() + "/jwks",
+            "https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/jwks",
             sslFactory,
             SSLUtil.createAnyHostHostnameVerifier(),
             new PrincipalExtractor(),

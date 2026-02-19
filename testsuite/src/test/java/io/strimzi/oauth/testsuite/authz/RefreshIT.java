@@ -9,6 +9,7 @@ import io.strimzi.kafka.oauth.common.HttpUtil;
 import io.strimzi.oauth.testsuite.environment.KeycloakAuthzKRaftTestEnvironment;
 import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
 import io.strimzi.oauth.testsuite.common.TestTags;
+import io.strimzi.oauth.testsuite.clients.KafkaClientsConfig;
 import org.apache.kafka.clients.producer.Producer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -23,6 +24,7 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -31,7 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DisplayName("Authorization Refresh Tests")
-public class RefreshIT extends Common {
+public class RefreshIT extends AbstractAuthzIT {
 
     private KeycloakAuthzKRaftTestEnvironment environment;
 
@@ -39,8 +41,19 @@ public class RefreshIT extends Common {
     OAuthTestLogCollector logCollector = new OAuthTestLogCollector(() ->
             environment != null ? environment.getContainers() : null);
 
-    public RefreshIT() {
-        super("localhost:9092", false);
+    @Override
+    protected String kafkaBootstrap() {
+        return "localhost:9092";
+    }
+
+    @Override
+    protected Properties buildProducerConfigForAccount(String name) {
+        return buildProducerConfigOAuthBearer(kafkaBootstrap(), buildAuthConfigForOAuthBearer(name));
+    }
+
+    @Override
+    protected Properties buildConsumerConfigForAccount(String name) {
+        return KafkaClientsConfig.buildConsumerConfigOAuthBearer(kafkaBootstrap(), buildAuthConfigForOAuthBearer(name));
     }
 
     @BeforeAll
@@ -48,7 +61,7 @@ public class RefreshIT extends Common {
         environment = new KeycloakAuthzKRaftTestEnvironment();
         environment.start();
 
-        authenticateAllActors();
+        authenticateAllActors(environment.getTokenEndpointUri());
     }
 
     @AfterAll
@@ -98,7 +111,7 @@ public class RefreshIT extends Common {
 
     private void changePermissionsForClients() throws IOException {
 
-        String token = loginWithUsernamePassword(URI.create("http://" + Common.keycloakHostPort() + "/realms/master/protocol/openid-connect/token"),
+        String token = KafkaClientsConfig.loginWithUsernamePasswordInBody(URI.create("http://" + environment.getKeycloakHostPort() + "/realms/master/protocol/openid-connect/token"),
                 "admin", "admin", "admin-cli");
 
         String authorization = "Bearer " + token;
@@ -107,7 +120,7 @@ public class RefreshIT extends Common {
         //
         //  GET http://keycloak:8080/admin/realms/kafka-authz/clients?first=0&max=20&search=true
 
-        String clientsUrl = "http://" + Common.keycloakHostPort() + "/admin/realms/kafka-authz/clients";
+        String clientsUrl = "http://" + environment.getKeycloakHostPort() + "/admin/realms/kafka-authz/clients";
         JsonNode result = HttpUtil.get(URI.create(clientsUrl), authorization, JsonNode.class);
 
         String clientId = null;
@@ -155,7 +168,7 @@ public class RefreshIT extends Common {
 
         //  get the ids of all the permissions
 
-        String permissionsUrl = "http://" + Common.keycloakHostPort() + "/admin/realms/kafka-authz/clients/" + clientId + "/authz/resource-server/permission";
+        String permissionsUrl = "http://" + environment.getKeycloakHostPort() + "/admin/realms/kafka-authz/clients/" + clientId + "/authz/resource-server/permission";
         result = HttpUtil.get(URI.create(permissionsUrl), authorization, JsonNode.class);
 
         String devTeamAPermission = null;
@@ -186,10 +199,10 @@ public class RefreshIT extends Common {
     }
 
     private void removePermissions(String authorization, String clientId, String devTeamAPermission, String devTeamBPermission) throws IOException {
-        String permissionUrl = "http://" + Common.keycloakHostPort() + "/admin/realms/kafka-authz/clients/" + clientId + "/authz/resource-server/permission/" + devTeamAPermission;
+        String permissionUrl = "http://" + environment.getKeycloakHostPort() + "/admin/realms/kafka-authz/clients/" + clientId + "/authz/resource-server/permission/" + devTeamAPermission;
         HttpUtil.delete(URI.create(permissionUrl), authorization);
 
-        permissionUrl = "http://" + Common.keycloakHostPort() + "/admin/realms/kafka-authz/clients/" + clientId + "/authz/resource-server/permission/" + devTeamBPermission;
+        permissionUrl = "http://" + environment.getKeycloakHostPort() + "/admin/realms/kafka-authz/clients/" + clientId + "/authz/resource-server/permission/" + devTeamBPermission;
         HttpUtil.delete(URI.create(permissionUrl), authorization);
     }
 
@@ -199,7 +212,7 @@ public class RefreshIT extends Common {
             ",\"name\":\"%s\",\"resources\":[\"%s\"]" +
             ",\"scopes\":[\"%s\",\"%s\"],\"policies\":[\"%s\"]}";
 
-        String permissionUrl = "http://" + Common.keycloakHostPort() + "/admin/realms/kafka-authz/clients/" + clientId + "/authz/resource-server/permission/scope";
+        String permissionUrl = "http://" + environment.getKeycloakHostPort() + "/admin/realms/kafka-authz/clients/" + clientId + "/authz/resource-server/permission/scope";
 
         String body = String.format(bodyPattern, "Dev Team A can write to topics that start with b_",
                 bTopicsId, describeScope, writeScope, devTeamA);
@@ -214,17 +227,17 @@ public class RefreshIT extends Common {
     }
 
     private Map<String, String> getAuthzScopes(String authorization, String clientId) throws IOException {
-        String scopesUrl = "http://" + Common.keycloakHostPort() + "/admin/realms/kafka-authz/clients/" + clientId + "/authz/resource-server/scope";
+        String scopesUrl = "http://" + environment.getKeycloakHostPort() + "/admin/realms/kafka-authz/clients/" + clientId + "/authz/resource-server/scope";
         return getAuthzList(URI.create(scopesUrl), authorization, "name", "id");
     }
 
     private Map<String, String> getAuthzResources(String authorization, String clientId) throws IOException {
-        String resourcesUrl = "http://" + Common.keycloakHostPort() + "/admin/realms/kafka-authz/clients/" + clientId + "/authz/resource-server/resource";
+        String resourcesUrl = "http://" + environment.getKeycloakHostPort() + "/admin/realms/kafka-authz/clients/" + clientId + "/authz/resource-server/resource";
         return getAuthzList(URI.create(resourcesUrl), authorization, "name", "_id");
     }
 
     private Map<String, String> getAuthzPolicies(String authorization, String clientId) throws IOException {
-        String policiesUrl = "http://" + Common.keycloakHostPort() + "/admin/realms/kafka-authz/clients/" + clientId + "/authz/resource-server/policy";
+        String policiesUrl = "http://" + environment.getKeycloakHostPort() + "/admin/realms/kafka-authz/clients/" + clientId + "/authz/resource-server/policy";
         return getAuthzList(URI.create(policiesUrl), authorization, "name", "id");
     }
 

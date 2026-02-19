@@ -8,6 +8,7 @@ import io.strimzi.kafka.oauth.common.HttpException;
 import io.strimzi.oauth.testsuite.environment.KeycloakAuthzKRaftTestEnvironment;
 import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
 import io.strimzi.oauth.testsuite.common.TestTags;
+import io.strimzi.oauth.testsuite.clients.KafkaClientsConfig;
 import org.apache.kafka.common.errors.AuthenticationException;
 import org.apache.kafka.common.errors.AuthorizationException;
 import org.junit.jupiter.api.AfterAll;
@@ -24,9 +25,9 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 
-import static io.strimzi.oauth.testsuite.authz.Common.buildProducerConfigScram;
-import static io.strimzi.oauth.testsuite.authz.Common.produceToTopic;
-import static io.strimzi.oauth.testsuite.common.TestUtil.assertTrueExtra;
+import static io.strimzi.oauth.testsuite.authz.AbstractAuthzIT.buildProducerConfigScram;
+import static io.strimzi.oauth.testsuite.authz.AbstractAuthzIT.produceToTopic;
+import static io.strimzi.oauth.testsuite.utils.TestUtil.assertTrueExtra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -95,8 +96,8 @@ public class ScramIT {
 
         // OAuth authentication using SCRAM password should fail
         try {
-            Common.loginWithUsernamePassword(
-                    URI.create(Common.tokenEndpointUri()),
+            KafkaClientsConfig.loginWithUsernamePasswordInBody(
+                    URI.create(environment.getTokenEndpointUri()),
                     username, password, "kafka-cli");
 
             fail("Should have failed");

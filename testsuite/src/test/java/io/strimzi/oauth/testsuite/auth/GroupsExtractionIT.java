@@ -27,8 +27,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import static io.strimzi.oauth.testsuite.utils.KafkaClientConfig.buildProducerConfigOAuthBearer;
-import static io.strimzi.oauth.testsuite.common.TestUtil.getContainerLogsForString;
+import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.buildProducerConfigOAuthBearer;
+import static io.strimzi.oauth.testsuite.utils.TestUtil.getContainerLogsForString;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class GroupsExtractionIT {

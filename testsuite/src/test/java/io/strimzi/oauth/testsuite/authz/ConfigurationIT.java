@@ -17,7 +17,7 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 
 import java.util.List;
 
-import static io.strimzi.oauth.testsuite.common.TestUtil.getContainerLogsForString;
+import static io.strimzi.oauth.testsuite.utils.TestUtil.getContainerLogsForString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 

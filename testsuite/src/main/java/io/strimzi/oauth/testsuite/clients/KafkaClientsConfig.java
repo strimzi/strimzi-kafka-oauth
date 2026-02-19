@@ -2,10 +2,15 @@
  * Copyright 2017-2020, Strimzi authors.
  * License: Apache License 2.0 (see the file LICENSE or http://apache.org/licenses/LICENSE-2.0.html).
  */
-package io.strimzi.oauth.testsuite.utils;
+package io.strimzi.oauth.testsuite.clients;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.strimzi.kafka.oauth.common.HttpUtil;
+import io.strimzi.kafka.oauth.common.OAuthAuthenticator;
+import io.strimzi.kafka.oauth.common.PrincipalExtractor;
+import io.strimzi.kafka.oauth.common.SSLUtil;
+import io.strimzi.kafka.oauth.common.TokenInfo;
+import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -18,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.URI;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
@@ -27,11 +33,11 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
 /**
  * Shared Kafka client configuration builders for OAuth/SASL authentication tests.
  */
-public class KafkaClientConfig {
+public class KafkaClientsConfig {
 
-    static final String WWW_FORM_CONTENT_TYPE = "application/x-www-form-urlencoded";
+    public static final String WWW_FORM_CONTENT_TYPE = "application/x-www-form-urlencoded";
 
-    private static final Logger log = LoggerFactory.getLogger(KafkaClientConfig.class);
+    private static final Logger log = LoggerFactory.getLogger(KafkaClientsConfig.class);
 
     public static String getJaasConfigOptionsString(Map<String, String> options) {
         StringBuilder sb = new StringBuilder();
@@ -86,6 +92,12 @@ public class KafkaClientConfig {
     public static Properties buildProducerConfigScram(String kafkaBootstrap, Map<String, String> scramConfig) {
         Properties p = buildCommonConfigScram(scramConfig);
         setCommonProducerProperties(kafkaBootstrap, p);
+        return p;
+    }
+
+    public static Properties buildConsumerConfigScram(String kafkaBootstrap, Map<String, String> scramConfig) {
+        Properties p = buildCommonConfigScram(scramConfig);
+        setCommonConsumerProperties(kafkaBootstrap, p);
         return p;
     }
 
@@ -165,6 +177,124 @@ public class KafkaClientConfig {
             throw new IllegalStateException("Invalid response from authorization server: no access_token");
         }
         return token.asText();
+    }
+
+    /**
+     * Get an access token from the token endpoint using client credentials by way of the OAuthAuthenticator.loginWithClientSecret method.
+     *
+     * @param tokenEndpoint The token endpoint
+     * @param clientId The client ID
+     * @param secret The client secret
+     * @param truststorePath The path to the truststore for TLS connection
+     * @param truststorePass The truststore password for TLS connection
+     * @return The access token returned from the authorization server's token endpoint
+     * @throws IOException Exception while sending the request
+     */
+    public static String loginWithClientSecret(String tokenEndpoint, String clientId, String secret, String truststorePath, String truststorePass) throws IOException {
+        TokenInfo tokenInfo = OAuthAuthenticator.loginWithClientSecret(
+                URI.create(tokenEndpoint),
+                SSLUtil.createSSLFactory(truststorePath, null, truststorePass, null, null),
+                SSLUtil.createAnyHostHostnameVerifier(),
+                clientId,
+                secret,
+                true,
+                new PrincipalExtractor(),
+                "all",
+                true);
+
+        return tokenInfo.token();
+    }
+
+    /**
+     * Get an access token from the token endpoint using client credentials and additional body attributes.
+     *
+     * @param tokenEndpoint The token endpoint
+     * @param clientId The client ID
+     * @param secret The client secret
+     * @param truststorePath The path to the truststore for TLS connection
+     * @param truststorePass The truststore password for TLS connection
+     * @param extraAttrs The string of url-encoded key=value pairs separated by '&' to be added to the body of the token request
+     * @return The access token returned from the authorization server's token endpoint
+     * @throws IOException Exception while sending the request
+     */
+    public static String loginWithClientSecretAndExtraAttrs(String tokenEndpoint, String clientId, String secret,
+                                                             String truststorePath, String truststorePass, String extraAttrs) throws IOException {
+
+        if (clientId == null) {
+            throw new IllegalArgumentException("No clientId specified");
+        }
+        if (secret == null) {
+            secret = "";
+        }
+
+        String authorization = "Basic " + base64encode(clientId + ':' + secret);
+
+        StringBuilder body = new StringBuilder("grant_type=client_credentials");
+        if (extraAttrs != null) {
+            body.append("&").append(extraAttrs);
+        }
+        JsonNode result = HttpUtil.post(URI.create(tokenEndpoint),
+                SSLUtil.createSSLFactory(truststorePath, null, truststorePass, null, null),
+                SSLUtil.createAnyHostHostnameVerifier(),
+                authorization,
+                WWW_FORM_CONTENT_TYPE,
+                body.toString(),
+                JsonNode.class);
+
+        JsonNode token = result.get("access_token");
+        if (token == null) {
+            throw new IllegalStateException("Invalid response from authorization server: no access_token");
+        }
+        return token.asText();
+    }
+
+    public static String loginWithUsernameForRefreshToken(String tokenEndpointUri, String username, String password, String clientId, String truststorePath, String truststorePass) throws IOException {
+
+        JsonNode result = HttpUtil.post(URI.create(tokenEndpointUri),
+                SSLUtil.createSSLFactory(truststorePath, null, truststorePass, null, null),
+                SSLUtil.createAnyHostHostnameVerifier(),
+                null,
+                WWW_FORM_CONTENT_TYPE,
+                "grant_type=password&username=" + username + "&password=" + password + "&client_id=" + clientId,
+                JsonNode.class);
+
+        JsonNode token = result.get("refresh_token");
+        if (token == null) {
+            throw new IllegalStateException("Invalid response from authorization server: no refresh_token");
+        }
+        return token.asText();
+    }
+
+    /**
+     * Login with username and password using client_id in the request body (not Basic Auth).
+     * This is the variant needed by Keycloak authorization tests.
+     */
+    public static String loginWithUsernamePasswordInBody(URI tokenEndpointUri, String username, String password, String clientId) throws IOException {
+
+        String body = "grant_type=password&username=" + urlencode(username) +
+                "&password=" + urlencode(password) + "&client_id=" + urlencode(clientId);
+
+        JsonNode result = HttpUtil.post(tokenEndpointUri,
+                null,
+                null,
+                null,
+                WWW_FORM_CONTENT_TYPE,
+                body,
+                JsonNode.class);
+
+        JsonNode token = result.get("access_token");
+        if (token == null) {
+            throw new IllegalStateException("Invalid response from authorization server: no access_token");
+        }
+        return token.asText();
+    }
+
+    public static AdminClient buildAdminClientForPlain(String kafkaBootstrap, String user) {
+        Map<String, String> plainConfig = new HashMap<>();
+        plainConfig.put("username", user);
+        plainConfig.put("password", user + "-password");
+        Properties adminProps = buildProducerConfigPlain(kafkaBootstrap, plainConfig);
+        return AdminClient.create(adminProps);
     }
 
     public static <K, V> ConsumerRecords<K, V> poll(Consumer<K, V> consumer) {

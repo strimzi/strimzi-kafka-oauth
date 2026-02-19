@@ -8,6 +8,7 @@ import io.strimzi.kafka.oauth.client.ClientConfig;
 import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
 import io.strimzi.oauth.testsuite.common.TestTags;
 import io.strimzi.oauth.testsuite.environment.MockOAuthTestEnvironment;
+import io.strimzi.oauth.testsuite.clients.MockOAuthAdmin;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -31,10 +32,10 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 
-import static io.strimzi.oauth.testsuite.common.TestUtil.getContainerLogsForString;
-import static io.strimzi.oauth.testsuite.mockoauth.Common.buildProducerConfigOAuthBearer;
-import static io.strimzi.oauth.testsuite.mockoauth.Common.changeAuthServerMode;
-import static io.strimzi.oauth.testsuite.common.TestUtil.getRootCause;
+import static io.strimzi.oauth.testsuite.utils.TestUtil.getContainerLogsForString;
+import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.buildProducerConfigOAuthBearer;
+import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.changeAuthServerMode;
+import static io.strimzi.oauth.testsuite.utils.TestUtil.getRootCause;
 
 /**
  * Tests for HTTP connection timeout handling.
@@ -104,7 +105,7 @@ public class ConnectTimeoutIT {
     @Tag(TestTags.TIMEOUT)
     void testConnectAuthServerWithTimeout() throws Exception {
         final String kafkaBootstrap = "localhost:9096";
-        final String hostPort = Common.getMockOAuthAuthHostPort();
+        final String hostPort = MockOAuthAdmin.getMockOAuthAuthHostPort();
 
         final String tokenEndpointUri = "https://" + hostPort + "/token";
 

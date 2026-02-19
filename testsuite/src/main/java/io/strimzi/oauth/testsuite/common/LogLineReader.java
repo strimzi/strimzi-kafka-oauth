@@ -4,6 +4,8 @@
  */
 package io.strimzi.oauth.testsuite.common;
 
+import io.strimzi.oauth.testsuite.utils.TestUtil;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;

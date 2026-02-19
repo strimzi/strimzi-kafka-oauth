@@ -2,7 +2,7 @@
  * Copyright 2017-2021, Strimzi authors.
  * License: Apache License 2.0 (see the file LICENSE or http://apache.org/licenses/LICENSE-2.0.html).
  */
-package io.strimzi.oauth.testsuite.common;
+package io.strimzi.oauth.testsuite.metrics;
 
 import io.strimzi.kafka.oauth.common.HttpUtil;
 
@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import static io.strimzi.oauth.testsuite.common.TestUtil.unquote;
+import static io.strimzi.oauth.testsuite.utils.TestUtil.unquote;
 
 /**
  * Helper class for fetching and querying Prometheus metrics from an HTTP endpoint.
@@ -135,6 +135,71 @@ public class TestMetrics {
                     }
                 }
                 result = result.add(new BigDecimal(entry.value));
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Get the value of a single metric matching the key and the attributes.
+     * Returns null if no matching metric is found.
+     * Throws if more than one matching metric is found.
+     *
+     * @param key Metric key
+     * @param attrs The attributes filter passed as attrName1, attrValue1, attrName2, attrValue2 ...
+     * @return The value of the matching metric as String, or null if not found
+     */
+    public String getValue(String key, String... attrs) {
+        boolean match = false;
+        String result = null;
+        next:
+        for (MetricEntry entry : entries) {
+            if (entry.key.equals(key)) {
+                for (int i = 0; i < attrs.length; i += 2) {
+                    if (!attrs[i + 1].equals(entry.attrs.get(attrs[i]))) {
+                        continue next;
+                    }
+                }
+                if (!match) {
+                    match = true;
+                    result = entry.value;
+                } else {
+                    throw new RuntimeException("More than one matching metric entry");
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Get the value of a single metric matching the key prefix and the attributes.
+     * Returns null if no matching metric is found.
+     * Throws if more than one matching metric is found.
+     * <p>
+     * Different Strimzi Kafka images seem to expose internal metrics structures of type CumulativeSum and CumulativeCount differently.
+     * The later versions seem to add '_total' suffix, whereas the older versions don't.
+     *
+     * @param keyPrefix The key prefix for the key identifying the metric
+     * @param attrs The attributes filter passed as attrName1, attrValue1, attrName2, attrValue2 ...
+     * @return The value of the matching metric as String, or null if not found
+     */
+    public String getValueStartsWith(String keyPrefix, String... attrs) {
+        boolean match = false;
+        String result = null;
+        next:
+        for (MetricEntry entry : entries) {
+            if (entry.key.startsWith(keyPrefix)) {
+                for (int i = 0; i < attrs.length; i += 2) {
+                    if (!attrs[i + 1].equals(entry.attrs.get(attrs[i]))) {
+                        continue next;
+                    }
+                }
+                if (!match) {
+                    match = true;
+                    result = entry.value;
+                } else {
+                    throw new RuntimeException("More than one matching metric entry");
+                }
             }
         }
         return result;

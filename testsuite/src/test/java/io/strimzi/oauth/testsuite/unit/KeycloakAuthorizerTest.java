@@ -2,7 +2,7 @@
  * Copyright 2017-2019, Strimzi authors.
  * License: Apache License 2.0 (see the file LICENSE or http://apache.org/licenses/LICENSE-2.0.html).
  */
-package io.strimzi.oauth.testsuite.jdk17;
+package io.strimzi.oauth.testsuite.unit;
 
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
 import io.strimzi.kafka.oauth.common.Config;
@@ -22,8 +22,11 @@ import io.strimzi.kafka.oauth.server.authorizer.TestAuthzUtil;
 import io.strimzi.oauth.testsuite.common.LogLineReader;
 import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
 import io.strimzi.oauth.testsuite.common.TestTags;
-import io.strimzi.oauth.testsuite.common.TestUtil;
-import io.strimzi.oauth.testsuite.environment.MockOAuthJdk17TestEnvironment;
+import io.strimzi.oauth.testsuite.utils.TestUtil;
+import io.strimzi.oauth.testsuite.environment.TestContainerFactory;
+import io.strimzi.oauth.testsuite.clients.MockOAuthAdmin;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.Network;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.resource.PatternType;
 import org.apache.kafka.common.resource.ResourcePattern;
@@ -68,24 +71,28 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
-import static io.strimzi.oauth.testsuite.common.TestUtil.checkLogForRegex;
-import static io.strimzi.oauth.testsuite.jdk17.Common.addGrantsForToken;
-import static io.strimzi.oauth.testsuite.jdk17.Common.changeAuthServerMode;
-import static io.strimzi.oauth.testsuite.jdk17.Common.checkLog;
-import static io.strimzi.oauth.testsuite.jdk17.Common.createOAuthClient;
-import static io.strimzi.oauth.testsuite.jdk17.Common.createOAuthUser;
+import static io.strimzi.oauth.testsuite.utils.TestUtil.checkLogForRegex;
+import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.addGrantsForToken;
+import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.changeAuthServerMode;
+import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.checkLog;
+import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.createOAuthClient;
+import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.createOAuthUser;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class KeycloakAuthorizerIT {
+public class KeycloakAuthorizerTest {
 
-    private MockOAuthJdk17TestEnvironment env;
+    private static final String LOG_PATH = "target/test.log";
+
+    private Network network;
+    private GenericContainer<?> mockoauth;
 
     @RegisterExtension
-    OAuthTestLogCollector logCollector = new OAuthTestLogCollector(() -> env != null ? env.getContainers() : null);
+    OAuthTestLogCollector logCollector = new OAuthTestLogCollector(() ->
+            mockoauth != null ? Collections.singletonList(mockoauth) : null);
 
-    private static final Logger LOG = LoggerFactory.getLogger(KeycloakAuthorizerIT.class);
+    private static final Logger LOG = LoggerFactory.getLogger(KeycloakAuthorizerTest.class);
 
     static final String CLIENT_CLI = "kafka-cli";
 
@@ -96,19 +103,19 @@ public class KeycloakAuthorizerIT {
     final static String TRUSTSTORE_PASS = "changeit";
 
     static String tokenEndpoint() {
-        return "https://" + Common.getMockOAuthAuthHostPort() + "/token";
+        return "https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/token";
     }
 
     static String failingTokenEndpoint() {
-        return "https://" + Common.getMockOAuthAuthHostPort() + "/failing_token";
+        return "https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/failing_token";
     }
 
     static String grantsEndpoint() {
-        return "https://" + Common.getMockOAuthAuthHostPort() + "/grants";
+        return "https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/grants";
     }
 
     static String jwksEndpoint() {
-        return "https://" + Common.getMockOAuthAuthHostPort() + "/jwks";
+        return "https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/jwks";
     }
 
     static String validIssuerUri() {
@@ -139,7 +146,7 @@ public class KeycloakAuthorizerIT {
     public void doGrants401Test() throws IOException, InterruptedException, TimeoutException {
         changeAuthServerMode("token", "MODE_200");
 
-        LogLineReader logReader = new LogLineReader(Common.LOG_PATH);
+        LogLineReader logReader = new LogLineReader(LOG_PATH);
         logReader.readNext();
 
         List<String> lines;
@@ -205,7 +212,7 @@ public class KeycloakAuthorizerIT {
         // Switch grants endpoint to 403 mode
         changeAuthServerMode("grants", "MODE_403");
 
-        LogLineReader logReader = new LogLineReader(Common.LOG_PATH);
+        LogLineReader logReader = new LogLineReader(LOG_PATH);
         logReader.readNext();
 
         List<String> lines;
@@ -216,7 +223,7 @@ public class KeycloakAuthorizerIT {
             authorizer.configure(props);
 
             TokenInfo tokenInfo = login(failingTokenEndpoint(), USER_ALICE, USER_ALICE_PASS, 1);
-            KafkaPrincipal principal = new OAuthKafkaPrincipal(KafkaPrincipal.USER_TYPE, USER_ALICE, new Common.MockBearerTokenWithPayload(tokenInfo));
+            KafkaPrincipal principal = new OAuthKafkaPrincipal(KafkaPrincipal.USER_TYPE, USER_ALICE, new MockBearerTokenWithPayload(tokenInfo));
             AuthorizableRequestContext ctx = newAuthorizableRequestContext(principal);
 
             List<Action> actions = new ArrayList<>();
@@ -252,7 +259,7 @@ public class KeycloakAuthorizerIT {
         changeAuthServerMode("failing_token", "MODE_400");
 
         HashMap<String, String> props = configureAuthorizer();
-        props.put(AuthzConfig.STRIMZI_AUTHORIZATION_TOKEN_ENDPOINT_URI, "https://" + Common.getMockOAuthAuthHostPort() + "/failing_grants");
+        props.put(AuthzConfig.STRIMZI_AUTHORIZATION_TOKEN_ENDPOINT_URI, "https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/failing_grants");
 
         try (KeycloakAuthorizer authorizer = new KeycloakAuthorizer()) {
             authorizer.configure(props);
@@ -268,7 +275,7 @@ public class KeycloakAuthorizerIT {
 
             // Now try again
             TokenInfo tokenInfo = login(failingTokenEndpoint(), USER_ALICE, USER_ALICE_PASS, 1);
-            KafkaPrincipal principal = new OAuthKafkaPrincipal(KafkaPrincipal.USER_TYPE, USER_ALICE, new Common.MockBearerTokenWithPayload(tokenInfo));
+            KafkaPrincipal principal = new OAuthKafkaPrincipal(KafkaPrincipal.USER_TYPE, USER_ALICE, new MockBearerTokenWithPayload(tokenInfo));
             AuthorizableRequestContext ctx = newAuthorizableRequestContext(principal);
 
             List<Action> actions = new ArrayList<>();
@@ -325,7 +332,7 @@ public class KeycloakAuthorizerIT {
         try (KeycloakAuthorizer authorizer = new KeycloakAuthorizer()) {
             authorizer.configure(props);
 
-            LogLineReader logReader = new LogLineReader(Common.LOG_PATH);
+            LogLineReader logReader = new LogLineReader(LOG_PATH);
             List<String> lines = logReader.readNext();
 
             if (withReuse) {
@@ -458,7 +465,7 @@ public class KeycloakAuthorizerIT {
         }
         config.put(AuthzConfig.STRIMZI_AUTHORIZATION_CLIENT_ID, "kafka");
 
-        LogLineReader logReader = new LogLineReader(Common.LOG_PATH);
+        LogLineReader logReader = new LogLineReader(LOG_PATH);
 
         // Position to the end of the existing log file
         logReader.readNext();
@@ -643,7 +650,7 @@ public class KeycloakAuthorizerIT {
 
 
             // check the logs for updated access token
-            LogLineReader logReader = new LogLineReader(Common.LOG_PATH);
+            LogLineReader logReader = new LogLineReader(LOG_PATH);
 
             // wait for cgGrants run on 0 users
             LOG.info("Waiting for: active users count: 0"); // Make sure to not repeat the below condition in the string here
@@ -741,7 +748,6 @@ public class KeycloakAuthorizerIT {
     }
 
     private AuthenticateCallbackHandler configureJwtSignatureValidator() {
-        //JWTSignatureValidator validator = new JWTSignatureValidator("test-validator", jwksEndpoint(), )
         JaasServerOauthValidatorCallbackHandler authHandler = new JaasServerOauthValidatorCallbackHandler();
         Map<String, String> jaasProps = new HashMap<>();
         jaasProps.put(ServerConfig.OAUTH_JWKS_ENDPOINT_URI, jwksEndpoint());
@@ -789,7 +795,7 @@ public class KeycloakAuthorizerIT {
                 new ResourcePattern(ResourceType.TOPIC, "my-topic", PatternType.LITERAL),
                 1, true, true));
 
-        LogLineReader logReader = new LogLineReader(Common.LOG_PATH);
+        LogLineReader logReader = new LogLineReader(LOG_PATH);
         // seek to the end of log file
         logReader.readNext();
 
@@ -887,7 +893,7 @@ public class KeycloakAuthorizerIT {
                 new ResourcePattern(ResourceType.TOPIC, "x_topic", PatternType.LITERAL),
                 1, true, true));
 
-        LogLineReader logReader = new LogLineReader(Common.LOG_PATH);
+        LogLineReader logReader = new LogLineReader(LOG_PATH);
         // seek to the end of log file
         logReader.readNext();
 
@@ -944,7 +950,7 @@ public class KeycloakAuthorizerIT {
     public void doSingletonTest() throws Exception {
         HashMap<String, String> config = configureAuthorizer();
 
-        LogLineReader logReader = new LogLineReader(Common.LOG_PATH);
+        LogLineReader logReader = new LogLineReader(LOG_PATH);
         logReader.readNext();
 
         List<String> lines;
@@ -1040,15 +1046,24 @@ public class KeycloakAuthorizerIT {
 
     @BeforeAll
     void setUp() throws IOException {
-        env = new MockOAuthJdk17TestEnvironment();
-        env.start();
-        KeycloakAuthorizerIT.staticInit();
+        network = Network.newNetwork();
+        mockoauth = TestContainerFactory.createMockOAuth(network);
+        mockoauth.start();
+        TestContainerFactory.publishMockOAuthPorts(mockoauth);
+        MockOAuthAdmin.changeAuthServerMode("jwks", "MODE_200");
+        MockOAuthAdmin.changeAuthServerMode("token", "MODE_200");
+        MockOAuthAdmin.changeAuthServerMode("introspect", "MODE_200");
+        MockOAuthAdmin.changeAuthServerMode("userinfo", "MODE_200");
+        KeycloakAuthorizerTest.staticInit();
     }
 
     @AfterAll
     void tearDown() {
-        if (env != null) {
-            env.stop();
+        if (mockoauth != null) {
+            mockoauth.stop();
+        }
+        if (network != null) {
+            network.close();
         }
     }
 }

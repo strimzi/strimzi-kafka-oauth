@@ -17,6 +17,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static io.strimzi.oauth.testsuite.environment.TestContainerFactory.CONTAINER_LABEL_KEY;
+
 /**
  * Manages the Docker containers for Hydra authentication tests using programmatic Testcontainers.
  *
@@ -39,9 +41,10 @@ public class HydraTestEnvironment {
 
         // Start Hydra (opaque token strategy)
         hydra = new GenericContainer<>("oryd/hydra:v2.3.0")
+                .withLabel(CONTAINER_LABEL_KEY, "hydra")
                 .withExposedPorts(4444, 4445)
                 .withNetwork(network)
-            .withNetworkAliases("hydra")
+                .withNetworkAliases("hydra")
                 .withCopyToContainer(
                         MountableFile.forHostPath(Path.of("target/hydra/certs").toAbsolutePath().toString()),
                         "/tmp/certs")

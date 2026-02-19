@@ -9,6 +9,7 @@ import io.strimzi.kafka.oauth.common.Config;
 import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
 import io.strimzi.oauth.testsuite.common.TestTags;
 import io.strimzi.oauth.testsuite.environment.MockOAuthTestEnvironment;
+import io.strimzi.oauth.testsuite.clients.MockOAuthAdmin;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.KafkaException;
@@ -33,13 +34,13 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 
-import static io.strimzi.oauth.testsuite.common.TestUtil.getContainerLogsForString;
-import static io.strimzi.oauth.testsuite.mockoauth.Common.buildProducerConfigOAuthBearer;
-import static io.strimzi.oauth.testsuite.mockoauth.Common.buildProducerConfigPlain;
-import static io.strimzi.oauth.testsuite.mockoauth.Common.changeAuthServerMode;
-import static io.strimzi.oauth.testsuite.mockoauth.Common.createOAuthClient;
-import static io.strimzi.oauth.testsuite.common.TestUtil.getRootCause;
-import static io.strimzi.oauth.testsuite.mockoauth.Common.loginWithClientSecret;
+import static io.strimzi.oauth.testsuite.utils.TestUtil.getContainerLogsForString;
+import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.buildProducerConfigOAuthBearer;
+import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.buildProducerConfigPlain;
+import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.changeAuthServerMode;
+import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.createOAuthClient;
+import static io.strimzi.oauth.testsuite.utils.TestUtil.getRootCause;
+import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.loginWithClientSecret;
 
 /**
  * Tests for HTTP retry handling.
@@ -120,7 +121,7 @@ public class RetriesIT {
     @Tag(TestTags.CLIENT)
     void testClientRetries() throws Exception {
         final String kafkaBootstrap = "localhost:9096";
-        final String hostPort = Common.getMockOAuthAuthHostPort();
+        final String hostPort = MockOAuthAdmin.getMockOAuthAuthHostPort();
 
         final String tokenEndpointUri = "https://" + hostPort + "/failing_token";
 
@@ -249,7 +250,7 @@ public class RetriesIT {
     void testIntrospectAndUserinfoEndpointsRetries() throws Exception {
         // use kafka listener that uses /failing_introspect and failing_userinfo
         final String kafkaBootstrap = "localhost:9097";
-        final String hostPort = Common.getMockOAuthAuthHostPort();
+        final String hostPort = MockOAuthAdmin.getMockOAuthAuthHostPort();
         final String tokenEndpointUri = "https://" + hostPort + "/token";
 
         String testClient = "testclient";

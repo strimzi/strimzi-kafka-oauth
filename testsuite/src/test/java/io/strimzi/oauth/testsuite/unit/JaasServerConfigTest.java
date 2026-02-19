@@ -2,25 +2,20 @@
  * Copyright 2017-2023, Strimzi authors.
  * License: Apache License 2.0 (see the file LICENSE or http://apache.org/licenses/LICENSE-2.0.html).
  */
-package io.strimzi.oauth.testsuite.mockoauth;
+package io.strimzi.oauth.testsuite.unit;
 
 import io.strimzi.kafka.oauth.common.ConfigException;
 import io.strimzi.kafka.oauth.metrics.GlobalConfig;
 import io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler;
 import io.strimzi.kafka.oauth.server.ServerConfig;
 import io.strimzi.oauth.testsuite.common.LogLineReader;
-import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
 import io.strimzi.oauth.testsuite.common.TestTags;
-import io.strimzi.oauth.testsuite.common.metrics.TestMetricsReporter;
-import io.strimzi.oauth.testsuite.environment.MockOAuthTestEnvironment;
-import org.junit.jupiter.api.AfterAll;
+import io.strimzi.oauth.testsuite.metrics.TestMetricsReporter;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.extension.RegisterExtension;
 
 import javax.security.auth.login.AppConfigurationEntry;
 import java.io.IOException;
@@ -28,31 +23,17 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.checkLog;
+
 /**
  * Tests for JAAS server configuration options.
  * Validates that all server-side OAuth configuration options are properly handled.
+ * No containers needed - handler.configure() runs in-process with fictional URLs.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class JaasServerConfigIT {
+public class JaasServerConfigTest {
 
-    private MockOAuthTestEnvironment environment;
-
-    @RegisterExtension
-    OAuthTestLogCollector logCollector = new OAuthTestLogCollector(() ->
-        environment != null ? environment.getContainers() : null);
-
-    @BeforeAll
-    void setUp() {
-        environment = new MockOAuthTestEnvironment();
-        environment.start();
-    }
-
-    @AfterAll
-    void tearDown() {
-        if (environment != null) {
-            environment.stop();
-        }
-    }
+    private static final String LOG_PATH = "target/test.log";
 
     @Test
     @DisplayName("JWKS validator should handle all configuration options correctly")
@@ -101,12 +82,12 @@ public class JaasServerConfigIT {
         serverProps.put("security.protocol", "SASL_PLAINTEXT");
         serverProps.put("sasl.mechanism", "OAUTHBEARER");
 
-        LogLineReader logReader = new LogLineReader(Common.LOG_PATH);
+        LogLineReader logReader = new LogLineReader(LOG_PATH);
         logReader.readNext();
 
         handler.configure(serverProps, "OAUTHBEARER", Collections.singletonList(jaasConfig));
 
-        Common.checkLog(logReader, "JWTSignatureValidator", "",
+        checkLog(logReader, "JWTSignatureValidator", "",
             "validatorId", "config-id",
             "clientId", "client-id",
             "clientSecret", "c\\*\\*",
@@ -133,8 +114,6 @@ public class JaasServerConfigIT {
             "failFast", "false",
             "includeAcceptHeader", "false"
         );
-
-        // principalExtractor: PrincipalExtractor {usernameClaim: io.strimzi.kafka.oauth.common.PrincipalExtractor$Extractor@1e5f4170, fallbackUsernameClaim: null, fallbackUsernamePrefix: null}
 
         //   Check #2
         attrs.put(ServerConfig.OAUTH_CONFIG_ID, "config-id-2");
@@ -164,7 +143,7 @@ public class JaasServerConfigIT {
         logReader.readNext();
         handler.configure(serverProps, "OAUTHBEARER", Collections.singletonList(jaasConfig));
 
-        Common.checkLog(logReader, "JWTSignatureValidator", "",
+        checkLog(logReader, "JWTSignatureValidator", "",
             "clientId", "null",
             "clientSecret", "null",
             "bearerTokenProvider", "token: 's\\*\\*",
@@ -202,7 +181,7 @@ public class JaasServerConfigIT {
         logReader.readNext();
         handler.configure(serverProps, "OAUTHBEARER", Collections.singletonList(jaasConfig));
 
-        Common.checkLog(logReader, "JWTSignatureValidator", "",
+        checkLog(logReader, "JWTSignatureValidator", "",
             "clientId", "null",
             "clientSecret", "null",
             "bearerTokenProvider", "null"
@@ -214,7 +193,7 @@ public class JaasServerConfigIT {
     @Tag(TestTags.CONFIG)
     @Tag(TestTags.INTROSPECTION)
     void testIntrospectValidatorOptions() throws IOException {
-        LogLineReader logReader = new LogLineReader(Common.LOG_PATH);
+        LogLineReader logReader = new LogLineReader(LOG_PATH);
         logReader.readNext();
 
         // Introspect endpoint checks
@@ -257,7 +236,7 @@ public class JaasServerConfigIT {
 
         handler.configure(serverProps, "OAUTHBEARER", Collections.singletonList(jaasConfig));
 
-        Common.checkLog(logReader, "OAuthIntrospectionValidator", "",
+        checkLog(logReader, "OAuthIntrospectionValidator", "",
             "id", "config-id-1_1",
             "introspectionEndpointUri", "https://sso/introspect",
             "groupsClaimQuery", "\\$\\.groups",
@@ -313,7 +292,7 @@ public class JaasServerConfigIT {
         logReader.readNext();
         handler.configure(serverProps, "OAUTHBEARER", Collections.singletonList(jaasConfig));
 
-        Common.checkLog(logReader, "OAuthIntrospectionValidator", "",
+        checkLog(logReader, "OAuthIntrospectionValidator", "",
             "clientId", "null",
             "clientSecret", "null",
             "bearerTokenProvider", "token: 's\\*\\*",
@@ -353,7 +332,7 @@ public class JaasServerConfigIT {
         logReader.readNext();
         handler.configure(serverProps, "OAUTHBEARER", Collections.singletonList(jaasConfig));
 
-        Common.checkLog(logReader, "OAuthIntrospectionValidator", "",
+        checkLog(logReader, "OAuthIntrospectionValidator", "",
             "clientId", "null",
             "clientSecret", "null",
             "bearerTokenProvider", "null"

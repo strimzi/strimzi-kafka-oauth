@@ -19,6 +19,7 @@ import java.util.Map;
  * Factory methods for creating common test containers (Keycloak, MockOAuth, Kafka).
  */
 public class TestContainerFactory {
+    public static final String CONTAINER_LABEL_KEY = "container";
 
     /**
      * Create a standard Keycloak 26.3.3 container with realm imports, keystore, admin creds, and wait strategy.
@@ -29,6 +30,7 @@ public class TestContainerFactory {
     @SuppressWarnings("resource")
     public static GenericContainer<?> createKeycloak(Network network) {
         return new GenericContainer<>("quay.io/keycloak/keycloak:26.3.3")
+                .withLabel(CONTAINER_LABEL_KEY, "keycloak")
                 .withExposedPorts(8080)
                 .withNetwork(network)
                 .withNetworkAliases("keycloak")
@@ -56,6 +58,7 @@ public class TestContainerFactory {
     @SuppressWarnings("resource")
     public static GenericContainer<?> createMockOAuth(Network network) {
         return new GenericContainer<>("testsuite/mock-oauth-server")
+                .withLabel(CONTAINER_LABEL_KEY, "mockoauth")
                 .withNetwork(network)
                 .withNetworkAliases("mockoauth")
                 .withExposedPorts(8090, 8091)
@@ -103,6 +106,7 @@ public class TestContainerFactory {
     public static OAuthKafkaContainer createKafkaBase(Network network) {
         String kafkaImage = System.getProperty("KAFKA_DOCKER_IMAGE");
         OAuthKafkaContainer kafka = new OAuthKafkaContainer(kafkaImage);
+        kafka.setLabels(Map.of(CONTAINER_LABEL_KEY, "kafka"));
         kafka.withNodeId(1);
         kafka.withNetwork(network);
         kafka.withNetworkAliases("kafka");
