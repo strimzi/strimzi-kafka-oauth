@@ -35,15 +35,15 @@ import java.util.concurrent.ExecutionException;
  * <p>
  * NOTE: This test is currently disabled because:
  * 1. It was never executed in the original MockOAuthTests (no method called it)
- * 2. MockOAuthTestEnvironment doesn't provide a Kerberos container
+ * 2. The OAuthEnvironment extension doesn't provide a Kerberos container
  * 3. Requires special Kerberos infrastructure setup
  * <p>
  * To enable this test, you need to:
- * - Add Kerberos container support to MockOAuthTestEnvironment
+ * - Add Kerberos container support to OAuthEnvironmentExtension
  * - Or create a separate test environment for Kerberos tests
  * - Or provide the Kerberos container through a different mechanism
  */
-@Disabled("Kerberos tests require special infrastructure - MockOAuthTestEnvironment doesn't provide Kerberos container")
+@Disabled("Kerberos tests require special infrastructure - no Kerberos container support")
 public class KerberosListenerIT {
 
     private static final String TOPIC_NAME = "Kerberos-Test-Topic";

@@ -8,25 +8,24 @@ import io.strimzi.kafka.oauth.client.ClientConfig;
 import io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler;
 import io.strimzi.kafka.oauth.common.ConfigException;
 import io.strimzi.oauth.testsuite.common.LogLineReader;
-import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
 import io.strimzi.oauth.testsuite.clients.KafkaClientsConfig;
 import io.strimzi.oauth.testsuite.clients.MockOAuthAdmin;
-import io.strimzi.oauth.testsuite.environment.MockOAuthTestEnvironment;
+import io.strimzi.oauth.testsuite.environment.AuthServer;
+import io.strimzi.oauth.testsuite.environment.KafkaConfig;
+import io.strimzi.oauth.testsuite.environment.KafkaPreset;
+import io.strimzi.oauth.testsuite.environment.OAuthEnvironment;
+import io.strimzi.oauth.testsuite.environment.OAuthEnvironmentExtension;
 import io.strimzi.oauth.testsuite.utils.TestUtil;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.KafkaException;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.junit.jupiter.api.extension.RegisterExtension;
 
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.LoginException;
@@ -63,7 +62,7 @@ import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.loginWithUse
  * These tests verify proper handling of OAuth configuration options,
  * error conditions, and token file locations.
  */
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@OAuthEnvironment(authServer = AuthServer.MOCK_OAUTH, kafka = @KafkaConfig(preset = KafkaPreset.MOCK_OAUTH))
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class JaasClientConfigIT {
 
@@ -74,24 +73,7 @@ public class JaasClientConfigIT {
     private static final String KAFKA_USER = "kafka-user";
     private static final String KAFKA_USER_PASSWORD = "kafka-user-password";
 
-    private MockOAuthTestEnvironment environment;
-
-    @RegisterExtension
-    OAuthTestLogCollector logCollector = new OAuthTestLogCollector(() ->
-        environment != null ? environment.getContainers() : null);
-
-    @BeforeAll
-    void setUp() {
-        environment = new MockOAuthTestEnvironment();
-        environment.start();
-    }
-
-    @AfterAll
-    void tearDown() {
-        if (environment != null) {
-            environment.stop();
-        }
-    }
+    OAuthEnvironmentExtension env;
 
     private static String getTokenEndpointUri() {
         return "https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/token";

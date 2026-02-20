@@ -8,18 +8,20 @@ import io.strimzi.kafka.oauth.client.ClientConfig;
 import io.strimzi.kafka.oauth.metrics.GlobalConfig;
 import io.strimzi.kafka.oauth.services.Services;
 import io.strimzi.oauth.testsuite.common.LogLineReader;
-import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
 import io.strimzi.oauth.testsuite.common.TestTags;
 import io.strimzi.oauth.testsuite.utils.TestUtil;
 import io.strimzi.oauth.testsuite.metrics.TestMetricsReporter;
-import io.strimzi.oauth.testsuite.environment.MockOAuthTestEnvironment;
+import io.strimzi.oauth.testsuite.environment.AuthServer;
+import io.strimzi.oauth.testsuite.environment.KafkaConfig;
+import io.strimzi.oauth.testsuite.environment.KafkaPreset;
+import io.strimzi.oauth.testsuite.environment.OAuthEnvironment;
+import io.strimzi.oauth.testsuite.environment.OAuthEnvironmentExtension;
 import io.strimzi.oauth.testsuite.metrics.TestMetrics;
 import io.strimzi.oauth.testsuite.clients.KafkaClientsConfig;
 import io.strimzi.oauth.testsuite.clients.MockOAuthAdmin;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -27,9 +29,7 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.junit.jupiter.api.extension.RegisterExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,7 +49,7 @@ import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.changeAuthServer
  * Tests for OAuth metrics functionality.
  * These tests verify that metrics are properly collected and exposed via Prometheus.
  */
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@OAuthEnvironment(authServer = AuthServer.MOCK_OAUTH, kafka = @KafkaConfig(preset = KafkaPreset.MOCK_OAUTH, metrics = true, initEndpoints = false))
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class MetricsIT {
 
@@ -59,29 +59,15 @@ public class MetricsIT {
 
     private static final String KAFKA_BOOTSTRAP = "localhost:9092";
 
-    private MockOAuthTestEnvironment environment;
-
-    @RegisterExtension
-    OAuthTestLogCollector logCollector = new OAuthTestLogCollector(() ->
-            environment != null ? environment.getContainers() : null);
+    OAuthEnvironmentExtension env;
 
     @BeforeAll
     void setUp() throws Exception {
-        environment = new MockOAuthTestEnvironment();
-        environment.start(false);  // start without switching endpoints to MODE_200
-
         // Initial zero check - verify no Prometheus metrics errors before tests run
         LOG.info("See log at: {}", new File("target/test.log").getAbsolutePath());
         zeroCheck();
 
-        environment.initEndpoints();  // now switch to MODE_200
-    }
-
-    @AfterAll
-    void tearDown() {
-        if (environment != null) {
-            environment.stop();
-        }
+        env.initEndpoints();  // now switch to MODE_200
     }
 
     private static String getTokenEndpointUri() {

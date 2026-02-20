@@ -15,17 +15,16 @@ import io.strimzi.kafka.oauth.common.PrincipalExtractor;
 import io.strimzi.kafka.oauth.common.SSLUtil;
 import io.strimzi.kafka.oauth.common.TokenInfo;
 import io.strimzi.kafka.oauth.common.TokenIntrospection;
-import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
 import io.strimzi.oauth.testsuite.utils.TestUtil;
-import io.strimzi.oauth.testsuite.environment.MockOAuthTestEnvironment;
+import io.strimzi.oauth.testsuite.environment.AuthServer;
+import io.strimzi.oauth.testsuite.environment.KafkaConfig;
+import io.strimzi.oauth.testsuite.environment.KafkaPreset;
+import io.strimzi.oauth.testsuite.environment.OAuthEnvironment;
+import io.strimzi.oauth.testsuite.environment.OAuthEnvironmentExtension;
 import io.strimzi.oauth.testsuite.clients.MockOAuthAdmin;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.extension.RegisterExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,29 +43,12 @@ import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.revokeToken;
  * Tests for password grant authentication and principal extraction.
  * Verifies OAuth password flow, token introspection, and principal extraction logic.
  */
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@OAuthEnvironment(authServer = AuthServer.MOCK_OAUTH, kafka = @KafkaConfig(preset = KafkaPreset.MOCK_OAUTH))
 public class PasswordAuthAndPrincipalExtractionIT {
 
     private static final Logger log = LoggerFactory.getLogger(PasswordAuthAndPrincipalExtractionIT.class);
 
-    private MockOAuthTestEnvironment environment;
-
-    @RegisterExtension
-    OAuthTestLogCollector logCollector = new OAuthTestLogCollector(() ->
-        environment != null ? environment.getContainers() : null);
-
-    @BeforeAll
-    void setUp() {
-        environment = new MockOAuthTestEnvironment();
-        environment.start();
-    }
-
-    @AfterAll
-    void tearDown() {
-        if (environment != null) {
-            environment.stop();
-        }
-    }
+    OAuthEnvironmentExtension env;
 
     @Test
     @DisplayName("Test password grant authentication and principal extraction")

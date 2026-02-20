@@ -5,23 +5,23 @@
 package io.strimzi.oauth.testsuite.mockoauth;
 
 import io.strimzi.kafka.oauth.client.ClientConfig;
-import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
 import io.strimzi.oauth.testsuite.common.TestTags;
-import io.strimzi.oauth.testsuite.environment.MockOAuthTestEnvironment;
+import io.strimzi.oauth.testsuite.environment.AuthServer;
+import io.strimzi.oauth.testsuite.environment.KafkaConfig;
+import io.strimzi.oauth.testsuite.environment.KafkaPreset;
+import io.strimzi.oauth.testsuite.environment.OAuthEnvironment;
+import io.strimzi.oauth.testsuite.environment.OAuthEnvironmentExtension;
 import io.strimzi.oauth.testsuite.clients.MockOAuthAdmin;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.errors.SaslAuthenticationException;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.extension.RegisterExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
@@ -41,30 +41,17 @@ import static io.strimzi.oauth.testsuite.utils.TestUtil.getRootCause;
  * Tests for HTTP connection timeout handling.
  * Validates that connection failures and timeouts are properly handled and reported.
  */
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@OAuthEnvironment(authServer = AuthServer.MOCK_OAUTH, kafka = @KafkaConfig(preset = KafkaPreset.MOCK_OAUTH))
 public class ConnectTimeoutIT {
 
     private static final Logger log = LoggerFactory.getLogger(ConnectTimeoutIT.class);
 
-    private MockOAuthTestEnvironment environment;
+    OAuthEnvironmentExtension env;
     private GenericContainer<?> kafkaContainer;
-
-    @RegisterExtension
-    OAuthTestLogCollector logCollector = new OAuthTestLogCollector(() ->
-        environment != null ? environment.getContainers() : null);
 
     @BeforeAll
     void setUp() {
-        environment = new MockOAuthTestEnvironment();
-        environment.start();
-        kafkaContainer = environment.getKafka();
-    }
-
-    @AfterAll
-    void tearDown() {
-        if (environment != null) {
-            environment.stop();
-        }
+        kafkaContainer = env.getKafka();
     }
 
     @Test

@@ -9,17 +9,16 @@ import io.strimzi.kafka.oauth.common.SSLUtil;
 import io.strimzi.kafka.oauth.common.TokenIntrospection;
 import io.strimzi.kafka.oauth.services.Services;
 import io.strimzi.kafka.oauth.validator.JWTSignatureValidator;
-import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
 import io.strimzi.oauth.testsuite.common.TestTags;
-import io.strimzi.oauth.testsuite.environment.MockOAuthTestEnvironment;
+import io.strimzi.oauth.testsuite.environment.AuthServer;
+import io.strimzi.oauth.testsuite.environment.KafkaConfig;
+import io.strimzi.oauth.testsuite.environment.KafkaPreset;
+import io.strimzi.oauth.testsuite.environment.OAuthEnvironment;
+import io.strimzi.oauth.testsuite.environment.OAuthEnvironmentExtension;
 import io.strimzi.oauth.testsuite.clients.MockOAuthAdmin;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.extension.RegisterExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,29 +37,12 @@ import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.loginWithCli
  * Tests for JWT token extraction and handling of edge cases.
  * Validates that JWT 'exp' attribute overflow is handled correctly.
  */
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@OAuthEnvironment(authServer = AuthServer.MOCK_OAUTH, kafka = @KafkaConfig(preset = KafkaPreset.MOCK_OAUTH))
 public class JwtExtractIT {
 
     private static final Logger log = LoggerFactory.getLogger(JwtExtractIT.class);
 
-    private MockOAuthTestEnvironment environment;
-
-    @RegisterExtension
-    OAuthTestLogCollector logCollector = new OAuthTestLogCollector(() ->
-        environment != null ? environment.getContainers() : null);
-
-    @BeforeAll
-    void setUp() {
-        environment = new MockOAuthTestEnvironment();
-        environment.start();
-    }
-
-    @AfterAll
-    void tearDown() {
-        if (environment != null) {
-            environment.stop();
-        }
-    }
+    OAuthEnvironmentExtension env;
 
     @Test
     @DisplayName("JWT validation should handle 'exp' attribute overflow correctly")

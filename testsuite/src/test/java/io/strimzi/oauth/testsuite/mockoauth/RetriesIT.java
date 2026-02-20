@@ -6,15 +6,17 @@ package io.strimzi.oauth.testsuite.mockoauth;
 
 import io.strimzi.kafka.oauth.client.ClientConfig;
 import io.strimzi.kafka.oauth.common.Config;
-import io.strimzi.oauth.testsuite.common.OAuthTestLogCollector;
 import io.strimzi.oauth.testsuite.common.TestTags;
-import io.strimzi.oauth.testsuite.environment.MockOAuthTestEnvironment;
+import io.strimzi.oauth.testsuite.environment.AuthServer;
+import io.strimzi.oauth.testsuite.environment.KafkaConfig;
+import io.strimzi.oauth.testsuite.environment.KafkaPreset;
+import io.strimzi.oauth.testsuite.environment.OAuthEnvironment;
+import io.strimzi.oauth.testsuite.environment.OAuthEnvironmentExtension;
 import io.strimzi.oauth.testsuite.clients.MockOAuthAdmin;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.errors.SaslAuthenticationException;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -22,12 +24,9 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.junit.jupiter.api.extension.RegisterExtension;
 import org.testcontainers.containers.GenericContainer;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,31 +45,18 @@ import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.loginWithCli
  * Tests for HTTP retry handling.
  * Validates that HTTP retries are properly configured and work for various endpoints.
  */
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@OAuthEnvironment(authServer = AuthServer.MOCK_OAUTH, kafka = @KafkaConfig(preset = KafkaPreset.MOCK_OAUTH))
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class RetriesIT {
     // FAILINGINTROSPECT and FAILINGJWT listeners are configured with 'oauth.http.retry.pause.millis' of 3000
     static final int PAUSE_MILLIS = 3000;
 
-    private MockOAuthTestEnvironment environment;
+    OAuthEnvironmentExtension env;
     private GenericContainer<?> kafkaContainer;
 
-    @RegisterExtension
-    OAuthTestLogCollector logCollector = new OAuthTestLogCollector(() ->
-        environment != null ? environment.getContainers() : null);
-
     @BeforeAll
-    void setUp() throws IOException {
-        environment = new MockOAuthTestEnvironment();
-        environment.start();
-        kafkaContainer = environment.getKafka();
-    }
-
-    @AfterAll
-    void tearDown() {
-        if (environment != null) {
-            environment.stop();
-        }
+    void setUp() {
+        kafkaContainer = env.getKafka();
     }
 
     @Test
@@ -198,7 +184,7 @@ public class RetriesIT {
 
         Properties producerProps = buildProducerConfigPlain(kafkaBootstrap, oauthConfig);
 
-        // JWKS endpoint is already set to MODE_200 by MockOAuthTestEnvironment.start()
+        // JWKS endpoint is already set to MODE_200 by OAuthEnvironmentExtension
         // and keys are loaded during Kafka startup. Verify keys were loaded.
         List<String> jwksLog = getContainerLogsForString(kafkaContainer, "JWKS keys change detected");
         Assertions.assertTrue(jwksLog.size() > 0, "JWKS keys should have been loaded during Kafka startup");

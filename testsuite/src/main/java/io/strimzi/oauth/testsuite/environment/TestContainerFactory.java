@@ -46,7 +46,7 @@ public class TestContainerFactory {
                 .withEnv("KC_HOSTNAME", "http://keycloak:8080")
                 .withEnv("KC_HTTP_ENABLED", "true")
                 .waitingFor(Wait.forLogMessage(".*Listening on:.*", 1)
-                        .withStartupTimeout(Duration.ofSeconds(60)));
+                        .withStartupTimeout(Duration.ofSeconds(30)));
     }
 
     /**
@@ -72,7 +72,7 @@ public class TestContainerFactory {
                 .withEnv("KEYSTORE_EXPIRED_PATH", "/application/config/mockoauth.server.keystore_expired.p12")
                 .withEnv("KEYSTORE_EXPIRED_PASSWORD", "changeit")
                 .waitingFor(Wait.forLogMessage(".*Succeeded in deploying verticle.*", 1)
-                        .withStartupTimeout(Duration.ofSeconds(180)));
+                        .withStartupTimeout(Duration.ofSeconds(30)));
     }
 
     /**
