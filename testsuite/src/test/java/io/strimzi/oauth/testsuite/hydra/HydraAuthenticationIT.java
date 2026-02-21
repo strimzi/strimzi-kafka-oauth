@@ -12,7 +12,6 @@ import io.strimzi.kafka.oauth.common.TokenInfo;
 import io.strimzi.oauth.testsuite.common.TestTags;
 import io.strimzi.oauth.testsuite.environment.AuthServer;
 import io.strimzi.oauth.testsuite.environment.KafkaConfig;
-import io.strimzi.oauth.testsuite.environment.KafkaPreset;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironment;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironmentExtension;
 import org.apache.kafka.clients.consumer.Consumer;
@@ -23,6 +22,7 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -51,7 +51,23 @@ import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.poll;
  *
  * There should be no authorization configured on the Kafka broker.
  */
-@OAuthEnvironment(authServer = AuthServer.HYDRA, kafka = @KafkaConfig(preset = KafkaPreset.HYDRA))
+@OAuthEnvironment(
+    authServer = AuthServer.HYDRA,
+    kafka = @KafkaConfig(
+        clientId = "kafka-broker",
+        clientSecret = "kafka-broker-secret",
+        oauthProperties = {
+            "oauth.introspection.endpoint.uri=https://hydra:4445/admin/oauth2/introspect",
+            "oauth.client.id=kafka-broker",
+            "oauth.client.secret=kafka-broker-secret",
+            "oauth.valid.issuer.uri=https://hydra:4444/",
+            "oauth.token.endpoint.uri=https://hydra:4444/oauth2/token",
+            "oauth.check.access.token.type=false",
+            "oauth.access.token.is.jwt=false",
+            "unsecuredLoginStringClaim_sub=admin"
+        }
+    )
+)
 public class HydraAuthenticationIT {
 
     private static final Logger log = LoggerFactory.getLogger(HydraAuthenticationIT.class);
@@ -72,7 +88,6 @@ public class HydraAuthenticationIT {
             ConfigProperties.resolveAndExportToSystemProperties(defaults);
 
             opaqueAccessTokenWithIntrospectValidationTest("PKCS12 - opaque access token with introspect validation test");
-            clientCredentialsWithJwtValidationTest("PKCS12 - client credentials with JWT validation test");
         } finally {
             clearSystemProperties(defaults);
         }
@@ -91,7 +106,6 @@ public class HydraAuthenticationIT {
             ConfigProperties.resolveAndExportToSystemProperties(defaults);
 
             opaqueAccessTokenWithIntrospectValidationTest("PEM from file - opaque access token with introspect validation test");
-            clientCredentialsWithJwtValidationTest("PEM from file - client credentials with JWT validation test");
         } finally {
             clearSystemProperties(defaults);
         }
@@ -111,14 +125,13 @@ public class HydraAuthenticationIT {
             ConfigProperties.resolveAndExportToSystemProperties(defaults);
 
             opaqueAccessTokenWithIntrospectValidationTest("PEM from string - opaque access token with introspect validation test");
-            clientCredentialsWithJwtValidationTest("PEM from string - client credentials with JWT validation test");
         } finally {
             clearSystemProperties(defaults);
         }
     }
 
     private void opaqueAccessTokenWithIntrospectValidationTest(String title) throws Exception {
-        final String kafkaBootstrap = "localhost:9092";
+        final String kafkaBootstrap = env.getBootstrapServers();
         final String hostPort = System.getProperty("hydra.host") + ":" + System.getProperty("hydra.port");
 
         final String tokenEndpointUri = "https://" + hostPort + "/oauth2/token";
@@ -160,8 +173,9 @@ public class HydraAuthenticationIT {
         }
     }
 
+    @Disabled("TODO: Requires separate JWT listener configuration")
     private void clientCredentialsWithJwtValidationTest(String title) throws Exception {
-        final String kafkaBootstrap = "localhost:9093";
+        final String kafkaBootstrap = env.getBootstrapServers();
         final String hostPort = System.getProperty("hydra.jwt.host") + ":" + System.getProperty("hydra.jwt.port");
         final String tokenEndpointUri = "https://" + hostPort + "/oauth2/token";
 

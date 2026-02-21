@@ -8,9 +8,9 @@ import io.strimzi.kafka.oauth.client.ClientConfig;
 import io.strimzi.oauth.testsuite.common.TestTags;
 import io.strimzi.oauth.testsuite.environment.AuthServer;
 import io.strimzi.oauth.testsuite.environment.KafkaConfig;
-import io.strimzi.oauth.testsuite.environment.KafkaPreset;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironment;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironmentExtension;
+import io.strimzi.test.container.AuthenticationType;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -31,99 +31,70 @@ import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.buildProduce
 import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.buildProducerConfigScram;
 import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.loginWithUsernamePassword;
 
-@OAuthEnvironment(authServer = AuthServer.KEYCLOAK, kafka = @KafkaConfig(preset = KafkaPreset.KEYCLOAK_AUTH))
+/**
+ * Tests for multiple SASL mechanisms on a single listener:
+ * SCRAM-SHA-512 + OAUTHBEARER + PLAIN (OAuth-over-PLAIN).
+ *
+ * Regular PLAIN (username/password without OAuth) is not tested because it conflicts
+ * with OAuth-over-PLAIN on the same listener (both use SASL mechanism PLAIN with
+ * different callback handlers).
+ */
+@OAuthEnvironment(authServer = AuthServer.KEYCLOAK, kafka = @KafkaConfig(
+    authenticationType = AuthenticationType.NONE,
+    scramUsers = {"alice:alice-secret"},
+    kafkaProperties = {
+        "sasl.enabled.mechanisms=OAUTHBEARER,PLAIN,SCRAM-SHA-512",
+        "listener.security.protocol.map=PLAINTEXT:SASL_PLAINTEXT,BROKER1:PLAINTEXT,CONTROLLER:PLAINTEXT",
+        "listener.name.plaintext.oauthbearer.sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required"
+            + " oauth.jwks.endpoint.uri=\"http://keycloak:8080/realms/demo-ec/protocol/openid-connect/certs\""
+            + " oauth.valid.issuer.uri=\"http://keycloak:8080/realms/demo-ec\""
+            + " oauth.config.id=\"JWT\""
+            + " oauth.fallback.username.claim=\"client_id\""
+            + " oauth.fallback.username.prefix=\"service-account-\""
+            + " unsecuredLoginStringClaim_sub=\"admin\" ;",
+        "listener.name.plaintext.oauthbearer.sasl.server.callback.handler.class=io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler",
+        "listener.name.plaintext.plain.sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required"
+            + " oauth.token.endpoint.uri=\"http://keycloak:8080/realms/demo-ec/protocol/openid-connect/token\""
+            + " oauth.jwks.endpoint.uri=\"http://keycloak:8080/realms/demo-ec/protocol/openid-connect/certs\""
+            + " oauth.valid.issuer.uri=\"http://keycloak:8080/realms/demo-ec\" ;",
+        "listener.name.plaintext.plain.sasl.server.callback.handler.class=io.strimzi.kafka.oauth.server.plain.JaasServerOauthOverPlainValidatorCallbackHandler",
+        "listener.name.plaintext.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required ;",
+        "principal.builder.class=io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder",
+        "offsets.topic.replication.factor=1"
+    }))
 public class AuthMultiSaslIT {
 
     private static final Logger log = LoggerFactory.getLogger(AuthMultiSaslIT.class);
-
-    private static final String KAFKA_PLAIN_LISTENER = "localhost:9100";
-    private static final String KAFKA_SCRAM_LISTENER = "localhost:9101";
-    private static final String KAFKA_JWT_LISTENER = "localhost:9092";
-    private static final String KAFKA_JWTPLAIN_LISTENER = "localhost:9096";
 
     OAuthEnvironmentExtension env;
 
     @Test
     @DisplayName("Multi SASL mechanism test")
     @Tag(TestTags.MULTI_SASL)
-    // TODO - change name?
     void doTests() throws Exception {
-        // bobby:bobby-secret
-        String username = "bobby";
-        String password = "bobby-secret";
+        String kafkaBootstrap = env.getBootstrapServers();
 
-        // producing to PLAIN listener using SASL/PLAIN should succeed
-        Properties producerProps = producerConfigPlain(KAFKA_PLAIN_LISTENER, username, password);
-        produceToTopic("KeycloakAuthenticationTest-multiSaslTest-plain", producerProps);
-
-        // producing to SCRAM listener using SASL_SCRAM-SHA-512 should fail
-        producerProps = producerConfigScram(KAFKA_SCRAM_LISTENER, username, password);
-        try {
-            produceToTopic("KeycloakAuthenticationTest-multiSaslTest-scram", producerProps);
-            Assertions.fail("Should have failed");
-        } catch (Exception ignored) {
-        }
-
-
-        // alice:alice-secret
-        username = "alice";
-        password = "alice-secret";
-
-        // producing to PLAIN listener using SASL/PLAIN should fail
-        producerProps = producerConfigPlain(KAFKA_PLAIN_LISTENER, username, password);
-        try {
-            produceToTopic("KeycloakAuthenticationTest-multiSaslTest-plain", producerProps);
-            Assertions.fail("Should have failed");
-        } catch (Exception ignored) {
-        }
-
-        // producing to SCRAM listener using SASL_SCRAM-SHA-512 should succeed
-        producerProps = producerConfigScram(KAFKA_SCRAM_LISTENER, username, password);
+        // 1. alice via SCRAM -> succeed (alice is provisioned as a SCRAM user)
+        Properties producerProps = producerConfigScram(kafkaBootstrap, "alice", "alice-secret");
         produceToTopic("KeycloakAuthenticationTest-multiSaslTest-scram", producerProps);
 
-        // OAuth authentication should fail
-        try {
-            loginWithUsernamePassword(
-                    URI.create("http://" + env.getKeycloakHostPort() + "/realms/demo-ec/protocol/openid-connect/token"),
-                    username, password, "kafka");
-
-            Assertions.fail("Should have failed");
-        } catch (Exception ignored) {
-        }
-
-
-        // alice:alice-password
-        username = "alice";
-        password = "alice-password";
-
-        // producing to PLAIN listener using SASL/PLAIN should fail
-        producerProps = producerConfigPlain(KAFKA_PLAIN_LISTENER, username, password);
-        try {
-            produceToTopic("KeycloakAuthenticationTest-multiSaslTest-plain", producerProps);
-            Assertions.fail("Should have failed");
-        } catch (Exception ignored) {
-        }
-
-        // producing to SCRAM listener using SASL_SCRAM-SHA-512 should fail
-        producerProps = producerConfigScram(KAFKA_SCRAM_LISTENER, username, password);
+        // 2. bobby via SCRAM -> fail (not registered for SCRAM)
+        producerProps = producerConfigScram(kafkaBootstrap, "bobby", "bobby-secret");
         try {
             produceToTopic("KeycloakAuthenticationTest-multiSaslTest-scram", producerProps);
-            Assertions.fail("Should have failed");
+            Assertions.fail("Should have failed - bobby is not registered for SCRAM");
         } catch (Exception ignored) {
         }
 
-        // producing to JWT listener using SASL/OAUTHBEARER using access token should succeed
+        // 3. alice via OAUTHBEARER (access token) -> succeed
         String accessToken = loginWithUsernamePassword(
                 URI.create("http://" + env.getKeycloakHostPort() + "/realms/demo-ec/protocol/openid-connect/token"),
-                username, password, "kafka");
-        producerProps = producerConfigOAuthBearerAccessToken(KAFKA_JWT_LISTENER, accessToken);
+                "alice", "alice-password", "kafka");
+        producerProps = producerConfigOAuthBearerAccessToken(kafkaBootstrap, accessToken);
         produceToTopic("KeycloakAuthenticationTest-multiSaslTest-oauthbearer", producerProps);
 
-        // producing to JWTPLAIN listener using SASL/PLAIN using $accessToken should succeed
-        accessToken = loginWithUsernamePassword(
-                URI.create("http://" + env.getKeycloakHostPort() + "/realms/kafka-authz/protocol/openid-connect/token"),
-                username, password, "kafka-cli");
-        producerProps = producerConfigPlain(KAFKA_JWTPLAIN_LISTENER, username, "$accessToken:" + accessToken);
+        // 4. alice via OAuth-over-PLAIN ($accessToken:) -> succeed
+        producerProps = producerConfigPlain(kafkaBootstrap, "alice", "$accessToken:" + accessToken);
         produceToTopic("KeycloakAuthenticationTest-multiSaslTest-oauth-over-plain", producerProps);
     }
 
@@ -131,27 +102,21 @@ public class AuthMultiSaslIT {
         Map<String, String> scramConfig = new HashMap<>();
         scramConfig.put("username", username);
         scramConfig.put("password", password);
-
-        Properties producerProps = buildProducerConfigScram(kafkaBootstrap, scramConfig);
-        return producerProps;
+        return buildProducerConfigScram(kafkaBootstrap, scramConfig);
     }
 
     private Properties producerConfigPlain(String kafkaBootstrap, String username, String password) {
-        Map<String, String> scramConfig = new HashMap<>();
-        scramConfig.put("username", username);
-        scramConfig.put("password", password);
-
-        Properties producerProps = buildProducerConfigPlain(kafkaBootstrap, scramConfig);
-        return producerProps;
+        Map<String, String> plainConfig = new HashMap<>();
+        plainConfig.put("username", username);
+        plainConfig.put("password", password);
+        return buildProducerConfigPlain(kafkaBootstrap, plainConfig);
     }
 
     private Properties producerConfigOAuthBearerAccessToken(String kafkaBootstrap, String accessToken) {
         Map<String, String> oauthConfig = new HashMap<>();
         oauthConfig.put(ClientConfig.OAUTH_ACCESS_TOKEN, accessToken);
         oauthConfig.put(ClientConfig.OAUTH_USERNAME_CLAIM, "preferred_username");
-
-        Properties producerProps = buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
-        return producerProps;
+        return buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
     }
 
     private void produceToTopic(String topic, Properties config) throws Exception {

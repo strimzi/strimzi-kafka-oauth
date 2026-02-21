@@ -9,9 +9,9 @@ import io.strimzi.oauth.testsuite.common.TestTags;
 import io.strimzi.oauth.testsuite.clients.KafkaClientsConfig;
 import io.strimzi.oauth.testsuite.environment.AuthServer;
 import io.strimzi.oauth.testsuite.environment.KafkaConfig;
-import io.strimzi.oauth.testsuite.environment.KafkaPreset;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironment;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironmentExtension;
+import io.strimzi.test.container.AuthenticationType;
 import org.apache.kafka.common.errors.AuthenticationException;
 import org.apache.kafka.common.errors.AuthorizationException;
 import org.junit.jupiter.api.DisplayName;
@@ -34,10 +34,30 @@ import static org.junit.jupiter.api.Assertions.fail;
 /**
  * Tests for SCRAM authentication mechanism
  */
-@OAuthEnvironment(authServer = AuthServer.KEYCLOAK, kafka = @KafkaConfig(preset = KafkaPreset.KEYCLOAK_AUTHZ, setupAcls = true))
+@OAuthEnvironment(authServer = AuthServer.KEYCLOAK, kafka = @KafkaConfig(
+    authenticationType = AuthenticationType.NONE,
+    setupAcls = true,
+    scramUsers = {"alice:alice-secret", "admin:admin-secret"},
+    kafkaProperties = {
+        "sasl.enabled.mechanisms=SCRAM-SHA-512",
+        "listener.security.protocol.map=PLAINTEXT:SASL_PLAINTEXT,BROKER1:PLAINTEXT,CONTROLLER:PLAINTEXT",
+        "listener.name.plaintext.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username=\"admin\" password=\"admin-secret\" ;",
+        "principal.builder.class=io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder",
+        "authorizer.class.name=io.strimzi.kafka.oauth.server.authorizer.KeycloakAuthorizer",
+        "strimzi.authorization.token.endpoint.uri=http://keycloak:8080/realms/kafka-authz/protocol/openid-connect/token",
+        "strimzi.authorization.client.id=kafka",
+        "strimzi.authorization.client.secret=kafka-secret",
+        "strimzi.authorization.kafka.cluster.name=my-cluster",
+        "strimzi.authorization.delegate.to.kafka.acl=true",
+        "strimzi.authorization.read.timeout.seconds=45",
+        "strimzi.authorization.grants.refresh.pool.size=4",
+        "strimzi.authorization.grants.refresh.period.seconds=10",
+        "strimzi.authorization.http.retries=1",
+        "strimzi.authorization.reuse.grants=true",
+        "strimzi.authorization.enable.metrics=true",
+        "super.users=User:admin;User:service-account-kafka"
+    }))
 public class ScramIT {
-
-    private static final String SCRAM_LISTENER = "localhost:9101";
 
     OAuthEnvironmentExtension env;
 
@@ -52,7 +72,7 @@ public class ScramIT {
 
         // Producing to SCRAM listener using SASL_SCRAM-SHA-512 should fail.
         // User 'bobby' has not been configured for SCRAM in 'docker/kafka/scripts/start.sh'
-        Properties producerProps = producerConfigScram(SCRAM_LISTENER, username, password);
+        Properties producerProps = producerConfigScram(env.getBootstrapServers(), username, password);
         try {
             produceToTopic("KeycloakAuthorizationTest-multiSaslTest-scram", producerProps);
             fail("Should have failed");
@@ -67,7 +87,7 @@ public class ScramIT {
         // Producing to SCRAM listener using SASL_SCRAM-SHA-512 should succeed for KeycloakAuthorizationTest-multiSaslTest-scram.
         // User 'alice' was configured for SASL SCRAM in 'docker/kafka/scripts/start.sh'
         // The necessary ACLs have been added by 'docker/kafka-acls/scripts/add-acls.sh'
-        producerProps = producerConfigScram(SCRAM_LISTENER, username, password);
+        producerProps = producerConfigScram(env.getBootstrapServers(), username, password);
         produceToTopic("KeycloakAuthorizationTest-multiSaslTest-scram", producerProps);
         try {
             produceToTopic("KeycloakAuthorizationTest-multiSaslTest-scram-denied", producerProps);

@@ -62,7 +62,7 @@ public class KafkaClientsConfig {
         p.setProperty(ProducerConfig.RETRIES_CONFIG, "0");
 
         // To ease debugging
-        p.setProperty(ProducerConfig.MAX_BLOCK_MS_CONFIG, "600000");
+        p.setProperty(ProducerConfig.MAX_BLOCK_MS_CONFIG, "60000");
     }
 
     public static Properties buildConsumerConfigOAuthBearer(String kafkaBootstrap, Map<String, String> oauthConfig) {

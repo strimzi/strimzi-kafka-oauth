@@ -17,8 +17,6 @@ import io.strimzi.kafka.oauth.common.TokenInfo;
 import io.strimzi.kafka.oauth.common.TokenIntrospection;
 import io.strimzi.oauth.testsuite.utils.TestUtil;
 import io.strimzi.oauth.testsuite.environment.AuthServer;
-import io.strimzi.oauth.testsuite.environment.KafkaConfig;
-import io.strimzi.oauth.testsuite.environment.KafkaPreset;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironment;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironmentExtension;
 import io.strimzi.oauth.testsuite.clients.MockOAuthAdmin;
@@ -43,7 +41,7 @@ import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.revokeToken;
  * Tests for password grant authentication and principal extraction.
  * Verifies OAuth password flow, token introspection, and principal extraction logic.
  */
-@OAuthEnvironment(authServer = AuthServer.MOCK_OAUTH, kafka = @KafkaConfig(preset = KafkaPreset.MOCK_OAUTH))
+@OAuthEnvironment(authServer = AuthServer.MOCK_OAUTH)
 public class PasswordAuthAndPrincipalExtractionIT {
 
     private static final Logger log = LoggerFactory.getLogger(PasswordAuthAndPrincipalExtractionIT.class);

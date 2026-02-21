@@ -8,7 +8,6 @@ import io.strimzi.kafka.oauth.client.ClientConfig;
 import io.strimzi.oauth.testsuite.common.TestTags;
 import io.strimzi.oauth.testsuite.environment.AuthServer;
 import io.strimzi.oauth.testsuite.environment.KafkaConfig;
-import io.strimzi.oauth.testsuite.environment.KafkaPreset;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironment;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironmentExtension;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -29,10 +28,20 @@ import java.util.Properties;
 import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.buildProducerConfigOAuthBearer;
 import static io.strimzi.oauth.testsuite.utils.TestUtil.getContainerLogsForString;
 
-@OAuthEnvironment(authServer = AuthServer.KEYCLOAK, kafka = @KafkaConfig(preset = KafkaPreset.KEYCLOAK_AUTH))
-public class GroupsExtractionIT {
+@OAuthEnvironment(authServer = AuthServer.KEYCLOAK, kafka = @KafkaConfig(realm = "kafka-authz",
+    oauthProperties = {
+        "oauth.config.id=CUSTOM",
+        "oauth.check.issuer=false",
+        "oauth.check.access.token.type=false",
+        "oauth.custom.claim.check=@.typ == 'Bearer' && @.iss == 'http://keycloak:8080/realms/kafka-authz' && 'kafka' in @.aud && 'kafka-user' in @.resource_access.kafka.roles",
+        "oauth.groups.claim=$.realm_access.roles",
+        "oauth.fallback.username.claim=client_id",
+        "oauth.fallback.username.prefix=service-account-",
+        "unsecuredLoginStringClaim_sub=admin"
+    }))
+public class GroupsExtractionJwtIT {
 
-    private static final Logger log = LoggerFactory.getLogger(GroupsExtractionIT.class);
+    private static final Logger log = LoggerFactory.getLogger(GroupsExtractionJwtIT.class);
 
     OAuthEnvironmentExtension env;
 
@@ -41,18 +50,7 @@ public class GroupsExtractionIT {
     @Tag(TestTags.JWT)
     @Tag(TestTags.GROUPS)
     void groupsExtractionWithJwtTest() throws Exception {
-        runTest("localhost:9098", "principalName: service-account-team-b-client, groups: [offline_access, Dev Team B]");
-    }
-
-    @Test
-    @DisplayName("Groups extraction with introspection validation")
-    @Tag(TestTags.INTROSPECTION)
-    @Tag(TestTags.GROUPS)
-    void groupsExtractionWithIntrospectionTest() throws Exception {
-        runTest("localhost:9099", "principalName: service-account-team-b-client, groups: [kafka-user]");
-    }
-
-    private void runTest(String kafkaBootstrap, String logFilter) throws Exception {
+        final String kafkaBootstrap = env.getBootstrapServers();
         final String hostPort = env.getKeycloakHostPort();
         final String realm = "kafka-authz";
 
@@ -75,8 +73,8 @@ public class GroupsExtractionIT {
         }
 
         // get kafka log and make sure groups were extracted during authentication
+        String logFilter = "principalName: service-account-team-b-client, groups: [offline_access, Dev Team B]";
         List<String> lines = getContainerLogsForString(env.getKafka(), logFilter);
         Assertions.assertTrue(lines.size() > 0, "Kafka log should contain: \"" + logFilter + "\"");
     }
-
 }

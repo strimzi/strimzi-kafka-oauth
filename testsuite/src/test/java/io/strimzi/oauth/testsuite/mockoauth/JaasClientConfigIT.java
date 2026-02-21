@@ -12,7 +12,6 @@ import io.strimzi.oauth.testsuite.clients.KafkaClientsConfig;
 import io.strimzi.oauth.testsuite.clients.MockOAuthAdmin;
 import io.strimzi.oauth.testsuite.environment.AuthServer;
 import io.strimzi.oauth.testsuite.environment.KafkaConfig;
-import io.strimzi.oauth.testsuite.environment.KafkaPreset;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironment;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironmentExtension;
 import io.strimzi.oauth.testsuite.utils.TestUtil;
@@ -62,11 +61,23 @@ import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.loginWithUse
  * These tests verify proper handling of OAuth configuration options,
  * error conditions, and token file locations.
  */
-@OAuthEnvironment(authServer = AuthServer.MOCK_OAUTH, kafka = @KafkaConfig(preset = KafkaPreset.MOCK_OAUTH))
+@OAuthEnvironment(
+    authServer = AuthServer.MOCK_OAUTH,
+    kafka = @KafkaConfig(
+        oauthProperties = {
+            "oauth.config.id=JWT",
+            "oauth.fail.fast=false",
+            "oauth.jwks.endpoint.uri=https://mockoauth:8090/jwks",
+            "oauth.jwks.refresh.seconds=10",
+            "oauth.valid.issuer.uri=https://mockoauth:8090",
+            "oauth.check.access.token.type=false",
+            "unsecuredLoginStringClaim_sub=admin"
+        }
+    )
+)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class JaasClientConfigIT {
 
-    private static final String KAFKA_BOOTSTRAP = "localhost:9092";
     private static final String KAFKA_PRODUCER_CLIENT = "kafka-producer-client";
     private static final String KAFKA_PRODUCER_CLIENT_SECRET = "kafka-producer-client-secret";
     private static final String KAFKA_CLI = "kafka-cli";
@@ -710,7 +721,7 @@ public class JaasClientConfigIT {
     }
 
     private void initJaas(Map<String, String> oauthConfig) throws Exception {
-        Properties producerProps = KafkaClientsConfig.buildProducerConfigOAuthBearer(KAFKA_BOOTSTRAP, oauthConfig);
+        Properties producerProps = KafkaClientsConfig.buildProducerConfigOAuthBearer(env.getBootstrapServers(), oauthConfig);
         try (Producer<String, String> producer = new KafkaProducer<>(producerProps)) {
             producer.send(new ProducerRecord<>("Test-testTopic", "The Message"))
                 .get();

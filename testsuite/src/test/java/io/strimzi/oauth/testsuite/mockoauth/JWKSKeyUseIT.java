@@ -14,8 +14,6 @@ import io.strimzi.kafka.oauth.validator.JWTSignatureValidator;
 import io.strimzi.kafka.oauth.validator.TokenValidationException;
 import io.strimzi.oauth.testsuite.common.TestTags;
 import io.strimzi.oauth.testsuite.environment.AuthServer;
-import io.strimzi.oauth.testsuite.environment.KafkaConfig;
-import io.strimzi.oauth.testsuite.environment.KafkaPreset;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironment;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironmentExtension;
 import io.strimzi.oauth.testsuite.clients.MockOAuthAdmin;
@@ -38,7 +36,7 @@ import static io.strimzi.oauth.testsuite.utils.TestUtil.getProjectRoot;
  * Tests for JWKS key use attribute handling.
  * Validates that JWT signature validation properly handles the 'use' attribute in JWKS keys.
  */
-@OAuthEnvironment(authServer = AuthServer.MOCK_OAUTH, kafka = @KafkaConfig(preset = KafkaPreset.MOCK_OAUTH))
+@OAuthEnvironment(authServer = AuthServer.MOCK_OAUTH)
 public class JWKSKeyUseIT {
     private static final Logger log = LoggerFactory.getLogger(JWKSKeyUseIT.class);
 

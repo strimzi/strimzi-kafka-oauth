@@ -15,8 +15,6 @@ import io.strimzi.kafka.oauth.services.ServiceException;
 import io.strimzi.oauth.testsuite.common.TestTags;
 import io.strimzi.oauth.testsuite.utils.TestUtil;
 import io.strimzi.oauth.testsuite.environment.AuthServer;
-import io.strimzi.oauth.testsuite.environment.KafkaConfig;
-import io.strimzi.oauth.testsuite.environment.KafkaPreset;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironment;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironmentExtension;
 import io.strimzi.oauth.testsuite.clients.MockOAuthAdmin;
@@ -46,7 +44,7 @@ import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.createOAuthClien
  * Tests for authorization endpoint authentication.
  * Validates that introspection and JWKS endpoints properly handle authentication with client credentials and bearer tokens.
  */
-@OAuthEnvironment(authServer = AuthServer.MOCK_OAUTH, kafka = @KafkaConfig(preset = KafkaPreset.MOCK_OAUTH))
+@OAuthEnvironment(authServer = AuthServer.MOCK_OAUTH)
 public class AuthorizationEndpointsIT {
 
     OAuthEnvironmentExtension env;

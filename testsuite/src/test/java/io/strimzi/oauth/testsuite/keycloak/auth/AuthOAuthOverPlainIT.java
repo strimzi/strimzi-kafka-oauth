@@ -10,7 +10,6 @@ import io.strimzi.oauth.testsuite.metrics.TestMetrics;
 import io.strimzi.oauth.testsuite.clients.ConcurrentKafkaClientsRunner;
 import io.strimzi.oauth.testsuite.environment.AuthServer;
 import io.strimzi.oauth.testsuite.environment.KafkaConfig;
-import io.strimzi.oauth.testsuite.environment.KafkaPreset;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironment;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironmentExtension;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -20,6 +19,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
+import io.strimzi.test.container.AuthenticationType;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
@@ -37,7 +37,20 @@ import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.buildProduce
 import static io.strimzi.oauth.testsuite.utils.KafkaClientsUtils.produceAndConsumePlain;
 import static io.strimzi.oauth.testsuite.metrics.TestMetrics.getPrometheusMetrics;
 
-@OAuthEnvironment(authServer = AuthServer.KEYCLOAK, kafka = @KafkaConfig(preset = KafkaPreset.KEYCLOAK_AUTH))
+@OAuthEnvironment(
+    authServer = AuthServer.KEYCLOAK
+//    kafka = @KafkaConfig(
+//        realm = "kafka-authz",
+//        authenticationType = AuthenticationType.OAUTH_OVER_PLAIN,
+//        metrics = true,
+//        oauthProperties = {
+//            "oauth.config.id=JWTPLAIN",
+//            "oauth.fallback.username.claim=client_id",
+//            "oauth.fallback.username.prefix=service-account-",
+//            "unsecuredLoginStringClaim_sub=admin"
+//        }
+//    )
+)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class AuthOAuthOverPlainIT {
 
@@ -46,13 +59,24 @@ public class AuthOAuthOverPlainIT {
 
     OAuthEnvironmentExtension env;
 
+    @KafkaConfig(
+        realm = "kafka-authz",
+        authenticationType = AuthenticationType.OAUTH_OVER_PLAIN,
+        metrics = true,
+        oauthProperties = {
+            "oauth.config.id=JWTPLAIN",
+            "oauth.fallback.username.claim=client_id",
+            "oauth.fallback.username.prefix=service-account-",
+            "unsecuredLoginStringClaim_sub=admin"
+        }
+    )
     @Test
     @Order(1)
     @DisplayName("Client credentials over PLAIN with JWT")
     @Tag(TestTags.PLAIN)
     @Tag(TestTags.JWT)
     void clientCredentialsOverPlainWithJwt() throws Exception {
-        final String kafkaBootstrap = "localhost:9096";
+        final String kafkaBootstrap = env.getBootstrapServers();
         final String hostPort = env.getKeycloakHostPort();
 
         // For metrics
@@ -69,7 +93,7 @@ public class AuthOAuthOverPlainIT {
 
         // Check metrics
 
-        TestMetrics metrics = getPrometheusMetrics(URI.create("http://localhost:9404/metrics"));
+        TestMetrics metrics = getPrometheusMetrics(URI.create(env.getMetricsUri()));
         BigDecimal value = metrics.getStartsWithValueSum("strimzi_oauth_validation_requests_count", "context", "JWTPLAIN", "kind", "jwks", "mechanism", "PLAIN", "outcome", "success");
 
         // There is no inter-broker connection on this listener, producer did 2 validations, and consumer also did 2
@@ -87,15 +111,27 @@ public class AuthOAuthOverPlainIT {
         Assertions.assertTrue(value.doubleValue() > 0.0, "strimzi_oauth_http_requests_totaltimems for plain > 0.0");
     }
 
+    @KafkaConfig(
+        authenticationType = AuthenticationType.OAUTH_OVER_PLAIN,
+        metrics = true,
+        oauthProperties = {
+            "oauth.config.id=INTROSPECTPLAIN",
+            "oauth.introspection.endpoint.uri=http://keycloak:8080/realms/kafka-authz/protocol/openid-connect/token/introspect",
+            "oauth.client.id=kafka",
+            "oauth.client.secret=kafka-secret",
+            "oauth.fallback.username.claim=client_id",
+            "oauth.fallback.username.prefix=service-account-",
+            "unsecuredLoginStringClaim_sub=admin"
+        }
+    )
     @Test
     @Order(2)
     @DisplayName("Client credentials over PLAIN with introspection")
     @Tag(TestTags.PLAIN)
     @Tag(TestTags.INTROSPECTION)
     void clientCredentialsOverPlainWithIntrospection() throws Exception {
-        final String kafkaBootstrap = "localhost:9097";
+        final String kafkaBootstrap = env.getBootstrapServers();
 
-        final String hostPort = env.getKeycloakHostPort();
         final String realm = "kafka-authz";
 
         // For metrics
@@ -111,7 +147,7 @@ public class AuthOAuthOverPlainIT {
 
         // Check metrics
 
-        TestMetrics metrics = getPrometheusMetrics(URI.create("http://localhost:9404/metrics"));
+        TestMetrics metrics = getPrometheusMetrics(URI.create(env.getMetricsUri()));
         BigDecimal value = metrics.getStartsWithValueSum("strimzi_oauth_validation_requests_count", "context", "INTROSPECTPLAIN", "kind", "introspect", "mechanism", "PLAIN", "outcome", "success");
 
         // There is no inter-broker connection on this listener, producer did 2 validations, and consumer also did 2
@@ -129,13 +165,26 @@ public class AuthOAuthOverPlainIT {
         Assertions.assertTrue(value.doubleValue() > 0.0, "strimzi_oauth_http_requests_totaltimems for plain > 0.0");
     }
 
+    @KafkaConfig(
+        authenticationType = AuthenticationType.OAUTH_OVER_PLAIN,
+        metrics = true,
+        oauthProperties = {
+            "oauth.config.id=INTROSPECTPLAIN",
+            "oauth.introspection.endpoint.uri=http://keycloak:8080/realms/kafka-authz/protocol/openid-connect/token/introspect",
+            "oauth.client.id=kafka",
+            "oauth.client.secret=kafka-secret",
+            "oauth.fallback.username.claim=client_id",
+            "oauth.fallback.username.prefix=service-account-",
+            "unsecuredLoginStringClaim_sub=admin"
+        }
+    )
     @Test
     @Order(3)
     @DisplayName("Access token over PLAIN with introspection")
     @Tag(TestTags.PLAIN)
     @Tag(TestTags.INTROSPECTION)
     void accessTokenOverPlainWithIntrospection() throws Exception {
-        final String kafkaBootstrap = "localhost:9097";
+        final String kafkaBootstrap = env.getBootstrapServers();
         final String hostPort = env.getKeycloakHostPort();
         final String realm = "kafka-authz";
 
@@ -158,7 +207,7 @@ public class AuthOAuthOverPlainIT {
 
         // Check metrics
 
-        TestMetrics metrics = getPrometheusMetrics(URI.create("http://localhost:9404/metrics"));
+        TestMetrics metrics = getPrometheusMetrics(URI.create(env.getMetricsUri()));
         BigDecimal value = metrics.getStartsWithValueSum("strimzi_oauth_validation_requests_count", "context", "INTROSPECTPLAIN", "kind", "introspect", "mechanism", "PLAIN", "outcome", "success");
 
         // There is no inter-broker connection on this listener, producer did 2 validations, and consumer also did 2 (on top of the previous test)
@@ -173,13 +222,23 @@ public class AuthOAuthOverPlainIT {
         Assertions.assertTrue(value.doubleValue() > 0.0, "strimzi_oauth_http_requests_totaltimems for plain > 0.0");
     }
 
+    @KafkaConfig(
+        authenticationType = AuthenticationType.OAUTH_OVER_PLAIN,
+        realm = "flood",
+        oauthProperties = {
+            "oauth.config.id=FLOOD",
+            "oauth.fallback.username.claim=client_id",
+            "oauth.fallback.username.prefix=service-account-",
+            "unsecuredLoginStringClaim_sub=admin"
+        }
+    )
     @Test
     @Order(4)
     @DisplayName("Client credentials over PLAIN with flood test")
     @Tag(TestTags.PLAIN)
     @Tag(TestTags.PERFORMANCE)
     void clientCredentialsOverPlainWithFloodTest() throws Exception {
-        final String kafkaBootstrap = "localhost:9102";
+        final String kafkaBootstrap = env.getBootstrapServers();
 
         String clientPrefix = "kafka-producer-client-";
 
@@ -211,12 +270,25 @@ public class AuthOAuthOverPlainIT {
         }
     }
 
+    @KafkaConfig(
+        authenticationType = AuthenticationType.OAUTH_OVER_PLAIN,
+        metrics = true,
+        oauthProperties = {
+            "oauth.config.id=JWTPLAINWITHOUTCC",
+            "oauth.token.endpoint.uri=",
+            "oauth.client.id=kafka",
+            "oauth.client.secret=kafka-secret",
+            "oauth.fallback.username.claim=client_id",
+            "oauth.fallback.username.prefix=service-account-",
+            "unsecuredLoginStringClaim_sub=admin"
+        }
+    )
     @Test
     @Order(5)
     @DisplayName("Access token over PLAIN with client credentials disabled")
     @Tag(TestTags.PLAIN)
     void accessTokenOverPlainWithClientCredentialsDisabled() throws Exception {
-        final String kafkaBootstrap = "localhost:9103";
+        final String kafkaBootstrap = env.getBootstrapServers();
         final String hostPort = env.getKeycloakHostPort();
         final String realm = "kafka-authz";
 
@@ -240,7 +312,7 @@ public class AuthOAuthOverPlainIT {
 
         // Check metrics
 
-        TestMetrics metrics = getPrometheusMetrics(URI.create("http://localhost:9404/metrics"));
+        TestMetrics metrics = getPrometheusMetrics(URI.create(env.getMetricsUri()));
         BigDecimal value = metrics.getStartsWithValueSum("strimzi_oauth_validation_requests_count", "context", "JWTPLAINWITHOUTCC", "kind", "jwks", "mechanism", "PLAIN", "outcome", "success");
 
         // There is no inter-broker connection on this listener, producer did 2 validations, and consumer also did 2

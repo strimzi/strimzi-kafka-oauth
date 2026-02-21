@@ -22,13 +22,17 @@ import java.lang.annotation.Target;
  * <p>Example usage:
  * <pre>{@code
  * @OAuthEnvironment(authServer = AuthServer.KEYCLOAK,
- *     kafka = @KafkaConfig(preset = KafkaPreset.KEYCLOAK_AUTH))
- * public class MyIT {
+ *     kafka = @KafkaConfig(
+ *         realm = "kafka-authz",
+ *         oauthProperties = {"oauth.check.audience=true"},
+ *         metrics = true
+ *     ))
+ * public class AudienceJwtIT {
  *     OAuthEnvironmentExtension env;  // auto-injected
  *
  *     @Test
  *     void myTest() {
- *         String keycloakHostPort = env.getKeycloakHostPort();
+ *         String bootstrap = env.getBootstrapServers();
  *         // ...
  *     }
  * }
@@ -45,5 +49,5 @@ public @interface OAuthEnvironment {
     AuthServer authServer();
 
     /** Kafka container configuration */
-    KafkaConfig kafka() default @KafkaConfig(preset = KafkaPreset.NONE);
+    KafkaConfig kafka() default @KafkaConfig(enabled = false);
 }

@@ -14,8 +14,6 @@ import io.strimzi.kafka.oauth.common.TokenIntrospection;
 import io.strimzi.oauth.testsuite.common.TestTags;
 import io.strimzi.oauth.testsuite.utils.TestUtil;
 import io.strimzi.oauth.testsuite.environment.AuthServer;
-import io.strimzi.oauth.testsuite.environment.KafkaConfig;
-import io.strimzi.oauth.testsuite.environment.KafkaPreset;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironment;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironmentExtension;
 import io.strimzi.oauth.testsuite.clients.MockOAuthAdmin;
@@ -39,7 +37,7 @@ import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.createOAuthClien
  * Tests for client assertion authentication.
  * Validates that client_assertion authentication works correctly with JWT bearer tokens.
  */
-@OAuthEnvironment(authServer = AuthServer.MOCK_OAUTH, kafka = @KafkaConfig(preset = KafkaPreset.MOCK_OAUTH))
+@OAuthEnvironment(authServer = AuthServer.MOCK_OAUTH)
 public class ClientAssertionAuthIT {
 
     private static final Logger log = LoggerFactory.getLogger(ClientAssertionAuthIT.class);

@@ -7,8 +7,9 @@ package io.strimzi.oauth.testsuite.environment;
 import io.strimzi.oauth.testsuite.clients.MockOAuthAdmin;
 import io.strimzi.oauth.testsuite.common.ContainerSource;
 import io.strimzi.oauth.testsuite.common.ContainerLogCollectorExtension;
-import io.strimzi.oauth.testsuite.metrics.TestMetricsReporter;
-import io.strimzi.test.container.OAuthKafkaContainer;
+import io.strimzi.test.container.AuthenticationType;
+import io.strimzi.test.container.StrimziKafkaCluster;
+import io.strimzi.test.container.StrimziKafkaContainer;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.common.acl.AccessControlEntryFilter;
 import org.apache.kafka.common.acl.AclBinding;
@@ -18,6 +19,7 @@ import org.apache.kafka.common.acl.AclPermissionType;
 import org.apache.kafka.common.resource.ResourcePatternFilter;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
+import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,10 +31,13 @@ import org.testcontainers.utility.MountableFile;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -46,7 +51,7 @@ import static io.strimzi.oauth.testsuite.utils.TestUtil.waitForCondition;
  * <p>This extension is activated by the {@link OAuthEnvironment} annotation and handles:
  * <ul>
  *   <li>Starting the auth server (MockOAuth, Keycloak, or Hydra)</li>
- *   <li>Starting and configuring the Kafka container with the correct listener preset</li>
+ *   <li>Starting and configuring a single-listener Kafka cluster using StrimziKafkaCluster</li>
  *   <li>Setting up ACLs for authorization tests</li>
  *   <li>Initializing MockOAuth endpoints</li>
  *   <li>Injecting itself into test instance fields of type {@code OAuthEnvironmentExtension}</li>
@@ -54,14 +59,20 @@ import static io.strimzi.oauth.testsuite.utils.TestUtil.waitForCondition;
  *   <li>Tearing down all containers after tests complete</li>
  * </ul>
  */
-public class OAuthEnvironmentExtension implements BeforeAllCallback, AfterAllCallback, ContainerSource {
+public class OAuthEnvironmentExtension implements BeforeAllCallback, BeforeEachCallback, AfterAllCallback, ContainerSource {
 
     private static final Logger log = LoggerFactory.getLogger(OAuthEnvironmentExtension.class);
 
     private Network network;
     private GenericContainer<?> authServerContainer;
-    private OAuthKafkaContainer kafka;
+    private StrimziKafkaCluster kafkaCluster;
     private final List<GenericContainer<?>> allContainers = new ArrayList<>();
+
+    /** Class-level @OAuthEnvironment config, stored for per-method Kafka restarts */
+    private OAuthEnvironment classConfig;
+
+    /** Key representing the currently running Kafka config, used to detect when restart is needed */
+    private String currentKafkaConfigKey;
 
     // Hydra-specific containers
     private GenericContainer<?> hydra;
@@ -79,14 +90,16 @@ public class OAuthEnvironmentExtension implements BeforeAllCallback, AfterAllCal
             throw new IllegalStateException("@OAuthEnvironment annotation not found on test class " + context.getRequiredTestClass().getName());
         }
 
+        classConfig = config;
         network = Network.newNetwork();
 
         // 1. Start auth server
         startAuthServer(config.authServer());
 
-        // 2. Start Kafka if needed
-        if (config.kafka().preset() != KafkaPreset.NONE) {
-            startKafka(config);
+        // 2. Start Kafka if the KafkaConfig is enabled
+        if (config.kafka().enabled()) {
+            startKafkaWithConfig(config.kafka(), config.authServer());
+            currentKafkaConfigKey = buildConfigKey(config.kafka());
         }
 
         // 3. Store self in ExtensionContext for TestLogCollectorExtension to find
@@ -98,9 +111,41 @@ public class OAuthEnvironmentExtension implements BeforeAllCallback, AfterAllCal
     }
 
     @Override
+    public void beforeEach(ExtensionContext context) throws Exception {
+        Method testMethod = context.getRequiredTestMethod();
+        KafkaConfig methodKafkaConfig = testMethod.getAnnotation(KafkaConfig.class);
+
+        // Determine the effective KafkaConfig: method-level overrides class-level
+        KafkaConfig effectiveConfig;
+        if (methodKafkaConfig != null) {
+            effectiveConfig = methodKafkaConfig;
+        } else {
+            effectiveConfig = classConfig.kafka();
+        }
+
+        if (!effectiveConfig.enabled()) {
+            // Effective config says no Kafka needed — stop if running
+            if (kafkaCluster != null) {
+                stopKafka();
+            }
+            return;
+        }
+
+        String newKey = buildConfigKey(effectiveConfig);
+        if (!newKey.equals(currentKafkaConfigKey)) {
+            log.info("Kafka config changed for test {} — restarting Kafka cluster", testMethod.getName());
+            if (kafkaCluster != null) {
+                stopKafka();
+            }
+            startKafkaWithConfig(effectiveConfig, classConfig.authServer());
+            currentKafkaConfigKey = newKey;
+        }
+    }
+
+    @Override
     public void afterAll(ExtensionContext context) {
-        if (kafka != null) {
-            kafka.stop();
+        if (kafkaCluster != null) {
+            kafkaCluster.stop();
         }
         if (hydraJwtImport != null) {
             hydraJwtImport.stop();
@@ -131,12 +176,55 @@ public class OAuthEnvironmentExtension implements BeforeAllCallback, AfterAllCal
     }
 
     /**
-     * Get the Kafka container.
+     * Get the Kafka cluster.
      *
-     * @return The OAuthKafkaContainer
+     * @return The StrimziKafkaCluster
      */
-    public OAuthKafkaContainer getKafka() {
-        return kafka;
+    public StrimziKafkaCluster getKafkaCluster() {
+        return kafkaCluster;
+    }
+
+    /**
+     * Get the first Kafka container (for single-broker clusters).
+     * Useful for log inspection and exec operations.
+     *
+     * @return The first StrimziKafkaContainer (as GenericContainer for compatibility)
+     */
+    public GenericContainer<?> getKafka() {
+        if (kafkaCluster == null) {
+            throw new IllegalStateException("Kafka cluster is not started");
+        }
+        return kafkaCluster.getBrokers().iterator().next();
+    }
+
+    /**
+     * Get the bootstrap servers string for Kafka clients.
+     * Returns just "host:port" format (strips the PLAINTEXT:// protocol prefix).
+     *
+     * @return The bootstrap servers string
+     */
+    public String getBootstrapServers() {
+        if (kafkaCluster == null) {
+            throw new IllegalStateException("Kafka cluster is not started");
+        }
+        String bs = kafkaCluster.getBootstrapServers();
+        // Strip protocol prefix (e.g., "PLAINTEXT://") if present
+        int idx = bs.indexOf("://");
+        if (idx >= 0) {
+            bs = bs.substring(idx + 3);
+        }
+        return bs;
+    }
+
+    /**
+     * Get the Prometheus metrics URI for the Kafka broker.
+     * Uses the dynamically mapped port for container port 9404.
+     *
+     * @return The metrics endpoint URI string
+     */
+    public String getMetricsUri() {
+        GenericContainer<?> kafka = getKafka();
+        return "http://" + kafka.getHost() + ":" + kafka.getMappedPort(9404) + "/metrics";
     }
 
     /**
@@ -199,14 +287,14 @@ public class OAuthEnvironmentExtension implements BeforeAllCallback, AfterAllCal
      * @throws Exception If an error occurs or the timeout is reached
      */
     public void waitForACLs() throws Exception {
-        String plainListener = "localhost:9100";
+        String bootstrapServers = getBootstrapServers();
 
         waitForCondition(() -> {
             Properties adminProps = new Properties();
             adminProps.setProperty("security.protocol", "SASL_PLAINTEXT");
             adminProps.setProperty("sasl.mechanism", "PLAIN");
             adminProps.setProperty("sasl.jaas.config", "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"admin\" password=\"admin-password\" ;");
-            adminProps.setProperty("bootstrap.servers", plainListener);
+            adminProps.setProperty("bootstrap.servers", bootstrapServers);
 
             try (AdminClient adminClient = AdminClient.create(adminProps)) {
                 try {
@@ -222,7 +310,7 @@ public class OAuthEnvironmentExtension implements BeforeAllCallback, AfterAllCal
                     throw new RuntimeException("ACLs for User:alice could not be retrieved: ", e);
                 }
             }
-        }, 2000, 210);
+        }, 2000, 60);
     }
 
     private void startAuthServer(AuthServer authServer) {
@@ -354,148 +442,275 @@ public class OAuthEnvironmentExtension implements BeforeAllCallback, AfterAllCal
         authServerContainer = hydra;
     }
 
-    private void startKafka(OAuthEnvironment config) {
-        KafkaConfig kafkaConfig = config.kafka();
-        Map<String, String> kafkaConfigMap = KafkaPresetConfig.getConfig(kafkaConfig.preset());
+    /**
+     * Stop the currently running Kafka cluster and remove its containers from the tracking list.
+     */
+    private void stopKafka() {
+        if (kafkaCluster != null) {
+            for (StrimziKafkaContainer node : kafkaCluster.getNodes()) {
+                allContainers.remove(node);
+            }
+            kafkaCluster.stop();
+            kafkaCluster = null;
+            currentKafkaConfigKey = null;
+        }
+    }
 
-        kafka = TestContainerFactory.createKafkaBase(network);
-        kafka.withMetrics("/opt/kafka/config/strimzi/metrics-config.yml");
-        kafka.withKafkaConfigurationMap(kafkaConfigMap);
+    /**
+     * Build a config key string from a KafkaConfig annotation for comparison purposes.
+     * Two KafkaConfig annotations with the same key produce identical Kafka setups.
+     */
+    private static String buildConfigKey(KafkaConfig config) {
+        return config.authenticationType() + "|" +
+               config.realm() + "|" +
+               config.clientId() + "|" +
+               config.clientSecret() + "|" +
+               config.usernameClaim() + "|" +
+               Arrays.toString(config.oauthProperties()) + "|" +
+               Arrays.toString(config.kafkaProperties()) + "|" +
+               config.metrics() + "|" +
+               config.initEndpoints() + "|" +
+               config.setupAcls() + "|" +
+               Arrays.toString(config.scramUsers());
+    }
 
-        // Configure environment-specific settings
-        configureKafkaEnv(config.authServer(), kafkaConfig);
+    private void startKafkaWithConfig(KafkaConfig kafkaConfig, AuthServer authServer) {
 
-        // Configure ports based on preset
-        configureKafkaPorts(kafkaConfig.preset());
+        // Determine the auth server URL for building endpoints
+        String authServerUrl = getAuthServerUrl(authServer);
 
-        kafka.waitingFor(Wait.forLogMessage(".*started \\(kafka.server.KafkaRaftServer\\).*", 1)
-                .withStartupTimeout(Duration.ofSeconds(30)));
-        kafka.start();
-        allContainers.add(kafka);
+        // Build additional Kafka configuration from annotation
+        Map<String, String> additionalConfig = parseProperties(kafkaConfig.kafkaProperties());
+
+        // Always configure SASL only on the PLAINTEXT listener, keeping BROKER1 and CONTROLLER
+        // as plain PLAINTEXT (no auth). This avoids inter-broker OAuth failures when the test's
+        // realm doesn't have the inter-broker client.
+        if (kafkaConfig.authenticationType() == AuthenticationType.OAUTH_BEARER) {
+            String jaasConfig = buildOAuthBearerJaasConfig(kafkaConfig, authServerUrl);
+            additionalConfig.put("listener.name.plaintext.oauthbearer.sasl.jaas.config", jaasConfig);
+            additionalConfig.put("listener.name.plaintext.oauthbearer.sasl.server.callback.handler.class",
+                    "io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler");
+            additionalConfig.put("sasl.enabled.mechanisms", "OAUTHBEARER");
+            additionalConfig.put("listener.security.protocol.map",
+                    "PLAINTEXT:SASL_PLAINTEXT,BROKER1:PLAINTEXT,CONTROLLER:PLAINTEXT");
+            additionalConfig.put("principal.builder.class",
+                    "io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder");
+            additionalConfig.put("offsets.topic.replication.factor", "1");
+
+            ensureAnonymousSuperUser(additionalConfig);
+        } else if (kafkaConfig.authenticationType() == AuthenticationType.OAUTH_OVER_PLAIN) {
+            String jaasConfig = buildOAuthOverPlainJaasConfig(kafkaConfig, authServerUrl);
+            additionalConfig.put("listener.name.plaintext.plain.sasl.jaas.config", jaasConfig);
+            additionalConfig.put("listener.name.plaintext.plain.sasl.server.callback.handler.class",
+                    "io.strimzi.kafka.oauth.server.plain.JaasServerOauthOverPlainValidatorCallbackHandler");
+            additionalConfig.put("sasl.enabled.mechanisms", "PLAIN");
+            additionalConfig.put("listener.security.protocol.map",
+                    "PLAINTEXT:SASL_PLAINTEXT,BROKER1:PLAINTEXT,CONTROLLER:PLAINTEXT");
+            additionalConfig.put("principal.builder.class",
+                    "io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder");
+            additionalConfig.put("offsets.topic.replication.factor", "1");
+
+            ensureAnonymousSuperUser(additionalConfig);
+        }
+
+        // For NONE auth type with an authorizer, BROKER1 is plain PLAINTEXT so
+        // inter-broker connections authenticate as ANONYMOUS. Add to super.users.
+        if (kafkaConfig.authenticationType() == AuthenticationType.NONE) {
+            ensureAnonymousSuperUser(additionalConfig);
+        }
+
+        // Build the StrimziKafkaCluster
+        String kafkaImage = System.getProperty("KAFKA_DOCKER_IMAGE");
+        StrimziKafkaCluster.StrimziKafkaClusterBuilder builder = new StrimziKafkaCluster.StrimziKafkaClusterBuilder()
+                .withNumberOfBrokers(1)
+                .withAdditionalKafkaConfiguration(additionalConfig)
+                .withContainerCustomizer(container -> {
+                    container.withNetwork(network);
+                    container.withNetworkAliases("kafka");
+                    container.setLabels(Map.of(CONTAINER_LABEL_KEY, "kafka"));
+
+                    // Copy OAuth JARs
+                    TestContainerFactory.copyOAuthJars(container);
+
+                    // Copy config files
+                    TestContainerFactory.copyConfigFiles(container, authServer);
+
+                    // Set common OAuth env vars
+                    TestContainerFactory.configureOAuthEnv(container, authServer, kafkaConfig);
+
+                    // Set CLASSPATH for OAuth JARs
+                    container.addEnv("CLASSPATH", "/opt/kafka/libs/strimzi/*");
+
+                    // Set metrics if needed
+                    if (kafkaConfig.metrics()) {
+                        TestContainerFactory.configureMetrics(container, authServer);
+                    }
+                });
+
+        // Set custom Kafka image if specified
+        if (kafkaImage != null && !kafkaImage.isEmpty()) {
+            builder.withImage(kafkaImage);
+        }
+
+        kafkaCluster = builder.build();
+        try {
+            kafkaCluster.start();
+        } catch (Exception e) {
+            // Dump container logs on startup failure for debugging
+            // TODO - add for others as well
+            log.error("Kafka cluster failed to start. Dumping container logs:");
+            for (StrimziKafkaContainer node : kafkaCluster.getNodes()) {
+                try {
+                    String logs = node.getLogs();
+                    log.error("=== Kafka node {} logs ===\n{}", node.getContainerId(), logs);
+                } catch (Exception logEx) {
+                    log.error("Failed to get logs from node: {}", logEx.getMessage());
+                }
+            }
+            throw e;
+        }
+
+        // Add all Kafka containers to the allContainers list for log collection
+        for (StrimziKafkaContainer node : kafkaCluster.getNodes()) {
+            allContainers.add(node);
+        }
 
         // Post-start actions
         if (kafkaConfig.setupAcls()) {
             setupACLs();
         }
 
-        if (config.authServer() == AuthServer.MOCK_OAUTH && kafkaConfig.initEndpoints()) {
+        if (kafkaConfig.scramUsers().length > 0) {
+            setupScramUsers(kafkaConfig.scramUsers());
+        }
+
+        if (authServer == AuthServer.MOCK_OAUTH && kafkaConfig.initEndpoints()) {
             initEndpoints();
         }
     }
 
-    private void configureKafkaEnv(AuthServer authServer, KafkaConfig kafkaConfig) {
+    /**
+     * Get the auth server URL for building OAuth endpoint URIs.
+     */
+    private String getAuthServerUrl(AuthServer authServer) {
         switch (authServer) {
-            case MOCK_OAUTH:
-                kafka.withCopyDirToContainer(Path.of("target/kafka/certs").toAbsolutePath(), "/opt/kafka/config/strimzi/certs");
-                kafka.addEnv("OAUTH_SSL_TRUSTSTORE_LOCATION", "/opt/kafka/config/strimzi/certs/ca-truststore.p12");
-                kafka.addEnv("OAUTH_SSL_TRUSTSTORE_PASSWORD", "changeit");
-                kafka.addEnv("OAUTH_SSL_TRUSTSTORE_TYPE", "pkcs12");
-                kafka.addEnv("OAUTH_CONNECT_TIMEOUT_SECONDS", "10");
-                kafka.addEnv("OAUTH_READ_TIMEOUT_SECONDS", "10");
-                kafka.addEnv("OAUTH_ENABLE_METRICS", "true");
-                kafka.addEnv("STRIMZI_OAUTH_METRIC_REPORTERS", "org.apache.kafka.common.metrics.JmxReporter");
-                break;
-
             case KEYCLOAK:
-                if (kafkaConfig.preset() == KafkaPreset.KEYCLOAK_AUTH) {
-                    kafka.withCopyToContainer(
-                            MountableFile.forHostPath(Path.of("target/classes").toAbsolutePath().toString()),
-                            "/opt/kafka/libs/strimzi/reporters");
-                    kafka.addEnv("OAUTH_USERNAME_CLAIM", "preferred_username");
-                    kafka.addEnv("OAUTH_ENABLE_METRICS", "true");
-                    kafka.addEnv("STRIMZI_OAUTH_METRIC_REPORTERS", "org.apache.kafka.common.metrics.JmxReporter," + TestMetricsReporter.class.getName());
-                    kafka.addEnv("CLASSPATH", "/opt/kafka/libs/strimzi/reporters");
-                } else if (kafkaConfig.preset() == KafkaPreset.KEYCLOAK_AUTHZ) {
-                    kafka.addEnv("OAUTH_USERNAME_CLAIM", "preferred_username");
-                    kafka.addEnv("OAUTH_CONNECT_TIMEOUT_SECONDS", "20");
-                    kafka.addEnv("OAUTH_ENABLE_METRICS", "true");
-                    kafka.addEnv("STRIMZI_OAUTH_METRIC_REPORTERS", "org.apache.kafka.common.metrics.JmxReporter");
-                    kafka.addEnv("KEYCLOAK_HOST", "keycloak");
-                } else if (kafkaConfig.preset() == KafkaPreset.KEYCLOAK_ERRORS) {
-                    kafka.addEnv("OAUTH_USERNAME_CLAIM", "preferred_username");
-                    kafka.addEnv("OAUTH_CONNECT_TIMEOUT_SECONDS", "20");
-                }
-                break;
-
+                return "http://keycloak:8080";
+            case MOCK_OAUTH:
+                return "https://mockoauth:8090";
             case HYDRA:
-                kafka.withCopyDirToContainer(Path.of("target/kafka/certs").toAbsolutePath(), "/opt/kafka/config/strimzi/certs");
-                kafka.addEnv("OAUTH_SSL_TRUSTSTORE_LOCATION", "/opt/kafka/config/strimzi/certs/ca-truststore.p12");
-                kafka.addEnv("OAUTH_SSL_TRUSTSTORE_PASSWORD", "changeit");
-                kafka.addEnv("OAUTH_SSL_TRUSTSTORE_TYPE", "pkcs12");
-                kafka.addEnv("HYDRA_HOST", "hydra");
-                break;
-
+                return "https://hydra:4444";
             default:
-                break;
+                return "";
         }
     }
 
-    private void configureKafkaPorts(KafkaPreset preset) {
-        switch (preset) {
-            case MOCK_OAUTH:
-                kafka.addFixedExposedPort(9091, 9091);
-                kafka.addFixedExposedPort(9092, 9092);
-                kafka.addFixedExposedPort(9093, 9093);
-                kafka.addFixedExposedPort(9094, 9094);
-                kafka.addFixedExposedPort(9095, 9095);
-                kafka.addFixedExposedPort(9096, 9096);
-                kafka.addFixedExposedPort(9097, 9097);
-                kafka.addFixedExposedPort(9098, 9098);
-                kafka.addFixedExposedPort(9099, 9099);
-                kafka.addFixedExposedPort(9404, 9404);
-                break;
+    /**
+     * Build the OAUTHBEARER JAAS config string from annotation properties.
+     *
+     * <p>The default JAAS config uses JWKS endpoint derived from authServerUrl + realm.
+     * If oauthProperties contain explicit endpoint URIs, those take precedence.
+     */
+    static String buildOAuthBearerJaasConfig(KafkaConfig kafkaConfig, String authServerUrl) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required");
 
-            case KEYCLOAK_AUTH:
-                kafka.addFixedExposedPort(9091, 9091);
-                kafka.addFixedExposedPort(9092, 9092);
-                kafka.addFixedExposedPort(9093, 9093);
-                kafka.addFixedExposedPort(9094, 9094);
-                kafka.addFixedExposedPort(9095, 9095);
-                kafka.addFixedExposedPort(9096, 9096);
-                kafka.addFixedExposedPort(9097, 9097);
-                kafka.addFixedExposedPort(9098, 9098);
-                kafka.addFixedExposedPort(9099, 9099);
-                kafka.addFixedExposedPort(9100, 9100);
-                kafka.addFixedExposedPort(9101, 9101);
-                kafka.addFixedExposedPort(9102, 9102);
-                kafka.addFixedExposedPort(9103, 9103);
-                kafka.addFixedExposedPort(9104, 9104);
-                kafka.addFixedExposedPort(9404, 9404);
-                break;
+        Map<String, String> props = parseOAuthProperties(kafkaConfig.oauthProperties());
 
-            case KEYCLOAK_AUTHZ:
-                kafka.addFixedExposedPort(9091, 9091);
-                kafka.addFixedExposedPort(9092, 9092);
-                kafka.addFixedExposedPort(9093, 9093);
-                kafka.addFixedExposedPort(9094, 9094);
-                kafka.addFixedExposedPort(9095, 9095);
-                kafka.addFixedExposedPort(9096, 9096);
-                kafka.addFixedExposedPort(9100, 9100);
-                kafka.addFixedExposedPort(9101, 9101);
-                kafka.addFixedExposedPort(9404, 9404);
-                break;
-
-            case KEYCLOAK_ERRORS:
-                kafka.addFixedExposedPort(9091, 9091);
-                kafka.addFixedExposedPort(9201, 9201);
-                kafka.addFixedExposedPort(9202, 9202);
-                kafka.addFixedExposedPort(9203, 9203);
-                kafka.addFixedExposedPort(9204, 9204);
-                kafka.addFixedExposedPort(9205, 9205);
-                kafka.addFixedExposedPort(9206, 9206);
-                kafka.addFixedExposedPort(9207, 9207);
-                kafka.addFixedExposedPort(9208, 9208);
-                break;
-
-            case HYDRA:
-                kafka.addFixedExposedPort(9091, 9091);
-                kafka.addFixedExposedPort(9092, 9092);
-                kafka.addFixedExposedPort(9093, 9093);
-                break;
-
-            default:
-                break;
+        // Add default JWKS and issuer if not explicitly overridden
+        String realm = kafkaConfig.realm();
+        if (!props.containsKey("oauth.jwks.endpoint.uri") && !props.containsKey("oauth.introspection.endpoint.uri")) {
+            sb.append("    oauth.jwks.endpoint.uri=\"").append(authServerUrl)
+              .append("/realms/").append(realm).append("/protocol/openid-connect/certs\"");
         }
+        if (!props.containsKey("oauth.valid.issuer.uri")) {
+            sb.append("    oauth.valid.issuer.uri=\"").append(authServerUrl)
+              .append("/realms/").append(realm).append("\"");
+        }
+
+        // Add all explicit oauthProperties (empty values suppress defaults without being written)
+        appendNonEmptyProperties(sb, props);
+
+        sb.append(" ;");
+        return sb.toString();
+    }
+
+    /**
+     * Build the OAuth-over-PLAIN JAAS config string from annotation properties.
+     */
+    static String buildOAuthOverPlainJaasConfig(KafkaConfig kafkaConfig, String authServerUrl) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("org.apache.kafka.common.security.plain.PlainLoginModule required");
+
+        Map<String, String> props = parseOAuthProperties(kafkaConfig.oauthProperties());
+
+        // Add default token and JWKS endpoints if not explicitly overridden
+        // An empty value (e.g., "oauth.token.endpoint.uri=") suppresses the default without being written
+        String realm = kafkaConfig.realm();
+        if (!props.containsKey("oauth.token.endpoint.uri")) {
+            sb.append("    oauth.token.endpoint.uri=\"").append(authServerUrl)
+              .append("/realms/").append(realm).append("/protocol/openid-connect/token\"");
+        }
+        if (!props.containsKey("oauth.jwks.endpoint.uri") && !props.containsKey("oauth.introspection.endpoint.uri")) {
+            sb.append("    oauth.jwks.endpoint.uri=\"").append(authServerUrl)
+              .append("/realms/").append(realm).append("/protocol/openid-connect/certs\"");
+        }
+        if (!props.containsKey("oauth.valid.issuer.uri")) {
+            sb.append("    oauth.valid.issuer.uri=\"").append(authServerUrl)
+              .append("/realms/").append(realm).append("\"");
+        }
+
+        // Add all explicit oauthProperties (empty values suppress defaults without being written)
+        appendNonEmptyProperties(sb, props);
+
+        sb.append(" ;");
+        return sb.toString();
+    }
+
+    /**
+     * Append properties with non-empty values to the JAAS config builder.
+     * Properties with empty values are skipped — they serve only to suppress auto-generated defaults.
+     */
+    private static void appendNonEmptyProperties(StringBuilder sb, Map<String, String> props) {
+        for (Map.Entry<String, String> entry : props.entrySet()) {
+            if (!entry.getValue().isEmpty()) {
+                sb.append("    ").append(entry.getKey()).append("=\"").append(entry.getValue()).append("\"");
+            }
+        }
+    }
+
+    /**
+     * Parse oauth properties from annotation's string array into a map.
+     * Each entry is in "key=value" format.
+     */
+    static Map<String, String> parseOAuthProperties(String[] properties) {
+        Map<String, String> result = new HashMap<>();
+        if (properties != null) {
+            for (String prop : properties) {
+                int eqIdx = prop.indexOf('=');
+                if (eqIdx > 0) {
+                    result.put(prop.substring(0, eqIdx).trim(), prop.substring(eqIdx + 1).trim());
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Parse kafka properties from annotation's string array into a map.
+     * Each entry is in "key=value" format.
+     */
+    static Map<String, String> parseProperties(String[] properties) {
+        Map<String, String> result = new HashMap<>();
+        if (properties != null) {
+            for (String prop : properties) {
+                int eqIdx = prop.indexOf('=');
+                if (eqIdx > 0) {
+                    result.put(prop.substring(0, eqIdx).trim(), prop.substring(eqIdx + 1).trim());
+                }
+            }
+        }
+        return result;
     }
 
     /**
@@ -503,31 +718,33 @@ public class OAuthEnvironmentExtension implements BeforeAllCallback, AfterAllCal
      */
     private void setupACLs() {
         try {
-            String adminConfig =
-                    "security.protocol=SASL_PLAINTEXT\n" +
-                    "sasl.mechanism=PLAIN\n" +
-                    "sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username=\"admin\" password=\"admin-password\" ;\n" +
-                    "default.api.timeout.ms=210000\n";
+            StrimziKafkaContainer broker = kafkaCluster.getBrokers().iterator().next();
+            String internalBootstrap = "kafka:9091";
 
-            execAndCheck("write admin.properties",
+            // BROKER1 listener is plain PLAINTEXT (no SASL), so connect without auth
+            String adminConfig =
+                    "security.protocol=PLAINTEXT\n" +
+                    "default.api.timeout.ms=60000\n";
+
+            execAndCheck(broker, "write admin.properties",
                     "cat > /tmp/admin.properties <<'PROPEOF'\n" + adminConfig + "PROPEOF");
 
-            execAndCheck("kafka-acls bobby topic",
-                    "/opt/kafka/bin/kafka-acls.sh --bootstrap-server kafka:9100 --command-config /tmp/admin.properties " +
+            execAndCheck(broker, "kafka-acls bobby topic",
+                    "/opt/kafka/bin/kafka-acls.sh --bootstrap-server " + internalBootstrap + " --command-config /tmp/admin.properties " +
                     "--add --allow-principal User:bobby --operation Describe --operation Create --operation Write " +
                     "--topic KeycloakAuthorizationTest-multiSaslTest-plain");
 
-            execAndCheck("kafka-acls bobby cluster",
-                    "/opt/kafka/bin/kafka-acls.sh --bootstrap-server kafka:9100 --command-config /tmp/admin.properties " +
+            execAndCheck(broker, "kafka-acls bobby cluster",
+                    "/opt/kafka/bin/kafka-acls.sh --bootstrap-server " + internalBootstrap + " --command-config /tmp/admin.properties " +
                     "--add --allow-principal User:bobby --operation IdempotentWrite --cluster kafka-cluster");
 
-            execAndCheck("kafka-acls alice topic",
-                    "/opt/kafka/bin/kafka-acls.sh --bootstrap-server kafka:9100 --command-config /tmp/admin.properties " +
+            execAndCheck(broker, "kafka-acls alice topic",
+                    "/opt/kafka/bin/kafka-acls.sh --bootstrap-server " + internalBootstrap + " --command-config /tmp/admin.properties " +
                     "--add --allow-principal User:alice --operation Describe --operation Create --operation Write " +
                     "--topic KeycloakAuthorizationTest-multiSaslTest-scram");
 
-            execAndCheck("kafka-acls alice cluster",
-                    "/opt/kafka/bin/kafka-acls.sh --bootstrap-server kafka:9100 --command-config /tmp/admin.properties " +
+            execAndCheck(broker, "kafka-acls alice cluster",
+                    "/opt/kafka/bin/kafka-acls.sh --bootstrap-server " + internalBootstrap + " --command-config /tmp/admin.properties " +
                     "--add --allow-principal User:alice --operation IdempotentWrite --cluster kafka-cluster");
 
             log.info("ACL setup completed successfully");
@@ -537,8 +754,52 @@ public class OAuthEnvironmentExtension implements BeforeAllCallback, AfterAllCal
         }
     }
 
-    private void execAndCheck(String description, String command) throws Exception {
-        Container.ExecResult result = kafka.execInContainer("bash", "-c", command);
+    /**
+     * If an authorizer is configured, ensure User:ANONYMOUS is in super.users.
+     * BROKER1 listener is PLAINTEXT (no auth), so inter-broker connections
+     * authenticate as ANONYMOUS and need super.users to allow CLUSTER_ACTION.
+     */
+    private static void ensureAnonymousSuperUser(Map<String, String> config) {
+        if (config.containsKey("authorizer.class.name")) {
+            String superUsers = config.getOrDefault("super.users", "");
+            if (!superUsers.contains("User:ANONYMOUS")) {
+                superUsers = superUsers.isEmpty() ? "User:ANONYMOUS" : superUsers + ";User:ANONYMOUS";
+                config.put("super.users", superUsers);
+            }
+        }
+    }
+
+    /**
+     * Provision SCRAM-SHA-512 users on the Kafka broker.
+     * Each entry is in "username:password" format.
+     */
+    private void setupScramUsers(String[] scramUsers) {
+        try {
+            StrimziKafkaContainer broker = kafkaCluster.getBrokers().iterator().next();
+            String internalBootstrap = "kafka:9091";
+
+            for (String entry : scramUsers) {
+                int colonIdx = entry.indexOf(':');
+                if (colonIdx <= 0) {
+                    throw new IllegalArgumentException("Invalid scramUsers entry (expected 'username:password'): " + entry);
+                }
+                String username = entry.substring(0, colonIdx);
+                String password = entry.substring(colonIdx + 1);
+
+                execAndCheck(broker, "scram-user " + username,
+                        "/opt/kafka/bin/kafka-configs.sh --bootstrap-server " + internalBootstrap +
+                        " --alter --add-config 'SCRAM-SHA-512=[password=" + password + "]'" +
+                        " --entity-type users --entity-name " + username);
+            }
+            log.info("SCRAM user provisioning completed successfully");
+        } catch (Exception e) {
+            log.error("Failed to provision SCRAM users", e);
+            throw new RuntimeException("SCRAM user provisioning failed", e);
+        }
+    }
+
+    private void execAndCheck(StrimziKafkaContainer container, String description, String command) throws Exception {
+        Container.ExecResult result = container.execInContainer("bash", "-c", command);
         if (result.getExitCode() != 0) {
             log.error("{} failed (exit code {}): stdout={}, stderr={}", description, result.getExitCode(), result.getStdout(), result.getStderr());
             throw new RuntimeException(description + " failed with exit code " + result.getExitCode() + ": " + result.getStderr());

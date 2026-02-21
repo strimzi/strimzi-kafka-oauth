@@ -8,7 +8,6 @@ import io.strimzi.kafka.oauth.client.ClientConfig;
 import io.strimzi.oauth.testsuite.common.TestTags;
 import io.strimzi.oauth.testsuite.environment.AuthServer;
 import io.strimzi.oauth.testsuite.environment.KafkaConfig;
-import io.strimzi.oauth.testsuite.environment.KafkaPreset;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironment;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironmentExtension;
 import io.strimzi.oauth.testsuite.clients.MockOAuthAdmin;
@@ -41,7 +40,20 @@ import static io.strimzi.oauth.testsuite.utils.TestUtil.getRootCause;
  * Tests for HTTP connection timeout handling.
  * Validates that connection failures and timeouts are properly handled and reported.
  */
-@OAuthEnvironment(authServer = AuthServer.MOCK_OAUTH, kafka = @KafkaConfig(preset = KafkaPreset.MOCK_OAUTH))
+@OAuthEnvironment(
+    authServer = AuthServer.MOCK_OAUTH,
+    kafka = @KafkaConfig(
+        oauthProperties = {
+            "oauth.config.id=INTROSPECTTIMEOUT",
+            "oauth.connect.timeout.seconds=5",
+            "oauth.introspection.endpoint.uri=https://mockoauth:8090/introspect",
+            "oauth.client.id=kafka",
+            "oauth.client.secret=kafka-secret",
+            "oauth.valid.issuer.uri=https://mockoauth:8090",
+            "unsecuredLoginStringClaim_sub=admin"
+        }
+    )
+)
 public class ConnectTimeoutIT {
 
     private static final Logger log = LoggerFactory.getLogger(ConnectTimeoutIT.class);
@@ -59,7 +71,7 @@ public class ConnectTimeoutIT {
     @Tag(TestTags.TIMEOUT)
     @Tag(TestTags.INTROSPECTION)
     void testCantConnectIntrospect() throws Exception {
-        final String kafkaBootstrap = "localhost:9096";
+        final String kafkaBootstrap = env.getBootstrapServers();
 
         // Turn off the mockoauth server
         changeAuthServerMode("server", "mode_off");
@@ -91,7 +103,7 @@ public class ConnectTimeoutIT {
     @DisplayName("Request timeout to token endpoint should be properly handled")
     @Tag(TestTags.TIMEOUT)
     void testConnectAuthServerWithTimeout() throws Exception {
-        final String kafkaBootstrap = "localhost:9096";
+        final String kafkaBootstrap = env.getBootstrapServers();
         final String hostPort = MockOAuthAdmin.getMockOAuthAuthHostPort();
 
         final String tokenEndpointUri = "https://" + hostPort + "/token";

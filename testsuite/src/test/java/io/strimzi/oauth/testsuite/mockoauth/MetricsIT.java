@@ -13,7 +13,6 @@ import io.strimzi.oauth.testsuite.utils.TestUtil;
 import io.strimzi.oauth.testsuite.metrics.TestMetricsReporter;
 import io.strimzi.oauth.testsuite.environment.AuthServer;
 import io.strimzi.oauth.testsuite.environment.KafkaConfig;
-import io.strimzi.oauth.testsuite.environment.KafkaPreset;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironment;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironmentExtension;
 import io.strimzi.oauth.testsuite.metrics.TestMetrics;
@@ -49,15 +48,28 @@ import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.changeAuthServer
  * Tests for OAuth metrics functionality.
  * These tests verify that metrics are properly collected and exposed via Prometheus.
  */
-@OAuthEnvironment(authServer = AuthServer.MOCK_OAUTH, kafka = @KafkaConfig(preset = KafkaPreset.MOCK_OAUTH, metrics = true, initEndpoints = false))
+@OAuthEnvironment(
+    authServer = AuthServer.MOCK_OAUTH,
+    kafka = @KafkaConfig(
+        metrics = true,
+        initEndpoints = false,
+        oauthProperties = {
+            "oauth.config.id=JWT",
+            "oauth.fail.fast=false",
+            "oauth.jwks.endpoint.uri=https://mockoauth:8090/jwks",
+            "oauth.jwks.refresh.seconds=10",
+            "oauth.valid.issuer.uri=https://mockoauth:8090",
+            "oauth.check.access.token.type=false",
+            "unsecuredLoginStringClaim_sub=admin"
+        }
+    )
+)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class MetricsIT {
 
     private static final Logger LOG = LoggerFactory.getLogger(MetricsIT.class);
 
     private final static int PAUSE_MILLIS = 15_000;
-
-    private static final String KAFKA_BOOTSTRAP = "localhost:9092";
 
     OAuthEnvironmentExtension env;
 
@@ -168,7 +180,7 @@ public class MetricsIT {
     }
 
     private void initJaas(Map<String, String> oauthConfig, Properties additionalProps) throws Exception {
-        Properties producerProps = KafkaClientsConfig.buildProducerConfigOAuthBearer(KAFKA_BOOTSTRAP, oauthConfig);
+        Properties producerProps = KafkaClientsConfig.buildProducerConfigOAuthBearer(env.getBootstrapServers(), oauthConfig);
         producerProps.putAll(additionalProps);
         try (Producer<String, String> producer = new KafkaProducer<>(producerProps)) {
             producer.send(new ProducerRecord<>("Test-testTopic", "The Message")).get();
@@ -183,7 +195,7 @@ public class MetricsIT {
         changeAuthServerMode("server", "mode_cert_two_on");
 
         Thread.sleep(PAUSE_MILLIS);
-        TestMetrics metrics = TestMetrics.getPrometheusMetrics(URI.create("http://localhost:9404/metrics"));
+        TestMetrics metrics = TestMetrics.getPrometheusMetrics(URI.create(env.getMetricsUri()));
 
 
         // We should not see any 503 errors yet because of more TLS errors due to CERT_TWO being used
@@ -193,7 +205,7 @@ public class MetricsIT {
         changeAuthServerMode("server", "mode_cert_one_on");
 
         Thread.sleep(PAUSE_MILLIS);
-        metrics = TestMetrics.getPrometheusMetrics(URI.create("http://localhost:9404/metrics"));
+        metrics = TestMetrics.getPrometheusMetrics(URI.create(env.getMetricsUri()));
 
 
         // We should see some 503 errors
@@ -212,7 +224,7 @@ public class MetricsIT {
         changeAuthServerMode("server", "mode_expired_cert_on");
 
         Thread.sleep(PAUSE_MILLIS);
-        TestMetrics metrics = TestMetrics.getPrometheusMetrics(URI.create("http://localhost:9404/metrics"));
+        TestMetrics metrics = TestMetrics.getPrometheusMetrics(URI.create(env.getMetricsUri()));
 
 
         // We should see some TLS errors
@@ -231,7 +243,7 @@ public class MetricsIT {
         changeAuthServerMode("server", "mode_off");
 
         Thread.sleep(PAUSE_MILLIS * 2);
-        TestMetrics metrics = TestMetrics.getPrometheusMetrics(URI.create("http://localhost:9404/metrics"));
+        TestMetrics metrics = TestMetrics.getPrometheusMetrics(URI.create(env.getMetricsUri()));
 
 
         // See some network errors on JWT's
@@ -245,7 +257,7 @@ public class MetricsIT {
     }
 
     private void postInitCheck() throws IOException {
-        TestMetrics metrics = TestMetrics.getPrometheusMetrics(URI.create("http://localhost:9404/metrics"));
+        TestMetrics metrics = TestMetrics.getPrometheusMetrics(URI.create(env.getMetricsUri()));
 
         // mockoauth has JWKS endpoint configured to return 404
         // error counter for 404 for JWT should not be zero as at least one JWKS request should fail
@@ -260,7 +272,7 @@ public class MetricsIT {
     }
 
     private void zeroCheck() throws IOException {
-        TestMetrics metrics = TestMetrics.getPrometheusMetrics(URI.create("http://localhost:9404/metrics"));
+        TestMetrics metrics = TestMetrics.getPrometheusMetrics(URI.create(env.getMetricsUri()));
 
         // assumption check
         // JWT listener config (on port 9404 in docker-compose.yml) has no token endpoint so the next metric should not exist.

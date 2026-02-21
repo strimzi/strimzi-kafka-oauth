@@ -21,7 +21,6 @@ import io.strimzi.kafka.oauth.common.TokenInfo;
 import io.strimzi.oauth.testsuite.common.TestTags;
 import io.strimzi.oauth.testsuite.environment.AuthServer;
 import io.strimzi.oauth.testsuite.environment.KafkaConfig;
-import io.strimzi.oauth.testsuite.environment.KafkaPreset;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironment;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironmentExtension;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -50,12 +49,17 @@ import java.util.Properties;
 import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.buildProducerConfigOAuthBearer;
 import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.loginWithUsernamePassword;
 
-@OAuthEnvironment(authServer = AuthServer.KEYCLOAK, kafka = @KafkaConfig(preset = KafkaPreset.KEYCLOAK_AUTH))
+@OAuthEnvironment(authServer = AuthServer.KEYCLOAK, kafka = @KafkaConfig(realm = "forge",
+    oauthProperties = {
+        "oauth.config.id=FORGE",
+        "oauth.fallback.username.claim=client_id",
+        "oauth.fallback.username.prefix=service-account-",
+        "unsecuredLoginStringClaim_sub=admin"
+    }))
 public class JwtManipulationIT {
 
     private static final Logger log = LoggerFactory.getLogger(JwtManipulationIT.class);
 
-    final String kafkaBootstrap = "localhost:9104";
     final String realm = "forge";
 
     OAuthEnvironmentExtension env;
@@ -250,7 +254,7 @@ public class JwtManipulationIT {
         Map<String, String> oauthConfig = new HashMap<>();
         oauthConfig.put(ClientConfig.OAUTH_ACCESS_TOKEN, token);
 
-        Properties producerProps = buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
+        Properties producerProps = buildProducerConfigOAuthBearer(env.getBootstrapServers(), oauthConfig);
         try (Producer<String, String> producer = new KafkaProducer<>(producerProps)) {
             final String topic = "JwtManipulationTest-clientAccessTokenJwtRSAValidationTest";
 

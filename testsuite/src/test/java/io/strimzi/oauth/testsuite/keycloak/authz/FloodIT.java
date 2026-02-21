@@ -9,7 +9,6 @@ import io.strimzi.oauth.testsuite.clients.ConcurrentKafkaClientsRunner;
 import io.strimzi.oauth.testsuite.clients.KafkaClientsConfig;
 import io.strimzi.oauth.testsuite.environment.AuthServer;
 import io.strimzi.oauth.testsuite.environment.KafkaConfig;
-import io.strimzi.oauth.testsuite.environment.KafkaPreset;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironment;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironmentExtension;
 import org.apache.kafka.clients.consumer.Consumer;
@@ -38,7 +37,36 @@ import static org.junit.jupiter.api.Assertions.fail;
 /**
  * Concurrent authorization flood test
  */
-@OAuthEnvironment(authServer = AuthServer.KEYCLOAK, kafka = @KafkaConfig(preset = KafkaPreset.KEYCLOAK_AUTHZ, setupAcls = true))
+@OAuthEnvironment(
+    authServer = AuthServer.KEYCLOAK,
+    kafka = @KafkaConfig(
+        realm = "kafka-authz",
+        setupAcls = true,
+        oauthProperties = {
+            "oauth.token.endpoint.uri=http://keycloak:8080/realms/kafka-authz/protocol/openid-connect/token",
+            "oauth.client.id=kafka",
+            "oauth.client.secret=kafka-secret",
+            "oauth.groups.claim=$.realm_access.roles",
+            "oauth.fallback.username.claim=username",
+            "unsecuredLoginStringClaim_sub=admin"
+        },
+        kafkaProperties = {
+            "authorizer.class.name=io.strimzi.kafka.oauth.server.authorizer.KeycloakAuthorizer",
+            "strimzi.authorization.token.endpoint.uri=http://keycloak:8080/realms/kafka-authz/protocol/openid-connect/token",
+            "strimzi.authorization.client.id=kafka",
+            "strimzi.authorization.client.secret=kafka-secret",
+            "strimzi.authorization.kafka.cluster.name=my-cluster",
+            "strimzi.authorization.delegate.to.kafka.acl=true",
+            "strimzi.authorization.read.timeout.seconds=45",
+            "strimzi.authorization.grants.refresh.pool.size=4",
+            "strimzi.authorization.grants.refresh.period.seconds=10",
+            "strimzi.authorization.http.retries=1",
+            "strimzi.authorization.reuse.grants=true",
+            "strimzi.authorization.enable.metrics=true",
+            "super.users=User:admin;User:service-account-kafka"
+        }
+    )
+)
 public class FloodIT extends AbstractAuthzIT {
 
     private static final Logger log = LoggerFactory.getLogger(FloodIT.class);
@@ -47,7 +75,7 @@ public class FloodIT extends AbstractAuthzIT {
 
     @Override
     protected String kafkaBootstrap() {
-        return "localhost:9092";
+        return env.getBootstrapServers();
     }
 
     @Override
@@ -132,7 +160,8 @@ public class FloodIT extends AbstractAuthzIT {
         Properties props = buildProducerConfigOAuthBearer(kafkaBootstrap(), buildAuthConfigForOAuthBearer(clientId));
         runner.addTask(() -> {
             try (KafkaProducer<String, String> producer = new KafkaProducer<>(props)) {
-                producer.send(new ProducerRecord<>(topic, "Message 0")).get();
+                producer.send(new ProducerRecord<>(topic, "Message 0"))
+                    .get();
                 log.debug("[{}] Produced message to '{}'", clientId, topic);
             }
             return null;
@@ -167,7 +196,7 @@ public class FloodIT extends AbstractAuthzIT {
         Properties props = buildProducerConfigOAuthBearer(kafkaBootstrap(), buildAuthConfigForOAuthBearer(clientId));
         try (KafkaProducer<String, String> producer = new KafkaProducer<>(props)) {
             producer.send(new ProducerRecord<>(topic, "Message 0"))
-                    .get();
+                .get();
         }
     }
 
@@ -180,6 +209,6 @@ public class FloodIT extends AbstractAuthzIT {
         String secret = clientId + "-secret";
 
         tokens.put(clientId, loginWithClientSecret(URI.create(env.getTokenEndpointUri()), null, null,
-                clientId, secret, true, null, null, true).token());
+            clientId, secret, true, null, null, true).token());
     }
 }

@@ -11,8 +11,6 @@ import io.strimzi.kafka.oauth.services.Services;
 import io.strimzi.kafka.oauth.validator.JWTSignatureValidator;
 import io.strimzi.oauth.testsuite.common.TestTags;
 import io.strimzi.oauth.testsuite.environment.AuthServer;
-import io.strimzi.oauth.testsuite.environment.KafkaConfig;
-import io.strimzi.oauth.testsuite.environment.KafkaPreset;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironment;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironmentExtension;
 import io.strimzi.oauth.testsuite.clients.MockOAuthAdmin;
@@ -37,7 +35,7 @@ import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.loginWithCli
  * Tests for JWT token extraction and handling of edge cases.
  * Validates that JWT 'exp' attribute overflow is handled correctly.
  */
-@OAuthEnvironment(authServer = AuthServer.MOCK_OAUTH, kafka = @KafkaConfig(preset = KafkaPreset.MOCK_OAUTH))
+@OAuthEnvironment(authServer = AuthServer.MOCK_OAUTH)
 public class JwtExtractIT {
 
     private static final Logger log = LoggerFactory.getLogger(JwtExtractIT.class);
