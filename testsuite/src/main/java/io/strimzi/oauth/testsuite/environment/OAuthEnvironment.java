@@ -4,7 +4,7 @@
  */
 package io.strimzi.oauth.testsuite.environment;
 
-import io.strimzi.oauth.testsuite.common.TestLogCollector;
+import io.strimzi.oauth.testsuite.logging.TestLogCollector;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.ExtendWith;
 

@@ -7,7 +7,7 @@ package io.strimzi.oauth.testsuite.mockoauth;
 import io.strimzi.kafka.oauth.client.ClientConfig;
 import io.strimzi.kafka.oauth.metrics.GlobalConfig;
 import io.strimzi.kafka.oauth.services.Services;
-import io.strimzi.oauth.testsuite.common.LogLineReader;
+import io.strimzi.oauth.testsuite.logging.LogLineReader;
 import io.strimzi.oauth.testsuite.common.TestTags;
 import io.strimzi.oauth.testsuite.utils.TestUtil;
 import io.strimzi.oauth.testsuite.metrics.TestMetricsReporter;

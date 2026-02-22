@@ -4,7 +4,6 @@
  */
 package io.strimzi.oauth.testsuite.keycloak.authz;
 
-import io.strimzi.oauth.testsuite.common.ContainerLogLineReader;
 import io.strimzi.oauth.testsuite.common.TestTags;
 import io.strimzi.oauth.testsuite.environment.AuthServer;
 import io.strimzi.oauth.testsuite.environment.KafkaConfig;
@@ -58,13 +57,12 @@ public class SingletonIT {
     @DisplayName("Test KeycloakAuthorizer singleton behavior")
     @Tag(TestTags.SINGLETON)
     @Tag(TestTags.AUTHORIZATION)
-    public void testKeycloakAuthorizerSingleton() throws Exception {
+    public void testKeycloakAuthorizerSingleton() {
         // In KRaft mode, there are 3 KeycloakAuthorizer instances
         int keycloakAuthorizersCount = 2;
 
-        ContainerLogLineReader logReader = new ContainerLogLineReader(env.getKafka());
-
-        List<String> lines = logReader.readNext();
+        List<String> lines = env.getKafka().getLogs().lines()
+            .toList();
         List<String> keycloakAuthorizerLines = lines.stream()
                 .filter(line -> line.contains("Configured KeycloakAuthorizer@"))
                 .collect(Collectors.toList());

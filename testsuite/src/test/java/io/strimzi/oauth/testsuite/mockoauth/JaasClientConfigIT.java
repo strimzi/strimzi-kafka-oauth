@@ -7,7 +7,7 @@ package io.strimzi.oauth.testsuite.mockoauth;
 import io.strimzi.kafka.oauth.client.ClientConfig;
 import io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler;
 import io.strimzi.kafka.oauth.common.ConfigException;
-import io.strimzi.oauth.testsuite.common.LogLineReader;
+import io.strimzi.oauth.testsuite.logging.LogLineReader;
 import io.strimzi.oauth.testsuite.clients.KafkaClientsConfig;
 import io.strimzi.oauth.testsuite.clients.MockOAuthAdmin;
 import io.strimzi.oauth.testsuite.environment.AuthServer;

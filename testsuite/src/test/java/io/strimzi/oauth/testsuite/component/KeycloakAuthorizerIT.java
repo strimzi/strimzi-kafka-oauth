@@ -19,15 +19,12 @@ import io.strimzi.kafka.oauth.server.TestTokenFactory;
 import io.strimzi.kafka.oauth.server.authorizer.AuthzConfig;
 import io.strimzi.kafka.oauth.server.authorizer.KeycloakAuthorizer;
 import io.strimzi.kafka.oauth.server.authorizer.TestAuthzUtil;
-import io.strimzi.oauth.testsuite.common.ContainerSource;
-import io.strimzi.oauth.testsuite.common.LogLineReader;
-import io.strimzi.oauth.testsuite.common.TestLogCollector;
+import io.strimzi.oauth.testsuite.logging.LogLineReader;
 import io.strimzi.oauth.testsuite.common.TestTags;
 import io.strimzi.oauth.testsuite.utils.TestUtil;
-import io.strimzi.oauth.testsuite.environment.TestContainerFactory;
+import io.strimzi.oauth.testsuite.environment.AuthServer;
+import io.strimzi.oauth.testsuite.environment.OAuthEnvironment;
 import io.strimzi.oauth.testsuite.clients.MockOAuthAdmin;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.Network;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.resource.PatternType;
 import org.apache.kafka.common.resource.ResourcePattern;
@@ -42,14 +39,12 @@ import org.apache.kafka.common.security.oauthbearer.internals.OAuthBearerSaslSer
 import org.apache.kafka.server.authorizer.Action;
 import org.apache.kafka.server.authorizer.AuthorizableRequestContext;
 import org.apache.kafka.server.authorizer.AuthorizationResult;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -80,21 +75,12 @@ import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.createOAuthUser;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-@TestLogCollector
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class KeycloakAuthorizerIT implements ContainerSource {
+@OAuthEnvironment(authServer = AuthServer.MOCK_OAUTH)
+public class KeycloakAuthorizerIT {
 
     private static final String LOG_PATH = "target/test.log";
 
-    private Network network;
-    private GenericContainer<?> mockoauth;
-
     private static final Logger LOG = LoggerFactory.getLogger(KeycloakAuthorizerIT.class);
-
-    @Override
-    public List<GenericContainer<?>> getContainers() {
-        return mockoauth != null ? Collections.singletonList(mockoauth) : Collections.emptyList();
-    }
 
     static final String CLIENT_CLI = "kafka-cli";
 
@@ -1048,24 +1034,10 @@ public class KeycloakAuthorizerIT implements ContainerSource {
 
     @BeforeAll
     void setUp() throws IOException {
-        network = Network.newNetwork();
-        mockoauth = TestContainerFactory.createMockOAuth(network);
-        mockoauth.start();
-        TestContainerFactory.publishMockOAuthPorts(mockoauth);
         MockOAuthAdmin.changeAuthServerMode("jwks", "MODE_200");
         MockOAuthAdmin.changeAuthServerMode("token", "MODE_200");
         MockOAuthAdmin.changeAuthServerMode("introspect", "MODE_200");
         MockOAuthAdmin.changeAuthServerMode("userinfo", "MODE_200");
         KeycloakAuthorizerIT.staticInit();
-    }
-
-    @AfterAll
-    void tearDown() {
-        if (mockoauth != null) {
-            mockoauth.stop();
-        }
-        if (network != null) {
-            network.close();
-        }
     }
 }

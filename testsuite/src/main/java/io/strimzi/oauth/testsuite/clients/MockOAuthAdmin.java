@@ -5,7 +5,7 @@
 package io.strimzi.oauth.testsuite.clients;
 
 import io.strimzi.kafka.oauth.common.HttpUtil;
-import io.strimzi.oauth.testsuite.common.LogLineReader;
+import io.strimzi.oauth.testsuite.logging.LogLineReader;
 import io.strimzi.oauth.testsuite.utils.TestUtil;
 import org.junit.jupiter.api.Assertions;
 

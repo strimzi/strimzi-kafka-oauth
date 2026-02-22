@@ -8,7 +8,7 @@ import io.strimzi.kafka.oauth.common.ConfigException;
 import io.strimzi.kafka.oauth.metrics.GlobalConfig;
 import io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler;
 import io.strimzi.kafka.oauth.server.ServerConfig;
-import io.strimzi.oauth.testsuite.common.LogLineReader;
+import io.strimzi.oauth.testsuite.logging.LogLineReader;
 import io.strimzi.oauth.testsuite.common.TestTags;
 import io.strimzi.oauth.testsuite.metrics.TestMetricsReporter;
 import org.junit.jupiter.api.Assertions;
