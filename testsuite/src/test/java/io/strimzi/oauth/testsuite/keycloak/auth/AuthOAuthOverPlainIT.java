@@ -12,13 +12,8 @@ import io.strimzi.oauth.testsuite.environment.AuthServer;
 import io.strimzi.oauth.testsuite.environment.KafkaConfig;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironment;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironmentExtension;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.Producer;
-import org.apache.kafka.clients.producer.ProducerRecord;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
-import org.junit.jupiter.api.Order;
 import io.strimzi.test.container.AuthenticationType;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -35,21 +30,11 @@ import java.util.Properties;
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithClientSecret;
 import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.buildProducerConfigPlain;
 import static io.strimzi.oauth.testsuite.utils.KafkaClientsUtils.produceAndConsumePlain;
+import static io.strimzi.oauth.testsuite.utils.KafkaClientsUtils.produceMessage;
 import static io.strimzi.oauth.testsuite.metrics.TestMetrics.getPrometheusMetrics;
 
 @OAuthEnvironment(
     authServer = AuthServer.KEYCLOAK
-//    kafka = @KafkaConfig(
-//        realm = "kafka-authz",
-//        authenticationType = AuthenticationType.OAUTH_OVER_PLAIN,
-//        metrics = true,
-//        oauthProperties = {
-//            "oauth.config.id=JWTPLAIN",
-//            "oauth.fallback.username.claim=client_id",
-//            "oauth.fallback.username.prefix=service-account-",
-//            "unsecuredLoginStringClaim_sub=admin"
-//        }
-//    )
 )
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class AuthOAuthOverPlainIT {
@@ -71,13 +56,10 @@ public class AuthOAuthOverPlainIT {
         }
     )
     @Test
-    @Order(1)
-    @DisplayName("Client credentials over PLAIN with JWT")
     @Tag(TestTags.PLAIN)
     @Tag(TestTags.JWT)
     void clientCredentialsOverPlainWithJwt() throws Exception {
         final String kafkaBootstrap = env.getBootstrapServers();
-        final String hostPort = env.getKeycloakHostPort();
 
         // For metrics
         final String realm = "kafka-authz";
@@ -92,10 +74,8 @@ public class AuthOAuthOverPlainIT {
         produceAndConsumePlain(kafkaBootstrap, plainConfig, topic, "The Message");
 
         // Check metrics
-
         TestMetrics metrics = getPrometheusMetrics(URI.create(env.getMetricsUri()));
         BigDecimal value = metrics.getStartsWithValueSum("strimzi_oauth_validation_requests_count", "context", "JWTPLAIN", "kind", "jwks", "mechanism", "PLAIN", "outcome", "success");
-
         // There is no inter-broker connection on this listener, producer did 2 validations, and consumer also did 2
         Assertions.assertTrue(value != null && value.intValue() >= 4, "strimzi_oauth_validation_requests_count for jwt >= 4");
 
@@ -103,7 +83,6 @@ public class AuthOAuthOverPlainIT {
         Assertions.assertTrue(value.doubleValue() > 0.0, "strimzi_oauth_validation_requests_totaltimems for jwt > 0.0");
 
         value = metrics.getStartsWithValueSum("strimzi_oauth_http_requests_count", "context", "JWTPLAIN", "kind", "plain", "host", BROKER_KEYCLOAK_HOST, "path", tokenEndpointPath, "outcome", "success");
-
         // There is no inter-broker connection on this listener, producer did 2 validations, and consumer also did 2
         Assertions.assertTrue(value != null && value.intValue() >= 4, "strimzi_oauth_http_requests_count for plain >= 4");
 
@@ -125,8 +104,6 @@ public class AuthOAuthOverPlainIT {
         }
     )
     @Test
-    @Order(2)
-    @DisplayName("Client credentials over PLAIN with introspection")
     @Tag(TestTags.PLAIN)
     @Tag(TestTags.INTROSPECTION)
     void clientCredentialsOverPlainWithIntrospection() throws Exception {
@@ -146,7 +123,6 @@ public class AuthOAuthOverPlainIT {
         produceAndConsumePlain(kafkaBootstrap, plainConfig, topic, "The Message");
 
         // Check metrics
-
         TestMetrics metrics = getPrometheusMetrics(URI.create(env.getMetricsUri()));
         BigDecimal value = metrics.getStartsWithValueSum("strimzi_oauth_validation_requests_count", "context", "INTROSPECTPLAIN", "kind", "introspect", "mechanism", "PLAIN", "outcome", "success");
 
@@ -157,7 +133,6 @@ public class AuthOAuthOverPlainIT {
         Assertions.assertTrue(value.doubleValue() > 0.0, "strimzi_oauth_validation_requests_totaltimems for introspect > 0.0");
 
         value = metrics.getStartsWithValueSum("strimzi_oauth_http_requests_count", "context", "INTROSPECTPLAIN", "kind", "plain", "host", BROKER_KEYCLOAK_HOST, "path", tokenEndpointPath, "outcome", "success");
-
         // There is no inter-broker connection on this listener, producer did 2 validations, and consumer also did 2
         Assertions.assertTrue(value != null && value.intValue() >= 4, "strimzi_oauth_http_requests_count for plain >= 4");
 
@@ -179,8 +154,6 @@ public class AuthOAuthOverPlainIT {
         }
     )
     @Test
-    @Order(3)
-    @DisplayName("Access token over PLAIN with introspection")
     @Tag(TestTags.PLAIN)
     @Tag(TestTags.INTROSPECTION)
     void accessTokenOverPlainWithIntrospection() throws Exception {
@@ -193,9 +166,16 @@ public class AuthOAuthOverPlainIT {
         // For metrics
         String tokenEndpointPath = "/realms/" + realm + "/protocol/openid-connect/token";
 
-        // first, request access token using client id and secret
+        // First, produce and consume using client credentials to exercise token endpoint
+        Map<String, String> ccPlainConfig = new HashMap<>();
+        ccPlainConfig.put("username", "team-a-client");
+        ccPlainConfig.put("password", "team-a-client-secret");
+        produceAndConsumePlain(kafkaBootstrap, ccPlainConfig,
+            "KeycloakAuthenticationTest-clientCredentialsOverPlainWithIntrospection", "The Message");
+
+        // Then, request access token using client id and secret
         TokenInfo info = loginWithClientSecret(URI.create(tokenEndpointUri), null, null,
-                "team-a-client", "team-a-client-secret", true, null, null, true);
+            "team-a-client", "team-a-client-secret", true, null, null, true);
 
         Map<String, String> plainConfig = new HashMap<>();
         plainConfig.put("username", "service-account-team-a-client");
@@ -206,7 +186,6 @@ public class AuthOAuthOverPlainIT {
         produceAndConsumePlain(kafkaBootstrap, plainConfig, topic, "The Message");
 
         // Check metrics
-
         TestMetrics metrics = getPrometheusMetrics(URI.create(env.getMetricsUri()));
         BigDecimal value = metrics.getStartsWithValueSum("strimzi_oauth_validation_requests_count", "context", "INTROSPECTPLAIN", "kind", "introspect", "mechanism", "PLAIN", "outcome", "success");
 
@@ -214,7 +193,6 @@ public class AuthOAuthOverPlainIT {
         Assertions.assertTrue(value != null && value.intValue() >= 8, "strimzi_oauth_validation_requests_count for introspect >= 8");
 
         value = metrics.getStartsWithValueSum("strimzi_oauth_http_requests_count", "context", "INTROSPECTPLAIN", "kind", "plain", "host", BROKER_KEYCLOAK_HOST, "path", tokenEndpointPath, "outcome", "success");
-
         // There is no inter-broker connection on this listener, producer did 2 validations, and consumer also did 2
         Assertions.assertTrue(value != null && value.intValue() >= 4, "strimzi_oauth_http_requests_count for plain >= 4");
 
@@ -233,8 +211,6 @@ public class AuthOAuthOverPlainIT {
         }
     )
     @Test
-    @Order(4)
-    @DisplayName("Client credentials over PLAIN with flood test")
     @Tag(TestTags.PLAIN)
     @Tag(TestTags.PERFORMANCE)
     void clientCredentialsOverPlainWithFloodTest() throws Exception {
@@ -258,9 +234,7 @@ public class AuthOAuthOverPlainIT {
                 Properties props = buildProducerConfigPlain(kafkaBootstrap, plainConfig);
 
                 runner.addTask(() -> {
-                    try (Producer<String, String> producer = new KafkaProducer<>(props)) {
-                        producer.send(new ProducerRecord<>(topic, "Message 0")).get();
-                    }
+                    produceMessage(props, topic, "Message 0");
                     return null;
                 });
             }
@@ -284,8 +258,6 @@ public class AuthOAuthOverPlainIT {
         }
     )
     @Test
-    @Order(5)
-    @DisplayName("Access token over PLAIN with client credentials disabled")
     @Tag(TestTags.PLAIN)
     void accessTokenOverPlainWithClientCredentialsDisabled() throws Exception {
         final String kafkaBootstrap = env.getBootstrapServers();
@@ -299,7 +271,7 @@ public class AuthOAuthOverPlainIT {
 
         // first, request access token using client id and secret
         TokenInfo info = loginWithClientSecret(URI.create(tokenEndpointUri), null, null,
-                "team-a-client", "team-a-client-secret", true, null, null, true);
+            "team-a-client", "team-a-client-secret", true, null, null, true);
 
         Map<String, String> plainConfig = new HashMap<>();
         plainConfig.put("username", "service-account-team-a-client");
@@ -311,7 +283,6 @@ public class AuthOAuthOverPlainIT {
         produceAndConsumePlain(kafkaBootstrap, plainConfig, topic, "The Message");
 
         // Check metrics
-
         TestMetrics metrics = getPrometheusMetrics(URI.create(env.getMetricsUri()));
         BigDecimal value = metrics.getStartsWithValueSum("strimzi_oauth_validation_requests_count", "context", "JWTPLAINWITHOUTCC", "kind", "jwks", "mechanism", "PLAIN", "outcome", "success");
 
@@ -322,7 +293,6 @@ public class AuthOAuthOverPlainIT {
         Assertions.assertTrue(value.doubleValue() > 0.0, "strimzi_oauth_validation_requests_totaltimems for jwks > 0.0");
 
         value = metrics.getStartsWithValueSum("strimzi_oauth_http_requests_count", "context", "JWTPLAINWITHOUTCC", "kind", "plain", "host", BROKER_KEYCLOAK_HOST, "path", tokenEndpointPath, "outcome", "success");
-
         // There is no inter-broker connection on this listener
         // Validation did not require the broker authenticating in client's name, because the token was passed
         Assertions.assertEquals(0, value.intValue(), "strimzi_oauth_http_requests_count for plain == 0");

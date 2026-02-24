@@ -12,11 +12,8 @@ import io.strimzi.oauth.testsuite.environment.KafkaConfig;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironment;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironmentExtension;
 import io.strimzi.test.container.AuthenticationType;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.common.KafkaException;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -32,6 +29,7 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithClientSe
 import io.strimzi.oauth.testsuite.clients.KafkaClientsConfig;
 
 import static io.strimzi.oauth.testsuite.utils.KafkaClientsUtils.expectSaslAuthFailure;
+import static io.strimzi.oauth.testsuite.utils.KafkaClientsUtils.produceMessage;
 import static io.strimzi.oauth.testsuite.utils.TestUtil.assertTrueExtra;
 import static io.strimzi.oauth.testsuite.utils.TestUtil.getContainerLogsForString;
 import static io.strimzi.oauth.testsuite.utils.TestUtil.getRootCause;
@@ -43,12 +41,17 @@ import static io.strimzi.oauth.testsuite.utils.TestUtil.getRootCause;
  * listener configuration for each error scenario. Tests that work with the class-level
  * config (realm=demo-ec, JWT) don't need a method-level annotation.
  */
-@OAuthEnvironment(authServer = AuthServer.KEYCLOAK, kafka = @KafkaConfig(realm = "demo-ec",
-    oauthProperties = {
-        "oauth.fallback.username.claim=client_id",
-        "oauth.fallback.username.prefix=service-account-",
-        "unsecuredLoginStringClaim_sub=admin"
-    }))
+@OAuthEnvironment(
+    authServer = AuthServer.KEYCLOAK,
+    kafka = @KafkaConfig(
+        realm = "demo-ec",
+        oauthProperties = {
+            "oauth.fallback.username.claim=client_id",
+            "oauth.fallback.username.prefix=service-account-",
+            "unsecuredLoginStringClaim_sub=admin"
+        }
+    )
+)
 public class KeycloakErrorsIT {
 
     static final Logger log = LoggerFactory.getLogger(KeycloakErrorsIT.class);
@@ -56,7 +59,6 @@ public class KeycloakErrorsIT {
     OAuthEnvironmentExtension env;
 
     @Test
-    @DisplayName("Unparseable JWT token should fail with proper error message")
     @Tag(TestTags.ERROR_HANDLING)
     @Tag(TestTags.JWT)
     public void unparseableJwtToken() throws Exception {
@@ -76,17 +78,18 @@ public class KeycloakErrorsIT {
     }
 
     @Test
-    @DisplayName("Corrupt token with introspection should fail with proper error message")
     @Tag(TestTags.ERROR_HANDLING)
     @Tag(TestTags.INTROSPECTION)
-    @KafkaConfig(realm = "demo",
+    @KafkaConfig(
+        realm = "demo",
         oauthProperties = {
             "oauth.introspection.endpoint.uri=http://keycloak:8080/realms/demo/protocol/openid-connect/token/introspect",
             "oauth.client.id=kafka-broker",
             "oauth.client.secret=kafka-broker-secret",
             "oauth.fallback.username.claim=username",
             "unsecuredLoginStringClaim_sub=admin"
-        })
+        }
+    )
     public void corruptTokenIntrospect() throws Exception {
         String token = "corrupt";
 
@@ -104,15 +107,16 @@ public class KeycloakErrorsIT {
     }
 
     @Test
-    @DisplayName("Invalid JWT token kid should fail with proper error message")
     @Tag(TestTags.ERROR_HANDLING)
     @Tag(TestTags.JWT)
-    @KafkaConfig(realm = "kafka-authz",
+    @KafkaConfig(
+        realm = "kafka-authz",
         oauthProperties = {
             "oauth.fallback.username.claim=client_id",
             "oauth.fallback.username.prefix=service-account-",
             "unsecuredLoginStringClaim_sub=admin"
-        })
+        }
+    )
     public void invalidJwtTokenKid() throws Exception {
         // We authenticate against 'demo' realm, but use it with listener configured with 'kafka-authz' realm
         final String kafkaBootstrap = env.getBootstrapServers();
@@ -134,7 +138,6 @@ public class KeycloakErrorsIT {
     }
 
     @Test
-    @DisplayName("Forged JWT signature should fail with proper error message")
     @Tag(TestTags.ERROR_HANDLING)
     @Tag(TestTags.JWT)
     public void forgedJwtSig() throws Exception {
@@ -164,17 +167,18 @@ public class KeycloakErrorsIT {
     }
 
     @Test
-    @DisplayName("Forged JWT signature with introspection should fail with proper error message")
     @Tag(TestTags.ERROR_HANDLING)
     @Tag(TestTags.INTROSPECTION)
-    @KafkaConfig(realm = "demo",
+    @KafkaConfig(
+        realm = "demo",
         oauthProperties = {
             "oauth.introspection.endpoint.uri=http://keycloak:8080/realms/demo/protocol/openid-connect/token/introspect",
             "oauth.client.id=kafka-broker",
             "oauth.client.secret=kafka-broker-secret",
             "oauth.fallback.username.claim=username",
             "unsecuredLoginStringClaim_sub=admin"
-        })
+        }
+    )
     public void forgedJwtSigIntrospect() throws Exception {
         final String kafkaBootstrap = env.getBootstrapServers();
         final String hostPort = env.getKeycloakHostPort();
@@ -202,15 +206,16 @@ public class KeycloakErrorsIT {
     }
 
     @Test
-    @DisplayName("Expired JWT token should fail with proper error message")
     @Tag(TestTags.ERROR_HANDLING)
     @Tag(TestTags.JWT)
-    @KafkaConfig(realm = "expiretest",
+    @KafkaConfig(
+        realm = "expiretest",
         oauthProperties = {
             "oauth.fallback.username.claim=client_id",
             "oauth.fallback.username.prefix=service-account-",
             "unsecuredLoginStringClaim_sub=admin"
-        })
+        }
+    )
     public void expiredJwtToken() throws Exception {
         final String kafkaBootstrap = env.getBootstrapServers();
         final String hostPort = env.getKeycloakHostPort();
@@ -239,13 +244,15 @@ public class KeycloakErrorsIT {
     }
 
     @Test
-    @DisplayName("Bad client ID with OAuth over PLAIN should fail with proper error message")
     @Tag(TestTags.ERROR_HANDLING)
     @Tag(TestTags.PLAIN)
-    @KafkaConfig(authenticationType = AuthenticationType.OAUTH_OVER_PLAIN, realm = "kafka-authz",
+    @KafkaConfig(
+        authenticationType = AuthenticationType.OAUTH_OVER_PLAIN,
+        realm = "kafka-authz",
         oauthProperties = {
             "unsecuredLoginStringClaim_sub=admin"
-        })
+        }
+    )
     public void badClientIdOAuthOverPlain() throws Exception {
         final String kafkaBootstrap = env.getBootstrapServers();
 
@@ -261,13 +268,15 @@ public class KeycloakErrorsIT {
     }
 
     @Test
-    @DisplayName("Bad secret with OAuth over PLAIN should fail with proper error message")
     @Tag(TestTags.ERROR_HANDLING)
     @Tag(TestTags.PLAIN)
-    @KafkaConfig(authenticationType = AuthenticationType.OAUTH_OVER_PLAIN, realm = "kafka-authz",
+    @KafkaConfig(
+        authenticationType = AuthenticationType.OAUTH_OVER_PLAIN,
+        realm = "kafka-authz",
         oauthProperties = {
             "unsecuredLoginStringClaim_sub=admin"
-        })
+        }
+    )
     public void badSecretOAuthOverPlain() throws Exception {
         final String kafkaBootstrap = env.getBootstrapServers();
 
@@ -283,14 +292,16 @@ public class KeycloakErrorsIT {
     }
 
     @Test
-    @DisplayName("Cannot connect PLAIN with client credentials should fail with proper error message")
     @Tag(TestTags.ERROR_HANDLING)
     @Tag(TestTags.PLAIN)
-    @KafkaConfig(authenticationType = AuthenticationType.OAUTH_OVER_PLAIN, realm = "kafka-authz",
+    @KafkaConfig(
+        authenticationType = AuthenticationType.OAUTH_OVER_PLAIN,
+        realm = "kafka-authz",
         oauthProperties = {
             "oauth.token.endpoint.uri=http://keycloak:8099/realms/kafka-authz/protocol/openid-connect/token",
             "unsecuredLoginStringClaim_sub=admin"
-        })
+        }
+    )
     public void cantConnectPlainWithClientCredentials() throws Exception {
         final String kafkaBootstrap = env.getBootstrapServers();
 
@@ -306,17 +317,18 @@ public class KeycloakErrorsIT {
     }
 
     @Test
-    @DisplayName("Cannot connect with introspection should fail with proper error message")
     @Tag(TestTags.ERROR_HANDLING)
     @Tag(TestTags.INTROSPECTION)
-    @KafkaConfig(realm = "demo",
+    @KafkaConfig(
+        realm = "demo",
         oauthProperties = {
             "oauth.introspection.endpoint.uri=http://keycloak:8099/realms/demo/protocol/openid-connect/token/introspect",
             "oauth.client.id=kafka-broker",
             "oauth.client.secret=kafka-broker-secret",
             "oauth.fallback.username.claim=username",
             "unsecuredLoginStringClaim_sub=admin"
-        })
+        }
+    )
     public void cantConnectIntrospect() throws Exception {
         final String kafkaBootstrap = env.getBootstrapServers();
 
@@ -331,18 +343,19 @@ public class KeycloakErrorsIT {
     }
 
     @Test
-    @DisplayName("Cannot connect with introspection and timeout should fail with proper error message")
     @Tag(TestTags.ERROR_HANDLING)
     @Tag(TestTags.INTROSPECTION)
     @Tag(TestTags.TIMEOUT)
-    @KafkaConfig(realm = "demo",
+    @KafkaConfig(
+        realm = "demo",
         oauthProperties = {
             "oauth.introspection.endpoint.uri=http://192.168.0.221:8080/realms/demo/protocol/openid-connect/token/introspect",
             "oauth.client.id=kafka-broker",
             "oauth.client.secret=kafka-broker-secret",
             "oauth.fallback.username.claim=username",
             "unsecuredLoginStringClaim_sub=admin"
-        })
+        }
+    )
     public void cantConnectIntrospectWithTimeout() throws Exception {
         final String kafkaBootstrap = env.getBootstrapServers();
 
@@ -361,10 +374,9 @@ public class KeycloakErrorsIT {
     }
 
     @Test
-    @DisplayName("Cannot connect to Keycloak with timeout should fail with proper error message")
     @Tag(TestTags.ERROR_HANDLING)
     @Tag(TestTags.TIMEOUT)
-    public void cantConnectKeycloakWithTimeout() {
+    public void cantConnectKeycloakWithTimeout() throws Exception {
         final String kafkaBootstrap = env.getBootstrapServers();
         final String hostPort = "172.0.0.221:8080";
         final String realm = "kafka-authz";
@@ -381,7 +393,8 @@ public class KeycloakErrorsIT {
 
         Properties producerProps = KafkaClientsConfig.buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
         long start = System.currentTimeMillis();
-        try (Producer<String, String> producer = new KafkaProducer<>(producerProps)) {
+        try {
+            produceMessage(producerProps, "KeycloakErrorsTest-cantConnectKeycloakWithTimeout", "The Message");
             Assertions.fail("Should fail with KafkaException");
         } catch (KafkaException e) {
             long diff = System.currentTimeMillis() - start;

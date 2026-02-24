@@ -12,7 +12,6 @@ import io.strimzi.oauth.testsuite.environment.KafkaConfig;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironment;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironmentExtension;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -26,28 +25,33 @@ import java.util.Map;
 import static io.strimzi.oauth.testsuite.utils.KafkaClientsUtils.produceAndConsumeOAuthBearer;
 import static io.strimzi.oauth.testsuite.metrics.TestMetrics.getPrometheusMetrics;
 
-@OAuthEnvironment(authServer = AuthServer.KEYCLOAK, kafka = @KafkaConfig(realm = "kafka-authz",
-    metrics = true,
-    oauthProperties = {
-        "oauth.config.id=JWTPLAIN",
-        "oauth.fallback.username.claim=client_id",
-        "oauth.fallback.username.prefix=service-account-",
-        "unsecuredLoginStringClaim_sub=admin"
-    }))
+@OAuthEnvironment(
+    authServer = AuthServer.KEYCLOAK,
+    kafka = @KafkaConfig(
+        realm = "kafka-authz",
+        metrics = true,
+        oauthProperties = {
+            "oauth.config.id=JWTPLAIN",
+            "oauth.fallback.username.claim=client_id",
+            "oauth.fallback.username.prefix=service-account-",
+            "unsecuredLoginStringClaim_sub=admin"
+        }
+    )
+)
 public class AuthBasicJwtPlainIT {
 
     private static final Logger log = LoggerFactory.getLogger(AuthBasicJwtPlainIT.class);
 
     // Keycloak host as seen by the broker (used in Prometheus metrics labels)
+    // TODO - remove?
     private static final String BROKER_KEYCLOAK_HOST = "keycloak:8080";
 
     OAuthEnvironmentExtension env;
 
     @Test
-    @DisplayName("Client credentials with JWT RSA validation")
     @Tag(TestTags.JWT)
     @Tag(TestTags.RSA)
-    void clientCredentialsWithJwtRSAValidation() throws Exception {
+    void testClientCredentialsWithJwtRSAValidation() throws Exception {
         final String kafkaBootstrap = env.getBootstrapServers();
         final String authHostPort = env.getKeycloakHostPort();
         final String realm = "kafka-authz";
@@ -69,7 +73,6 @@ public class AuthBasicJwtPlainIT {
         produceAndConsumeOAuthBearer(kafkaBootstrap, oauthConfig, topic, "The Message");
 
         // Check metrics
-
         TestMetrics metrics = getPrometheusMetrics(URI.create(env.getMetricsUri()));
         BigDecimal value = metrics.getStartsWithValueSum("strimzi_oauth_validation_requests_count", "context", "JWTPLAIN", "kind", "jwks", "host", BROKER_KEYCLOAK_HOST, "path", jwksPath, "mechanism", "OAUTHBEARER", "outcome", "success");
 
@@ -81,10 +84,9 @@ public class AuthBasicJwtPlainIT {
     }
 
     @Test
-    @DisplayName("Password grant with JWT RSA validation")
     @Tag(TestTags.JWT)
     @Tag(TestTags.PASSWORD_GRANT)
-    void passwordGrantWithJwtRSAValidation() throws Exception {
+    void testPasswordGrantWithJwtRSAValidation() throws Exception {
         final String kafkaBootstrap = env.getBootstrapServers();
         final String authHostPort = env.getKeycloakHostPort();
         final String realm = "kafka-authz";

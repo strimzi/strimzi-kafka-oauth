@@ -12,16 +12,13 @@ import io.strimzi.kafka.oauth.common.HttpUtil;
 import io.strimzi.kafka.oauth.common.JSONUtil;
 import io.strimzi.kafka.oauth.common.OAuthAuthenticator;
 import io.strimzi.kafka.oauth.common.PrincipalExtractor;
-import io.strimzi.kafka.oauth.common.SSLUtil;
 import io.strimzi.kafka.oauth.common.TokenInfo;
 import io.strimzi.kafka.oauth.common.TokenIntrospection;
-import io.strimzi.oauth.testsuite.utils.TestUtil;
 import io.strimzi.oauth.testsuite.environment.AuthServer;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironment;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironmentExtension;
 import io.strimzi.oauth.testsuite.clients.MockOAuthAdmin;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +29,8 @@ import java.net.URI;
 import java.text.ParseException;
 
 import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.WWW_FORM_CONTENT_TYPE;
+import static io.strimzi.oauth.testsuite.utils.TestUtil.createTestHostnameVerifier;
+import static io.strimzi.oauth.testsuite.utils.TestUtil.createTestSSLFactory;
 import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.changeAuthServerMode;
 import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.createOAuthClient;
 import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.createOAuthUser;
@@ -49,7 +48,6 @@ public class PasswordAuthAndPrincipalExtractionIT {
     OAuthEnvironmentExtension env;
 
     @Test
-    @DisplayName("Test password grant authentication and principal extraction")
     public void testPasswordAuthAndPrincipalExtraction() throws Exception {
         changeAuthServerMode("token", "MODE_200");
         changeAuthServerMode("introspect", "MODE_200");
@@ -69,10 +67,8 @@ public class PasswordAuthAndPrincipalExtractionIT {
         String user1Pass = "user1-password";
         createOAuthUser(user1, user1Pass);
 
-        String projectRoot = TestUtil.getProjectRoot();
-        SSLSocketFactory sslFactory = SSLUtil.createSSLFactory(
-            projectRoot + "/docker/certificates/ca-truststore.p12", null, "changeit", null, null);
-        HostnameVerifier hostnameVerifier = SSLUtil.createAnyHostHostnameVerifier();
+        SSLSocketFactory sslFactory = createTestSSLFactory();
+        HostnameVerifier hostnameVerifier = createTestHostnameVerifier();
 
         PrincipalExtractor principalExtractor = new PrincipalExtractor("username", "pref_", "clientId", "pref_service-account-");
 

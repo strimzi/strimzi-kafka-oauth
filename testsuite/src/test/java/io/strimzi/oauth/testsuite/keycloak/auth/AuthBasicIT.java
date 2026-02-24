@@ -13,7 +13,6 @@ import io.strimzi.oauth.testsuite.environment.KafkaConfig;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironment;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironmentExtension;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -29,20 +28,25 @@ import static io.strimzi.oauth.testsuite.utils.KafkaClientsUtils.produceAndConsu
 import static io.strimzi.oauth.testsuite.metrics.TestMetrics.getPrometheusMetrics;
 import static io.strimzi.oauth.testsuite.utils.TestUtil.getContainerLogsForString;
 
-@OAuthEnvironment(authServer = AuthServer.KEYCLOAK, kafka = @KafkaConfig(realm = "demo-ec",
-    metrics = true,
-    oauthProperties = {
-        "oauth.config.id=JWT",
-        "oauth.fallback.username.claim=client_id",
-        "oauth.fallback.username.prefix=service-account-",
-        "unsecuredLoginStringClaim_sub=admin"
-    },
-    kafkaProperties = {
-        "metrics.num.samples=3",
-        "metrics.recording.level=DEBUG",
-        "metrics.sample.window.ms=15000",
-        "metrics.context.test.label=testvalue"
-    }))
+@OAuthEnvironment(
+    authServer = AuthServer.KEYCLOAK,
+    kafka = @KafkaConfig(
+        realm = "demo-ec",
+        metrics = true,
+        oauthProperties = {
+            "oauth.config.id=JWT",
+            "oauth.fallback.username.claim=client_id",
+            "oauth.fallback.username.prefix=service-account-",
+            "unsecuredLoginStringClaim_sub=admin"
+        },
+        kafkaProperties = {
+            "metrics.num.samples=3",
+            "metrics.recording.level=DEBUG",
+            "metrics.sample.window.ms=15000",
+            "metrics.context.test.label=testvalue"
+        }
+    )
+)
 public class AuthBasicIT {
 
     private static final Logger log = LoggerFactory.getLogger(AuthBasicIT.class);
@@ -53,9 +57,8 @@ public class AuthBasicIT {
     OAuthEnvironmentExtension env;
 
     @Test
-    @DisplayName("OAuth metrics config integration test")
     @Tag(TestTags.METRICS)
-    void oauthMetricsConfigIntegration() {
+    void testOauthMetricsConfigIntegration() {
         // Test that MetricReporter config works as expected
         // Get kafka log and make sure the TestMetricReporter was initialised exactly twice
         List<String> lines = getContainerLogsForString(env.getKafka(), "TestMetricsReporter no. ");
@@ -80,10 +83,9 @@ public class AuthBasicIT {
     }
 
     @Test
-    @DisplayName("Client credentials with JWT ECDSA validation")
     @Tag(TestTags.JWT)
     @Tag(TestTags.ECDSA)
-    void clientCredentialsWithJwtECDSAValidation() throws Exception {
+    void testClientCredentialsWithJwtECDSAValidation() throws Exception {
         final String kafkaBootstrap = env.getBootstrapServers();
         final String authHostPort = env.getKeycloakHostPort();
         final String realm = "demo-ec";
@@ -105,7 +107,6 @@ public class AuthBasicIT {
         produceAndConsumeOAuthBearer(kafkaBootstrap, oauthConfig, topic, "The Message");
 
         // Check metrics
-
         TestMetrics metrics = getPrometheusMetrics(URI.create(env.getMetricsUri()));
         BigDecimal value = metrics.getStartsWithValueSum("strimzi_oauth_http_requests_count", "kind", "jwks", "host", BROKER_KEYCLOAK_HOST, "path", jwksPath, "outcome", "success");
         Assertions.assertTrue(value.doubleValue() > 0.0, "strimzi_oauth_http_requests_count for jwks > 0");
@@ -120,5 +121,4 @@ public class AuthBasicIT {
         value = metrics.getStartsWithValueSum("strimzi_oauth_validation_requests_totaltimems", "context", "JWT", "kind", "jwks", "mechanism", "OAUTHBEARER", "outcome", "success");
         Assertions.assertTrue(value.doubleValue() > 0.0, "strimzi_oauth_http_requests_totaltimems for jwks > 0.0");
     }
-
 }

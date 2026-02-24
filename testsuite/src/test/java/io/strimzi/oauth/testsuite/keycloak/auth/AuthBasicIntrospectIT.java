@@ -13,15 +13,7 @@ import io.strimzi.oauth.testsuite.environment.AuthServer;
 import io.strimzi.oauth.testsuite.environment.KafkaConfig;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironment;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironmentExtension;
-import org.apache.kafka.clients.consumer.Consumer;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.Producer;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -29,7 +21,6 @@ import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.net.URI;
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -40,31 +31,37 @@ import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.buildConsume
 import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.buildProducerConfigOAuthBearer;
 import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.loginWithUsernameForRefreshToken;
 import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.loginWithUsernamePassword;
+import static io.strimzi.oauth.testsuite.utils.KafkaClientsUtils.consumeAndAssert;
 import static io.strimzi.oauth.testsuite.utils.KafkaClientsUtils.produceAndConsumeOAuthBearer;
+import static io.strimzi.oauth.testsuite.utils.KafkaClientsUtils.produceMessage;
 import static io.strimzi.oauth.testsuite.utils.TestUtil.waitForCondition;
 import static io.strimzi.oauth.testsuite.metrics.TestMetrics.getPrometheusMetrics;
-import static java.util.Collections.singletonList;
 
-@OAuthEnvironment(authServer = AuthServer.KEYCLOAK, kafka = @KafkaConfig(realm = "demo",
-    clientId = "kafka-broker",
-    clientSecret = "kafka-broker-secret",
-    metrics = true,
-    oauthProperties = {
-        "oauth.config.id=INTROSPECT",
-        "oauth.introspection.endpoint.uri=http://keycloak:8080/realms/demo/protocol/openid-connect/token/introspect",
-        "oauth.client.id=kafka-broker",
-        "oauth.client.secret=kafka-broker-secret",
-        "oauth.groups.claim=$.groups",
-        "oauth.token.endpoint.uri=http://keycloak:8080/realms/demo/protocol/openid-connect/token",
-        "oauth.fallback.username.claim=username",
-        "unsecuredLoginStringClaim_sub=admin"
-    },
-    kafkaProperties = {
-        // Use the strimzi OAuth login handler so the broker does a real OAuth client-credentials
-        // login at startup. Without this, the default unsecured handler is used (no HTTP call,
-        // no client-auth metrics).
-        "listener.name.plaintext.oauthbearer.sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler"
-    }))
+@OAuthEnvironment(
+    authServer = AuthServer.KEYCLOAK,
+    kafka = @KafkaConfig(
+        realm = "demo",
+        clientId = "kafka-broker",
+        clientSecret = "kafka-broker-secret",
+        metrics = true,
+        oauthProperties = {
+            "oauth.config.id=INTROSPECT",
+            "oauth.introspection.endpoint.uri=http://keycloak:8080/realms/demo/protocol/openid-connect/token/introspect",
+            "oauth.client.id=kafka-broker",
+            "oauth.client.secret=kafka-broker-secret",
+            "oauth.groups.claim=$.groups",
+            "oauth.token.endpoint.uri=http://keycloak:8080/realms/demo/protocol/openid-connect/token",
+            "oauth.fallback.username.claim=username",
+            "unsecuredLoginStringClaim_sub=admin"
+        },
+        kafkaProperties = {
+            // Use the strimzi OAuth login handler so the broker does a real OAuth client-credentials
+            // login at startup. Without this, the default unsecured handler is used (no HTTP call,
+            // no client-auth metrics).
+            "listener.name.plaintext.oauthbearer.sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler"
+        }
+    )
+)
 public class AuthBasicIntrospectIT {
 
     private static final Logger log = LoggerFactory.getLogger(AuthBasicIntrospectIT.class);
@@ -75,7 +72,6 @@ public class AuthBasicIntrospectIT {
     OAuthEnvironmentExtension env;
 
     @Test
-    @DisplayName("OAuth metrics client authentication test")
     @Tag(TestTags.METRICS)
     void oauthMetricsClientAuth() throws Exception {
         final String realm = "demo";
@@ -88,7 +84,7 @@ public class AuthBasicIntrospectIT {
             try {
                 TestMetrics m = getPrometheusMetrics(URI.create(env.getMetricsUri()));
                 BigDecimal v = m.getStartsWithValueSum("strimzi_oauth_authentication_requests_count",
-                        "context", "INTROSPECT", "kind", "client-auth", "outcome", "success");
+                    "context", "INTROSPECT", "kind", "client-auth", "outcome", "success");
                 return v.intValue() >= 1;
             } catch (Exception e) {
                 return false;
@@ -113,7 +109,6 @@ public class AuthBasicIntrospectIT {
     }
 
     @Test
-    @DisplayName("Access token with introspection")
     @Tag(TestTags.INTROSPECTION)
     void accessTokenWithIntrospection() throws Exception {
         final String kafkaBootstrap = env.getBootstrapServers();
@@ -151,7 +146,6 @@ public class AuthBasicIntrospectIT {
     }
 
     @Test
-    @DisplayName("Refresh token with introspection")
     @Tag(TestTags.INTROSPECTION)
     void refreshTokenWithIntrospection() throws Exception {
         final String kafkaBootstrap = env.getBootstrapServers();
@@ -193,7 +187,6 @@ public class AuthBasicIntrospectIT {
     }
 
     @Test
-    @DisplayName("Password grant with introspection")
     @Tag(TestTags.INTROSPECTION)
     @Tag(TestTags.PASSWORD_GRANT)
     void passwordGrantWithIntrospection() throws Exception {
@@ -212,10 +205,9 @@ public class AuthBasicIntrospectIT {
         String accessToken = loginWithUsernamePassword(URI.create(tokenEndpointUri), username, password, clientId);
 
         TokenInfo tokenInfo = introspectAccessToken(accessToken,
-                new PrincipalExtractor("preferred_username"));
+            new PrincipalExtractor("preferred_username"));
 
         Assertions.assertEquals(username, tokenInfo.principal(), "Token contains 'preferred_username' claim with value equal to username");
-
 
         Map<String, String> oauthConfig = new HashMap<>();
         oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, tokenEndpointUri);
@@ -227,21 +219,16 @@ public class AuthBasicIntrospectIT {
         final String topic = "KeycloakAuthenticationTest-passwordGrantWithIntrospectionTest";
 
         Properties producerProps = buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
-        try (Producer<String, String> producer = new KafkaProducer<>(producerProps)) {
-            producer.send(new ProducerRecord<>(topic, "The Message")).get();
-            log.debug("Produced The Message");
-        }
-
+        produceMessage(producerProps, topic, "The Message");
 
         // Authenticate using the username and password and a confidential client - different clientId + secret for consumer
-
         String confidentialClientId = "kafka-producer-client";
         String confidentialClientSecret = "kafka-producer-client-secret";
 
         accessToken = loginWithUsernamePassword(URI.create(tokenEndpointUri), username, password, confidentialClientId, confidentialClientSecret);
 
         tokenInfo = introspectAccessToken(accessToken,
-                new PrincipalExtractor("preferred_username"));
+            new PrincipalExtractor("preferred_username"));
 
         Assertions.assertEquals(username, tokenInfo.principal(), "Token contains 'preferred_username' claim with value equal to username");
 
@@ -249,19 +236,6 @@ public class AuthBasicIntrospectIT {
         oauthConfig.put(ClientConfig.OAUTH_CLIENT_SECRET, confidentialClientSecret);
 
         Properties consumerProps = buildConsumerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
-        try (Consumer<String, String> consumer = new KafkaConsumer<>(consumerProps)) {
-            TopicPartition partition = new TopicPartition(topic, 0);
-            consumer.assign(singletonList(partition));
-
-            while (consumer.partitionsFor(topic, Duration.ofSeconds(1)).size() == 0) {
-                log.debug("No assignment yet for consumer");
-            }
-            consumer.seekToBeginning(singletonList(partition));
-
-            ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(1));
-
-            Assertions.assertEquals(1, records.count(), "Got message");
-            Assertions.assertEquals("The Message", records.iterator().next().value(), "Is message text: 'The Message'");
-        }
+        consumeAndAssert(consumerProps, topic, "The Message");
     }
 }

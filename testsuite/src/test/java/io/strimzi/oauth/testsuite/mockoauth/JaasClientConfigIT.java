@@ -20,11 +20,7 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.KafkaException;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.MethodOrderer;
-import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
 
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.LoginException;
@@ -75,7 +71,6 @@ import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.loginWithUse
         }
     )
 )
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class JaasClientConfigIT {
 
     private static final String KAFKA_PRODUCER_CLIENT = "kafka-producer-client";
@@ -91,8 +86,6 @@ public class JaasClientConfigIT {
     }
 
     @Test
-    @Order(1)
-    @DisplayName("Test valid OAuth configurations")
     public void testValidConfigurations() {
         Map<String, String> oauthConfig = new HashMap<>();
         oauthConfig.put(ClientConfig.OAUTH_ACCESS_TOKEN, "sometoken");
@@ -119,8 +112,6 @@ public class JaasClientConfigIT {
     }
 
     @Test
-    @Order(2)
-    @DisplayName("Test missing access token and token endpoint")
     public void testNoAccessTokenAndNoTokenEndpoint() throws Exception {
         Map<String, String> oauthConfig = new HashMap<>();
         try {
@@ -193,8 +184,6 @@ public class JaasClientConfigIT {
     }
 
     @Test
-    @Order(3)
-    @DisplayName("Test missing client ID")
     public void testNoClientId() throws Exception {
         Map<String, String> oauthConfig = new HashMap<>();
         oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, getTokenEndpointUri());
@@ -228,8 +217,6 @@ public class JaasClientConfigIT {
     }
 
     @Test
-    @Order(4)
-    @DisplayName("Test missing client secret")
     public void testMissingClientSecret() throws Exception {
         Map<String, String> oauthConfig = new HashMap<>();
         oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, getTokenEndpointUri());
@@ -244,8 +231,6 @@ public class JaasClientConfigIT {
     }
 
     @Test
-    @Order(5)
-    @DisplayName("Test missing password")
     public void testMissingPassword() throws Exception {
         Map<String, String> oauthConfig = new HashMap<>();
         oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, getTokenEndpointUri());
@@ -261,8 +246,6 @@ public class JaasClientConfigIT {
     }
 
     @Test
-    @Order(6)
-    @DisplayName("Test missing truststore")
     public void testMissingTrustStore() throws Exception {
         Map<String, String> oauthConfig = new HashMap<>();
         oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, getTokenEndpointUri());
@@ -279,8 +262,6 @@ public class JaasClientConfigIT {
     }
 
     @Test
-    @Order(7)
-    @DisplayName("Test all configuration options")
     public void testAllConfigOptions() throws IOException {
 
         JaasClientOauthLoginCallbackHandler loginHandler = new JaasClientOauthLoginCallbackHandler();
@@ -410,8 +391,6 @@ public class JaasClientConfigIT {
     }
 
     @Test
-    @Order(8)
-    @DisplayName("Test SASL extensions configuration")
     public void testSaslExtensions() throws Exception {
         String testClient = "testclient";
         String testSecret = "testsecret";
@@ -442,8 +421,6 @@ public class JaasClientConfigIT {
     }
 
     @Test
-    @Order(9)
-    @DisplayName("Test access token location from file")
     public void testAccessTokenLocation() throws Exception {
 
         String testClient = "testclient";
@@ -496,8 +473,6 @@ public class JaasClientConfigIT {
     }
 
     @Test
-    @Order(10)
-    @DisplayName("Test refresh token location from file")
     public void testRefreshTokenLocation() throws Exception {
 
         String pubClient = "pubClient";
@@ -560,8 +535,6 @@ public class JaasClientConfigIT {
     }
 
     @Test
-    @Order(11)
-    @DisplayName("Test client assertion location from file")
     public void testClientAssertionLocation() throws Exception {
 
         String testClient = "clientWithAssertion";
@@ -619,8 +592,6 @@ public class JaasClientConfigIT {
     }
 
     @Test
-    @Order(12)
-    @DisplayName("Test invalid grant type handling")
     public void testInvalidGrantType() throws Exception {
         String testClient = "testclient";
         String testSecret = "testsecret";

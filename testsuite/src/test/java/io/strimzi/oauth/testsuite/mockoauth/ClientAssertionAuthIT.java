@@ -8,17 +8,14 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.strimzi.kafka.oauth.common.HttpException;
 import io.strimzi.kafka.oauth.common.HttpUtil;
 import io.strimzi.kafka.oauth.common.OAuthAuthenticator;
-import io.strimzi.kafka.oauth.common.SSLUtil;
 import io.strimzi.kafka.oauth.common.TokenInfo;
 import io.strimzi.kafka.oauth.common.TokenIntrospection;
 import io.strimzi.oauth.testsuite.common.TestTags;
-import io.strimzi.oauth.testsuite.utils.TestUtil;
 import io.strimzi.oauth.testsuite.environment.AuthServer;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironment;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironmentExtension;
 import io.strimzi.oauth.testsuite.clients.MockOAuthAdmin;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -29,6 +26,8 @@ import javax.net.ssl.SSLSocketFactory;
 import java.net.URI;
 
 import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.WWW_FORM_CONTENT_TYPE;
+import static io.strimzi.oauth.testsuite.utils.TestUtil.createTestHostnameVerifier;
+import static io.strimzi.oauth.testsuite.utils.TestUtil.createTestSSLFactory;
 import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.changeAuthServerMode;
 import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.createOAuthClient;
 import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.createOAuthClientWithAssertion;
@@ -45,7 +44,6 @@ public class ClientAssertionAuthIT {
     OAuthEnvironmentExtension env;
 
     @Test
-    @DisplayName("Client assertion authentication should work with correct assertion and fail with incorrect one")
     @Tag(TestTags.AUTH)
     @Tag(TestTags.CLIENT_ASSERTION)
     void testClientAssertionAuthentication() throws Exception {
@@ -64,10 +62,8 @@ public class ClientAssertionAuthIT {
         String client2Assertion = "client2-assertion";
         createOAuthClientWithAssertion(client2, client2Assertion);
 
-        String projectRoot = TestUtil.getProjectRoot();
-        SSLSocketFactory sslFactory = SSLUtil.createSSLFactory(
-                projectRoot + "/docker/certificates/ca-truststore.p12", null, "changeit", null, null);
-        HostnameVerifier hostnameVerifier = SSLUtil.createAnyHostHostnameVerifier();
+        SSLSocketFactory sslFactory = createTestSSLFactory();
+        HostnameVerifier hostnameVerifier = createTestHostnameVerifier();
 
         try {
             // Use client_credentials to authenticate with wrong client_assertion

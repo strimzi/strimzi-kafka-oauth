@@ -41,15 +41,24 @@ public class KafkaClientsConfig {
 
     public static String getJaasConfigOptionsString(Map<String, String> options) {
         StringBuilder sb = new StringBuilder();
-        for (Map.Entry<String, String> ent: options.entrySet()) {
-            sb.append(" ").append(ent.getKey()).append("=\"").append(ent.getValue()).append("\"");
+        for (Map.Entry<String, String> ent : options.entrySet()) {
+            sb.append(" ")
+                .append(ent.getKey())
+                .append("=\"")
+                .append(ent.getValue())
+                .append("\"");
         }
         return sb.toString();
     }
 
     public static Properties buildProducerConfigOAuthBearer(String kafkaBootstrap, Map<String, String> oauthConfig) {
+        return buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig, 0);
+    }
+
+    public static Properties buildProducerConfigOAuthBearer(String kafkaBootstrap, Map<String, String> oauthConfig, int retries) {
         Properties p = buildCommonConfigOAuthBearer(oauthConfig);
         setCommonProducerProperties(kafkaBootstrap, p);
+        p.setProperty(ProducerConfig.RETRIES_CONFIG, String.valueOf(retries));
         return p;
     }
 
@@ -84,14 +93,45 @@ public class KafkaClientsConfig {
     }
 
     public static Properties buildProducerConfigPlain(String kafkaBootstrap, Map<String, String> plainConfig) {
+        return buildProducerConfigPlain(kafkaBootstrap, plainConfig, 0);
+    }
+
+    public static Properties buildProducerConfigPlain(String kafkaBootstrap, Map<String, String> plainConfig, int retries) {
         Properties p = buildCommonConfigPlain(plainConfig);
         setCommonProducerProperties(kafkaBootstrap, p);
+        p.setProperty(ProducerConfig.RETRIES_CONFIG, String.valueOf(retries));
         return p;
     }
 
+    public static Properties buildProducerConfigScramSimple(String kafkaBootstrap, String username, String password) {
+        Map<String, String> scramConfig = new HashMap<>();
+        scramConfig.put("username", username);
+        scramConfig.put("password", password);
+        return buildProducerConfigScram(kafkaBootstrap, scramConfig);
+    }
+
+    public static Properties buildProducerConfigPlainSimple(String kafkaBootstrap, String username, String password) {
+        Map<String, String> plainConfig = new HashMap<>();
+        plainConfig.put("username", username);
+        plainConfig.put("password", password);
+        return buildProducerConfigPlain(kafkaBootstrap, plainConfig);
+    }
+
+    public static Properties buildProducerConfigOAuthBearerWithAccessToken(String kafkaBootstrap, String accessToken) {
+        Map<String, String> oauthConfig = new HashMap<>();
+        oauthConfig.put("oauth.access.token", accessToken);
+        oauthConfig.put("oauth.username.claim", "preferred_username");
+        return buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
+    }
+
     public static Properties buildProducerConfigScram(String kafkaBootstrap, Map<String, String> scramConfig) {
+        return buildProducerConfigScram(kafkaBootstrap, scramConfig, 0);
+    }
+
+    public static Properties buildProducerConfigScram(String kafkaBootstrap, Map<String, String> scramConfig, int retries) {
         Properties p = buildCommonConfigScram(scramConfig);
         setCommonProducerProperties(kafkaBootstrap, p);
+        p.setProperty(ProducerConfig.RETRIES_CONFIG, String.valueOf(retries));
         return p;
     }
 
@@ -136,21 +176,27 @@ public class KafkaClientsConfig {
         return p;
     }
 
-    public static String loginWithUsernameForRefreshToken(URI tokenEndpointUri, String username, String password, String clientId) throws IOException {
-
+    private static String postForToken(URI tokenEndpointUri, javax.net.ssl.SSLSocketFactory sslFactory,
+                                       String authorization, String body, String tokenField) throws IOException {
         JsonNode result = HttpUtil.post(tokenEndpointUri,
-                null,
-                null,
-                null,
-                WWW_FORM_CONTENT_TYPE,
-                "grant_type=password&username=" + username + "&password=" + password + "&client_id=" + clientId,
-                JsonNode.class);
+            sslFactory,
+            sslFactory != null ? SSLUtil.createAnyHostHostnameVerifier() : null,
+            authorization,
+            WWW_FORM_CONTENT_TYPE,
+            body,
+            JsonNode.class);
 
-        JsonNode token = result.get("refresh_token");
+        JsonNode token = result.get(tokenField);
         if (token == null) {
-            throw new IllegalStateException("Invalid response from authorization server: no refresh_token");
+            throw new IllegalStateException("Invalid response from authorization server: no " + tokenField);
         }
         return token.asText();
+    }
+
+    public static String loginWithUsernameForRefreshToken(URI tokenEndpointUri, String username, String password, String clientId) throws IOException {
+        return postForToken(tokenEndpointUri, null, null,
+            "grant_type=password&username=" + username + "&password=" + password + "&client_id=" + clientId,
+            "refresh_token");
     }
 
     public static String loginWithUsernamePassword(URI tokenEndpointUri, String username, String password, String clientId) throws IOException {
@@ -158,33 +204,18 @@ public class KafkaClientsConfig {
     }
 
     public static String loginWithUsernamePassword(URI tokenEndpointUri, String username, String password, String clientId, String secret) throws IOException {
-
         String body = "grant_type=password&username=" + urlencode(username) +
-                "&password=" + urlencode(password);
-
+            "&password=" + urlencode(password);
         String authorization = "Basic " + base64encode(clientId + ":" + (secret != null ? secret : ""));
-
-        JsonNode result = HttpUtil.post(tokenEndpointUri,
-                null,
-                null,
-                authorization,
-                WWW_FORM_CONTENT_TYPE,
-                body,
-                JsonNode.class);
-
-        JsonNode token = result.get("access_token");
-        if (token == null) {
-            throw new IllegalStateException("Invalid response from authorization server: no access_token");
-        }
-        return token.asText();
+        return postForToken(tokenEndpointUri, null, authorization, body, "access_token");
     }
 
     /**
      * Get an access token from the token endpoint using client credentials by way of the OAuthAuthenticator.loginWithClientSecret method.
      *
-     * @param tokenEndpoint The token endpoint
-     * @param clientId The client ID
-     * @param secret The client secret
+     * @param tokenEndpoint  The token endpoint
+     * @param clientId       The client ID
+     * @param secret         The client secret
      * @param truststorePath The path to the truststore for TLS connection
      * @param truststorePass The truststore password for TLS connection
      * @return The access token returned from the authorization server's token endpoint
@@ -192,15 +223,15 @@ public class KafkaClientsConfig {
      */
     public static String loginWithClientSecret(String tokenEndpoint, String clientId, String secret, String truststorePath, String truststorePass) throws IOException {
         TokenInfo tokenInfo = OAuthAuthenticator.loginWithClientSecret(
-                URI.create(tokenEndpoint),
-                SSLUtil.createSSLFactory(truststorePath, null, truststorePass, null, null),
-                SSLUtil.createAnyHostHostnameVerifier(),
-                clientId,
-                secret,
-                true,
-                new PrincipalExtractor(),
-                "all",
-                true);
+            URI.create(tokenEndpoint),
+            SSLUtil.createSSLFactory(truststorePath, null, truststorePass, null, null),
+            SSLUtil.createAnyHostHostnameVerifier(),
+            clientId,
+            secret,
+            true,
+            new PrincipalExtractor(),
+            "all",
+            true);
 
         return tokenInfo.token();
     }
@@ -208,18 +239,17 @@ public class KafkaClientsConfig {
     /**
      * Get an access token from the token endpoint using client credentials and additional body attributes.
      *
-     * @param tokenEndpoint The token endpoint
-     * @param clientId The client ID
-     * @param secret The client secret
+     * @param tokenEndpoint  The token endpoint
+     * @param clientId       The client ID
+     * @param secret         The client secret
      * @param truststorePath The path to the truststore for TLS connection
      * @param truststorePass The truststore password for TLS connection
-     * @param extraAttrs The string of url-encoded key=value pairs separated by '&' to be added to the body of the token request
+     * @param extraAttrs     The string of url-encoded key=value pairs separated by '&' to be added to the body of the token request
      * @return The access token returned from the authorization server's token endpoint
      * @throws IOException Exception while sending the request
      */
     public static String loginWithClientSecretAndExtraAttrs(String tokenEndpoint, String clientId, String secret,
-                                                             String truststorePath, String truststorePass, String extraAttrs) throws IOException {
-
+                                                            String truststorePath, String truststorePass, String extraAttrs) throws IOException {
         if (clientId == null) {
             throw new IllegalArgumentException("No clientId specified");
         }
@@ -228,41 +258,22 @@ public class KafkaClientsConfig {
         }
 
         String authorization = "Basic " + base64encode(clientId + ':' + secret);
-
         StringBuilder body = new StringBuilder("grant_type=client_credentials");
         if (extraAttrs != null) {
-            body.append("&").append(extraAttrs);
+            body.append("&")
+                .append(extraAttrs);
         }
-        JsonNode result = HttpUtil.post(URI.create(tokenEndpoint),
-                SSLUtil.createSSLFactory(truststorePath, null, truststorePass, null, null),
-                SSLUtil.createAnyHostHostnameVerifier(),
-                authorization,
-                WWW_FORM_CONTENT_TYPE,
-                body.toString(),
-                JsonNode.class);
-
-        JsonNode token = result.get("access_token");
-        if (token == null) {
-            throw new IllegalStateException("Invalid response from authorization server: no access_token");
-        }
-        return token.asText();
+        return postForToken(URI.create(tokenEndpoint),
+            SSLUtil.createSSLFactory(truststorePath, null, truststorePass, null, null),
+            authorization, body.toString(), "access_token");
     }
 
     public static String loginWithUsernameForRefreshToken(String tokenEndpointUri, String username, String password, String clientId, String truststorePath, String truststorePass) throws IOException {
-
-        JsonNode result = HttpUtil.post(URI.create(tokenEndpointUri),
-                SSLUtil.createSSLFactory(truststorePath, null, truststorePass, null, null),
-                SSLUtil.createAnyHostHostnameVerifier(),
-                null,
-                WWW_FORM_CONTENT_TYPE,
-                "grant_type=password&username=" + username + "&password=" + password + "&client_id=" + clientId,
-                JsonNode.class);
-
-        JsonNode token = result.get("refresh_token");
-        if (token == null) {
-            throw new IllegalStateException("Invalid response from authorization server: no refresh_token");
-        }
-        return token.asText();
+        return postForToken(URI.create(tokenEndpointUri),
+            SSLUtil.createSSLFactory(truststorePath, null, truststorePass, null, null),
+            null,
+            "grant_type=password&username=" + username + "&password=" + password + "&client_id=" + clientId,
+            "refresh_token");
     }
 
     /**
@@ -270,23 +281,16 @@ public class KafkaClientsConfig {
      * This is the variant needed by Keycloak authorization tests.
      */
     public static String loginWithUsernamePasswordInBody(URI tokenEndpointUri, String username, String password, String clientId) throws IOException {
-
         String body = "grant_type=password&username=" + urlencode(username) +
-                "&password=" + urlencode(password) + "&client_id=" + urlencode(clientId);
+            "&password=" + urlencode(password) + "&client_id=" + urlencode(clientId);
+        return postForToken(tokenEndpointUri, null, null, body, "access_token");
+    }
 
-        JsonNode result = HttpUtil.post(tokenEndpointUri,
-                null,
-                null,
-                null,
-                WWW_FORM_CONTENT_TYPE,
-                body,
-                JsonNode.class);
-
-        JsonNode token = result.get("access_token");
-        if (token == null) {
-            throw new IllegalStateException("Invalid response from authorization server: no access_token");
-        }
-        return token.asText();
+    public static Map<String, String> buildAuthConfigForPlain(String clientId, String secret) {
+        Map<String, String> config = new HashMap<>();
+        config.put("username", clientId);
+        config.put("password", secret);
+        return config;
     }
 
     public static AdminClient buildAdminClientForPlain(String kafkaBootstrap, String user) {

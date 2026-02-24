@@ -12,7 +12,6 @@ import io.strimzi.oauth.testsuite.logging.LogLineReader;
 import io.strimzi.oauth.testsuite.common.TestTags;
 import io.strimzi.oauth.testsuite.metrics.TestMetricsReporter;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -24,6 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.checkLog;
+import static io.strimzi.oauth.testsuite.logging.TestLogPaths.CURRENT_TEST_LOG_PATH;
 
 /**
  * Tests for JAAS server configuration options.
@@ -33,16 +33,11 @@ import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.checkLog;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class JaasServerConfigIT {
 
-    private static final String LOG_PATH = "target/test.log";
-
     @Test
-    @DisplayName("JWKS validator should handle all configuration options correctly")
     @Tag(TestTags.CONFIG)
     @Tag(TestTags.JWT)
     @Tag(TestTags.JWKS)
     void testJwksValidatorOptions() throws IOException {
-        // Fast local JWT check
-
         JaasServerOauthValidatorCallbackHandler handler = new JaasServerOauthValidatorCallbackHandler();
         Map<String, String> attrs = new HashMap<>();
 
@@ -82,7 +77,7 @@ public class JaasServerConfigIT {
         serverProps.put("security.protocol", "SASL_PLAINTEXT");
         serverProps.put("sasl.mechanism", "OAUTHBEARER");
 
-        LogLineReader logReader = new LogLineReader(LOG_PATH);
+        LogLineReader logReader = new LogLineReader(CURRENT_TEST_LOG_PATH);
         logReader.readNext();
 
         handler.configure(serverProps, "OAUTHBEARER", Collections.singletonList(jaasConfig));
@@ -189,11 +184,10 @@ public class JaasServerConfigIT {
     }
 
     @Test
-    @DisplayName("Introspection validator should handle all configuration options correctly")
     @Tag(TestTags.CONFIG)
     @Tag(TestTags.INTROSPECTION)
     void testIntrospectValidatorOptions() throws IOException {
-        LogLineReader logReader = new LogLineReader(LOG_PATH);
+        LogLineReader logReader = new LogLineReader(CURRENT_TEST_LOG_PATH);
         logReader.readNext();
 
         // Introspect endpoint checks

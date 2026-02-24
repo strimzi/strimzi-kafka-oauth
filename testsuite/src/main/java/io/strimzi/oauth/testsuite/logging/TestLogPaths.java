@@ -20,6 +20,11 @@ public final class TestLogPaths {
 
     private static final String BASE_DIR = "target/test-logs";
 
+    /**
+     * Path into root target where current test log will be stored.
+     */
+    public static final String CURRENT_TEST_LOG_PATH = "target/test.log";
+
     private TestLogPaths() {
     }
 

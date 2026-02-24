@@ -30,7 +30,7 @@
         <testcontainers.ryuk.disabled>true</testcontainers.ryuk.disabled>
         <commons.compress.version>1.26.0</commons.compress.version>
         <commons.codec.version>1.16.1</commons.codec.version>
-        <strimzi-test-container.version>0.115.0-rc1</strimzi-test-container.version>
+        <strimzi-test-container.version>0.115.0</strimzi-test-container.version>
         <docker-java.version>3.7.0</docker-java.version>
         <toxiproxy-java.version>2.1.11</toxiproxy-java.version>
         <jackson.annotation.version>2.15.3</jackson.annotation.version>

@@ -23,11 +23,7 @@ import io.strimzi.oauth.testsuite.environment.AuthServer;
 import io.strimzi.oauth.testsuite.environment.KafkaConfig;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironment;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironmentExtension;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.Producer;
-import org.apache.kafka.clients.producer.ProducerRecord;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -48,14 +44,20 @@ import java.util.Properties;
 
 import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.buildProducerConfigOAuthBearer;
 import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.loginWithUsernamePassword;
+import static io.strimzi.oauth.testsuite.utils.KafkaClientsUtils.produceMessage;
 
-@OAuthEnvironment(authServer = AuthServer.KEYCLOAK, kafka = @KafkaConfig(realm = "forge",
-    oauthProperties = {
-        "oauth.config.id=FORGE",
-        "oauth.fallback.username.claim=client_id",
-        "oauth.fallback.username.prefix=service-account-",
-        "unsecuredLoginStringClaim_sub=admin"
-    }))
+@OAuthEnvironment(
+    authServer = AuthServer.KEYCLOAK,
+    kafka = @KafkaConfig(
+        realm = "forge",
+        oauthProperties = {
+            "oauth.config.id=FORGE",
+            "oauth.fallback.username.claim=client_id",
+            "oauth.fallback.username.prefix=service-account-",
+            "unsecuredLoginStringClaim_sub=admin"
+        }
+    )
+)
 public class JwtManipulationIT {
 
     private static final Logger log = LoggerFactory.getLogger(JwtManipulationIT.class);
@@ -65,16 +67,12 @@ public class JwtManipulationIT {
     OAuthEnvironmentExtension env;
 
     @Test
-    @DisplayName("JWT manipulation and validation test")
     @Tag(TestTags.JWT)
     @Tag(TestTags.MANIPULATION)
-    // TODO - change name?
-    void doTests() throws Exception {
+    void testCustomSignedJwtAcceptedWithVariousClaimFormats() throws Exception {
 
         PrivateKey privateKey = generateSigningKey();
-
         String privatePem = getPrivateKeyAsPEM(privateKey);
-
         String adminToken = loginWithUsernamePassword(URI.create("http://" + env.getKeycloakHostPort() + "/realms/master/protocol/openid-connect/token"), "admin", "admin", "admin-cli");
 
         addRealmKey(adminToken, realm, privatePem);
@@ -86,21 +84,27 @@ public class JwtManipulationIT {
         String producerToken = getOriginalToken();
 
         SignedJWT producerJwt = SignedJWT.parse(producerToken);
-        String kid = producerJwt.getHeader().getKeyID();
+        String kid = producerJwt.getHeader()
+            .getKeyID();
         Assertions.assertEquals(newKid, kid, "kid should match");
 
         testWithToken(producerToken);
 
-
         // Forge the token, copying information from original token as needed
-        JsonNode producerJwtJSON = JSONUtil.asJson(producerJwt.getPayload().toJSONObject());
+        JsonNode producerJwtJSON = JSONUtil.asJson(producerJwt.getPayload()
+            .toJSONObject());
 
         HashMap<String, String> claims = new HashMap<>();
-        claims.put("sub", producerJwtJSON.get("sub").asText());
-        claims.put("iss", producerJwtJSON.get("iss").asText());
-        claims.put("exp", producerJwtJSON.get("exp").asText());
-        claims.put("typ", producerJwtJSON.get("typ").asText());
-        claims.put("preferred_username", producerJwtJSON.get("preferred_username").asText());
+        claims.put("sub", producerJwtJSON.get("sub")
+            .asText());
+        claims.put("iss", producerJwtJSON.get("iss")
+            .asText());
+        claims.put("exp", producerJwtJSON.get("exp")
+            .asText());
+        claims.put("typ", producerJwtJSON.get("typ")
+            .asText());
+        claims.put("preferred_username", producerJwtJSON.get("preferred_username")
+            .asText());
 
         String signedToken = createSignedToken(kid, privateKey, claims);
         testWithToken(signedToken);
@@ -138,7 +142,6 @@ public class JwtManipulationIT {
         signedToken = createSignedToken(kid, privateKey, claims3);
         testWithToken(signedToken);
 
-
         // Test using 'token_type' claim instead of 'typ' claim in the access token:
         // First remove 'typ' claim and see it fail
         HashMap<String, String> claims4 = (HashMap<String, String>) claims.clone();
@@ -149,7 +152,8 @@ public class JwtManipulationIT {
             testWithToken(signedToken);
             Assertions.fail("Should never be reached");
         } catch (Exception e) {
-            Assertions.assertTrue(e.toString().contains("Token type not set"), "Token type not set error");
+            Assertions.assertTrue(e.toString()
+                .contains("Token type not set"), "Token type not set error");
         }
 
         // Add 'token_typ' claim and see it pass
@@ -183,14 +187,15 @@ public class JwtManipulationIT {
 
         // Prepare JWT with claims set
         JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder();
-        for (Map.Entry<String, String> entry: claims.entrySet()) {
+        for (Map.Entry<String, String> entry : claims.entrySet()) {
             builder.claim(entry.getKey(), entry.getValue());
         }
         JWTClaimsSet claimsSet = builder.build();
 
         SignedJWT signedJWT = new SignedJWT(
-                new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build(),
-                claimsSet);
+            new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid)
+                .build(),
+            claimsSet);
 
         signedJWT.sign(signer);
         return signedJWT.serialize();
@@ -201,9 +206,11 @@ public class JwtManipulationIT {
 
         String kid = null;
         ArrayNode keys = (ArrayNode) node.get("keys");
-        for (JsonNode item: keys) {
-            if (item.get("providerPriority").asInt() == 104) {
-                kid = item.get("kid").asText();
+        for (JsonNode item : keys) {
+            if (item.get("providerPriority")
+                .asInt() == 104) {
+                kid = item.get("kid")
+                    .asText();
                 break;
             }
         }
@@ -221,9 +228,11 @@ public class JwtManipulationIT {
         ArrayNode realms = HttpUtil.get(URI.create("http://" + env.getKeycloakHostPort() + "/admin/realms"), authorization, ArrayNode.class);
 
         String realmId = null;
-        for (JsonNode node: realms) {
-            if (realm.equals(node.get("realm").asText())) {
-                realmId = node.get("id").asText();
+        for (JsonNode node : realms) {
+            if (realm.equals(node.get("realm")
+                .asText())) {
+                realmId = node.get("id")
+                    .asText();
                 break;
             }
         }
@@ -231,8 +240,8 @@ public class JwtManipulationIT {
         Assertions.assertNotNull(realmId, "Realm not found");
 
         String body = "{\"name\":\"uploaded-rsa\",\"providerId\":\"rsa\",\"providerType\":\"org.keycloak.keys.KeyProvider\",\"parentId\":\"" + realmId +
-                "\",\"config\":{\"priority\":[\"104\"],\"enabled\":[\"true\"],\"active\":[\"true\"],\"algorithm\":[\"RS256\"],\"privateKey\":[\"" + keyPem +
-                "\"],\"certificate\":[]}}";
+            "\",\"config\":{\"priority\":[\"104\"],\"enabled\":[\"true\"],\"active\":[\"true\"],\"algorithm\":[\"RS256\"],\"privateKey\":[\"" + keyPem +
+            "\"],\"certificate\":[]}}";
 
         HttpUtil.post(URI.create("http://" + env.getKeycloakHostPort() + "/admin/realms/" + realm + "/components"), "Bearer " + accessToken, "application/json", body, String.class);
     }
@@ -244,7 +253,7 @@ public class JwtManipulationIT {
 
         // first, request access token using client id and secret
         TokenInfo info = OAuthAuthenticator.loginWithClientSecret(URI.create(tokenEndpointUri), null, null,
-                "kafka-producer-client", "kafka-producer-client-secret", true, null, null, true);
+            "kafka-producer-client", "kafka-producer-client-secret", true, null, null, true);
 
         return info.token();
     }
@@ -255,23 +264,21 @@ public class JwtManipulationIT {
         oauthConfig.put(ClientConfig.OAUTH_ACCESS_TOKEN, token);
 
         Properties producerProps = buildProducerConfigOAuthBearer(env.getBootstrapServers(), oauthConfig);
-        try (Producer<String, String> producer = new KafkaProducer<>(producerProps)) {
-            final String topic = "JwtManipulationTest-clientAccessTokenJwtRSAValidationTest";
+        final String topic = "JwtManipulationTest-clientAccessTokenJwtRSAValidationTest";
 
-            boolean success = false;
-            int count = 3;
-            do {
-                try {
-                    producer.send(new ProducerRecord<>(topic, "The Message")).get();
-                    success = true;
-                } catch (Exception e) {
-                    if (--count == 0) {
-                        throw e;
-                    }
+        boolean success = false;
+        int count = 3;
+        do {
+            try {
+                produceMessage(producerProps, topic, "The Message");
+                success = true;
+            } catch (Exception e) {
+                if (--count == 0) {
+                    throw e;
                 }
-            } while (!success);
+            }
+        } while (!success);
 
-            log.debug("Produced The Message");
-        }
+        log.debug("Produced The Message");
     }
 }

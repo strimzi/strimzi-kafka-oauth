@@ -14,26 +14,12 @@ import io.strimzi.oauth.testsuite.environment.AuthServer;
 import io.strimzi.oauth.testsuite.environment.KafkaConfig;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironment;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironmentExtension;
-import org.apache.kafka.clients.consumer.Consumer;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.Producer;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.TopicPartition;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.time.Duration;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -41,14 +27,15 @@ import java.util.Properties;
 
 import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.buildConsumerConfigOAuthBearer;
 import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.buildProducerConfigOAuthBearer;
-import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.poll;
+import static io.strimzi.oauth.testsuite.utils.KafkaClientsUtils.consumeAndAssert;
+import static io.strimzi.oauth.testsuite.utils.KafkaClientsUtils.produceMessage;
 
 /**
  * Tests for OAuth authentication using Hydra
- *
+ * <p>
  * This test assumes there are multiple listeners configured with OAUTHBEARER support, but each configured differently
  * - configured with different options, and even a different auth server host.
- *
+ * <p>
  * There should be no authorization configured on the Kafka broker.
  */
 @OAuthEnvironment(
@@ -70,12 +57,9 @@ import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.poll;
 )
 public class HydraAuthenticationIT {
 
-    private static final Logger log = LoggerFactory.getLogger(HydraAuthenticationIT.class);
-
     OAuthEnvironmentExtension env;
 
     @Test
-    @DisplayName("Authentication with PKCS12 truststore")
     @Tag(TestTags.AUTHENTICATION)
     @Tag(TestTags.PKCS12)
     public void testWithPKCS() throws Exception {
@@ -94,7 +78,6 @@ public class HydraAuthenticationIT {
     }
 
     @Test
-    @DisplayName("Authentication with PEM truststore from file")
     @Tag(TestTags.AUTHENTICATION)
     @Tag(TestTags.PEM)
     public void testWithPemFromFile() throws Exception {
@@ -112,7 +95,6 @@ public class HydraAuthenticationIT {
     }
 
     @Test
-    @DisplayName("Authentication with PEM truststore from string")
     @Tag(TestTags.AUTHENTICATION)
     @Tag(TestTags.PEM)
     public void testWithPemFromString() throws Exception {
@@ -130,6 +112,44 @@ public class HydraAuthenticationIT {
         }
     }
 
+    @Test
+    @Tag(TestTags.AUTHENTICATION)
+    @Tag(TestTags.JWT)
+    @KafkaConfig(
+        clientId = "kafka-broker",
+        clientSecret = "kafka-broker-secret",
+        oauthProperties = {
+            "oauth.jwks.endpoint.uri=https://hydra-jwt:4454/.well-known/jwks.json",
+            "oauth.valid.issuer.uri=https://hydra-jwt:4454/",
+            "oauth.token.endpoint.uri=https://hydra-jwt:4454/oauth2/token",
+            "oauth.check.access.token.type=false",
+            "oauth.client.id=kafka-broker",
+            "oauth.client.secret=kafka-broker-secret",
+            "unsecuredLoginStringClaim_sub=admin"
+        }
+    )
+    public void testClientCredentialsWithJwtValidation() throws Exception {
+        final String kafkaBootstrap = env.getBootstrapServers();
+        final String hostPort = System.getProperty("hydra.jwt.host") + ":" + System.getProperty("hydra.jwt.port");
+        final String tokenEndpointUri = "https://" + hostPort + "/oauth2/token";
+
+        Map<String, String> oauthConfig = new HashMap<>();
+        oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, tokenEndpointUri);
+        oauthConfig.put(ClientConfig.OAUTH_CLIENT_ID, "kafka-producer-client");
+        oauthConfig.put(ClientConfig.OAUTH_CLIENT_SECRET, "kafka-producer-client-secret");
+        oauthConfig.put(ClientConfig.OAUTH_SSL_TRUSTSTORE_LOCATION, "target/kafka/certs/ca-truststore.p12");
+        oauthConfig.put(ClientConfig.OAUTH_SSL_TRUSTSTORE_PASSWORD, "changeit");
+        oauthConfig.put(ClientConfig.OAUTH_SSL_TRUSTSTORE_TYPE, "pkcs12");
+
+        String topic = "HydraAuthenticationTest-clientCredentialsWithJwtValidation";
+
+        Properties producerProps = buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
+        produceMessage(producerProps, topic, "The Message");
+
+        Properties consumerProps = buildConsumerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
+        consumeAndAssert(consumerProps, topic, "The Message");
+    }
+
     private void opaqueAccessTokenWithIntrospectValidationTest(String title) throws Exception {
         final String kafkaBootstrap = env.getBootstrapServers();
         final String hostPort = System.getProperty("hydra.host") + ":" + System.getProperty("hydra.port");
@@ -141,8 +161,8 @@ public class HydraAuthenticationIT {
 
         // first, request access token using client id and secret
         TokenInfo info = OAuthAuthenticator.loginWithClientSecret(URI.create(tokenEndpointUri),
-                ConfigUtil.createSSLFactory(new ClientConfig()),
-                null, clientId, clientSecret, true, null, null, true);
+            ConfigUtil.createSSLFactory(new ClientConfig()),
+            null, clientId, clientSecret, true, null, null, true);
 
         Map<String, String> oauthConfig = new HashMap<>();
         oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, tokenEndpointUri);
@@ -152,67 +172,15 @@ public class HydraAuthenticationIT {
         String topic = "HydraAuthenticationTest-" + toCamelCase(title);
 
         Properties producerProps = buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
-        try (Producer<String, String> producer = new KafkaProducer<>(producerProps)) {
-            producer.send(new ProducerRecord<>(topic, "The Message")).get();
-        }
+        produceMessage(producerProps, topic, "The Message");
 
         Properties consumerProps = buildConsumerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
-        try (Consumer<String, String> consumer = new KafkaConsumer<>(consumerProps)) {
-            TopicPartition partition = new TopicPartition(topic, 0);
-            consumer.assign(Collections.singletonList(partition));
-
-            while (consumer.partitionsFor(topic, Duration.ofSeconds(1)).size() == 0) {
-                log.debug("No assignment yet for consumer");
-            }
-            consumer.seekToBeginning(Collections.singletonList(partition));
-
-            ConsumerRecords<String, String> records = poll(consumer);
-
-            Assertions.assertEquals(1, records.count(), "Got message");
-            Assertions.assertEquals("The Message", records.iterator().next().value(), "Is message text: 'The Message'");
-        }
-    }
-
-    @Disabled("TODO: Requires separate JWT listener configuration")
-    private void clientCredentialsWithJwtValidationTest(String title) throws Exception {
-        final String kafkaBootstrap = env.getBootstrapServers();
-        final String hostPort = System.getProperty("hydra.jwt.host") + ":" + System.getProperty("hydra.jwt.port");
-        final String tokenEndpointUri = "https://" + hostPort + "/oauth2/token";
-
-        Map<String, String> oauthConfig = new HashMap<>();
-        oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, tokenEndpointUri);
-        oauthConfig.put(ClientConfig.OAUTH_CLIENT_ID, "kafka-producer-client");
-        oauthConfig.put(ClientConfig.OAUTH_CLIENT_SECRET, "kafka-producer-client-secret");
-        oauthConfig.put(ClientConfig.OAUTH_ACCESS_TOKEN_IS_JWT, "false");
-
-        String topic = "HydraAuthenticationTest-" + toCamelCase(title);
-
-        Properties producerProps = buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
-        try (Producer<String, String> producer = new KafkaProducer<>(producerProps)) {
-            producer.send(new ProducerRecord<>(topic, "The Message")).get();
-            log.debug("Produced The Message");
-        }
-
-        Properties consumerProps = buildConsumerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
-        try (Consumer<String, String> consumer = new KafkaConsumer<>(consumerProps)) {
-            TopicPartition partition = new TopicPartition(topic, 0);
-            consumer.assign(Collections.singletonList(partition));
-
-            while (consumer.partitionsFor(topic, Duration.ofSeconds(1)).size() == 0) {
-                log.debug("No assignment yet for consumer");
-            }
-            consumer.seekToBeginning(Collections.singletonList(partition));
-
-            ConsumerRecords<String, String> records = poll(consumer);
-
-            Assertions.assertEquals(1, records.count(), "Got message");
-            Assertions.assertEquals("The Message", records.iterator().next().value(), "Is message text: 'The Message'");
-        }
+        consumeAndAssert(consumerProps, topic, "The Message");
     }
 
     private static void clearSystemProperties(Properties defaults) {
         Properties p = new ConfigProperties(defaults).resolveTo(new Properties());
-        for (Object key: p.keySet()) {
+        for (Object key : p.keySet()) {
             System.clearProperty(key.toString());
         }
     }

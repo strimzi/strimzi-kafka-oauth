@@ -27,7 +27,7 @@ import java.lang.annotation.Target;
  *         oauthProperties = {"oauth.check.audience=true"},
  *         metrics = true
  *     ))
- * public class AudienceJwtIT {
+ * public class AudienceIT {
  *     OAuthEnvironmentExtension env;  // auto-injected
  *
  *     @Test
@@ -45,9 +45,13 @@ import java.lang.annotation.Target;
 @ExtendWith(OAuthEnvironmentExtension.class)
 public @interface OAuthEnvironment {
 
-    /** The type of OAuth authorization server to start */
+    /**
+     * The type of OAuth authorization server to start
+     */
     AuthServer authServer();
 
-    /** Kafka container configuration */
+    /**
+     * Kafka container configuration
+     */
     KafkaConfig kafka() default @KafkaConfig(enabled = false);
 }

@@ -114,64 +114,6 @@ public class TestMetrics {
     }
 
     /**
-     * Get the sum of values of all the metrics matching the key and the attributes
-     * <p>
-     * Attributes are specified as: name1, value1, name2, value2, ...
-     * Not all attributes have to be specified, but those specified have to match (equality).
-     *
-     * @param key Metric key
-     * @param attrs The attributes filter passed as attrName1, attrValue1, attrName2, attrValue2 ...
-     * @return The sum of the values of all the matching metrics as String
-     */
-    public BigDecimal getValueSum(String key, String... attrs) {
-
-        BigDecimal result = new BigDecimal(0);
-        next:
-        for (MetricEntry entry: entries) {
-            if (entry.key.equals(key)) {
-                for (int i = 0; i < attrs.length; i += 2) {
-                    if (!attrs[i + 1].equals(entry.attrs.get(attrs[i]))) {
-                        continue next;
-                    }
-                }
-                result = result.add(new BigDecimal(entry.value));
-            }
-        }
-        return result;
-    }
-
-    /**
-     * Get the value of a single metric matching the key and the attributes.
-     * Returns null if no matching metric is found.
-     * Throws if more than one matching metric is found.
-     *
-     * @param key Metric key
-     * @param attrs The attributes filter passed as attrName1, attrValue1, attrName2, attrValue2 ...
-     * @return The value of the matching metric as String, or null if not found
-     */
-    public String getValue(String key, String... attrs) {
-        boolean match = false;
-        String result = null;
-        next:
-        for (MetricEntry entry : entries) {
-            if (entry.key.equals(key)) {
-                for (int i = 0; i < attrs.length; i += 2) {
-                    if (!attrs[i + 1].equals(entry.attrs.get(attrs[i]))) {
-                        continue next;
-                    }
-                }
-                if (!match) {
-                    match = true;
-                    result = entry.value;
-                } else {
-                    throw new RuntimeException("More than one matching metric entry");
-                }
-            }
-        }
-        return result;
-    }
-
-    /**
      * Get the value of a single metric matching the key prefix and the attributes.
      * Returns null if no matching metric is found.
      * Throws if more than one matching metric is found.

@@ -26,8 +26,6 @@ import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.Container;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
-import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.utility.MountableFile;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -38,7 +36,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -89,7 +86,7 @@ public class OAuthEnvironmentExtension implements BeforeAllCallback, BeforeEachC
     private GenericContainer<?> hydraJwt;
     private GenericContainer<?> hydraJwtImport;
 
-    // Keycloak-specific
+    // Keycloak-specific containers
     private GenericContainer<?> keycloak;
 
     /**
@@ -107,6 +104,7 @@ public class OAuthEnvironmentExtension implements BeforeAllCallback, BeforeEachC
         }
 
         classConfig = config;
+        // Compute test log dir and remove io.strimzi.oauth.testsuite from package name
         testLogDirPath = context.getRequiredTestClass()
             .getName()
             .replace("io.strimzi.oauth.testsuite", "");
@@ -132,7 +130,7 @@ public class OAuthEnvironmentExtension implements BeforeAllCallback, BeforeEachC
     }
 
     @Override
-    public void beforeEach(ExtensionContext context) throws Exception {
+    public void beforeEach(ExtensionContext context) {
         Method testMethod = context.getRequiredTestMethod();
         KafkaConfig methodKafkaConfig = testMethod.getAnnotation(KafkaConfig.class);
 
@@ -192,6 +190,7 @@ public class OAuthEnvironmentExtension implements BeforeAllCallback, BeforeEachC
             network.close();
         }
 
+        // Copy test log from target into respective test log location
         copyTestLog();
     }
 
@@ -301,7 +300,7 @@ public class OAuthEnvironmentExtension implements BeforeAllCallback, BeforeEachC
      * Set mock OAuth endpoints to functional modes (MODE_200).
      * Call this after start with initEndpoints=false once any pre-test metric checks are done.
      */
-    public void initEndpoints() {
+    public void initMockOAuthEndpoints() {
         try {
             MockOAuthAdmin.changeAuthServerMode("jwks", "MODE_200");
             MockOAuthAdmin.changeAuthServerMode("token", "MODE_200");
@@ -383,65 +382,20 @@ public class OAuthEnvironmentExtension implements BeforeAllCallback, BeforeEachC
         }
     }
 
-    @SuppressWarnings("resource")
     private void startHydra() {
         // Start Hydra (opaque token strategy)
-        hydra = new GenericContainer<>("oryd/hydra:v2.3.0")
-            .withLabel(CONTAINER_LABEL_KEY, "hydra")
-            .withExposedPorts(4444, 4445)
-            .withNetwork(network)
-            .withNetworkAliases("hydra")
-            .withCopyToContainer(
-                MountableFile.forHostPath(Path.of("target/hydra/certs")
-                    .toAbsolutePath()
-                    .toString()),
-                "/tmp/certs")
-            .withCommand("serve all")
-            .withEnv("DSN", "memory")
-            .withEnv("URLS_SELF_ISSUER", "https://hydra:4444/")
-            .withEnv("URLS_CONSENT", "http://hydra:9020/consent")
-            .withEnv("URLS_LOGIN", "http://hydra:9020/login")
-            .withEnv("SERVE_PUBLIC_TLS_ENABLED", "true")
-            .withEnv("SERVE_ADMIN_TLS_ENABLED", "true")
-            .withEnv("SERVE_PUBLIC_TLS_KEY_PATH", "/tmp/certs/hydra.key")
-            .withEnv("SERVE_ADMIN_TLS_KEY_PATH", "/tmp/certs/hydra.key")
-            .withEnv("SERVE_PUBLIC_TLS_CERT_PATH", "/tmp/certs/hydra.crt")
-            .withEnv("SERVE_ADMIN_TLS_CERT_PATH", "/tmp/certs/hydra.crt")
-            .withEnv("SERVE_PUBLIC_PORT", "4444")
-            .withEnv("SERVE_ADMIN_PORT", "4445")
-            .withEnv("SECRETS_SYSTEM", "thisisaglobalsecret")
-            .withEnv("LOG_LEVEL", "debug")
-            .waitingFor(Wait.forLogMessage(".*Setting up http server on :4444.*", 1)
-                .withStartupTimeout(Duration.ofSeconds(30)));
+        hydra = TestContainerFactory.createHydra(network);
         try {
             hydra.start();
         } catch (Exception e) {
             dumpContainerLogsOnStartupFailure("hydra", hydra);
             throw e;
         }
-        System.setProperty("hydra.host", hydra.getHost());
-        System.setProperty("hydra.port", String.valueOf(hydra.getMappedPort(4444)));
+        TestContainerFactory.publishHydraPorts(hydra);
         allContainers.add(hydra);
 
         // Run hydra-import init container
-        hydraImport = new GenericContainer<>("testsuite/hydra-import:latest")
-            .withNetwork(network)
-            .withNetworkAliases("hydra-import")
-            .withCopyToContainer(
-                MountableFile.forHostPath(Path.of("docker/hydra-import/scripts")
-                    .toAbsolutePath()
-                    .toString()),
-                "/hydra")
-            .withCopyToContainer(
-                MountableFile.forHostPath(Path.of("target/hydra-import/certs")
-                    .toAbsolutePath()
-                    .toString()),
-                "/hydra/certs")
-            .withEnv("HYDRA_URI", "https://hydra:4445/admin/clients")
-            .withEnv("SERVE_ADMIN_PORT", "4445")
-            .withCommand("/bin/bash", "-c", "cd hydra && ./start.sh")
-            .waitingFor(Wait.forLogMessage(".*Hydra import complete.*", 1)
-                .withStartupTimeout(Duration.ofSeconds(30)));
+        hydraImport = TestContainerFactory.createHydraImport(network, "https://hydra:4445/admin/clients", "4445");
         try {
             hydraImport.start();
         } catch (Exception e) {
@@ -452,33 +406,7 @@ public class OAuthEnvironmentExtension implements BeforeAllCallback, BeforeEachC
         allContainers.add(hydraImport);
 
         // Start Hydra JWT (JWT token strategy)
-        hydraJwt = new GenericContainer<>("oryd/hydra:v2.3.0")
-            .withExposedPorts(4454, 4455)
-            .withNetwork(network)
-            .withNetworkAliases("hydra-jwt")
-            .withCopyToContainer(
-                MountableFile.forHostPath(Path.of("target/hydra/certs")
-                    .toAbsolutePath()
-                    .toString()),
-                "/tmp/certs")
-            .withCommand("serve all")
-            .withEnv("DSN", "memory")
-            .withEnv("URLS_SELF_ISSUER", "https://hydra-jwt:4454/")
-            .withEnv("URLS_CONSENT", "http://hydra-jwt:9120/consent")
-            .withEnv("URLS_LOGIN", "http://hydra-jwt:9120/login")
-            .withEnv("SERVE_PUBLIC_TLS_ENABLED", "true")
-            .withEnv("SERVE_ADMIN_TLS_ENABLED", "true")
-            .withEnv("SERVE_PUBLIC_TLS_KEY_PATH", "/tmp/certs/hydra-jwt.key")
-            .withEnv("SERVE_ADMIN_TLS_KEY_PATH", "/tmp/certs/hydra-jwt.key")
-            .withEnv("SERVE_PUBLIC_TLS_CERT_PATH", "/tmp/certs/hydra-jwt.crt")
-            .withEnv("SERVE_ADMIN_TLS_CERT_PATH", "/tmp/certs/hydra-jwt.crt")
-            .withEnv("SERVE_PUBLIC_PORT", "4454")
-            .withEnv("SERVE_ADMIN_PORT", "4455")
-            .withEnv("STRATEGIES_ACCESS_TOKEN", "jwt")
-            .withEnv("SECRETS_SYSTEM", "thisisaglobalsecret")
-            .withEnv("LOG_LEVEL", "debug")
-            .waitingFor(Wait.forLogMessage(".*Setting up http server on :4454.*", 1)
-                .withStartupTimeout(Duration.ofSeconds(30)));
+        hydraJwt = TestContainerFactory.createHydraJwt(network);
         try {
             hydraJwt.start();
         } catch (Exception e) {
@@ -487,29 +415,12 @@ public class OAuthEnvironmentExtension implements BeforeAllCallback, BeforeEachC
             dumpContainerLogsOnStartupFailure("hydra-import", hydraImport);
             throw e;
         }
-        System.setProperty("hydra.jwt.host", hydraJwt.getHost());
-        System.setProperty("hydra.jwt.port", String.valueOf(hydraJwt.getMappedPort(4454)));
+        TestContainerFactory.publishHydraJwtPorts(hydraJwt);
         allContainers.add(hydraJwt);
 
         // Run hydra-jwt-import init container
-        hydraJwtImport = new GenericContainer<>("testsuite/hydra-import:latest")
-            .withNetwork(network)
-            .withNetworkAliases("hydra-jwt-import")
-            .withCopyToContainer(
-                MountableFile.forHostPath(Path.of("docker/hydra-import/scripts")
-                    .toAbsolutePath()
-                    .toString()),
-                "/hydra")
-            .withCopyToContainer(
-                MountableFile.forHostPath(Path.of("target/hydra-import/certs")
-                    .toAbsolutePath()
-                    .toString()),
-                "/hydra/certs")
-            .withEnv("HYDRA_URI", "https://hydra-jwt:4455/admin/clients")
-            .withEnv("SERVE_ADMIN_PORT", "4455")
-            .withCommand("/bin/bash", "-c", "cd hydra && ./start.sh")
-            .waitingFor(Wait.forLogMessage(".*Hydra import complete.*", 1)
-                .withStartupTimeout(Duration.ofSeconds(30)));
+        hydraJwtImport = TestContainerFactory.createHydraImport(network, "https://hydra-jwt:4455/admin/clients", "4455");
+        hydraJwtImport.withNetworkAliases("hydra-jwt-import");
         try {
             hydraJwtImport.start();
         } catch (Exception e) {
@@ -626,7 +537,7 @@ public class OAuthEnvironmentExtension implements BeforeAllCallback, BeforeEachC
 
                 // Set metrics if needed
                 if (kafkaConfig.metrics()) {
-                    TestContainerFactory.configureMetrics(container, authServer);
+                    TestContainerFactory.configureMetrics(container);
                 }
             });
 
@@ -648,9 +559,7 @@ public class OAuthEnvironmentExtension implements BeforeAllCallback, BeforeEachC
         }
 
         // Add all Kafka containers to the allContainers list for log collection
-        for (StrimziKafkaContainer node : kafkaCluster.getNodes()) {
-            allContainers.add(node);
-        }
+        allContainers.addAll(kafkaCluster.getNodes());
 
         // Post-start actions
         if (kafkaConfig.setupAcls()) {
@@ -662,7 +571,7 @@ public class OAuthEnvironmentExtension implements BeforeAllCallback, BeforeEachC
         }
 
         if (authServer == AuthServer.MOCK_OAUTH && kafkaConfig.initEndpoints()) {
-            initEndpoints();
+            initMockOAuthEndpoints();
         }
     }
 
@@ -692,24 +601,9 @@ public class OAuthEnvironmentExtension implements BeforeAllCallback, BeforeEachC
         StringBuilder sb = new StringBuilder();
         sb.append("org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required");
 
-        Map<String, String> props = parseOAuthProperties(kafkaConfig.oauthProperties());
+        Map<String, String> props = parseProperties(kafkaConfig.oauthProperties());
 
-        // Add default JWKS and issuer if not explicitly overridden
-        String realm = kafkaConfig.realm();
-        if (!props.containsKey("oauth.jwks.endpoint.uri") && !props.containsKey("oauth.introspection.endpoint.uri")) {
-            sb.append("    oauth.jwks.endpoint.uri=\"")
-                .append(authServerUrl)
-                .append("/realms/")
-                .append(realm)
-                .append("/protocol/openid-connect/certs\"");
-        }
-        if (!props.containsKey("oauth.valid.issuer.uri")) {
-            sb.append("    oauth.valid.issuer.uri=\"")
-                .append(authServerUrl)
-                .append("/realms/")
-                .append(realm)
-                .append("\"");
-        }
+        appendDefaultJwksAndIssuer(sb, props, authServerUrl, kafkaConfig.realm());
 
         // Add all explicit oauthProperties (empty values suppress defaults without being written)
         appendNonEmptyProperties(sb, props);
@@ -725,9 +619,9 @@ public class OAuthEnvironmentExtension implements BeforeAllCallback, BeforeEachC
         StringBuilder sb = new StringBuilder();
         sb.append("org.apache.kafka.common.security.plain.PlainLoginModule required");
 
-        Map<String, String> props = parseOAuthProperties(kafkaConfig.oauthProperties());
+        Map<String, String> props = parseProperties(kafkaConfig.oauthProperties());
 
-        // Add default token and JWKS endpoints if not explicitly overridden
+        // Add default token endpoint if not explicitly overridden
         // An empty value (e.g., "oauth.token.endpoint.uri=") suppresses the default without being written
         String realm = kafkaConfig.realm();
         if (!props.containsKey("oauth.token.endpoint.uri")) {
@@ -737,6 +631,21 @@ public class OAuthEnvironmentExtension implements BeforeAllCallback, BeforeEachC
                 .append(realm)
                 .append("/protocol/openid-connect/token\"");
         }
+
+        appendDefaultJwksAndIssuer(sb, props, authServerUrl, realm);
+
+        // Add all explicit oauthProperties (empty values suppress defaults without being written)
+        appendNonEmptyProperties(sb, props);
+
+        sb.append(" ;");
+        return sb.toString();
+    }
+
+    /**
+     * Append default JWKS endpoint and valid issuer URIs to the JAAS config builder,
+     * unless they are explicitly overridden by the provided properties.
+     */
+    private static void appendDefaultJwksAndIssuer(StringBuilder sb, Map<String, String> props, String authServerUrl, String realm) {
         if (!props.containsKey("oauth.jwks.endpoint.uri") && !props.containsKey("oauth.introspection.endpoint.uri")) {
             sb.append("    oauth.jwks.endpoint.uri=\"")
                 .append(authServerUrl)
@@ -751,12 +660,6 @@ public class OAuthEnvironmentExtension implements BeforeAllCallback, BeforeEachC
                 .append(realm)
                 .append("\"");
         }
-
-        // Add all explicit oauthProperties (empty values suppress defaults without being written)
-        appendNonEmptyProperties(sb, props);
-
-        sb.append(" ;");
-        return sb.toString();
     }
 
     /**
@@ -777,26 +680,7 @@ public class OAuthEnvironmentExtension implements BeforeAllCallback, BeforeEachC
     }
 
     /**
-     * Parse oauth properties from annotation's string array into a map.
-     * Each entry is in "key=value" format.
-     */
-    static Map<String, String> parseOAuthProperties(String[] properties) {
-        Map<String, String> result = new HashMap<>();
-        if (properties != null) {
-            for (String prop : properties) {
-                int eqIdx = prop.indexOf('=');
-                if (eqIdx > 0) {
-                    result.put(prop.substring(0, eqIdx)
-                        .trim(), prop.substring(eqIdx + 1)
-                        .trim());
-                }
-            }
-        }
-        return result;
-    }
-
-    /**
-     * Parse kafka properties from annotation's string array into a map.
+     * Parse properties from annotation's string array into a map.
      * Each entry is in "key=value" format.
      */
     static Map<String, String> parseProperties(String[] properties) {

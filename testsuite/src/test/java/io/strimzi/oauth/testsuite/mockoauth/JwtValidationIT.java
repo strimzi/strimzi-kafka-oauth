@@ -6,7 +6,6 @@ package io.strimzi.oauth.testsuite.mockoauth;
 
 import io.strimzi.kafka.oauth.common.OAuthAuthenticator;
 import io.strimzi.kafka.oauth.common.PrincipalExtractor;
-import io.strimzi.kafka.oauth.common.SSLUtil;
 import io.strimzi.kafka.oauth.common.TokenInfo;
 import io.strimzi.kafka.oauth.common.TokenIntrospection;
 import io.strimzi.kafka.oauth.services.Services;
@@ -18,7 +17,6 @@ import io.strimzi.oauth.testsuite.environment.OAuthEnvironment;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironmentExtension;
 import io.strimzi.oauth.testsuite.clients.MockOAuthAdmin;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -27,23 +25,29 @@ import org.slf4j.LoggerFactory;
 import javax.net.ssl.SSLSocketFactory;
 import java.net.URI;
 import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
 
+import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
+import static io.strimzi.oauth.testsuite.utils.TestUtil.createTestHostnameVerifier;
+import static io.strimzi.oauth.testsuite.utils.TestUtil.createTestSSLFactory;
+import static io.strimzi.oauth.testsuite.utils.TestUtil.getProjectRoot;
 import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.changeAuthServerMode;
 import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.createOAuthClient;
-import static io.strimzi.oauth.testsuite.utils.TestUtil.getProjectRoot;
+import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.loginWithClientSecretAndExtraAttrs;
 
 /**
- * Tests for JWKS key use attribute handling.
- * Validates that JWT signature validation properly handles the 'use' attribute in JWKS keys.
+ * Tests for JWT validation edge cases:
+ * - JWKS key 'use' attribute enforcement
+ * - JWT 'exp' overflow handling
  */
 @OAuthEnvironment(authServer = AuthServer.MOCK_OAUTH)
-public class JWKSKeyUseIT {
-    private static final Logger log = LoggerFactory.getLogger(JWKSKeyUseIT.class);
+public class JwtValidationIT {
+    private static final Logger log = LoggerFactory.getLogger(JwtValidationIT.class);
 
     OAuthEnvironmentExtension env;
 
     @Test
-    @DisplayName("Token validation should fail when JWKS key lacks 'use' attribute and enforcement is enabled")
     @Tag(TestTags.JWT)
     @Tag(TestTags.JWKS)
     void testJWKSKeyUseEnforcement() throws Exception {
@@ -56,9 +60,7 @@ public class JWKSKeyUseIT {
         String testSecret = "testsecret";
         createOAuthClient(testClient, testSecret);
 
-        String projectRoot = getProjectRoot();
-        SSLSocketFactory sslFactory = SSLUtil.createSSLFactory(
-            projectRoot + "/docker/certificates/ca-truststore.p12", null, "changeit", null, null);
+        SSLSocketFactory sslFactory = createTestSSLFactory();
 
         JWTSignatureValidator validator = createTokenValidator("enforceKeyUse", sslFactory, false);
 
@@ -66,7 +68,7 @@ public class JWKSKeyUseIT {
         TokenInfo tokenInfo = OAuthAuthenticator.loginWithClientSecret(
             URI.create("https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/token"),
             sslFactory,
-            SSLUtil.createAnyHostHostnameVerifier(),
+            createTestHostnameVerifier(),
             testClient,
             testSecret,
             true,
@@ -86,7 +88,6 @@ public class JWKSKeyUseIT {
     }
 
     @Test
-    @DisplayName("Token validation should succeed when ignoreKeyUse is enabled")
     @Tag(TestTags.JWT)
     @Tag(TestTags.JWKS)
     void testJWKSKeyUseIgnored() throws Exception {
@@ -99,15 +100,13 @@ public class JWKSKeyUseIT {
         String testSecret = "testsecret";
         createOAuthClient(testClient, testSecret);
 
-        String projectRoot = getProjectRoot();
-        SSLSocketFactory sslFactory = SSLUtil.createSSLFactory(
-            projectRoot + "/docker/certificates/ca-truststore.p12", null, "changeit", null, null);
+        SSLSocketFactory sslFactory = createTestSSLFactory();
 
         // Get a new token
         TokenInfo tokenInfo = OAuthAuthenticator.loginWithClientSecret(
             URI.create("https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/token"),
             sslFactory,
-            SSLUtil.createAnyHostHostnameVerifier(),
+            createTestHostnameVerifier(),
             testClient,
             testSecret,
             true,
@@ -124,6 +123,49 @@ public class JWKSKeyUseIT {
         validatorIgnoreKeyUse.validate(tokenInfo.token());
     }
 
+    @Test
+    @Tag(TestTags.JWT)
+    void testExpiresAtOverflow() throws Exception {
+        Services.configure(new HashMap<>());
+
+        changeAuthServerMode("jwks", "MODE_JWKS_RSA_WITH_SIG_USE");
+        changeAuthServerMode("token", "MODE_200");
+
+        String testClient = "testclient";
+        String testSecret = "testsecret";
+        createOAuthClient(testClient, testSecret);
+
+        SSLSocketFactory sslFactory = createTestSSLFactory();
+
+        JWTSignatureValidator validator = createTokenValidator("enforceKeyUse", sslFactory, false);
+
+        String projectRoot = getProjectRoot();
+        String trustStorePath = projectRoot + "/docker/certificates/ca-truststore.p12";
+        String trustStorePass = "changeit";
+
+        Map<String, String> extraAttrs = new HashMap<>();
+        extraAttrs.put("EXP", Long.toString(Integer.MAX_VALUE + 1L));
+        String extraAttrsString = extraAttrs.entrySet()
+            .stream()
+            .map(entry -> entry.getKey() + "=" + urlencode(entry.getValue()))
+            .collect(Collectors.joining("&"));
+
+        // Now get a new token
+        String accessToken = loginWithClientSecretAndExtraAttrs(
+            "https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/token",
+            testClient,
+            testSecret,
+            trustStorePath,
+            trustStorePass,
+            extraAttrsString);
+
+        TokenIntrospection.debugLogJWT(log, accessToken);
+
+        // and try to validate it
+        // The overflow bug triggers a TokenExpiredException
+        validator.validate(accessToken);
+    }
+
     private static JWTSignatureValidator createTokenValidator(String validatorId, SSLSocketFactory sslFactory, boolean ignoreKeyUse) {
         return new JWTSignatureValidator(validatorId,
             null,
@@ -131,7 +173,7 @@ public class JWKSKeyUseIT {
             null,
             "https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/jwks",
             sslFactory,
-            SSLUtil.createAnyHostHostnameVerifier(),
+            createTestHostnameVerifier(),
             new PrincipalExtractor(),
             null,
             null,

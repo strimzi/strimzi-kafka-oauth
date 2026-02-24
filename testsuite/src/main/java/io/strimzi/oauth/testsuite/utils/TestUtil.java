@@ -5,9 +5,12 @@
 package io.strimzi.oauth.testsuite.utils;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.strimzi.kafka.oauth.common.SSLUtil;
 import org.junit.jupiter.api.Assertions;
 import org.testcontainers.containers.GenericContainer;
 
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLSocketFactory;
 import java.io.BufferedReader;
 import java.io.StringReader;
 import java.util.ArrayList;
@@ -29,8 +32,8 @@ public class TestUtil {
      */
     public static String unquote(String value) {
         return value.startsWith("\"") ?
-                value.substring(1, value.length() - 1) :
-                value;
+            value.substring(1, value.length() - 1) :
+            value;
     }
 
     /**
@@ -38,7 +41,7 @@ public class TestUtil {
      * (possibly multi-line when there's a stacktrace) that contain the passed filter.
      *
      * @param container The container to get logs from
-     * @param filters Strings to look for (not a regex) in the log - they all must be present in a line for the line to match
+     * @param filters   Strings to look for (not a regex) in the log - they all must be present in a line for the line to match
      * @return A list of lines from the log that match the filter
      */
     @SuppressFBWarnings("THROWS_METHOD_THROWS_RUNTIMEEXCEPTION")
@@ -53,7 +56,8 @@ public class TestUtil {
                 String line;
                 while ((line = r.readLine()) != null) {
                     // is new logging entry?
-                    if (pat.matcher(line).matches()) {
+                    if (pat.matcher(line)
+                        .matches()) {
                         // all filters have to match
                         for (String filter : filters) {
                             inmatch = line.contains(filter);
@@ -77,10 +81,10 @@ public class TestUtil {
     /**
      * Helper method to wait for a condition by periodically testing the condition until it is satisfied or until timeout.
      *
-     * @param condition The condition to test
-     * @param loopPauseMs A pause between two repeats in millis
+     * @param condition      The condition to test
+     * @param loopPauseMs    A pause between two repeats in millis
      * @param timeoutSeconds A timeout in seconds
-     * @throws TimeoutException An exception thrown if condition not satisfied within a timeout
+     * @throws TimeoutException     An exception thrown if condition not satisfied within a timeout
      * @throws InterruptedException An exception thrown if interrupted
      */
     public static void waitForCondition(Supplier<Boolean> condition, int loopPauseMs, int timeoutSeconds) throws TimeoutException, InterruptedException {
@@ -101,15 +105,16 @@ public class TestUtil {
     /**
      * Find the first line in the log matching the given regex.
      *
-     * @param log The log lines to search
+     * @param log   The log lines to search
      * @param regex The regex pattern to match
      * @return The index of the first matching line, or -1 if not found
      */
     public static int findFirstMatchingInLog(List<String> log, String regex) {
         int lineNum = 0;
         Pattern pattern = Pattern.compile(regex);
-        for (String line: log) {
-            if (pattern.matcher(line).find()) {
+        for (String line : log) {
+            if (pattern.matcher(line)
+                .find()) {
                 return lineNum;
             }
             lineNum++;
@@ -120,7 +125,7 @@ public class TestUtil {
     /**
      * Check if any line in the log matches the given regex.
      *
-     * @param log The log lines to search
+     * @param log   The log lines to search
      * @param regex The regex pattern to match
      * @return {@code true} if a matching line is found
      */
@@ -131,15 +136,16 @@ public class TestUtil {
     /**
      * Count lines in the log matching the given regex.
      *
-     * @param log The log lines to search
+     * @param log   The log lines to search
      * @param regex The regex pattern to match
      * @return The number of matching lines
      */
     public static int countLogForRegex(List<String> log, String regex) {
         int count = 0;
         Pattern pattern = Pattern.compile(regex);
-        for (String line: log) {
-            if (pattern.matcher(line).find()) {
+        for (String line : log) {
+            if (pattern.matcher(line)
+                .find()) {
                 count += 1;
             }
         }
@@ -163,9 +169,9 @@ public class TestUtil {
     /**
      * Assert a condition, attaching extra exception info on failure.
      *
-     * @param name The assertion description
+     * @param name      The assertion description
      * @param condition The condition to assert
-     * @param t The exception to attach as cause on failure
+     * @param t         The exception to attach as cause on failure
      */
     public static void assertTrueExtra(String name, boolean condition, Throwable t) {
         try {
@@ -179,9 +185,9 @@ public class TestUtil {
     /**
      * Assert a condition, attaching extra exception and message info on failure.
      *
-     * @param name The assertion description
+     * @param name      The assertion description
      * @param condition The condition to assert
-     * @param t The exception to attach as cause on failure
+     * @param t         The exception to attach as cause on failure
      * @param extraInfo Additional info appended to the failure message
      */
     public static void assertTrueExtra(String name, boolean condition, Throwable t, String extraInfo) {
@@ -190,6 +196,25 @@ public class TestUtil {
         } catch (AssertionError e) {
             throw new AssertionError(e.getMessage() + " " + extraInfo, t);
         }
+    }
+
+    /**
+     * Create an SSLSocketFactory using the test CA truststore.
+     *
+     * @return An SSLSocketFactory configured with the test CA truststore
+     */
+    public static SSLSocketFactory createTestSSLFactory() {
+        return SSLUtil.createSSLFactory(
+            getProjectRoot() + "/docker/certificates/ca-truststore.p12", null, "changeit", null, null);
+    }
+
+    /**
+     * Create a HostnameVerifier that accepts any hostname.
+     *
+     * @return A permissive HostnameVerifier for test use
+     */
+    public static HostnameVerifier createTestHostnameVerifier() {
+        return SSLUtil.createAnyHostHostnameVerifier();
     }
 
     /**
