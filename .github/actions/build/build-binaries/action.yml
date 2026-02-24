@@ -33,7 +33,7 @@ runs:
 
     - name: Build & Test Java
       shell: bash
-      run: mvn -e -V -B install
+      run: mvn -e -V -B clean install -DskipITs
       env:
         BUILD_REASON: ${{ github.event_name }}
         BRANCH: ${{ github.ref }}
@@ -46,7 +46,7 @@ runs:
 
     - name: Test Docker Examples
       shell: bash
-      run: mvn -e -V -B clean install -f examples/docker --no-transfer-progress
+      run: mvn -e -V -B install -f examples/docker --no-transfer-progress
 
     - name: Test Spring Example
       shell: bash
@@ -60,7 +60,7 @@ runs:
 
     - name: Run Testsuite
       shell: bash
-      run: mvn -e -V -B install -f testsuite --no-transfer-progress
+      run: mvn -e -V -B verify -pl testsuite --no-transfer-progress
 
     - name: Create tarball with target directory
       shell: bash

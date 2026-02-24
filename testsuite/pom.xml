@@ -337,7 +337,7 @@
                     <!-- Copy OAuth JARs to target/kafka/libs for Kafka container (from docker module) -->
                     <execution>
                         <id>copy-kafka-oauth-libs</id>
-                        <phase>package</phase>
+                        <phase>process-test-classes</phase>
                         <goals>
                             <goal>copy</goal>
                         </goals>
