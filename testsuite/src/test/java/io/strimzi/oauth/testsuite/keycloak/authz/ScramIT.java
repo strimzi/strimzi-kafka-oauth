@@ -71,11 +71,10 @@ public class ScramIT {
         String password = "bobby-secret";
 
         // Producing to SCRAM listener using SASL_SCRAM-SHA-512 should fail.
-        // User 'bobby' has not been configured for SCRAM in 'docker/kafka/scripts/start.sh'
         Properties producerProps = buildProducerConfigScramSimple(env.getBootstrapServers(), username, password);
         try {
             produceMessage(producerProps, "KeycloakAuthorizationTest-multiSaslTest-scram", "The Message");
-            fail("Should have failed");
+            fail("Message producer should have failed, but it didn't");
         } catch (ExecutionException e) {
             assertTrueExtra("Instance of authentication exception", e.getCause() instanceof AuthenticationException, e);
         }
@@ -91,7 +90,7 @@ public class ScramIT {
         produceMessage(producerProps, "KeycloakAuthorizationTest-multiSaslTest-scram", "The Message");
         try {
             produceMessage(producerProps, "KeycloakAuthorizationTest-multiSaslTest-scram-denied", "The Message");
-            fail("Should have failed");
+            fail("Message producer should have failed, but it didn't");
         } catch (ExecutionException e) {
             assertInstanceOf(AuthorizationException.class, e.getCause(), "Instance of authorization exception");
         }
@@ -102,7 +101,7 @@ public class ScramIT {
                     URI.create(env.getTokenEndpointUri()),
                     username, password, "kafka-cli");
 
-            fail("Should have failed");
+            fail("Message producer should have failed, but it didn't");
         } catch (HttpException e) {
             assertEquals(401, e.getStatus(), "Status 401");
         }

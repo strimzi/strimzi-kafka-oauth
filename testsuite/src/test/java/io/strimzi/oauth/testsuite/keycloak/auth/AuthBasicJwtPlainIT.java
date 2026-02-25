@@ -43,7 +43,6 @@ public class AuthBasicJwtPlainIT {
     private static final Logger log = LoggerFactory.getLogger(AuthBasicJwtPlainIT.class);
 
     // Keycloak host as seen by the broker (used in Prometheus metrics labels)
-    // TODO - remove?
     private static final String BROKER_KEYCLOAK_HOST = "keycloak:8080";
 
     OAuthEnvironmentExtension env;

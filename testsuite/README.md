@@ -1,171 +1,232 @@
-Testsuite
-=========
+# Testsuite
 
-This module contains integration tests for OAuth 2.0 support - different configurations for client and server are tested.
+## Table of Contents
 
-The tests in this testsuite are mostly integration tests, making use of 'testcontainers' to start and stop the necessary docker containers. The tests are bootstrapped through standard maven's 'test' phase, rather than the conventional 'integration-test' 
-phase which is otherwise used when integration tests are intermingled in the same project with unit tests. 
+- [Overview](#overview)
+- [Architecture](#architecture)
+- [Quick Start](#quick-start)
+- [Annotation-Based Configuration](#annotation-based-configuration)
+- [Test Infrastructure Components](#test-infrastructure-components)
+- [Writing Tests](#writing-tests)
+- [Running Tests](#running-tests)
+- [Troubleshooting](#troubleshooting)
 
+## Overview
 
-Preparing
-=========
+The testsuite has been refactored from multiple separate Maven modules into a single unified module with a modern, annotation-based test infrastructure.
+Key improvements include:
 
-Make sure that the following ports on your host machine are free: 9092, 2181 (Kafka), 8080, 8443 (Keycloak), 4444, 4445 (Hydra), 8091, 8090 (Mock OAuth Server), 1088, 1750 (Kerberos).
+The `testsuite` module contains all integration tests for strimzi-kafka-oauth library.
+It utilizes `test-containers` to run all the required infrastructure as Docker containers.
+Nowadays authorization servers uses pure `test-containers` implementation.
+However, for Kafka we use Strimzi's `test-container` implementation where we just copy latest built oauth jars.
 
-Then, you have to add some entries to your `/etc/hosts` file:
+The main advantages are:
+- **Declarative Configuration**: Use `@OAuthEnvironment` and `@KafkaConfig` annotations to setup testing environment
+- **Automatic Container Management**: Testcontainers handles all Docker container lifecycle
+- **Automatic Log Collection**: Container and test logs are automatically saved for all tests at `testsuite/target/test-logs`
+- **Per-Method Configuration**: Kafka can be reconfigured between test methods
+- **JUnit 5**: Modern test framework with better extension support
+- **Single Module**: All tests in one place with clear package organization
 
-    127.0.0.1            keycloak
-    127.0.0.1            hydra
-    127.0.0.1            hydra-jwt
-    127.0.0.1            kafka
-    127.0.0.1            mockoauth
-    127.0.0.1			 kerberos
+## Module Structure
 
-That's needed for host resolution, because Kafka brokers and Kafka clients connecting to Keycloak / Hydra have to use the 
-same hostname to ensure compatibility of generated access tokens.
+```
+testsuite/
+├── src/main/java/                    # Test infrastructure (compile scope)
+│   └── io/strimzi/oauth/testsuite/
+│       ├── clients/                   # Kafka client utilities
+│       ├── common/                    # Common test utilities
+│       ├── environment/               # @OAuthEnvironment extension with helper classes
+│       ├── logging/                   # Log collection from tests and containers
+│       ├── metrics/                   # Metrics utilities
+│       ├── server/                    # Mock OAuth server implementation
+│       └── utils/                     # Helper utilities
+├── src/test/java/                     # Integration tests (test scope)
+│   └── io/strimzi/oauth/testsuite/
+│       ├── component/                 # Component tests (more unit-like tests that requires more oauth modules together)
+│       ├── hydra/                     # Hydra auth server tests
+│       ├── keycloak/                  # Keycloak tests
+│       │   ├── auth/                  # Authentication tests
+│       │   ├── authz/                 # Authorization tests
+│       │   └── errors/                # Error handling tests
+│       └── mockoauth/                 # Mock OAuth server tests
+└── docker/                            # Docker resources (certificates, etc.)
+```
 
-Also, when Kafka client connects to Kafka broker running inside docker image, the broker will redirect the client to: kafka:9292.
+## Quick Start
 
+### Basic Test Example
 
-Running
-=======
-
-The testsuite can be run with Java 17 to test all the components, or with Java 11 to test client and server components that are Java 11 compatible.
-The only component not Java 11 compatible is `KeycloakAuthorizer` which integrates deeply with server-side Kafka libraries that only exist in Java 17 compatible class format since Kafka 4.0.0.
-
-You may first need to perform the following cleanup of pre-existing containers / network definitions:
-
-    docker rm -f keycloak kafka hydra hydra-jwt mockoauth kerberos
-    docker network rm $(docker network ls | grep test | awk '{print $1}')
+```java
+@OAuthEnvironment(
+    authServer = AuthServer.KEYCLOAK,
+    kafka = @KafkaConfig(
+        realm = "demo",
+        oauthProperties = {
+            "oauth.client.id=kafka",
+            "oauth.fallback.username.claim=client_id"
+        }
+    )
+)
+public class MyTest {
     
-To build and run the testsuite you need a running 'docker' daemon, then simply run:
-
-    mvn clean install
-
-Or if you are in `strimzi-kafka-oauth` project root directory:
-
-    mvn clean install -f testsuite
-
-By using `clean` you make sure that the latest project jars are included into the kafka image.
-
-There are several profiles available to test with a specific version of Kafka images:
-
-- kafka-3_2_3
-- kafka-3_3_1
-- kafka-3_3_2
-- kafka-3_4_0
-- kafka-3_5_0
-- kafka-3_5_2
-- kafka-3_6_1
-- kafka-3_6_2
-- kafka-3_7_1
-- kafka-3_8_1
-- kafka-3_9_0
-
-Only one at a time can be applied. For example:
- 
-    mvn clean install -f testsuite -Pkafka-3_7_1
-
-If you only want to run a single test, you first have to build the testsuite 'parent':
-
-Note: just building the testsuite module is not enough (`mvn clean install -f testsuite -pl .`)
-
-    mvn clean install -f testsuite
-    mvn test -f testsuite/keycloak-auth-tests
-
-
-Troubleshooting
-===============
-
-### Network is ambiguous
-
-An example error message:
-
-    "network keycloak-auth-tests_default is ambiguous (2 matches found on name)"
-
-In case of a failed test 'testcontainers' needs up to 30 seconds to automatically remove the docker network it created.
-
-You can list existing networks with:
-
-    docker network ls
-
-And remove the networks that shouldn't be there with:
-
-    docker rm NETWORK_ID
-
-You can delete all test networks at once by running the following:
-
-    docker network rm $(docker network ls | grep test | awk '{print $1}')
-
-
-### Container name already in use
-
-An example error message:
-
-    "The container name \"/keycloak\" is already in use by container \"ec9246b84b811e6fdc5224336bb95b54393d793b725cc9d764499d1df0927d72\""}
-
-Run the following to remove any left-over containers:
-
-    docker rm -f kafka keycloak hydra
-
-If this fails, and you see 'Cannot remove ... Permission Denied' in `dockerd` log on Linux, you may have issues with AppArmor service.
-
-On Ubuntu you can follow [these instructions](https://bugs.launchpad.net/ubuntu/+source/snapd/+bug/1803476/comments/21) to disable it.
-
-But then you may need to re-enable it again:
+    OAuthEnvironmentExtension env;  // Auto-injected via @OAuthEnvironment
     
-    sudo systemctl enable apparmor.service --now
+    @Test
+    void testBasicAuthentication() throws Exception {
+        String bootstrap = env.getBootstrapServers();
+        
+        Map<String, String> oauthConfig = Map.of(
+            ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, 
+            "http://" + env.getKeycloakHostPort() + "/realms/demo/protocol/openid-connect/token",
+            ClientConfig.OAUTH_CLIENT_ID, "my-client",
+            ClientConfig.OAUTH_CLIENT_SECRET, "my-secret"
+        );
+        
+        produceAndConsumeOAuthBearer(bootstrap, oauthConfig, "my-topic", "Hello");
+    }
+}
+```
 
-Also remove any docker test networks that are left due to error as instructed in previous section ('Network is ambiguous') and rerun the test. 
+## Annotation-Based Configuration
 
-You can check that no container by the same name exists by doing:
+### @OAuthEnvironment
 
-    docker ps -a | grep CONTAINER_NAME
+The `@OAuthEnvironment` annotation is the main entry point for configuring your test environment.
 
+```java
+@OAuthEnvironment(
+    authServer = AuthServer.KEYCLOAK,  // or MOCK_OAUTH, HYDRA
+    kafka = @KafkaConfig(...)           // Optional Kafka configuration
+)
+```
 
-### Could not auto start container
+**Parameters:**
+- `authServer`: Which OAuth server to start (KEYCLOAK, MOCK_OAUTH, HYDRA)
+- `kafka`: Kafka cluster configuration (optional as can be on test level)
 
-If you see the warning 'Docker Image not on DockerHost and it is going to be automatically pulled.', then the failure to start container may be due to the necessary images still being pulled.
+### @KafkaConfig
 
-Remove any docker test networks that are left as described in 'Network is ambiguous' issue.
+The `@KafkaConfig` annotation configures the Kafka cluster. It can be used at:
+- **Class level**: Default configuration for all tests
+- **Method level**: Override configuration for specific test methods
 
-Then try to repeat the test run, using `-rf` option to skip successful tests as advised by maven error output.
+```java
+@KafkaConfig(
+    authenticationType = AuthenticationType.OAUTH_BEARER, // Authentication type (default: OAUTH_BEARER)
+    realm = "kafka-authz",              // Keycloak realm to use (default: "kafka-authz")
+    clientId = "kafka",                 // OAuth client ID for inter-broker auth (default: "kafka")
+    clientSecret = "kafka-secret",      // OAuth client secret (default: "kafka-secret")
+    usernameClaim = "preferred_username", // OAuth username claim (default: "preferred_username")
+    enabled = true,                     // Whether to start Kafka (default: true)
+    setupAcls = true,                   // Setup ACLs for authz tests (default: false)
+    metrics = true,                     // Enable Prometheus metrics (default: false)
+    initEndpoints = true,               // Initialize MockOAuth endpoints (default: true)
+    oauthProperties = {                 // Additional OAuth JAAS properties for Kafka broker
+        "oauth.check.audience=true"
+    },
+    kafkaProperties = {                 // Additional Kafka broker properties
+        "authorizer.class.name=io.strimzi.kafka.oauth.server.authorizer.KeycloakAuthorizer"
+    },
+    scramUsers = {                      // SCRAM users to provision (format: "user:password")
+        "alice:alice-secret"
+    }
+)
+```
 
+### Per-Method Configuration
 
-### Could not build image - Permission denied
+You can override Kafka configuration for individual test methods:
 
-If you're running Docker daemon as root on Linux, you may need to configure an extra listener for TCP and set DOCKER_HOST env variable.
+```java
+@OAuthEnvironment(
+    authServer = AuthServer.KEYCLOAK,
+    kafka = @KafkaConfig(realm = "demo")  // Default config
+)
+public class MyTest {
+    
+    OAuthEnvironmentExtension env;
+    
+    @Test
+    void testWithDefaultConfig() {
+        // Uses realm "demo"
+    }
+    
+    @KafkaConfig(
+        realm = "kafka-authz",
+        oauthProperties = {"oauth.check.audience=true"}
+    )
+    @Test
+    void testWithAudienceCheck() {
+        // Kafka is restarted with new configuration
+        // Uses realm "kafka-authz" with audience checking
+    }
+}
+```
 
-For example, to run docker daemon use:
+**Note**: When configuration changes between test methods, Kafka is automatically stopped and restarted with the new configuration.
 
-    sudo dockerd -H tcp://127.0.0.1:2375 -H unix:///var/run/docker.sock
+### TestLogCollector
 
-To set environment you then use:
+Automatically collects container logs.
+The fully qualified class name is converted to a directory path (dots become `/`) without `io.strimzi.oauth.testsuite` prefix.
+Logs are organized as:
+```
+target/test-logs/<CLASS_DIRECTORY>/<CLASS_NAME>/test.log                 # test log from JUnit executor
+target/test-logs/<CLASS_DIRECTORY>/<CLASS_NAME>/containers/              # always-collected container logs
+target/test-logs/<CLASS_DIRECTORY>/<CLASS_NAME>/failures/{test-method}/  # point-in-time snapshots on test failure
+```
 
-    export DOCKER_HOST=tcp://127.0.0.1:2375
+Each container's logs are saved in a separate file named after the first label attached to container (name is usually just a hash).
 
+## Running Tests
 
-### Couldn't resolve server
+### Run All Tests
 
-Make sure that you added 'kafka', 'keycloak', and 'hydra' to your `/etc/hosts` as follows:
+```bash
+mvn clean install -f testsuite
+```
 
-    127.0.0.1    kafka
-    127.0.0.1    keycloak
-    127.0.0.1    hydra
-    127.0.0.1    hydra-jwt
-    127.0.0.1    mockoauth
-    127.0.0.1    kerberos
+### Run Specific Test Class
 
+```bash
+mvn verify -f testsuite -Dit.test=AudienceIT
+```
 
-### How to set a custom Kafka image
+### Run Tests by Package
 
-By default, the latest released strimzi/kafka images are used for the tests. Regardless of the versions of oauth-kafka-* 
-libraries included with these images, the latest build of 1.0.0-SNAPSHOT oauth-kafka-* libraries is included in these images and
- placed at the head of the classpath to override the versions packaged with the published images.
-  
-Thus, you don't need to use the latest local build of strimzi/kafka libraries to test the new oauth functionality.
+```bash
+# All Keycloak auth tests
+mvn verify -f testsuite -Dit.test="io.strimzi.oauth.testsuite.keycloak.auth.*"
 
-But if you want you can specify the kafka image to use for the test as follows:
+# All authorization tests
+mvn verify -f testsuite -Dit.test="io.strimzi.oauth.testsuite.keycloak.authz.*"
 
-    mvn clean test -Dkafka.docker.image=quay.io/strimzi/kafka:0.48.0-kafka-4.1.0 -f testsuite/keycloak-auth-tests
+# All MockOAuth tests
+mvn verify -f testsuite -Dit.test="io.strimzi.oauth.testsuite.mockoauth.*"
+```
 
+### Run Tests by Tag
+
+```bash
+# Run only JWT tests
+mvn verify -f testsuite -Dgroups="jwt"
+
+# Run only metrics tests
+mvn verify -f testsuite -Dgroups="metrics"
+```
+
+### Run with Different Kafka Version
+
+```bash
+mvn clean install -f testsuite -Pkafka-3_9_1
+```
+
+Available profiles: `kafka-3_2_3`, `kafka-3_3_2`, `kafka-3_4_0`, `kafka-3_5_0`, `kafka-3_5_2`, `kafka-3_6_1`, `kafka-3_6_2`, `kafka-3_7_1`, `kafka-3_8_1`, `kafka-3_9_1`, `kafka-4_0_0`, `kafka-4_1_0`
+
+### Run with Custom Kafka Image
+
+```bash
+mvn verify -f testsuite -Dkafka.docker.image=quay.io/strimzi/kafka:0.48.0-kafka-4.1.0
+```

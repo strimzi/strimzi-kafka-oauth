@@ -17,8 +17,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Utility for running multiple test tasks concurrently with a start barrier and configurable timeout.
- * Replaces legacy Thread-extending FloodProducer/FloodConsumer patterns with modern concurrency.
+ * Utility for running multiple Kafka Clients tasks concurrently with a start barrier and configurable timeout.
  */
 public class ConcurrentKafkaClientsRunner {
 
@@ -27,9 +26,9 @@ public class ConcurrentKafkaClientsRunner {
     private final List<Callable<Void>> tasks = new ArrayList<>();
 
     /**
-     * Add a task to be executed concurrently.
+     * Add a Kafka Client task to be executed concurrently.
      *
-     * @param task the task to run
+     * @param task the Kafka Client task to run
      * @return this runner for chaining
      */
     public ConcurrentKafkaClientsRunner addTask(Callable<Void> task) {
@@ -38,7 +37,7 @@ public class ConcurrentKafkaClientsRunner {
     }
 
     /**
-     * Execute all added tasks concurrently. A CountDownLatch ensures all tasks start simultaneously.
+     * Execute all added Kafka Client tasks concurrently. A CountDownLatch ensures all tasks start simultaneously.
      * Each task's result is retrieved with the given timeout.
      *
      * @param timeoutSeconds maximum time to wait for all tasks to complete
@@ -72,7 +71,7 @@ public class ConcurrentKafkaClientsRunner {
     }
 
     /**
-     * Clear all added tasks to prepare for the next run.
+     * Clear all added Kafka Client tasks to prepare for the next run.
      */
     public void clear() {
         tasks.clear();

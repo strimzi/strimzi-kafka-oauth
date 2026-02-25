@@ -130,7 +130,7 @@ public class HydraAuthenticationIT {
     )
     public void testClientCredentialsWithJwtValidation() throws Exception {
         final String kafkaBootstrap = env.getBootstrapServers();
-        final String hostPort = System.getProperty("hydra.jwt.host") + ":" + System.getProperty("hydra.jwt.port");
+        final String hostPort = env.getHydraJwtHostPort();
         final String tokenEndpointUri = "https://" + hostPort + "/oauth2/token";
 
         Map<String, String> oauthConfig = new HashMap<>();
@@ -152,7 +152,7 @@ public class HydraAuthenticationIT {
 
     private void opaqueAccessTokenWithIntrospectValidationTest(String title) throws Exception {
         final String kafkaBootstrap = env.getBootstrapServers();
-        final String hostPort = System.getProperty("hydra.host") + ":" + System.getProperty("hydra.port");
+        final String hostPort = env.getHydraHostPort();
 
         final String tokenEndpointUri = "https://" + hostPort + "/oauth2/token";
 

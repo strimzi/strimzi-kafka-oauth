@@ -17,7 +17,6 @@ import org.junit.jupiter.api.MethodOrderer;
 import io.strimzi.test.container.AuthenticationType;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,7 +35,6 @@ import static io.strimzi.oauth.testsuite.metrics.TestMetrics.getPrometheusMetric
 @OAuthEnvironment(
     authServer = AuthServer.KEYCLOAK
 )
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class AuthOAuthOverPlainIT {
 
     private static final Logger log = LoggerFactory.getLogger(AuthOAuthOverPlainIT.class);

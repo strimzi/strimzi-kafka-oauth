@@ -32,8 +32,6 @@ import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
 import static io.strimzi.oauth.testsuite.utils.TestUtil.createTestHostnameVerifier;
 import static io.strimzi.oauth.testsuite.utils.TestUtil.createTestSSLFactory;
 import static io.strimzi.oauth.testsuite.utils.TestUtil.getProjectRoot;
-import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.changeAuthServerMode;
-import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.createOAuthClient;
 import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.loginWithClientSecretAndExtraAttrs;
 
 /**
@@ -53,20 +51,20 @@ public class JwtValidationIT {
     void testJWKSKeyUseEnforcement() throws Exception {
         Services.configure(new HashMap<>());
 
-        changeAuthServerMode("jwks", "MODE_JWKS_RSA_WITHOUT_SIG_USE");
-        changeAuthServerMode("token", "MODE_200");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "jwks", "MODE_JWKS_RSA_WITHOUT_SIG_USE");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "token", "MODE_200");
 
         String testClient = "testclient";
         String testSecret = "testsecret";
-        createOAuthClient(testClient, testSecret);
+        MockOAuthAdmin.createOAuthClient(env.getMockOAuthAdminHostPort(), testClient, testSecret);
 
         SSLSocketFactory sslFactory = createTestSSLFactory();
 
-        JWTSignatureValidator validator = createTokenValidator("enforceKeyUse", sslFactory, false);
+        JWTSignatureValidator validator = createTokenValidator("enforceKeyUse", env.getMockOAuthHostPort(), sslFactory, false);
 
         // Get a new token
         TokenInfo tokenInfo = OAuthAuthenticator.loginWithClientSecret(
-            URI.create("https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/token"),
+            URI.create("https://" + env.getMockOAuthHostPort() + "/token"),
             sslFactory,
             createTestHostnameVerifier(),
             testClient,
@@ -93,18 +91,18 @@ public class JwtValidationIT {
     void testJWKSKeyUseIgnored() throws Exception {
         Services.configure(new HashMap<>());
 
-        changeAuthServerMode("jwks", "MODE_JWKS_RSA_WITHOUT_SIG_USE");
-        changeAuthServerMode("token", "MODE_200");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "jwks", "MODE_JWKS_RSA_WITHOUT_SIG_USE");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "token", "MODE_200");
 
         String testClient = "testclient";
         String testSecret = "testsecret";
-        createOAuthClient(testClient, testSecret);
+        MockOAuthAdmin.createOAuthClient(env.getMockOAuthAdminHostPort(), testClient, testSecret);
 
         SSLSocketFactory sslFactory = createTestSSLFactory();
 
         // Get a new token
         TokenInfo tokenInfo = OAuthAuthenticator.loginWithClientSecret(
-            URI.create("https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/token"),
+            URI.create("https://" + env.getMockOAuthHostPort() + "/token"),
             sslFactory,
             createTestHostnameVerifier(),
             testClient,
@@ -117,7 +115,7 @@ public class JwtValidationIT {
         TokenIntrospection.debugLogJWT(log, tokenInfo.token());
 
         // Create validator with ignoreKeyUse=true
-        JWTSignatureValidator validatorIgnoreKeyUse = createTokenValidator("ignoreKeyUse", sslFactory, true);
+        JWTSignatureValidator validatorIgnoreKeyUse = createTokenValidator("ignoreKeyUse", env.getMockOAuthHostPort(), sslFactory, true);
 
         // Try to validate the token - should pass
         validatorIgnoreKeyUse.validate(tokenInfo.token());
@@ -128,16 +126,16 @@ public class JwtValidationIT {
     void testExpiresAtOverflow() throws Exception {
         Services.configure(new HashMap<>());
 
-        changeAuthServerMode("jwks", "MODE_JWKS_RSA_WITH_SIG_USE");
-        changeAuthServerMode("token", "MODE_200");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "jwks", "MODE_JWKS_RSA_WITH_SIG_USE");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "token", "MODE_200");
 
         String testClient = "testclient";
         String testSecret = "testsecret";
-        createOAuthClient(testClient, testSecret);
+        MockOAuthAdmin.createOAuthClient(env.getMockOAuthAdminHostPort(), testClient, testSecret);
 
         SSLSocketFactory sslFactory = createTestSSLFactory();
 
-        JWTSignatureValidator validator = createTokenValidator("enforceKeyUse", sslFactory, false);
+        JWTSignatureValidator validator = createTokenValidator("enforceKeyUse", env.getMockOAuthHostPort(), sslFactory, false);
 
         String projectRoot = getProjectRoot();
         String trustStorePath = projectRoot + "/docker/certificates/ca-truststore.p12";
@@ -152,7 +150,7 @@ public class JwtValidationIT {
 
         // Now get a new token
         String accessToken = loginWithClientSecretAndExtraAttrs(
-            "https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/token",
+            "https://" + env.getMockOAuthHostPort() + "/token",
             testClient,
             testSecret,
             trustStorePath,
@@ -166,12 +164,12 @@ public class JwtValidationIT {
         validator.validate(accessToken);
     }
 
-    private static JWTSignatureValidator createTokenValidator(String validatorId, SSLSocketFactory sslFactory, boolean ignoreKeyUse) {
+    private static JWTSignatureValidator createTokenValidator(String validatorId, String authHostPort, SSLSocketFactory sslFactory, boolean ignoreKeyUse) {
         return new JWTSignatureValidator(validatorId,
             null,
             null,
             null,
-            "https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/jwks",
+            "https://" + authHostPort + "/jwks",
             sslFactory,
             createTestHostnameVerifier(),
             new PrincipalExtractor(),

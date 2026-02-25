@@ -24,6 +24,7 @@ import io.strimzi.oauth.testsuite.common.TestTags;
 import io.strimzi.oauth.testsuite.utils.TestUtil;
 import io.strimzi.oauth.testsuite.environment.AuthServer;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironment;
+import io.strimzi.oauth.testsuite.environment.OAuthEnvironmentExtension;
 import io.strimzi.oauth.testsuite.clients.MockOAuthAdmin;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.resource.PatternType;
@@ -67,16 +68,14 @@ import java.util.stream.Collectors;
 
 import static io.strimzi.oauth.testsuite.logging.TestLogPaths.CURRENT_TEST_LOG_PATH;
 import static io.strimzi.oauth.testsuite.utils.TestUtil.checkLogForRegex;
-import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.addGrantsForToken;
-import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.changeAuthServerMode;
 import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.checkLog;
-import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.createOAuthClient;
-import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.createOAuthUser;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @OAuthEnvironment(authServer = AuthServer.MOCK_OAUTH)
 public class KeycloakAuthorizerIT {
+
+    OAuthEnvironmentExtension env;
 
     private static final Logger LOG = LoggerFactory.getLogger(KeycloakAuthorizerIT.class);
 
@@ -88,20 +87,20 @@ public class KeycloakAuthorizerIT {
     final static String TRUSTSTORE_PATH = "target/kafka/certs/ca-truststore.p12";
     final static String TRUSTSTORE_PASS = "changeit";
 
-    static String tokenEndpoint() {
-        return "https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/token";
+    String tokenEndpoint() {
+        return "https://" + env.getMockOAuthHostPort() + "/token";
     }
 
-    static String failingTokenEndpoint() {
-        return "https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/failing_token";
+    String failingTokenEndpoint() {
+        return "https://" + env.getMockOAuthHostPort() + "/failing_token";
     }
 
-    static String grantsEndpoint() {
-        return "https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/grants";
+    String grantsEndpoint() {
+        return "https://" + env.getMockOAuthHostPort() + "/grants";
     }
 
-    static String jwksEndpoint() {
-        return "https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/jwks";
+    String jwksEndpoint() {
+        return "https://" + env.getMockOAuthHostPort() + "/jwks";
     }
 
     final static String CLIENT_SRV = "kafka";
@@ -112,7 +111,7 @@ public class KeycloakAuthorizerIT {
     @Tag(TestTags.GRANTS)
     @Tag(TestTags.ERROR_HANDLING)
     public void testGrantsCacheInvalidatedOnHttp401() throws IOException, InterruptedException, TimeoutException {
-        changeAuthServerMode("token", "MODE_200");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "token", "MODE_200");
 
         LogLineReader logReader = new LogLineReader(CURRENT_TEST_LOG_PATH);
         logReader.readNext();
@@ -129,7 +128,7 @@ public class KeycloakAuthorizerIT {
             TokenInfo tokenInfo = login(tokenEndpoint(), USER_ALICE, USER_ALICE_PASS, 1);
 
             //   simulate an authenticated session
-            changeAuthServerMode("jwks", "MODE_200");
+            MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "jwks", "MODE_200");
 
             //     configure the authentication handler
             AuthenticateCallbackHandler authHandler = configureJwtSignatureValidator();
@@ -156,7 +155,7 @@ public class KeycloakAuthorizerIT {
             Assertions.assertTrue(checkLogForRegex(lines, "Saving non-null grants"), "Saving non-null grants");
 
             // Switch grants endpoint to 401 mode
-            changeAuthServerMode("grants", "MODE_401");
+            MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "grants", "MODE_401");
 
             LOG.info("Waiting for: Done refreshing"); // Make sure to not repeat the below condition in the string here
             lines = logReader.waitFor("Done refreshing grants");
@@ -165,7 +164,7 @@ public class KeycloakAuthorizerIT {
             Assertions.assertTrue(checkLogForRegex(lines, "Removed invalid session from sessions map \\(userId: alice"), "Removed invalid session");
 
         } finally {
-            changeAuthServerMode("grants", "MODE_200");
+            MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "grants", "MODE_200");
         }
 
         TestAuthzUtil.clearKeycloakAuthorizerService();
@@ -177,7 +176,7 @@ public class KeycloakAuthorizerIT {
     @Tag(TestTags.ERROR_HANDLING)
     public void testAuthorizationDeniedOnHttp403FromGrantsEndpoint() throws IOException {
         // Switch grants endpoint to 403 mode
-        changeAuthServerMode("grants", "MODE_403");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "grants", "MODE_403");
 
         LogLineReader logReader = new LogLineReader(CURRENT_TEST_LOG_PATH);
         logReader.readNext();
@@ -210,7 +209,7 @@ public class KeycloakAuthorizerIT {
             Assertions.assertTrue(checkLogForRegex(lines, "grants for .*: \\{\\}"), "grants for user: {}");
 
         } finally {
-            changeAuthServerMode("grants", "MODE_200");
+            MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "grants", "MODE_200");
         }
 
         TestAuthzUtil.clearKeycloakAuthorizerService();
@@ -221,11 +220,11 @@ public class KeycloakAuthorizerIT {
     @Tag(TestTags.HTTP)
     @Tag(TestTags.RETRIES)
     public void testLoginRetriesOnFailingTokenEndpoint() throws IOException {
-        changeAuthServerMode("token", "MODE_200");
-        changeAuthServerMode("failing_token", "MODE_400");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "token", "MODE_200");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "failing_token", "MODE_400");
 
         HashMap<String, String> props = configureAuthorizer();
-        props.put(AuthzConfig.STRIMZI_AUTHORIZATION_TOKEN_ENDPOINT_URI, "https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/failing_grants");
+        props.put(AuthzConfig.STRIMZI_AUTHORIZATION_TOKEN_ENDPOINT_URI, "https://" + env.getMockOAuthHostPort() + "/failing_grants");
 
         try (KeycloakAuthorizer authorizer = new KeycloakAuthorizer()) {
             authorizer.configure(props);
@@ -275,13 +274,13 @@ public class KeycloakAuthorizerIT {
         // create a test user 'user1'
         String userOne = "user1";
         String userOnePass = "user1-password";
-        createOAuthUser(userOne, userOnePass);
+        MockOAuthAdmin.createOAuthUser(env.getMockOAuthAdminHostPort(), userOne, userOnePass);
 
-        changeAuthServerMode("token", "MODE_200");
-        changeAuthServerMode("failing_token", "MODE_400");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "token", "MODE_200");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "failing_token", "MODE_400");
 
         // grants endpoint has to be configured to respond with a 1s delay
-        changeAuthServerMode("grants", "MODE_200_DELAYED");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "grants", "MODE_200_DELAYED");
 
         // one test uses KeycloakAuthorizer not configured with 'strimzi.authorization.reuse.grants'
         HashMap<String, String> props = configureAuthorizer();
@@ -485,14 +484,14 @@ public class KeycloakAuthorizerIT {
         List<OAuthKafkaPrincipal> principals = new LinkedList<>();
 
         // make sure the token endpoint works fine
-        changeAuthServerMode("token", "MODE_200");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "token", "MODE_200");
 
         // Make sure grants endpoint is set to normal mode 200
-        changeAuthServerMode("grants", "MODE_200");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "grants", "MODE_200");
 
         String userOne = "gcUser1";
         String userOnePass = "gcUser1-password";
-        createOAuthUser(userOne, userOnePass);
+        MockOAuthAdmin.createOAuthUser(env.getMockOAuthAdminHostPort(), userOne, userOnePass);
 
         // Set gcPeriodSeconds to 3 seconds
         HashMap<String, String> props = configureAuthorizer();
@@ -509,7 +508,7 @@ public class KeycloakAuthorizerIT {
             TokenInfo tokenInfo = login(tokenEndpoint(), userOne, userOnePass, 0);
 
             //   simulate an authenticated session
-            changeAuthServerMode("jwks", "MODE_200");
+            MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "jwks", "MODE_200");
 
             //     configure the authentication handler
             AuthenticateCallbackHandler authHandler = configureJwtSignatureValidator();
@@ -548,7 +547,7 @@ public class KeycloakAuthorizerIT {
 
             String userTwo = "gcUser2";
             String userTwoPass = "gcUser2-password";
-            createOAuthUser(userTwo, userTwoPass, 8);
+            MockOAuthAdmin.createOAuthUser(env.getMockOAuthAdminHostPort(), userTwo, userTwoPass, 8);
 
             // Create a short-lived access token for a new user, that only has a 5 seconds lifetime
             // This allows us to test if after 5 seconds the triggered gc job cleans the cache, due to the expired token
@@ -596,14 +595,14 @@ public class KeycloakAuthorizerIT {
     @Tag(TestTags.GRANTS)
     public void testAuthorizationDeniedOnMalformedGrantResources() throws IOException, InterruptedException, TimeoutException {
         // make sure the token endpoint works fine
-        changeAuthServerMode("token", "MODE_200");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "token", "MODE_200");
 
         // login as some user - alice in our case, and get the token
         TokenInfo tokenInfo = login(tokenEndpoint(), USER_ALICE, USER_ALICE_PASS, 0);
         OAuthKafkaPrincipal principal = new OAuthKafkaPrincipal(KafkaPrincipal.USER_TYPE, USER_ALICE, TestTokenFactory.newTokenForUser(tokenInfo));
 
         // Mistyped resource type 'Topc' instead of 'Topic'
-        addGrantsForToken(tokenInfo.token(), "[{\"scopes\":[\"Delete\",\"Write\",\"Describe\",\"Read\",\"Alter\",\"Create\",\"DescribeConfigs\",\"AlterConfigs\"],\"rsid\":\"ca6f195f-dbdc-48b7-a953-8e441d17f7fa\",\"rsname\":\"Topc:my-topic*\"}," +
+        MockOAuthAdmin.addGrantsForToken(env.getMockOAuthAdminHostPort(), tokenInfo.token(), "[{\"scopes\":[\"Delete\",\"Write\",\"Describe\",\"Read\",\"Alter\",\"Create\",\"DescribeConfigs\",\"AlterConfigs\"],\"rsid\":\"ca6f195f-dbdc-48b7-a953-8e441d17f7fa\",\"rsname\":\"Topc:my-topic*\"}," +
             "{\"scopes\":[\"IdempotentWrite\"],\"rsid\":\"73af36e6-5796-43e7-8129-b57fe0bac7a1\",\"rsname\":\"Cluster:*\"}," +
             "{\"scopes\":[\"Describe\",\"Read\"],\"rsid\":\"141c56e8-1a85-40f3-b38a-f490bad76913\",\"rsname\":\"Group:*\"}]");
 
@@ -636,7 +635,7 @@ public class KeycloakAuthorizerIT {
 
 
             // malformed resource spec - no ':' in Topic;my-topic*
-            addGrantsForToken(tokenInfo.token(), "[{\"scopes\":[\"Delete\",\"Write\",\"Describe\",\"Read\",\"Alter\",\"Create\",\"DescribeConfigs\",\"AlterConfigs\"],\"rsid\":\"ca6f195f-dbdc-48b7-a953-8e441d17f7fa\",\"rsname\":\"Topic;my-topic*\"}," +
+            MockOAuthAdmin.addGrantsForToken(env.getMockOAuthAdminHostPort(), tokenInfo.token(), "[{\"scopes\":[\"Delete\",\"Write\",\"Describe\",\"Read\",\"Alter\",\"Create\",\"DescribeConfigs\",\"AlterConfigs\"],\"rsid\":\"ca6f195f-dbdc-48b7-a953-8e441d17f7fa\",\"rsname\":\"Topic;my-topic*\"}," +
                 "{\"scopes\":[\"IdempotentWrite\"],\"rsid\":\"73af36e6-5796-43e7-8129-b57fe0bac7a1\",\"rsname\":\"Cluster:*\"}," +
                 "{\"scopes\":[\"Describe\",\"Read\"],\"rsid\":\"141c56e8-1a85-40f3-b38a-f490bad76913\",\"rsname\":\"Group:*\"}]");
 
@@ -653,7 +652,7 @@ public class KeycloakAuthorizerIT {
             logReader.waitFor("part doesn't follow TYPE:NAME pattern");
 
             // malformed resource spec - '*' not at the end in 'Topic:*-topic'
-            addGrantsForToken(tokenInfo.token(), "[{\"scopes\":[\"Delete\",\"Write\",\"Describe\",\"Read\",\"Alter\",\"Create\",\"DescribeConfigs\",\"AlterConfigs\"],\"rsid\":\"ca6f195f-dbdc-48b7-a953-8e441d17f7fa\",\"rsname\":\"Topic:*-topic\"}," +
+            MockOAuthAdmin.addGrantsForToken(env.getMockOAuthAdminHostPort(), tokenInfo.token(), "[{\"scopes\":[\"Delete\",\"Write\",\"Describe\",\"Read\",\"Alter\",\"Create\",\"DescribeConfigs\",\"AlterConfigs\"],\"rsid\":\"ca6f195f-dbdc-48b7-a953-8e441d17f7fa\",\"rsname\":\"Topic:*-topic\"}," +
                 "{\"scopes\":[\"IdempotentWrite\"],\"rsid\":\"73af36e6-5796-43e7-8129-b57fe0bac7a1\",\"rsname\":\"Cluster:*\"}," +
                 "{\"scopes\":[\"Describe\",\"Read\"],\"rsid\":\"141c56e8-1a85-40f3-b38a-f490bad76913\",\"rsname\":\"Group:*\"}]");
 
@@ -667,7 +666,7 @@ public class KeycloakAuthorizerIT {
 
 
             // unknown scope - 'Crate' (should be 'Create')
-            addGrantsForToken(tokenInfo.token(), "[{\"scopes\":[\"Delete\",\"Write\",\"Describe\",\"Read\",\"Alter\",\"Crate\",\"DescribeConfigs\",\"AlterConfigs\"],\"rsid\":\"ca6f195f-dbdc-48b7-a953-8e441d17f7fa\",\"rsname\":\"Topic:my-topic*\"}," +
+            MockOAuthAdmin.addGrantsForToken(env.getMockOAuthAdminHostPort(), tokenInfo.token(), "[{\"scopes\":[\"Delete\",\"Write\",\"Describe\",\"Read\",\"Alter\",\"Crate\",\"DescribeConfigs\",\"AlterConfigs\"],\"rsid\":\"ca6f195f-dbdc-48b7-a953-8e441d17f7fa\",\"rsname\":\"Topic:my-topic*\"}," +
                 "{\"scopes\":[\"IdempotentWrite\"],\"rsid\":\"73af36e6-5796-43e7-8129-b57fe0bac7a1\",\"rsname\":\"Cluster:*\"}," +
                 "{\"scopes\":[\"Describe\",\"Read\"],\"rsid\":\"141c56e8-1a85-40f3-b38a-f490bad76913\",\"rsname\":\"Group:*\"}]");
 
@@ -695,14 +694,14 @@ public class KeycloakAuthorizerIT {
         String grants3 = "[{\"scopes\":[\"Read\",\"Write\",\"Delete\",\"Describe\",\"Alter\",\"Create\",\"DescribeConfigs\",\"AlterConfigs\"],\"rsid\":\"5098d4c2-0e7f-4121-8fd2-9964111370a2\",\"rsname\":\"Topic:a_*\"},{\"scopes\":[\"Write\",\"Describe\",\"Create\"],\"rsid\":\"a92a050d-b4f1-4e91-ac65-dbe10f17ee36\",\"rsname\":\"Topic:x_*\"},{\"scopes\":[\"Read\",\"Describe\"],\"rsid\":\"916ed684-5bd0-42b1-b7ab-3b23448d3f50\",\"rsname\":\"Group:a_*\"},{\"scopes\":[\"IdempotentWrite\"],\"rsid\":\"d71850c3-5ea8-47ef-9a61-4fab9c1df363\",\"rsname\":\"kafka-cluster:my-cluster,Cluster:*\"}]";
 
         // make sure the token endpoint works fine
-        changeAuthServerMode("token", "MODE_200");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "token", "MODE_200");
 
         // login as some user - alice in our case, and get the token
         TokenInfo tokenInfo = login(tokenEndpoint(), USER_ALICE, USER_ALICE_PASS, 0);
         OAuthKafkaPrincipal principal = new OAuthKafkaPrincipal(KafkaPrincipal.USER_TYPE, USER_ALICE, TestTokenFactory.newTokenForUser(tokenInfo));
 
         // Set grants for the user to `grants1`
-        addGrantsForToken(tokenInfo.token(), grants1);
+        MockOAuthAdmin.addGrantsForToken(env.getMockOAuthAdminHostPort(), tokenInfo.token(), grants1);
 
         List<Action> actions = new ArrayList<>();
         actions.add(new Action(
@@ -732,7 +731,7 @@ public class KeycloakAuthorizerIT {
             logReader.waitFor("Saving non-null grants for user: alice");
 
             // set grants for the user to `grants2` which are semantically different from `grants1`
-            addGrantsForToken(tokenInfo.token(), grants2);
+            MockOAuthAdmin.addGrantsForToken(env.getMockOAuthAdminHostPort(), tokenInfo.token(), grants2);
 
             // wait for the refresh job to fetch the new grants
             // Check log for 'Grants have changed for user: alice'
@@ -740,7 +739,7 @@ public class KeycloakAuthorizerIT {
             logReader.waitFor("Grants have changed for user: alice");
 
             // set grants for the user to `grants3` which are semantically equal to `grants2`
-            addGrantsForToken(tokenInfo.token(), grants3);
+            MockOAuthAdmin.addGrantsForToken(env.getMockOAuthAdminHostPort(), tokenInfo.token(), grants3);
 
             // wait for the refresh job to fetch the new grants
             LOG.info("Waiting for: Refreshing grants to start"); // Make sure to not repeat the below condition in the string here
@@ -799,17 +798,17 @@ public class KeycloakAuthorizerIT {
 
     @BeforeAll
     void setUp() throws IOException {
-        MockOAuthAdmin.changeAuthServerMode("jwks", "MODE_200");
-        MockOAuthAdmin.changeAuthServerMode("token", "MODE_200");
-        MockOAuthAdmin.changeAuthServerMode("introspect", "MODE_200");
-        MockOAuthAdmin.changeAuthServerMode("userinfo", "MODE_200");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "jwks", "MODE_200");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "token", "MODE_200");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "introspect", "MODE_200");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "userinfo", "MODE_200");
 
         // create a client for resource server
-        createOAuthClient(CLIENT_SRV, CLIENT_SRV_SECRET);
+        MockOAuthAdmin.createOAuthClient(env.getMockOAuthAdminHostPort(), CLIENT_SRV, CLIENT_SRV_SECRET);
         // create a client for user's client agent
-        createOAuthClient(CLIENT_CLI, "");
+        MockOAuthAdmin.createOAuthClient(env.getMockOAuthAdminHostPort(), CLIENT_CLI, "");
         // create a user alice
-        createOAuthUser(USER_ALICE, USER_ALICE_PASS);
+        MockOAuthAdmin.createOAuthUser(env.getMockOAuthAdminHostPort(), USER_ALICE, USER_ALICE_PASS);
     }
 
     private void runConcurrentFetchGrantsTest(HashMap<String, String> props, boolean withReuse, String user, String userPass) throws IOException, ExecutionException, InterruptedException {
@@ -829,7 +828,7 @@ public class KeycloakAuthorizerIT {
             TokenInfo tokenInfo = login(failingTokenEndpoint(), user, userPass, 1);
             OAuthKafkaPrincipal principal = new OAuthKafkaPrincipal(KafkaPrincipal.USER_TYPE, user, TestTokenFactory.newTokenForUser(tokenInfo));
 
-            addGrantsForToken(tokenInfo.token(), "[{\"scopes\":[\"Delete\",\"Write\",\"Describe\",\"Read\",\"Alter\",\"Create\",\"DescribeConfigs\",\"AlterConfigs\"],\"rsid\":\"ca6f195f-dbdc-48b7-a953-8e441d17f7fa\",\"rsname\":\"Topic:my-topic*\"}," +
+            MockOAuthAdmin.addGrantsForToken(env.getMockOAuthAdminHostPort(), tokenInfo.token(), "[{\"scopes\":[\"Delete\",\"Write\",\"Describe\",\"Read\",\"Alter\",\"Create\",\"DescribeConfigs\",\"AlterConfigs\"],\"rsid\":\"ca6f195f-dbdc-48b7-a953-8e441d17f7fa\",\"rsname\":\"Topic:my-topic*\"}," +
                 "{\"scopes\":[\"IdempotentWrite\"],\"rsid\":\"73af36e6-5796-43e7-8129-b57fe0bac7a1\",\"rsname\":\"Cluster:*\"}," +
                 "{\"scopes\":[\"Describe\",\"Read\"],\"rsid\":\"141c56e8-1a85-40f3-b38a-f490bad76913\",\"rsname\":\"Group:*\"}]");
 
@@ -979,7 +978,7 @@ public class KeycloakAuthorizerIT {
         return configureAuthorizer(CLIENT_SRV, TRUSTSTORE_PATH, TRUSTSTORE_PASS);
     }
 
-    static HashMap<String, String> configureAuthorizer(String clientSrv, String trustStorePath, String trustsStorePass) {
+    HashMap<String, String> configureAuthorizer(String clientSrv, String trustStorePath, String trustsStorePass) {
         HashMap<String, String> props = new HashMap<>();
         props.put(AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_LOCATION, trustStorePath);
         props.put(AuthzConfig.STRIMZI_AUTHORIZATION_SSL_TRUSTSTORE_PASSWORD, trustsStorePass);

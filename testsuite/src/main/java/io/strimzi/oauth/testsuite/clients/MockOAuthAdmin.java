@@ -22,18 +22,8 @@ import java.util.regex.Pattern;
  */
 public class MockOAuthAdmin {
 
-    public static String getMockOAuthAuthHostPort() {
-        return System.getProperty("mockoauth.host", "localhost") + ":" +
-                System.getProperty("mockoauth.port", "8090");
-    }
-
-    public static String getMockOAuthAdminHostPort() {
-        return System.getProperty("mockoauth.host", "localhost") + ":" +
-                System.getProperty("mockoauth.admin.port", "8091");
-    }
-
-    public static void changeAuthServerMode(String resource, String mode) throws IOException {
-        String result = HttpUtil.post(URI.create("http://" + getMockOAuthAdminHostPort() + "/admin/" + resource + "?mode=" + mode), null, "text/plain", "", String.class);
+    public static void changeAuthServerMode(String adminHostPort, String resource, String mode) throws IOException {
+        String result = HttpUtil.post(URI.create("http://" + adminHostPort + "/admin/" + resource + "?mode=" + mode), null, "text/plain", "", String.class);
         Assertions.assertEquals(mode.toUpperCase(Locale.ROOT), result, "admin server response should be ");
         if ("server".equals(resource)) {
             try {
@@ -45,43 +35,43 @@ public class MockOAuthAdmin {
         }
     }
 
-    public static void createOAuthClient(String clientId, String secret) throws IOException {
-        HttpUtil.post(URI.create("http://" + getMockOAuthAdminHostPort() + "/admin/clients"),
+    public static void createOAuthClient(String adminHostPort, String clientId, String secret) throws IOException {
+        HttpUtil.post(URI.create("http://" + adminHostPort + "/admin/clients"),
                 null,
                 "application/json",
                 "{\"clientId\": \"" + clientId + "\", \"secret\": \"" + secret + "\"}", String.class);
     }
 
-    public static void createOAuthClientWithAssertion(String clientId, String clientAssertion) throws IOException {
-        HttpUtil.post(URI.create("http://" + getMockOAuthAdminHostPort() + "/admin/clients"),
+    public static void createOAuthClientWithAssertion(String adminHostPort, String clientId, String clientAssertion) throws IOException {
+        HttpUtil.post(URI.create("http://" + adminHostPort + "/admin/clients"),
                 null,
                 "application/json",
                 "{\"clientId\": \"" + clientId + "\", \"clientAssertion\": \"" + clientAssertion + "\"}", String.class);
     }
 
-    public static void createOAuthUser(String username, String password) throws IOException {
-        HttpUtil.post(URI.create("http://" + getMockOAuthAdminHostPort() + "/admin/users"),
+    public static void createOAuthUser(String adminHostPort, String username, String password) throws IOException {
+        HttpUtil.post(URI.create("http://" + adminHostPort + "/admin/users"),
                 null,
                 "application/json",
                 "{\"username\": \"" + username + "\", \"password\": \"" + password + "\"}", String.class);
     }
 
-    public static void createOAuthUser(String username, String password, long expiresInSeconds) throws IOException {
-        HttpUtil.post(URI.create("http://" + getMockOAuthAdminHostPort() + "/admin/users"),
+    public static void createOAuthUser(String adminHostPort, String username, String password, long expiresInSeconds) throws IOException {
+        HttpUtil.post(URI.create("http://" + adminHostPort + "/admin/users"),
                 null,
                 "application/json",
                 "{\"username\": \"" + username + "\", \"password\": \"" + password + "\", \"expires_in\": " + expiresInSeconds + "}", String.class);
     }
 
-    public static void revokeToken(String token) throws IOException {
-        HttpUtil.post(URI.create("http://" + getMockOAuthAdminHostPort() + "/admin/revocations"),
+    public static void revokeToken(String adminHostPort, String token) throws IOException {
+        HttpUtil.post(URI.create("http://" + adminHostPort + "/admin/revocations"),
                 null,
                 "application/json",
                 "{\"token\": \"" + token + "\"}", String.class);
     }
 
-    public static void addGrantsForToken(String token, String grants) throws IOException {
-        HttpUtil.post(URI.create("http://" + getMockOAuthAdminHostPort() + "/admin/grants_map"),
+    public static void addGrantsForToken(String adminHostPort, String token, String grants) throws IOException {
+        HttpUtil.post(URI.create("http://" + adminHostPort + "/admin/grants_map"),
                 null,
                 "application/json",
                 "{\"token\": \"" + token + "\", \"grants\": " + grants + "}", String.class);

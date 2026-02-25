@@ -17,7 +17,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -26,8 +25,6 @@ import java.util.concurrent.ExecutionException;
 
 import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.buildProducerConfigOAuthBearer;
 import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.buildProducerConfigPlain;
-import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.changeAuthServerMode;
-import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.createOAuthClient;
 import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.loginWithClientSecret;
 import static io.strimzi.oauth.testsuite.utils.KafkaClientsUtils.produceMessage;
 import static io.strimzi.oauth.testsuite.utils.TestUtil.getContainerLogsForString;
@@ -54,7 +51,6 @@ import static io.strimzi.oauth.testsuite.utils.TestUtil.waitForCondition;
         }
     )
 )
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class RetriesFailingIT {
     // FAILINGINTROSPECT and FAILINGJWT listeners are configured with 'oauth.http.retry.pause.millis' of 3000
     static final int PAUSE_MILLIS = 3000;
@@ -88,8 +84,8 @@ public class RetriesFailingIT {
 
         String testClient = "testclient";
         String testSecret = "testsecret";
-        createOAuthClient(testClient, testSecret);
-        createOAuthClient("kafka", "kafka-secret");
+        MockOAuthAdmin.createOAuthClient(env.getMockOAuthAdminHostPort(), testClient, testSecret);
+        MockOAuthAdmin.createOAuthClient(env.getMockOAuthAdminHostPort(), "kafka", "kafka-secret");
 
         Map<String, String> oauthConfig = new HashMap<>();
         oauthConfig.put("username", testClient);
@@ -98,9 +94,9 @@ public class RetriesFailingIT {
         Properties producerProps = buildProducerConfigPlain(kafkaBootstrap, oauthConfig);
 
         // configure the endpoints so that they are in failing mode
-        changeAuthServerMode("failing_token", "mode_400");
-        changeAuthServerMode("failing_introspect", "mode_500");
-        changeAuthServerMode("failing_userinfo", "mode_503");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "failing_token", "mode_400");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "failing_introspect", "mode_500");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "failing_userinfo", "mode_503");
 
         String topic = "RetriesTests-plainIntrospectAndUserinfoEndpointsRetriesTest";
 
@@ -119,17 +115,17 @@ public class RetriesFailingIT {
     void testIntrospectAndUserinfoEndpointsRetries() throws Exception {
         // use kafka listener that uses /failing_introspect and failing_userinfo
         final String kafkaBootstrap = env.getBootstrapServers();
-        final String hostPort = MockOAuthAdmin.getMockOAuthAuthHostPort();
+        final String hostPort = env.getMockOAuthHostPort();
         final String tokenEndpointUri = "https://" + hostPort + "/token";
 
         String testClient = "testclient";
         String testSecret = "testsecret";
-        createOAuthClient(testClient, testSecret);
+        MockOAuthAdmin.createOAuthClient(env.getMockOAuthAdminHostPort(), testClient, testSecret);
 
-        createOAuthClient("kafka", "kafka-secret");
+        MockOAuthAdmin.createOAuthClient(env.getMockOAuthAdminHostPort(), "kafka", "kafka-secret");
 
         // authenticate oauth with accesstoken
-        changeAuthServerMode("token", "mode_200");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "token", "mode_200");
         String accessToken = loginWithClientSecret(tokenEndpointUri, testClient, testSecret, "target/kafka/certs/ca-truststore.p12", "changeit");
 
         Map<String, String> oauthConfig = new HashMap<>();
@@ -137,7 +133,7 @@ public class RetriesFailingIT {
         Properties producerProps = buildProducerConfigOAuthBearer(kafkaBootstrap, oauthConfig);
 
         // set failing_introspect endpoint to always return 500, so that the retry will fail
-        changeAuthServerMode("failing_introspect", "mode_failing_500");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "failing_introspect", "mode_failing_500");
 
         String topic = "RetriesTests-introspectAndUserinfoEndpointsRetriesTest";
 
@@ -158,10 +154,10 @@ public class RetriesFailingIT {
 
 
         // set failing_introspect to mode_400, so it will fail but will be immediately retried and will succeed
-        changeAuthServerMode("failing_introspect", "mode_400");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "failing_introspect", "mode_400");
 
         // set failing_userinfo to mode_failing_500 so that a retry will fail
-        changeAuthServerMode("failing_userinfo", "mode_failing_500");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "failing_userinfo", "mode_failing_500");
 
         // authenticate oauth
         start = System.currentTimeMillis();
@@ -180,7 +176,7 @@ public class RetriesFailingIT {
 
 
         // set failing_userinfo to mode_500 so that both failing_introspect and failing_userinfo can recover
-        changeAuthServerMode("failing_userinfo", "mode_500");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "failing_userinfo", "mode_500");
 
         // authenticate oauth
         start = System.currentTimeMillis();
@@ -220,8 +216,8 @@ public class RetriesFailingIT {
 
         String testClient = "testclient";
         String testSecret = "testsecret";
-        createOAuthClient(testClient, testSecret);
-        createOAuthClient("kafka", "kafka-secret");
+        MockOAuthAdmin.createOAuthClient(env.getMockOAuthAdminHostPort(), testClient, testSecret);
+        MockOAuthAdmin.createOAuthClient(env.getMockOAuthAdminHostPort(), "kafka", "kafka-secret");
 
         Map<String, String> oauthConfig = new HashMap<>();
         oauthConfig.put("username", testClient);
@@ -232,7 +228,7 @@ public class RetriesFailingIT {
         // JWKS keys are guaranteed loaded by waitForCondition above
 
         // set failing_token endpoint to always return 500, so that the retry will fail
-        changeAuthServerMode("failing_token", "mode_failing_500");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "failing_token", "mode_failing_500");
 
         String topic = "RetriesTests-plainRetriesWithJWKSTest";
 
@@ -254,7 +250,7 @@ public class RetriesFailingIT {
 
 
         // configure failing_token endpoint so that they only fail every other time
-        changeAuthServerMode("failing_token", "mode_400");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "failing_token", "mode_400");
 
         start = System.currentTimeMillis();
         produceMessage(producerProps, topic, "The Message");

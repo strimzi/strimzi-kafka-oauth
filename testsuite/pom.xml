@@ -26,7 +26,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <fabric8-docker-plugin.version>0.45.1</fabric8-docker-plugin.version>
 
-        <testcontainers.version>2.0.2</testcontainers.version>
+        <testcontainers.version>2.0.3</testcontainers.version>
         <testcontainers.ryuk.disabled>true</testcontainers.ryuk.disabled>
         <commons.compress.version>1.26.0</commons.compress.version>
         <commons.codec.version>1.16.1</commons.codec.version>
@@ -169,16 +169,6 @@
             <artifactId>testcontainers</artifactId>
             <scope>compile</scope>
         </dependency>
-<!--        <dependency>-->
-<!--            <groupId>org.testcontainers</groupId>-->
-<!--            <artifactId>testcontainers-toxiproxy</artifactId>-->
-<!--            <scope>compile</scope>-->
-<!--        </dependency>-->
-<!--        <dependency>-->
-<!--            <groupId>eu.rekawek.toxiproxy</groupId>-->
-<!--            <artifactId>toxiproxy-java</artifactId>-->
-<!--            <scope>compile</scope>-->
-<!--        </dependency>-->
         <dependency>
             <groupId>io.strimzi</groupId>
             <artifactId>strimzi-test-container</artifactId>
@@ -197,10 +187,6 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
         </dependency>
-<!--        <dependency>-->
-<!--            <groupId>org.apache.logging.log4j</groupId>-->
-<!--            <artifactId>log4j-api</artifactId>-->
-<!--        </dependency>-->
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-core</artifactId>
@@ -412,7 +398,7 @@
                     </execution>
                     <execution>
                         <id>copy-keycloak-example-keystore</id>
-                        <phase>package</phase>
+                        <phase>process-test-resources</phase>
                         <goals>
                             <goal>copy-resources</goal>
                         </goals>
@@ -431,7 +417,7 @@
                     </execution>
                     <execution>
                         <id>copy-hydra-example-certs</id>
-                        <phase>package</phase>
+                        <phase>process-test-resources</phase>
                         <goals>
                             <goal>copy-resources</goal>
                         </goals>
@@ -453,7 +439,7 @@
                     </execution>
                     <execution>
                         <id>copy-hydra-import-example-certs</id>
-                        <phase>package</phase>
+                        <phase>process-test-resources</phase>
                         <goals>
                             <goal>copy-resources</goal>
                         </goals>
@@ -636,12 +622,7 @@
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <version>${maven.surefire.version}</version>
                 <configuration>
-                    <!-- Each test class starts its own containers on fixed ports.
-                         Without separate JVM forks, stale Kafka clients from a previous
-                         test class persist in the JVM and reconnect to the next class's
-                         containers on the same ports, causing interference.
-                         reuseForks=false restores the per-module JVM isolation that
-                         existed before test modules were consolidated. -->
+                    <!-- reuseForks=false is used for better JVM isolation during test execution -->
                     <reuseForks>false</reuseForks>
                     <systemPropertyVariables>
                         <KAFKA_DOCKER_IMAGE>${kafka.docker.image}</KAFKA_DOCKER_IMAGE>

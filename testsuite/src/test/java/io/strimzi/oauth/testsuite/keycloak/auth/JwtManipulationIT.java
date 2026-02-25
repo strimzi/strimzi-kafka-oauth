@@ -95,20 +95,14 @@ public class JwtManipulationIT {
             .toJSONObject());
 
         HashMap<String, String> claims = new HashMap<>();
-        claims.put("sub", producerJwtJSON.get("sub")
-            .asText());
-        claims.put("iss", producerJwtJSON.get("iss")
-            .asText());
-        claims.put("exp", producerJwtJSON.get("exp")
-            .asText());
-        claims.put("typ", producerJwtJSON.get("typ")
-            .asText());
-        claims.put("preferred_username", producerJwtJSON.get("preferred_username")
-            .asText());
+        claims.put("sub", producerJwtJSON.get("sub").asText());
+        claims.put("iss", producerJwtJSON.get("iss").asText());
+        claims.put("exp", producerJwtJSON.get("exp").asText());
+        claims.put("typ", producerJwtJSON.get("typ").asText());
+        claims.put("preferred_username", producerJwtJSON.get("preferred_username").asText());
 
         String signedToken = createSignedToken(kid, privateKey, claims);
         testWithToken(signedToken);
-
 
         // Let's test with more complex tokens
         HashMap<String, String> claims2 = (HashMap<String, String>) claims.clone();
@@ -127,7 +121,6 @@ public class JwtManipulationIT {
 
         signedToken = createSignedToken(kid, privateKey, claims2);
         testWithToken(signedToken);
-
 
         // Test with the token that used to to break with Keycloak Common helper library
         HashMap<String, String> claims3 = (HashMap<String, String>) claims.clone();
@@ -207,10 +200,8 @@ public class JwtManipulationIT {
         String kid = null;
         ArrayNode keys = (ArrayNode) node.get("keys");
         for (JsonNode item : keys) {
-            if (item.get("providerPriority")
-                .asInt() == 104) {
-                kid = item.get("kid")
-                    .asText();
+            if (item.get("providerPriority").asInt() == 104) {
+                kid = item.get("kid").asText();
                 break;
             }
         }
@@ -229,10 +220,8 @@ public class JwtManipulationIT {
 
         String realmId = null;
         for (JsonNode node : realms) {
-            if (realm.equals(node.get("realm")
-                .asText())) {
-                realmId = node.get("id")
-                    .asText();
+            if (realm.equals(node.get("realm").asText())) {
+                realmId = node.get("id").asText();
                 break;
             }
         }

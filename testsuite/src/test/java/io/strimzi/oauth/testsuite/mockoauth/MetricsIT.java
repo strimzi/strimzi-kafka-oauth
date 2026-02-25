@@ -34,7 +34,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.changeAuthServerMode;
 import static io.strimzi.oauth.testsuite.utils.KafkaClientsUtils.produceMessage;
 
 /**
@@ -76,15 +75,15 @@ public class MetricsIT {
         postInitCheck();
     }
 
-    private static String getTokenEndpointUri() {
-        return "https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/token";
+    private String getTokenEndpointUri() {
+        return "https://" + env.getMockOAuthHostPort() + "/token";
     }
 
     @Test
     @Tag(TestTags.METRICS)
     public void testNetworkErrors() throws Exception {
         // Turn off mockoauth auth server to cause network errors
-        changeAuthServerMode("server", "mode_off");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "server", "mode_off");
 
         Thread.sleep(PAUSE_MILLIS * 2);
         TestMetrics metrics = TestMetrics.getPrometheusMetrics(URI.create(env.getMetricsUri()));
@@ -103,7 +102,7 @@ public class MetricsIT {
     @Tag(TestTags.METRICS)
     public void testExpiredCert() throws Exception {
         // Turn mockoauth auth server back on, and make JWT produce SSL errors
-        changeAuthServerMode("server", "mode_expired_cert_on");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "server", "mode_expired_cert_on");
 
         Thread.sleep(PAUSE_MILLIS);
         TestMetrics metrics = TestMetrics.getPrometheusMetrics(URI.create(env.getMetricsUri()));
@@ -122,9 +121,9 @@ public class MetricsIT {
     @Tag(TestTags.METRICS)
     public void testInternalServerErrors() throws Exception {
         // Configure jwks endpoint to return 503
-        changeAuthServerMode("jwks", "mode_503");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "jwks", "mode_503");
         // Turn mockoauth auth server back on with cert no. 2
-        changeAuthServerMode("server", "mode_cert_two_on");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "server", "mode_cert_two_on");
 
         Thread.sleep(PAUSE_MILLIS);
         TestMetrics metrics = TestMetrics.getPrometheusMetrics(URI.create(env.getMetricsUri()));
@@ -133,7 +132,7 @@ public class MetricsIT {
         String value = metrics.getValueStartsWith("strimzi_oauth_http_requests_count", "context", "JWT", "outcome", "error", "error_type", "http", "status", "503");
         Assertions.assertNull(value, "There should be no 503 errors");
         // Switch mockoauth auth server back to using cert no. 1
-        changeAuthServerMode("server", "mode_cert_one_on");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "server", "mode_cert_one_on");
 
         Thread.sleep(PAUSE_MILLIS);
         metrics = TestMetrics.getPrometheusMetrics(URI.create(env.getMetricsUri()));

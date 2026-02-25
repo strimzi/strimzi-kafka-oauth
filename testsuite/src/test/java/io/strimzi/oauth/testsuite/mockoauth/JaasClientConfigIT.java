@@ -45,10 +45,6 @@ import java.util.concurrent.ExecutionException;
 
 import static io.strimzi.oauth.testsuite.utils.TestUtil.checkLogForRegex;
 import static io.strimzi.oauth.testsuite.utils.TestUtil.getRootCause;
-import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.changeAuthServerMode;
-import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.createOAuthClient;
-import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.createOAuthClientWithAssertion;
-import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.createOAuthUser;
 import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.loginWithClientSecret;
 import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.loginWithUsernameForRefreshToken;
 
@@ -81,8 +77,8 @@ public class JaasClientConfigIT {
 
     OAuthEnvironmentExtension env;
 
-    private static String getTokenEndpointUri() {
-        return "https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/token";
+    private String getTokenEndpointUri() {
+        return "https://" + env.getMockOAuthHostPort() + "/token";
     }
 
     @Test
@@ -395,9 +391,9 @@ public class JaasClientConfigIT {
         String testClient = "testclient";
         String testSecret = "testsecret";
 
-        changeAuthServerMode("jwks", "mode_200");
-        changeAuthServerMode("token", "mode_200");
-        createOAuthClient(testClient, testSecret);
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "jwks", "mode_200");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "token", "mode_200");
+        MockOAuthAdmin.createOAuthClient(env.getMockOAuthAdminHostPort(), testClient, testSecret);
 
         Map<String, String> oauthConfig = new HashMap<>();
         oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, getTokenEndpointUri());
@@ -426,9 +422,9 @@ public class JaasClientConfigIT {
         String testClient = "testclient";
         String testSecret = "testsecret";
 
-        changeAuthServerMode("jwks", "mode_200");
-        changeAuthServerMode("token", "mode_200");
-        createOAuthClient(testClient, testSecret);
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "jwks", "mode_200");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "token", "mode_200");
+        MockOAuthAdmin.createOAuthClient(env.getMockOAuthAdminHostPort(), testClient, testSecret);
 
         String accessToken = loginWithClientSecret(getTokenEndpointUri(), testClient, testSecret, "target/kafka/certs/ca-truststore.p12", "changeit");
 
@@ -480,10 +476,10 @@ public class JaasClientConfigIT {
         String testUser = "testUser";
         String testPassword = "testPassword";
 
-        changeAuthServerMode("jwks", "mode_200");
-        changeAuthServerMode("token", "mode_200");
-        createOAuthClient(pubClient, "");
-        createOAuthUser(testUser, testPassword);
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "jwks", "mode_200");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "token", "mode_200");
+        MockOAuthAdmin.createOAuthClient(env.getMockOAuthAdminHostPort(), pubClient, "");
+        MockOAuthAdmin.createOAuthUser(env.getMockOAuthAdminHostPort(), testUser, testPassword);
 
         String refreshToken = loginWithUsernameForRefreshToken(getTokenEndpointUri(), testUser, testPassword, pubClient, "target/kafka/certs/ca-truststore.p12", "changeit");
 
@@ -540,9 +536,9 @@ public class JaasClientConfigIT {
         String testClient = "clientWithAssertion";
         String testAssertion = "client-assertion";
 
-        changeAuthServerMode("jwks", "mode_200");
-        changeAuthServerMode("token", "mode_200");
-        createOAuthClientWithAssertion(testClient, testAssertion);
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "jwks", "mode_200");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "token", "mode_200");
+        MockOAuthAdmin.createOAuthClientWithAssertion(env.getMockOAuthAdminHostPort(), testClient, testAssertion);
 
         Path clientAssertionFilePath = Paths.get("target/client_assertion_file");
         Files.write(clientAssertionFilePath, testAssertion.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE_NEW);
@@ -596,9 +592,9 @@ public class JaasClientConfigIT {
         String testClient = "testclient";
         String testSecret = "testsecret";
 
-        changeAuthServerMode("jwks", "mode_200");
-        changeAuthServerMode("token", "mode_200");
-        createOAuthClient(testClient, testSecret);
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "jwks", "mode_200");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "token", "mode_200");
+        MockOAuthAdmin.createOAuthClient(env.getMockOAuthAdminHostPort(), testClient, testSecret);
 
         Map<String, String> oauthConfig = new HashMap<>();
         oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, getTokenEndpointUri());

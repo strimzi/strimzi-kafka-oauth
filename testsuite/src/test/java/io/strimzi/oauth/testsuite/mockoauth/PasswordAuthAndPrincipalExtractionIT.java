@@ -31,10 +31,6 @@ import java.text.ParseException;
 import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.WWW_FORM_CONTENT_TYPE;
 import static io.strimzi.oauth.testsuite.utils.TestUtil.createTestHostnameVerifier;
 import static io.strimzi.oauth.testsuite.utils.TestUtil.createTestSSLFactory;
-import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.changeAuthServerMode;
-import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.createOAuthClient;
-import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.createOAuthUser;
-import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.revokeToken;
 
 /**
  * Tests for password grant authentication and principal extraction.
@@ -49,23 +45,26 @@ public class PasswordAuthAndPrincipalExtractionIT {
 
     @Test
     public void testPasswordAuthAndPrincipalExtraction() throws Exception {
-        changeAuthServerMode("token", "MODE_200");
-        changeAuthServerMode("introspect", "MODE_200");
+        String adminHostPort = env.getMockOAuthAdminHostPort();
+        String authHostPort = env.getMockOAuthHostPort();
+
+        MockOAuthAdmin.changeAuthServerMode(adminHostPort, "token", "MODE_200");
+        MockOAuthAdmin.changeAuthServerMode(adminHostPort, "introspect", "MODE_200");
 
         // create a client for resource server
         String clientSrv = "appserver";
         String clientSrvSecret = "appserver-secret";
-        createOAuthClient(clientSrv, clientSrvSecret);
+        MockOAuthAdmin.createOAuthClient(adminHostPort, clientSrv, clientSrvSecret);
 
         // create a client client1
         String client1 = "client1";
         String client1Secret = "client1-secret";
-        createOAuthClient(client1, client1Secret);
+        MockOAuthAdmin.createOAuthClient(adminHostPort, client1, client1Secret);
 
         // create a user user1
         String user1 = "user1";
         String user1Pass = "user1-password";
-        createOAuthUser(user1, user1Pass);
+        MockOAuthAdmin.createOAuthUser(adminHostPort, user1, user1Pass);
 
         SSLSocketFactory sslFactory = createTestSSLFactory();
         HostnameVerifier hostnameVerifier = createTestHostnameVerifier();
@@ -74,7 +73,7 @@ public class PasswordAuthAndPrincipalExtractionIT {
 
         // authenticate user against token endpoint with the correct password
         TokenInfo tokenInfo = OAuthAuthenticator.loginWithPassword(
-            URI.create("https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/token"),
+            URI.create("https://" + authHostPort + "/token"),
             sslFactory,
             hostnameVerifier,
             user1,
@@ -99,7 +98,7 @@ public class PasswordAuthAndPrincipalExtractionIT {
         ObjectNode json;
 
         // introspect the token using the introspection endpoint
-        json = HttpUtil.post(URI.create("https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/introspect"), sslFactory, hostnameVerifier,
+        json = HttpUtil.post(URI.create("https://" + authHostPort + "/introspect"), sslFactory, hostnameVerifier,
             "Basic " + OAuthAuthenticator.base64encode(clientSrv + ':' + clientSrvSecret), WWW_FORM_CONTENT_TYPE, "token=" + token, ObjectNode.class);
 
         log.info("Got introspection endpoint response: " + json);
@@ -111,10 +110,10 @@ public class PasswordAuthAndPrincipalExtractionIT {
             .asText() : null, "Introspection endpoint response contains `client_id`");
 
         // revoke the token
-        revokeToken(token);
+        MockOAuthAdmin.revokeToken(adminHostPort, token);
 
         // introspect the token again
-        json = HttpUtil.post(URI.create("https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/introspect"), sslFactory, hostnameVerifier,
+        json = HttpUtil.post(URI.create("https://" + authHostPort + "/introspect"), sslFactory, hostnameVerifier,
             "Basic " + OAuthAuthenticator.base64encode(clientSrv + ':' + clientSrvSecret), WWW_FORM_CONTENT_TYPE, "token=" + token, ObjectNode.class);
 
         log.info("Got introspection endpoint response: " + json);
@@ -122,7 +121,7 @@ public class PasswordAuthAndPrincipalExtractionIT {
             .asBoolean(), "Token not active");
 
         // introspect an invalid token
-        json = HttpUtil.post(URI.create("https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/introspect"), sslFactory, hostnameVerifier,
+        json = HttpUtil.post(URI.create("https://" + authHostPort + "/introspect"), sslFactory, hostnameVerifier,
             "Basic " + OAuthAuthenticator.base64encode(clientSrv + ':' + clientSrvSecret), WWW_FORM_CONTENT_TYPE, "token=invalidtoken", ObjectNode.class);
 
         log.info("Got introspection endpoint response: " + json);
@@ -131,7 +130,7 @@ public class PasswordAuthAndPrincipalExtractionIT {
 
         // introspect the token using the introspection endpoint with a bad secret
         try {
-            HttpUtil.post(URI.create("https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/introspect"), sslFactory, hostnameVerifier,
+            HttpUtil.post(URI.create("https://" + authHostPort + "/introspect"), sslFactory, hostnameVerifier,
                 "Basic " + OAuthAuthenticator.base64encode(clientSrv + ":bad"), WWW_FORM_CONTENT_TYPE, "token=" + token, ObjectNode.class);
 
             Assertions.fail("Should have failed with 401");
@@ -141,7 +140,7 @@ public class PasswordAuthAndPrincipalExtractionIT {
 
         // Use client_credentials to authenticate
         tokenInfo = OAuthAuthenticator.loginWithClientSecret(
-            URI.create("https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/token"),
+            URI.create("https://" + authHostPort + "/token"),
             sslFactory,
             null,
             client1,
@@ -160,7 +159,7 @@ public class PasswordAuthAndPrincipalExtractionIT {
         Assertions.assertEquals("pref_service-account-" + client1, principal, "Principal should be: 'pref_service-account-" + client1 + "'");
 
         // introspect the token using the introspection endpoint
-        json = HttpUtil.post(URI.create("https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/introspect"), sslFactory, hostnameVerifier,
+        json = HttpUtil.post(URI.create("https://" + authHostPort + "/introspect"), sslFactory, hostnameVerifier,
             "Basic " + OAuthAuthenticator.base64encode(clientSrv + ':' + clientSrvSecret), WWW_FORM_CONTENT_TYPE, "token=" + token, ObjectNode.class);
 
         log.info("Got introspection endpoint response: " + json);

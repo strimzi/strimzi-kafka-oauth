@@ -96,17 +96,6 @@ public class TestContainerFactory {
     }
 
     /**
-     * Publish MockOAuth mapped ports as system properties so test code can reach the mock OAuth server.
-     *
-     * @param mockoauth The started MockOAuth container
-     */
-    public static void publishMockOAuthPorts(GenericContainer<?> mockoauth) {
-        System.setProperty("mockoauth.host", mockoauth.getHost());
-        System.setProperty("mockoauth.port", String.valueOf(mockoauth.getMappedPort(8090)));
-        System.setProperty("mockoauth.admin.port", String.valueOf(mockoauth.getMappedPort(8091)));
-    }
-
-    /**
      * Create a Hydra container (opaque token strategy) with TLS certs and wait strategy.
      *
      * @param network The Docker network to attach to
@@ -209,36 +198,6 @@ public class TestContainerFactory {
             .withEnv("LOG_LEVEL", "debug")
             .waitingFor(Wait.forLogMessage(".*Setting up http server on :4454.*", 1)
                 .withStartupTimeout(Duration.ofSeconds(CONTAINER_STARTUP_TIMEOUT_IN_SECONDS)));
-    }
-
-    /**
-     * Publish Hydra mapped ports as system properties so test code can reach the Hydra server.
-     *
-     * @param hydra The started Hydra container
-     */
-    public static void publishHydraPorts(GenericContainer<?> hydra) {
-        System.setProperty("hydra.host", hydra.getHost());
-        System.setProperty("hydra.port", String.valueOf(hydra.getMappedPort(4444)));
-    }
-
-    /**
-     * Publish Hydra JWT mapped ports as system properties so test code can reach the Hydra JWT server.
-     *
-     * @param hydraJwt The started Hydra JWT container
-     */
-    public static void publishHydraJwtPorts(GenericContainer<?> hydraJwt) {
-        System.setProperty("hydra.jwt.host", hydraJwt.getHost());
-        System.setProperty("hydra.jwt.port", String.valueOf(hydraJwt.getMappedPort(4454)));
-    }
-
-    /**
-     * Publish Keycloak mapped port as system properties so test code can reach the Keycloak server.
-     *
-     * @param keycloak The started Keycloak container
-     */
-    public static void publishKeycloakPort(GenericContainer<?> keycloak) {
-        System.setProperty("keycloak.host", keycloak.getHost());
-        System.setProperty("keycloak.port", String.valueOf(keycloak.getMappedPort(8080)));
     }
 
     /**

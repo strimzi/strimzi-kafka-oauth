@@ -173,7 +173,6 @@ public class RefreshIT extends AbstractAuthzIT {
         assertNotNull(devTeamB, "'Dev Team B' policy");
 
         //  get the ids of all the permissions
-
         String permissionsUrl = "http://" + env.getKeycloakHostPort() + "/admin/realms/kafka-authz/clients/" + clientId + "/authz/resource-server/permission";
         result = HttpUtil.get(URI.create(permissionsUrl), authorization, JsonNode.class);
 

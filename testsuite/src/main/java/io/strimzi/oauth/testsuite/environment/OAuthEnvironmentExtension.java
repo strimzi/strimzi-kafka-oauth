@@ -114,8 +114,7 @@ public class OAuthEnvironmentExtension implements BeforeAllCallback, BeforeEachC
         startAuthServer(config.authServer());
 
         // 2. Start Kafka if the KafkaConfig is enabled
-        if (config.kafka()
-            .enabled()) {
+        if (config.kafka().enabled()) {
             startKafkaWithConfig(config.kafka(), config.authServer());
             currentKafkaConfigKey = buildConfigKey(config.kafka());
         }
@@ -258,6 +257,54 @@ public class OAuthEnvironmentExtension implements BeforeAllCallback, BeforeEachC
     }
 
     /**
+     * Get the MockOAuth host:port for test client connections (auth endpoint).
+     *
+     * @return The host:port string for the MockOAuth container's auth port
+     */
+    public String getMockOAuthHostPort() {
+        if (authServerContainer == null) {
+            throw new IllegalStateException("MockOAuth is not started. Use authServer = AuthServer.MOCK_OAUTH");
+        }
+        return authServerContainer.getHost() + ":" + authServerContainer.getMappedPort(8090);
+    }
+
+    /**
+     * Get the MockOAuth admin host:port for admin operations.
+     *
+     * @return The host:port string for the MockOAuth container's admin port
+     */
+    public String getMockOAuthAdminHostPort() {
+        if (authServerContainer == null) {
+            throw new IllegalStateException("MockOAuth is not started. Use authServer = AuthServer.MOCK_OAUTH");
+        }
+        return authServerContainer.getHost() + ":" + authServerContainer.getMappedPort(8091);
+    }
+
+    /**
+     * Get the Hydra host:port for test client connections.
+     *
+     * @return The host:port string for the Hydra container's public port
+     */
+    public String getHydraHostPort() {
+        if (hydra == null) {
+            throw new IllegalStateException("Hydra is not started. Use authServer = AuthServer.HYDRA");
+        }
+        return hydra.getHost() + ":" + hydra.getMappedPort(4444);
+    }
+
+    /**
+     * Get the Hydra JWT host:port for test client connections.
+     *
+     * @return The host:port string for the Hydra JWT container's public port
+     */
+    public String getHydraJwtHostPort() {
+        if (hydraJwt == null) {
+            throw new IllegalStateException("Hydra JWT is not started. Use authServer = AuthServer.HYDRA");
+        }
+        return hydraJwt.getHost() + ":" + hydraJwt.getMappedPort(4454);
+    }
+
+    /**
      * Get the Keycloak host:port for test client connections.
      *
      * @return The host:port string for the Keycloak container
@@ -302,10 +349,11 @@ public class OAuthEnvironmentExtension implements BeforeAllCallback, BeforeEachC
      */
     public void initMockOAuthEndpoints() {
         try {
-            MockOAuthAdmin.changeAuthServerMode("jwks", "MODE_200");
-            MockOAuthAdmin.changeAuthServerMode("token", "MODE_200");
-            MockOAuthAdmin.changeAuthServerMode("introspect", "MODE_200");
-            MockOAuthAdmin.changeAuthServerMode("userinfo", "MODE_200");
+            String adminHostPort = getMockOAuthAdminHostPort();
+            MockOAuthAdmin.changeAuthServerMode(adminHostPort, "jwks", "MODE_200");
+            MockOAuthAdmin.changeAuthServerMode(adminHostPort, "token", "MODE_200");
+            MockOAuthAdmin.changeAuthServerMode(adminHostPort, "introspect", "MODE_200");
+            MockOAuthAdmin.changeAuthServerMode(adminHostPort, "userinfo", "MODE_200");
         } catch (IOException e) {
             throw new RuntimeException("Failed to initialize mock OAuth endpoints", e);
         }
@@ -356,7 +404,6 @@ public class OAuthEnvironmentExtension implements BeforeAllCallback, BeforeEachC
                     dumpContainerLogsOnStartupFailure("mockoauth", authServerContainer);
                     throw e;
                 }
-                TestContainerFactory.publishMockOAuthPorts(authServerContainer);
                 allContainers.add(authServerContainer);
                 break;
 
@@ -368,7 +415,6 @@ public class OAuthEnvironmentExtension implements BeforeAllCallback, BeforeEachC
                     dumpContainerLogsOnStartupFailure("keycloak", keycloak);
                     throw e;
                 }
-                TestContainerFactory.publishKeycloakPort(keycloak);
                 authServerContainer = keycloak;
                 allContainers.add(keycloak);
                 break;
@@ -391,7 +437,6 @@ public class OAuthEnvironmentExtension implements BeforeAllCallback, BeforeEachC
             dumpContainerLogsOnStartupFailure("hydra", hydra);
             throw e;
         }
-        TestContainerFactory.publishHydraPorts(hydra);
         allContainers.add(hydra);
 
         // Run hydra-import init container
@@ -415,7 +460,6 @@ public class OAuthEnvironmentExtension implements BeforeAllCallback, BeforeEachC
             dumpContainerLogsOnStartupFailure("hydra-import", hydraImport);
             throw e;
         }
-        TestContainerFactory.publishHydraJwtPorts(hydraJwt);
         allContainers.add(hydraJwt);
 
         // Run hydra-jwt-import init container

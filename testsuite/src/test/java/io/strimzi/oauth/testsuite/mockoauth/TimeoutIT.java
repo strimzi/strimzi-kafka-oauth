@@ -29,8 +29,6 @@ import java.util.Properties;
 
 import static io.strimzi.oauth.testsuite.utils.TestUtil.getContainerLogsForString;
 import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.buildProducerConfigOAuthBearer;
-import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.changeAuthServerMode;
-import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.createOAuthClient;
 import static io.strimzi.oauth.testsuite.utils.KafkaClientsUtils.expectSaslAuthFailure;
 import static io.strimzi.oauth.testsuite.utils.KafkaClientsUtils.produceMessage;
 import static io.strimzi.oauth.testsuite.utils.TestUtil.getRootCause;
@@ -75,7 +73,7 @@ public class TimeoutIT {
         final String kafkaBootstrap = env.getBootstrapServers();
 
         // Turn off the mockoauth server
-        changeAuthServerMode("server", "mode_off");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "server", "mode_off");
 
         Map<String, String> oauthConfig = new HashMap<>();
         oauthConfig.put(ClientConfig.OAUTH_ACCESS_TOKEN, getInvalidMockAccessToken());
@@ -89,7 +87,7 @@ public class TimeoutIT {
             });
         } finally {
             // Turn the mockoauth server back on
-            changeAuthServerMode("server", "mode_cert_one_on");
+            MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "server", "mode_cert_one_on");
         }
     }
 
@@ -97,12 +95,12 @@ public class TimeoutIT {
     @Tag(TestTags.TIMEOUT)
     void testConnectAuthServerWithTimeout() throws Exception {
         final String kafkaBootstrap = env.getBootstrapServers();
-        final String hostPort = MockOAuthAdmin.getMockOAuthAuthHostPort();
+        final String hostPort = env.getMockOAuthHostPort();
 
         final String tokenEndpointUri = "https://" + hostPort + "/token";
 
         // Make the token endpoint accept a connection but not return anything
-        changeAuthServerMode("token", "mode_stall");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "token", "mode_stall");
 
         // Let's also test system property override
         int timeoutOverride = 10;
@@ -130,7 +128,7 @@ public class TimeoutIT {
                 .contains("LoginException"), "Failed due to LoginException");
             Assertions.assertTrue(diff > timeoutOverride * 1000 && diff < timeoutOverride * 1000 + 1000, "Unexpected diff: " + diff);
         } finally {
-            changeAuthServerMode("token", "mode_200");
+            MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "token", "mode_200");
             System.clearProperty("oauth.read.timeout.seconds");
         }
     }
@@ -140,16 +138,16 @@ public class TimeoutIT {
     @Tag(TestTags.CLIENT)
     void testClientRetries() throws Exception {
         final String kafkaBootstrap = env.getBootstrapServers();
-        final String hostPort = MockOAuthAdmin.getMockOAuthAuthHostPort();
+        final String hostPort = env.getMockOAuthHostPort();
 
         final String tokenEndpointUri = "https://" + hostPort + "/failing_token";
 
         // token endpoint set to failing
-        changeAuthServerMode("failing_token", "MODE_400");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "failing_token", "MODE_400");
 
         String testClient = "testclient";
         String testSecret = "testsecret";
-        createOAuthClient(testClient, testSecret);
+        MockOAuthAdmin.createOAuthClient(env.getMockOAuthAdminHostPort(), testClient, testSecret);
 
         // configure producer with no http.retries
         Map<String, String> oauthConfig = new HashMap<>();

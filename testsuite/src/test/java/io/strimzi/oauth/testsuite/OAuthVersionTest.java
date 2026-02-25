@@ -8,6 +8,7 @@ import io.strimzi.kafka.oauth.client.ClientConfig;
 import io.strimzi.oauth.testsuite.environment.AuthServer;
 import io.strimzi.oauth.testsuite.environment.KafkaConfig;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironment;
+import io.strimzi.oauth.testsuite.clients.MockOAuthAdmin;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironmentExtension;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
@@ -18,7 +19,6 @@ import java.util.Map;
 import java.util.Properties;
 
 import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.buildProducerConfigOAuthBearer;
-import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.changeAuthServerMode;
 import static io.strimzi.oauth.testsuite.utils.KafkaClientsUtils.expectSaslAuthFailure;
 import static io.strimzi.oauth.testsuite.utils.TestUtil.getContainerLogsForString;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -51,7 +51,7 @@ public class OAuthVersionTest {
     @Test
     void testOAuthSnapshotJarsLoadedInKafka() throws Exception {
         // Turn off the auth server so introspection fails with "Connection refused"
-        changeAuthServerMode("server", "mode_off");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "server", "mode_off");
 
         Map<String, String> oauthConfig = new HashMap<>();
         oauthConfig.put(ClientConfig.OAUTH_ACCESS_TOKEN, "mock.access.token");

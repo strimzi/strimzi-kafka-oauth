@@ -36,8 +36,6 @@ import static io.strimzi.kafka.oauth.common.IOUtil.randomHexString;
 import static io.strimzi.oauth.testsuite.utils.TestUtil.createTestHostnameVerifier;
 import static io.strimzi.oauth.testsuite.utils.TestUtil.createTestSSLFactory;
 import static io.strimzi.oauth.testsuite.utils.TestUtil.getRootCause;
-import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.changeAuthServerMode;
-import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.createOAuthClient;
 
 /**
  * Tests for authorization endpoint authentication.
@@ -54,29 +52,29 @@ public class AuthorizationEndpointsIT {
 
     @BeforeAll
     void setUp() throws Exception {
-        changeAuthServerMode("token", "MODE_200");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "token", "MODE_200");
 
         // create a client for resource server
         clientSrv = "appserver";
         clientSrvSecret = "appserver-secret";
-        createOAuthClient(clientSrv, clientSrvSecret);
+        MockOAuthAdmin.createOAuthClient(env.getMockOAuthAdminHostPort(), clientSrv, clientSrvSecret);
 
         // create a bearer client
         String clientSrvBearer = "appserver-bearer";
         clientSrvBearerToken = randomHexString(32);
-        createOAuthClient(clientSrvBearer, clientSrvBearerToken);
+        MockOAuthAdmin.createOAuthClient(env.getMockOAuthAdminHostPort(), clientSrvBearer, clientSrvBearerToken);
 
         // create a client for client app
         String clientApp = "client";
         String clientAppSecret = "client-secret";
-        createOAuthClient(clientApp, clientAppSecret);
+        MockOAuthAdmin.createOAuthClient(env.getMockOAuthAdminHostPort(), clientApp, clientAppSecret);
 
         // prepare TLS support
         SSLSocketFactory sslFactory = createTestSSLFactory();
 
         // Login with client app's client_id + secret to obtain an access token
         TokenInfo tokenInfo = OAuthAuthenticator.loginWithClientSecret(
-            URI.create("https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/token"),
+            URI.create("https://" + env.getMockOAuthHostPort() + "/token"),
             sslFactory,
             createTestHostnameVerifier(),
             clientApp,
@@ -95,15 +93,15 @@ public class AuthorizationEndpointsIT {
         // introspect with clientid + secret
 
         //     set mock auth server introspection endpoint mode - by default authentication is required by appserver
-        changeAuthServerMode("introspect", "MODE_200");
-        changeAuthServerMode("userinfo", "MODE_200");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "introspect", "MODE_200");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "userinfo", "MODE_200");
 
         //     configure validator with wrong client_id + secret
         Map<String, String> attrs = new HashMap<>();
 
         //attrs.put(ServerConfig.OAUTH_CONFIG_ID, "config-id-introspect");
-        attrs.put(ServerConfig.OAUTH_INTROSPECTION_ENDPOINT_URI, "https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/introspect");
-        attrs.put(ServerConfig.OAUTH_USERINFO_ENDPOINT_URI, "https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/userinfo");
+        attrs.put(ServerConfig.OAUTH_INTROSPECTION_ENDPOINT_URI, "https://" + env.getMockOAuthHostPort() + "/introspect");
+        attrs.put(ServerConfig.OAUTH_USERINFO_ENDPOINT_URI, "https://" + env.getMockOAuthHostPort() + "/userinfo");
         attrs.put(ServerConfig.OAUTH_USERNAME_CLAIM, "uid");
         attrs.put(ServerConfig.OAUTH_CLIENT_ID, "bad-client-id");
         attrs.put(ServerConfig.OAUTH_CLIENT_SECRET, "bad-client-secret");
@@ -171,7 +169,7 @@ public class AuthorizationEndpointsIT {
 
 
         // unprotected introspect
-        changeAuthServerMode("introspect", "MODE_200_UNPROTECTED");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "introspect", "MODE_200_UNPROTECTED");
 
         //     configure validator without client_id or bearer token
         attrs.remove(ServerConfig.OAUTH_SERVER_BEARER_TOKEN);
@@ -190,7 +188,7 @@ public class AuthorizationEndpointsIT {
         // jwks with clientid + secret
 
         //     set mock auth server jwks endpoint mode - by default NO authentication is required by appserver
-        changeAuthServerMode("jwks", "MODE_200_PROTECTED");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "jwks", "MODE_200_PROTECTED");
 
         //     configure validator with wrong client_id + secret
         Map<String, String> attrs = new HashMap<>();
@@ -198,7 +196,7 @@ public class AuthorizationEndpointsIT {
         //attrs.put(ServerConfig.OAUTH_CONFIG_ID, "config-id-jwks");
         attrs.put(ServerConfig.OAUTH_CLIENT_ID, "bad-client-id");
         attrs.put(ServerConfig.OAUTH_CLIENT_SECRET, "bad-client-secret");
-        attrs.put(ServerConfig.OAUTH_JWKS_ENDPOINT_URI, "https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/jwks");
+        attrs.put(ServerConfig.OAUTH_JWKS_ENDPOINT_URI, "https://" + env.getMockOAuthHostPort() + "/jwks");
         attrs.put(ServerConfig.OAUTH_VALID_ISSUER_URI, "https://mockoauth:8090");
         attrs.put(ServerConfig.OAUTH_CHECK_ACCESS_TOKEN_TYPE, "false");
         attrs.put(ServerConfig.OAUTH_SSL_TRUSTSTORE_LOCATION, "target/kafka/certs/ca-truststore.p12");
@@ -259,7 +257,7 @@ public class AuthorizationEndpointsIT {
 
 
         // unprotected jwks
-        changeAuthServerMode("jwks", "MODE_200");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "jwks", "MODE_200");
 
         //     configure validator without client_id or bearer token
         attrs.remove(ServerConfig.OAUTH_SERVER_BEARER_TOKEN);

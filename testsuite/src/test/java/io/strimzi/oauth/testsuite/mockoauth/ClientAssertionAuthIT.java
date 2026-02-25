@@ -28,9 +28,6 @@ import java.net.URI;
 import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.WWW_FORM_CONTENT_TYPE;
 import static io.strimzi.oauth.testsuite.utils.TestUtil.createTestHostnameVerifier;
 import static io.strimzi.oauth.testsuite.utils.TestUtil.createTestSSLFactory;
-import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.changeAuthServerMode;
-import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.createOAuthClient;
-import static io.strimzi.oauth.testsuite.clients.MockOAuthAdmin.createOAuthClientWithAssertion;
 
 /**
  * Tests for client assertion authentication.
@@ -48,19 +45,19 @@ public class ClientAssertionAuthIT {
     @Tag(TestTags.CLIENT_ASSERTION)
     void testClientAssertionAuthentication() throws Exception {
 
-        changeAuthServerMode("token", "MODE_200");
-        changeAuthServerMode("introspect", "MODE_200");
-        changeAuthServerMode("jwks", "MODE_200");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "token", "MODE_200");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "introspect", "MODE_200");
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "jwks", "MODE_200");
 
         // create a client for resource server
         String clientSrv = "appserver";
         String clientSrvSecret = "appserver-secret";
-        createOAuthClient(clientSrv, clientSrvSecret);
+        MockOAuthAdmin.createOAuthClient(env.getMockOAuthAdminHostPort(), clientSrv, clientSrvSecret);
 
         // create a client client2
         String client2 = "client2";
         String client2Assertion = "client2-assertion";
-        createOAuthClientWithAssertion(client2, client2Assertion);
+        MockOAuthAdmin.createOAuthClientWithAssertion(env.getMockOAuthAdminHostPort(), client2, client2Assertion);
 
         SSLSocketFactory sslFactory = createTestSSLFactory();
         HostnameVerifier hostnameVerifier = createTestHostnameVerifier();
@@ -68,7 +65,7 @@ public class ClientAssertionAuthIT {
         try {
             // Use client_credentials to authenticate with wrong client_assertion
             TokenInfo tokenInfo = OAuthAuthenticator.loginWithClientAssertion(
-                    URI.create("https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/token"),
+                    URI.create("https://" + env.getMockOAuthHostPort() + "/token"),
                     sslFactory,
                     hostnameVerifier,
                     client2,
@@ -88,7 +85,7 @@ public class ClientAssertionAuthIT {
 
         // Use client_credentials to authenticate with correct client_assertion
         TokenInfo tokenInfo = OAuthAuthenticator.loginWithClientAssertion(
-                URI.create("https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/token"),
+                URI.create("https://" + env.getMockOAuthHostPort() + "/token"),
                 sslFactory,
                 hostnameVerifier,
                 client2,
@@ -105,7 +102,7 @@ public class ClientAssertionAuthIT {
         TokenIntrospection.debugLogJWT(log, token);
 
         // introspect the token using the introspection endpoint
-        ObjectNode json = HttpUtil.post(URI.create("https://" + MockOAuthAdmin.getMockOAuthAuthHostPort() + "/introspect"), sslFactory, null,
+        ObjectNode json = HttpUtil.post(URI.create("https://" + env.getMockOAuthHostPort() + "/introspect"), sslFactory, null,
                 "Basic " + OAuthAuthenticator.base64encode(clientSrv + ':' + clientSrvSecret), WWW_FORM_CONTENT_TYPE, "token=" + token, ObjectNode.class);
 
         log.info("Got introspection endpoint response: " + json);

@@ -14,7 +14,6 @@ import io.strimzi.oauth.testsuite.environment.OAuthEnvironmentExtension;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
 
 import java.math.BigDecimal;
 import java.net.URI;
@@ -64,7 +63,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
         }
     )
 )
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class MetricsIT {
 
     private static final String AUTH_HOST_PORT = "keycloak:8080";

@@ -11,9 +11,9 @@ import java.io.File;
  *
  * <p>All logs are placed under {@code target/test-logs/} organized by package/class path:
  * <ul>
- *   <li>{@code target/test-logs/io/strimzi/.../AuthBasicIT/} — per-class root</li>
- *   <li>{@code target/test-logs/io/strimzi/.../AuthBasicIT/containers/} — always-collected container logs and startup failure logs</li>
- *   <li>{@code target/test-logs/io/strimzi/.../AuthBasicIT/failures/{methodName}/} — point-in-time snapshots on test failure</li>
+ *   <li>{@code target/test-logs/.../AuthBasicIT/} — per-class root</li>
+ *   <li>{@code target/test-logs/.../AuthBasicIT/containers/} — always-collected container logs and startup failure logs</li>
+ *   <li>{@code target/test-logs/.../AuthBasicIT/failures/{methodName}/} — point-in-time snapshots on test failure</li>
  * </ul>
  */
 public final class TestLogPaths {
@@ -32,7 +32,7 @@ public final class TestLogPaths {
      * Root directory for a test class's logs.
      * Converts the fully qualified class name to a directory path
      * (e.g. {@code io.strimzi.oauth.testsuite.keycloak.auth.AuthBasicIT}
-     * becomes {@code target/test-logs/io/strimzi/.../keycloak/auth/AuthBasicIT/}).
+     * becomes {@code target/test-logs/.../keycloak/auth/AuthBasicIT/}).
      *
      * @param className fully qualified test class name
      * @return the class log directory
