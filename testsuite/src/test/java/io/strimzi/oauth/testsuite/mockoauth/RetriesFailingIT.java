@@ -14,7 +14,6 @@ import io.strimzi.oauth.testsuite.clients.MockOAuthAdmin;
 import io.strimzi.test.container.AuthenticationType;
 import org.apache.kafka.common.errors.SaslAuthenticationException;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 

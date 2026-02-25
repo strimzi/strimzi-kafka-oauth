@@ -54,13 +54,9 @@ runs:
         cd examples/docker
         ./spring/test-spring.sh
 
-    - name: Testsuite Compile & Spotbugs
-      shell: bash
-      run: mvn -e -V -B test-compile spotbugs:check -f testsuite
-
     - name: Run Testsuite
       shell: bash
-      run: mvn -e -V -B verify -pl testsuite --no-transfer-progress
+      run: mvn -e -V -B install -pl testsuite --no-transfer-progress
 
     - name: Create tarball with target directory
       shell: bash

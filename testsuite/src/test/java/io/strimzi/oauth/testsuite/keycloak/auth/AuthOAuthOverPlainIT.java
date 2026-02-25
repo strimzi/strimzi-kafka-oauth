@@ -13,7 +13,6 @@ import io.strimzi.oauth.testsuite.environment.KafkaConfig;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironment;
 import io.strimzi.oauth.testsuite.environment.OAuthEnvironmentExtension;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.MethodOrderer;
 import io.strimzi.test.container.AuthenticationType;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
