@@ -28,6 +28,11 @@ public class JWKSKeyUseTest {
     private static final Logger log = LoggerFactory.getLogger(JWKSKeyUseTest.class);
 
     public void doTest() throws Exception {
+        testKeyUseEnforcement();
+        testOKPSignatureValidation();
+    }
+
+    public void testKeyUseEnforcement() throws Exception {
         Services.configure(Collections.emptyMap());
 
         changeAuthServerMode("jwks", "MODE_JWKS_RSA_WITHOUT_SIG_USE");
@@ -72,6 +77,42 @@ public class JWKSKeyUseTest {
         // Try to validate the token
         // It should pass
         validatorIgnoreKeyUse.validate(tokenInfo.token());
+    }
+
+    /**
+     * Test that JWTSignatureValidator correctly validates a token signed with an OKP (Ed25519) key
+     * by the mock OAuth server, using the mock server's JWKS endpoint.
+     */
+    public void testOKPSignatureValidation() throws Exception {
+        Services.configure(Collections.emptyMap());
+
+        changeAuthServerMode("jwks", "MODE_JWKS_OKP_WITH_SIG_USE");
+        changeAuthServerMode("token", "MODE_200");
+
+        String testClient = "testclient";
+        String testSecret = "testsecret";
+        createOAuthClient(testClient, testSecret);
+
+        String projectRoot = getProjectRoot();
+        SSLSocketFactory sslFactory = SSLUtil.createSSLFactory(
+                projectRoot + "/../docker/certificates/ca-truststore.p12", null, "changeit", null, null);
+
+        JWTSignatureValidator validator = createTokenValidator("okpValidator", sslFactory, false);
+
+        TokenInfo tokenInfo = OAuthAuthenticator.loginWithClientSecret(
+                URI.create("https://mockoauth:8090/token"),
+                sslFactory,
+                null,
+                testClient,
+                testSecret,
+                true,
+                null,
+                null,
+                true);
+
+        TokenIntrospection.debugLogJWT(log, tokenInfo.token());
+
+        validator.validate(tokenInfo.token());
     }
 
     private static JWTSignatureValidator createTokenValidator(String validatorId, SSLSocketFactory sslFactory, boolean ignoreKeyUse) {
