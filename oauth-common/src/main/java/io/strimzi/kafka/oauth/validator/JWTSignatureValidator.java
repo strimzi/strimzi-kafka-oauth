@@ -5,11 +5,12 @@
 package io.strimzi.kafka.oauth.validator;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.nimbusds.jose.crypto.factories.DefaultJWSVerifierFactory;
+import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.KeyUse;
+import com.nimbusds.jose.jwk.OctetKeyPair;
 import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jwt.SignedJWT;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -33,7 +34,6 @@ import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSocketFactory;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.security.PublicKey;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -66,8 +66,6 @@ public class JWTSignatureValidator implements TokenValidator {
 
     private static final Logger log = LoggerFactory.getLogger(JWTSignatureValidator.class);
 
-    private static final DefaultJWSVerifierFactory VERIFIER_FACTORY = new DefaultJWSVerifierFactory();
-
     private final String validatorId;
     private final String clientId;
     private final String clientSecret;
@@ -91,8 +89,8 @@ public class JWTSignatureValidator implements TokenValidator {
 
     private long lastFetchTime;
 
-    private Map<String, PublicKey> cache = Collections.emptyMap();
-    private Map<String, PublicKey> oldCache = Collections.emptyMap();
+    private Map<String, SigningKey> cache = Collections.emptyMap();
+    private Map<String, SigningKey> oldCache = Collections.emptyMap();
 
     private BackOffTaskScheduler fastScheduler;
 
@@ -361,13 +359,13 @@ public class JWTSignatureValidator implements TokenValidator {
         }, refreshSeconds, refreshSeconds, TimeUnit.SECONDS);
     }
 
-    private PublicKey getPublicKey(String id) {
+    private SigningKey getSigningKey(String id) {
         return getKeyUnlessStale(id);
     }
 
-    private PublicKey getKeyUnlessStale(String id) {
+    private SigningKey getKeyUnlessStale(String id) {
         if (lastFetchTime + maxStaleSeconds * 1000L > System.currentTimeMillis()) {
-            PublicKey result = cache.get(id);
+            SigningKey result = cache.get(id);
             if (result == null) {
                 log.warn("No public key for id: {}", id);
             }
@@ -385,23 +383,29 @@ public class JWTSignatureValidator implements TokenValidator {
             String response = HttpUtil.get(keysUri, socketFactory, hostnameVerifier, authorization, String.class, connectTimeout, readTimeout, includeAcceptHeader);
             addJwksHttpMetricSuccessTime(requestStartTime);
 
-            Map<String, PublicKey> newCache = new HashMap<>();
+            Map<String, SigningKey> newCache = new HashMap<>();
             JWKSet jwks = JWKSet.parse(response);
 
             for (JWK jwk : jwks.getKeys()) {
                 if (ignoreKeyUse || KeyUse.SIGNATURE.equals(jwk.getKeyUse())) {
-
-                    PublicKey publicKey;
+                    SigningKey signingKey;
 
                     if (jwk instanceof ECKey) {
-                        publicKey = ((ECKey) jwk).toPublicKey();
+                        signingKey = new JCASigningKey(((ECKey) jwk).toPublicKey());
                     } else if (jwk instanceof RSAKey) {
-                        publicKey = ((RSAKey) jwk).toPublicKey();
+                        signingKey = new JCASigningKey(((RSAKey) jwk).toPublicKey());
+                    } else if (jwk instanceof OctetKeyPair) {
+                        OctetKeyPair okp = (OctetKeyPair) jwk;
+                        if (!Curve.Ed25519.equals(okp.getCurve())) {
+                            log.warn("Unsupported OKP curve: {}", okp .getCurve());
+                            continue;
+                        }
+                        signingKey = new OKPSigningKey(okp.toPublicJWK());
                     } else {
                         log.warn("Unsupported JWK key type: {}", jwk.getKeyType());
                         continue;
                     }
-                    newCache.put(jwk.getKeyID(), publicKey);
+                    newCache.put(jwk.getKeyID(), signingKey);
                 }
             }
 
@@ -445,8 +449,8 @@ public class JWTSignatureValidator implements TokenValidator {
 
         JsonNode t;
         try {
-            PublicKey pub = getPublicKey(kid);
-            if (pub == null) {
+            SigningKey signingKey = getSigningKey(kid);
+            if (signingKey == null) {
                 if (oldCache.get(kid) != null) {
                     throw new TokenValidationException("Token validation failed: The signing key is no longer valid (kid:" + kid + ")");
                 } else {
@@ -460,7 +464,7 @@ public class JWTSignatureValidator implements TokenValidator {
                 }
             }
 
-            if (!jwt.verify(VERIFIER_FACTORY.createJWSVerifier(jwt.getHeader(), pub))) {
+            if (!jwt.verify(signingKey.createVerifier(jwt.getHeader()))) {
                 throw new TokenSignatureException("Signature check failed: Invalid token signature");
             }
             t = JSONUtil.asJson(jwt.getPayload().toJSONObject());
