@@ -147,7 +147,7 @@ public class MockOAuthServerMainVerticle extends AbstractVerticle {
 
     private final Map<Endpoint, AtomicCoin> coins = new ConcurrentHashMap<>();
 
-    public void start() {
+    public void start(Promise<Void> startPromise) {
 
         modes.put(JWKS, MODE_404);
         modes.put(TOKEN, MODE_400);
@@ -168,10 +168,13 @@ public class MockOAuthServerMainVerticle extends AbstractVerticle {
         keystoreExpiredPath = getEnvVar("KEYSTORE_EXPIRED_PATH", projectRoot + "/docker/certificates/mockoauth.server.keystore_expired.p12");
         keystoreExpiredPass = getEnvVar("KEYSTORE_EXPIRED_PASSWORD", "changeit");
 
-        // Start admin server
-        vertx.createHttpServer().requestHandler(new AdminServerRequestHandler(this)).listen(8091);
-
-        ensureAuthServerWithFirstCert();
+        // Start admin server, then auth server — complete the promise only when both are bound
+        vertx.createHttpServer()
+            .requestHandler(new AdminServerRequestHandler(this))
+            .listen(8091)
+            .compose(adminServer -> ensureAuthServer(keystoreOnePath, keystoreOnePass, Mode.MODE_CERT_ONE_ON))
+            .onSuccess(v -> startPromise.complete())
+            .onFailure(startPromise::fail);
     }
 
     private static String getProjectRoot() {
@@ -211,17 +214,17 @@ public class MockOAuthServerMainVerticle extends AbstractVerticle {
 
     Future<Void> ensureAuthServerWithFirstCert() {
         return shutdownAuthServer()
-            .onSuccess(r -> ensureAuthServer(keystoreOnePath, keystoreOnePass, Mode.MODE_CERT_ONE_ON));
+            .compose(r -> ensureAuthServer(keystoreOnePath, keystoreOnePass, Mode.MODE_CERT_ONE_ON));
     }
 
     Future<Void> ensureAuthServerWithSecondCert() {
         return shutdownAuthServer()
-            .onSuccess(r -> ensureAuthServer(keystoreTwoPath, keystoreTwoPass, Mode.MODE_CERT_TWO_ON));
+            .compose(r -> ensureAuthServer(keystoreTwoPath, keystoreTwoPass, Mode.MODE_CERT_TWO_ON));
     }
 
-    Future<Void>  ensureAuthServerWithExpiredCert() {
+    Future<Void> ensureAuthServerWithExpiredCert() {
         return shutdownAuthServer()
-            .onSuccess(r -> ensureAuthServer(keystoreExpiredPath, keystoreExpiredPass, Mode.MODE_EXPIRED_CERT_ON));
+            .compose(r -> ensureAuthServer(keystoreExpiredPath, keystoreExpiredPass, Mode.MODE_EXPIRED_CERT_ON));
     }
 
     Future<Void> shutdownAuthServer() {
