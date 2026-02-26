@@ -20,8 +20,9 @@ gen_certs() {
   # Verify CSR content
   #openssl req -in $NAME.csr -noout -text
 
-  # Generate the certificate
-  openssl x509 -req -in $NAME.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out $NAME.crt -days 3650 -sha256
+  # Generate the certificate (pass SANs via -extfile so they are included in the signed cert)
+  openssl x509 -req -in $NAME.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out $NAME.crt -days 3650 -sha256 \
+   -extfile <(printf "subjectAltName=DNS:$NAME,DNS:$NAME.local,DNS:localhost")
 
   # Verify the certificate's content
   #openssl x509 -in $NAME.crt -text -noout

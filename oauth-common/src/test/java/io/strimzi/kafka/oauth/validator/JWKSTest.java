@@ -10,8 +10,8 @@ import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.KeyUse;
 import com.nimbusds.jose.jwk.RSAKey;
 import io.strimzi.kafka.oauth.common.JSONUtil;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
@@ -44,8 +44,8 @@ public class JWKSTest {
             }
         }
 
-        Assert.assertNotNull(parsedKeyID);
-        Assert.assertEquals("PdbyxXXc7pwIX8xoIS7Kb-g1ZEDNFISpbyZs2MNkRJY", parsedKeyID);
-        Assert.assertNotNull(publicKey);
+        Assertions.assertNotNull(parsedKeyID);
+        Assertions.assertEquals("PdbyxXXc7pwIX8xoIS7Kb-g1ZEDNFISpbyZs2MNkRJY", parsedKeyID);
+        Assertions.assertNotNull(publicKey);
     }
 }

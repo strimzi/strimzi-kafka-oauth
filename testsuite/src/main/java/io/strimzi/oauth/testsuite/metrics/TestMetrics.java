@@ -1,0 +1,162 @@
+/*
+ * Copyright 2017-2021, Strimzi authors.
+ * License: Apache License 2.0 (see the file LICENSE or http://apache.org/licenses/LICENSE-2.0.html).
+ */
+package io.strimzi.oauth.testsuite.metrics;
+
+import io.strimzi.kafka.oauth.common.HttpUtil;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.StringReader;
+import java.math.BigDecimal;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import static io.strimzi.oauth.testsuite.utils.TestUtil.unquote;
+
+/**
+ * Helper class for fetching and querying Prometheus metrics from an HTTP endpoint.
+ */
+public class TestMetrics {
+
+    ArrayList<MetricEntry> entries = new ArrayList<>();
+
+
+    /**
+     * Get response from prometheus endpoint as a map of key:value pairs
+     * We expect the response to be a 'well-formed' key=value document in the sense that each line contains a '=' sign
+     *
+     * @param metricsEndpointUri The endpoint used to fetch metrics
+     * @return Metrics object
+     * @throws IOException If http request to retrieve Prometheus metrics failed
+     */
+    public static TestMetrics getPrometheusMetrics(URI metricsEndpointUri) throws IOException {
+        String response = HttpUtil.get(metricsEndpointUri, null, null, null, String.class);
+
+        TestMetrics metrics = new TestMetrics();
+
+        try (BufferedReader r = new BufferedReader(new StringReader(response))) {
+            String line;
+            while ((line = r.readLine()) != null) {
+                if (line.startsWith("#")) {
+                    continue;
+                }
+
+                String key = null;
+                Map<String, String> attrs = new LinkedHashMap<>();
+
+                int endPos;
+                int pos = line.indexOf('{');
+
+                if (pos != -1) {
+                    key = line.substring(0, pos);
+
+                    endPos = line.lastIndexOf("}");
+                    String attrsPart = line.substring(pos + 1, endPos);
+                    String[] attrsArray = attrsPart.split(",");
+
+                    for (String attr : attrsArray) {
+                        String[] keyVal = attr.split("=");
+                        if (keyVal.length != 2) {
+                            // skip mis-parsed attribute values due to ',' inside a quoted value
+                            // the entries we are interested in should never have comma in the attribute
+                            continue;
+                        }
+                        attrs.put(keyVal[0], keyVal[1].substring(1, keyVal[1].length() - 1));
+                    }
+                }
+                endPos = line.lastIndexOf(" ");
+                if (key == null) {
+                    key = line.substring(0, endPos);
+                }
+                String value = line.substring(endPos + 1);
+                metrics.addMetric(key, attrs, unquote(value));
+            }
+        }
+        return metrics;
+    }
+
+    void addMetric(String key, Map<String, String> attrs, String value) {
+        entries.add(new MetricEntry(key, attrs, value));
+    }
+
+    /**
+     * Get the sum of values of all the metrics matching the key and the attributes
+     * <p>
+     * Attributes are specified as: name1, value1, name2, value2, ...
+     * Not all attributes have to be specified, but those specified have to match (equality).
+     *
+     * Different Strimzi Kafka images seem to expose internal metrics structures of type CumulativeSum and CumulativeCount differently.
+     * The later versions seem to add '_total' suffix, whereas the older versions don't.
+     *
+     * @param keyPrefix The key prefix for the key identifying the metric
+     * @param attrs The attributes filter passed as attrName1, attrValue1, attrName2, attrValue2 ...
+     * @return The sum of the values of all the matching metrics as String
+     */
+    public BigDecimal getStartsWithValueSum(String keyPrefix, String... attrs) {
+
+        BigDecimal result = new BigDecimal(0);
+        next:
+        for (MetricEntry entry: entries) {
+            if (entry.key.startsWith(keyPrefix)) {
+                for (int i = 0; i < attrs.length; i += 2) {
+                    if (!attrs[i + 1].equals(entry.attrs.get(attrs[i]))) {
+                        continue next;
+                    }
+                }
+                result = result.add(new BigDecimal(entry.value));
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Get the value of a single metric matching the key prefix and the attributes.
+     * Returns null if no matching metric is found.
+     * Throws if more than one matching metric is found.
+     * <p>
+     * Different Strimzi Kafka images seem to expose internal metrics structures of type CumulativeSum and CumulativeCount differently.
+     * The later versions seem to add '_total' suffix, whereas the older versions don't.
+     *
+     * @param keyPrefix The key prefix for the key identifying the metric
+     * @param attrs The attributes filter passed as attrName1, attrValue1, attrName2, attrValue2 ...
+     * @return The value of the matching metric as String, or null if not found
+     */
+    public String getValueStartsWith(String keyPrefix, String... attrs) {
+        boolean match = false;
+        String result = null;
+        next:
+        for (MetricEntry entry : entries) {
+            if (entry.key.startsWith(keyPrefix)) {
+                for (int i = 0; i < attrs.length; i += 2) {
+                    if (!attrs[i + 1].equals(entry.attrs.get(attrs[i]))) {
+                        continue next;
+                    }
+                }
+                if (!match) {
+                    match = true;
+                    result = entry.value;
+                } else {
+                    throw new RuntimeException("More than one matching metric entry");
+                }
+            }
+        }
+        return result;
+    }
+
+    static class MetricEntry {
+        String key;
+        Map<String, String> attrs;
+        String value;
+
+        MetricEntry(String key, Map<String, String> attrs, String value) {
+            this.key = key;
+            this.attrs = attrs;
+            this.value = value;
+        }
+    }
+}
+

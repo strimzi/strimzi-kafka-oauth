@@ -100,7 +100,7 @@ public class HttpUtil {
                 }
             } catch (Exception e) {
                 exception = e;
-                log.info("Action failed on try no. {}", i, e);
+                log.info("Action failed on try no. {}", i);
             }
         } while (i <= retries);
 

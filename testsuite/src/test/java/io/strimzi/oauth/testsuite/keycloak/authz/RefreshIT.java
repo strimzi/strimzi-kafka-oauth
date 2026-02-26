@@ -1,0 +1,256 @@
+/*
+ * Copyright 2017-2020, Strimzi authors.
+ * License: Apache License 2.0 (see the file LICENSE or http://apache.org/licenses/LICENSE-2.0.html).
+ */
+package io.strimzi.oauth.testsuite.keycloak.authz;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import io.strimzi.kafka.oauth.client.ClientConfig;
+import io.strimzi.kafka.oauth.common.HttpUtil;
+import io.strimzi.oauth.testsuite.common.TestTags;
+import io.strimzi.oauth.testsuite.clients.KafkaClientsConfig;
+import io.strimzi.oauth.testsuite.environment.AuthServer;
+import io.strimzi.oauth.testsuite.environment.KafkaConfig;
+import io.strimzi.oauth.testsuite.environment.OAuthEnvironment;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
+import java.net.URI;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Properties;
+
+import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.buildConsumerConfigOAuthBearer;
+import static io.strimzi.oauth.testsuite.clients.KafkaClientsConfig.buildProducerConfigOAuthBearer;
+import static io.strimzi.oauth.testsuite.utils.KafkaClientsUtils.produceFail;
+import static io.strimzi.oauth.testsuite.utils.KafkaClientsUtils.produceMessage;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+/**
+ * Tests for authorization with permission refresh
+ */
+@OAuthEnvironment(
+    authServer = AuthServer.KEYCLOAK,
+    kafka = @KafkaConfig(
+        realm = "kafka-authz",
+        setupAcls = true,
+        oauthProperties = {
+            "oauth.token.endpoint.uri=http://keycloak:8080/realms/kafka-authz/protocol/openid-connect/token",
+            "oauth.client.id=kafka",
+            "oauth.client.secret=kafka-secret",
+            "oauth.groups.claim=$.realm_access.roles",
+            "oauth.fallback.username.claim=username",
+            "unsecuredLoginStringClaim_sub=admin"
+        },
+        kafkaProperties = {
+            "authorizer.class.name=io.strimzi.kafka.oauth.server.authorizer.KeycloakAuthorizer",
+            "strimzi.authorization.token.endpoint.uri=http://keycloak:8080/realms/kafka-authz/protocol/openid-connect/token",
+            "strimzi.authorization.client.id=kafka",
+            "strimzi.authorization.client.secret=kafka-secret",
+            "strimzi.authorization.kafka.cluster.name=my-cluster",
+            "strimzi.authorization.delegate.to.kafka.acl=true",
+            "strimzi.authorization.read.timeout.seconds=45",
+            "strimzi.authorization.grants.refresh.pool.size=4",
+            "strimzi.authorization.grants.refresh.period.seconds=10",
+            "strimzi.authorization.http.retries=1",
+            "strimzi.authorization.reuse.grants=true",
+            "strimzi.authorization.enable.metrics=true",
+            "super.users=User:admin;User:service-account-kafka"
+        }
+    )
+)
+public class RefreshIT extends AbstractAuthzIT {
+
+    @BeforeAll
+    void setUp() throws Exception {
+        authenticateAllActors();
+    }
+
+    @AfterAll
+    void tearDown() {
+        Properties bobProps = buildProducerConfigOAuthBearer(env.getBootstrapServers(),
+            Map.of(ClientConfig.OAUTH_ACCESS_TOKEN, getToken(BOB)), AUTHZ_RETRIES);
+        cleanup(bobProps);
+    }
+
+    @Test
+    @Tag(TestTags.AUTHORIZATION)
+    @Tag(TestTags.REFRESH)
+    public void testPermissionRefresh() throws Exception {
+        String bootstrap = env.getBootstrapServers();
+
+        Properties teamAProducer = buildProducerConfigOAuthBearer(bootstrap,
+            Map.of(ClientConfig.OAUTH_ACCESS_TOKEN, getToken(TEAM_A_CLIENT)), AUTHZ_RETRIES);
+        Properties teamAConsumer = buildConsumerConfigOAuthBearer(bootstrap,
+            Map.of(ClientConfig.OAUTH_ACCESS_TOKEN, getToken(TEAM_A_CLIENT)));
+
+        Properties teamBProducer = buildProducerConfigOAuthBearer(bootstrap,
+            Map.of(ClientConfig.OAUTH_ACCESS_TOKEN, getToken(TEAM_B_CLIENT)), AUTHZ_RETRIES);
+        Properties teamBConsumer = buildConsumerConfigOAuthBearer(bootstrap,
+            Map.of(ClientConfig.OAUTH_ACCESS_TOKEN, getToken(TEAM_B_CLIENT)));
+
+        Properties bobProducer = buildProducerConfigOAuthBearer(bootstrap,
+            Map.of(ClientConfig.OAUTH_ACCESS_TOKEN, getToken(BOB)), AUTHZ_RETRIES);
+
+        // Run the basic authorization scenario first to create topics and establish initial state
+        verifyTeamACanOnlyAccessOwnTopics(teamAProducer, teamAConsumer);
+        verifyTeamBCanOnlyAccessOwnTopics(teamBProducer, teamBConsumer);
+        createSharedTopicAsClusterManager(bobProducer);
+
+        changePermissionsForClients();
+
+        // wait 15 seconds for permissions changes to take effect on the broker
+        Thread.sleep(15000);
+
+        // team-a-client should now succeed to produce to b_* topic
+        produceMessage(teamAProducer, TOPIC_B, "The Message");
+
+        // team-a-client should no longer be able to write to a_* topic
+        produceFail(teamAProducer, TOPIC_A, "The Message");
+
+        // team-b-client should now succeed to produce to a_* topic
+        produceMessage(teamBProducer, TOPIC_A, "The Message");
+
+        // team-b-client should no longer be able to write to b_* topic
+        produceFail(teamBProducer, TOPIC_B, "The Message");
+    }
+
+    private void changePermissionsForClients() throws IOException {
+
+        String token = KafkaClientsConfig.loginWithUsernamePasswordInBody(URI.create("http://" + env.getKeycloakHostPort() + "/realms/master/protocol/openid-connect/token"),
+                "admin", "admin", "admin-cli");
+
+        String authorization = "Bearer " + token;
+
+        //  get the id of 'kafka' client
+        //  GET http://keycloak:8080/admin/realms/kafka-authz/clients?first=0&max=20&search=true
+        String clientsUrl = "http://" + env.getKeycloakHostPort() + "/admin/realms/kafka-authz/clients";
+        JsonNode result = HttpUtil.get(URI.create(clientsUrl), authorization, JsonNode.class);
+
+        String clientId = null;
+
+        Iterator<JsonNode> it = result.elements();
+        while (it.hasNext()) {
+            JsonNode client = it.next();
+            if ("kafka".equals(client.get("clientId").asText())) {
+                clientId = client.get("id").asText();
+                break;
+            }
+        }
+
+        assertNotNull(clientId, "Client 'kafka'");
+
+        //  get the ids of all the resources - extract the ids of 'Topic:a_*' and 'kafka-cluster:my-cluster,Topic:b_*'
+
+        Map<String, String> resources = getAuthzResources(authorization, clientId);
+
+        String aTopicsId = resources.get("Topic:a_*");
+        String bTopicsId = resources.get("kafka-cluster:my-cluster,Topic:b_*");
+
+        assertNotNull(aTopicsId, "Resource for a_* topics");
+        assertNotNull(bTopicsId, "Resource for b_* topics");
+
+        //  get the ids of all the action scopes - extract the ids of 'Describe' and 'Write'
+        Map<String, String> scopes = getAuthzScopes(authorization, clientId);
+
+        String describeScope = scopes.get("Describe");
+        String writeScope = scopes.get("Write");
+
+        assertNotNull(describeScope, "'Describe' scope");
+        assertNotNull(writeScope, "'Write' scope'");
+
+        //  get the ids of all the policies - extract the ids of 'Dev Team A' and 'Dev Team B'
+        Map<String, String> policies = getAuthzPolicies(authorization, clientId);
+
+        String devTeamA = policies.get("Dev Team A");
+        String devTeamB = policies.get("Dev Team B");
+
+        assertNotNull(devTeamA, "'Dev Team A' policy");
+        assertNotNull(devTeamB, "'Dev Team B' policy");
+
+        //  get the ids of all the permissions
+        String permissionsUrl = "http://" + env.getKeycloakHostPort() + "/admin/realms/kafka-authz/clients/" + clientId + "/authz/resource-server/permission";
+        result = HttpUtil.get(URI.create(permissionsUrl), authorization, JsonNode.class);
+
+        String devTeamAPermission = null;
+        String devTeamBPermission = null;
+
+        it = result.elements();
+        while (it.hasNext()) {
+            JsonNode permission = it.next();
+            if (permission.get("name").asText().startsWith("Dev Team A owns")) {
+                devTeamAPermission = permission.get("id").asText();
+            } else if (permission.get("name").asText().startsWith("Dev Team B owns")) {
+                devTeamBPermission = permission.get("id").asText();
+            }
+        }
+
+        assertNotNull(devTeamAPermission, "'Dev Team A owns' permission");
+        assertNotNull(devTeamBPermission, "'Dev Team B owns' permission");
+
+        //  Grant team-a-client the permission to write to b_* topics,
+        //  and team-b-client the permissions to write to a_* topics
+        addPermissions(authorization, clientId, describeScope, writeScope, aTopicsId, bTopicsId, devTeamA, devTeamB);
+
+        //  Remove the ownership permissions to a_* topics from team-a-client
+        //  and the ownership permissions to b_* topics from team-b-client
+        removePermissions(authorization, clientId, devTeamAPermission, devTeamBPermission);
+    }
+
+    private void removePermissions(String authorization, String clientId, String devTeamAPermission, String devTeamBPermission) throws IOException {
+        String permissionUrl = "http://" + env.getKeycloakHostPort() + "/admin/realms/kafka-authz/clients/" + clientId + "/authz/resource-server/permission/" + devTeamAPermission;
+        HttpUtil.delete(URI.create(permissionUrl), authorization);
+
+        permissionUrl = "http://" + env.getKeycloakHostPort() + "/admin/realms/kafka-authz/clients/" + clientId + "/authz/resource-server/permission/" + devTeamBPermission;
+        HttpUtil.delete(URI.create(permissionUrl), authorization);
+    }
+
+    private void addPermissions(String authorization, String clientId, String describeScope, String writeScope, String aTopicsId, String bTopicsId, String devTeamA, String devTeamB) throws IOException {
+
+        String bodyPattern = "{\"type\":\"scope\",\"logic\":\"POSITIVE\",\"decisionStrategy\":\"UNANIMOUS\"" +
+            ",\"name\":\"%s\",\"resources\":[\"%s\"]" +
+            ",\"scopes\":[\"%s\",\"%s\"],\"policies\":[\"%s\"]}";
+
+        String permissionUrl = "http://" + env.getKeycloakHostPort() + "/admin/realms/kafka-authz/clients/" + clientId + "/authz/resource-server/permission/scope";
+
+        String body = String.format(bodyPattern, "Dev Team A can write to topics that start with b_",
+                bTopicsId, describeScope, writeScope, devTeamA);
+        HttpUtil.post(URI.create(permissionUrl), authorization, "application/json", body, JsonNode.class);
+
+        //  Repeat for Dev Team B by using the Topic:a_* resource id, 'Describe' and 'Write' scope ids, and 'Dev Team B' policy id
+        body = String.format(bodyPattern, "Dev Team B can write to topics that start with a_",
+                aTopicsId, describeScope, writeScope, devTeamB);
+        HttpUtil.post(URI.create(permissionUrl), authorization, "application/json", body, JsonNode.class);
+    }
+
+    private Map<String, String> getAuthzScopes(String authorization, String clientId) throws IOException {
+        String scopesUrl = "http://" + env.getKeycloakHostPort() + "/admin/realms/kafka-authz/clients/" + clientId + "/authz/resource-server/scope";
+        return getAuthzList(URI.create(scopesUrl), authorization, "name", "id");
+    }
+
+    private Map<String, String> getAuthzResources(String authorization, String clientId) throws IOException {
+        String resourcesUrl = "http://" + env.getKeycloakHostPort() + "/admin/realms/kafka-authz/clients/" + clientId + "/authz/resource-server/resource";
+        return getAuthzList(URI.create(resourcesUrl), authorization, "name", "_id");
+    }
+
+    private Map<String, String> getAuthzPolicies(String authorization, String clientId) throws IOException {
+        String policiesUrl = "http://" + env.getKeycloakHostPort() + "/admin/realms/kafka-authz/clients/" + clientId + "/authz/resource-server/policy";
+        return getAuthzList(URI.create(policiesUrl), authorization, "name", "id");
+    }
+
+    private Map<String, String> getAuthzList(URI url, String authorization, String keyAttr, String valueAttr) throws IOException {
+        JsonNode result = HttpUtil.get(url, authorization, JsonNode.class);
+
+        Map<String, String> items = new HashMap<>();
+        Iterator<JsonNode> it = result.elements();
+        while (it.hasNext()) {
+            JsonNode resource = it.next();
+            items.put(resource.get(keyAttr).asText(), resource.get(valueAttr).asText());
+        }
+        return items;
+    }
+}

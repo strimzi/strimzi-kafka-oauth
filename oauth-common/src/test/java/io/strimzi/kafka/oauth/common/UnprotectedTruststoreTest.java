@@ -4,7 +4,7 @@
  */
 package io.strimzi.kafka.oauth.common;
 
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,7 +71,7 @@ public class UnprotectedTruststoreTest {
             // try to connect without a truststore - should FAIL
             try {
                 HttpUtil.get(URI.create("https://localhost:8078"), null, String.class);
-                Assert.fail("Fetch without truststore should fail");
+                Assertions.fail("Fetch without truststore should fail");
 
             } catch (SSLHandshakeException ignored) {
             }
@@ -80,15 +80,15 @@ public class UnprotectedTruststoreTest {
             SSLSocketFactory sslFactory = SSLUtil.createSSLFactory(tmpStore.getAbsolutePath(), null, null, KeyStore.getDefaultType(), null);
             try {
                 HttpUtil.get(URI.create("https://localhost:8078"), sslFactory, null, String.class);
-                Assert.fail("Fetch to localhost should fail due to non-matching certificate name");
+                Assertions.fail("Fetch to localhost should fail due to non-matching certificate name");
 
             } catch (SSLHandshakeException e) {
-                Assert.assertTrue("Expected CertificateException", e.getCause() instanceof CertificateException);
+                Assertions.assertTrue(e.getCause() instanceof CertificateException, "Expected CertificateException");
             }
 
             // use AnyHostHostnameVerifier, this should now successfully return content
             String msg = HttpUtil.get(URI.create("https://localhost:8078"), sslFactory, SSLUtil.createAnyHostHostnameVerifier(), null, String.class);
-            Assert.assertEquals("Issue communicating with the server", "HELLO", msg);
+            Assertions.assertEquals("HELLO", msg, "Issue communicating with the server");
 
         } finally {
             // shut down the test https server
@@ -164,7 +164,7 @@ public class UnprotectedTruststoreTest {
                 }
             } catch (Exception e) {
                 log.error("Unexpected exception: ", e);
-                Assert.fail("Unexpected exception in the test https server");
+                Assertions.fail("Unexpected exception in the test https server");
             }
         }
     }

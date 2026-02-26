@@ -10,8 +10,8 @@ import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
 import io.strimzi.kafka.oauth.common.JSONUtil;
 import io.strimzi.kafka.oauth.common.TokenInfo;
 import org.apache.kafka.common.security.auth.KafkaPrincipal;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -38,33 +38,33 @@ public class OAuthKafkaPrincipalTest {
         OAuthKafkaPrincipal principal4 = new OAuthKafkaPrincipal("User", "bob", null);
 
 
-        Assert.assertEquals("principal should be equal to principal2", principal, principal2);
-        Assert.assertEquals("principal2 should be equal to principal", principal2, principal);
+        Assertions.assertEquals(principal, principal2, "principal should be equal to principal2");
+        Assertions.assertEquals(principal2, principal, "principal2 should be equal to principal");
 
-        Assert.assertEquals("principal should be equal to principal3", principal, principal3);
-        Assert.assertEquals("principal3 should be equal to principal", principal3, principal);
+        Assertions.assertEquals(principal, principal3, "principal should be equal to principal3");
+        Assertions.assertEquals(principal3, principal, "principal3 should be equal to principal");
 
-        Assert.assertEquals("principal2 should be equal to principal3", principal2, principal3);
-        Assert.assertEquals("principal3 should be equal to principal2", principal3, principal2);
+        Assertions.assertEquals(principal2, principal3, "principal2 should be equal to principal3");
+        Assertions.assertEquals(principal3, principal2, "principal3 should be equal to principal2");
 
-        Assert.assertEquals("principal should be equal to itself", principal, principal);
-        Assert.assertEquals("principal2 should be equal to itself", principal2, principal2);
-        Assert.assertEquals("principal3 should be equal to itself", principal3, principal3);
-        Assert.assertEquals("principal4 should be equal to itself", principal4, principal4);
+        Assertions.assertEquals(principal, principal, "principal should be equal to itself");
+        Assertions.assertEquals(principal2, principal2, "principal2 should be equal to itself");
+        Assertions.assertEquals(principal3, principal3, "principal3 should be equal to itself");
+        Assertions.assertEquals(principal4, principal4, "principal4 should be equal to itself");
 
-        Assert.assertNotEquals("principal should not be equal to principal4", principal, principal4);
-        Assert.assertNotEquals("principal4 should not be equal to principal", principal4, principal);
-        Assert.assertNotEquals("principal3 should not be equal to principal4", principal3, principal4);
-        Assert.assertNotEquals("principal4 should not be equal to principal3", principal4, principal3);
+        Assertions.assertNotEquals(principal, principal4, "principal should not be equal to principal4");
+        Assertions.assertNotEquals(principal4, principal, "principal4 should not be equal to principal");
+        Assertions.assertNotEquals(principal3, principal4, "principal3 should not be equal to principal4");
+        Assertions.assertNotEquals(principal4, principal3, "principal4 should not be equal to principal3");
 
         long hash1 = principal.hashCode();
         long hash2 = principal2.hashCode();
         long hash3 = principal3.hashCode();
         long hash4 = principal4.hashCode();
 
-        Assert.assertEquals("Hashcode1 should be equal to hashcode2", hash1, hash2);
-        Assert.assertEquals("Hashcode1 should be equal to hashcode3", hash1, hash3);
-        Assert.assertNotEquals("Hashcode1 should not be equal to hashcode4", hash1, hash4);
+        Assertions.assertEquals(hash1, hash2, "Hashcode1 should be equal to hashcode2");
+        Assertions.assertEquals(hash1, hash3, "Hashcode1 should be equal to hashcode3");
+        Assertions.assertNotEquals(hash1, hash4, "Hashcode1 should not be equal to hashcode4");
     }
 
     @Test
@@ -77,7 +77,7 @@ public class OAuthKafkaPrincipalTest {
         BearerTokenWithPayload jwt = new BearerTokenWithJsonPayload(tki);
         OAuthKafkaPrincipal principalJwt = new OAuthKafkaPrincipal("User", "bob", jwt);
 
-        Assert.assertEquals("Can access parsed JWT", parsed, principalJwt.getJwt().getClaimsJSON());
+        Assertions.assertEquals(parsed, principalJwt.getJwt().getClaimsJSON(), "Can access parsed JWT");
     }
 
     @Test
@@ -104,11 +104,11 @@ public class OAuthKafkaPrincipalTest {
         byte[] serialized = builder.serialize(principal);
         KafkaPrincipal deserialized = builder.deserialize(serialized);
 
-        Assert.assertTrue("Is OAuthKafkaPrincipal", deserialized instanceof OAuthKafkaPrincipal);
+        Assertions.assertTrue(deserialized instanceof OAuthKafkaPrincipal, "Is OAuthKafkaPrincipal");
         OAuthKafkaPrincipal oauthDeserialized = (OAuthKafkaPrincipal) deserialized;
-        Assert.assertEquals("name", principal.getName(), oauthDeserialized.getName());
-        Assert.assertEquals("type", principal.getPrincipalType(), oauthDeserialized.getPrincipalType());
-        Assert.assertEquals("groups", principal.getGroups(), oauthDeserialized.getGroups());
-        Assert.assertEquals("tokenInfo", principal.getJwt(), oauthDeserialized.getJwt());
+        Assertions.assertEquals(principal.getName(), oauthDeserialized.getName(), "name");
+        Assertions.assertEquals(principal.getPrincipalType(), oauthDeserialized.getPrincipalType(), "type");
+        Assertions.assertEquals(principal.getGroups(), oauthDeserialized.getGroups(), "groups");
+        Assertions.assertEquals(principal.getJwt(), oauthDeserialized.getJwt(), "tokenInfo");
     }
 }

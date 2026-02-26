@@ -1,0 +1,309 @@
+/*
+ * Copyright 2017-2021, Strimzi authors.
+ * License: Apache License 2.0 (see the file LICENSE or http://apache.org/licenses/LICENSE-2.0.html).
+ */
+package io.strimzi.oauth.testsuite.mockoauth;
+
+import io.strimzi.kafka.oauth.client.ClientConfig;
+import io.strimzi.kafka.oauth.metrics.GlobalConfig;
+import io.strimzi.kafka.oauth.services.Services;
+import io.strimzi.oauth.testsuite.logging.LogLineReader;
+import io.strimzi.oauth.testsuite.common.TestTags;
+import io.strimzi.oauth.testsuite.utils.TestUtil;
+import io.strimzi.oauth.testsuite.metrics.TestMetricsReporter;
+import io.strimzi.oauth.testsuite.environment.AuthServer;
+import io.strimzi.oauth.testsuite.environment.KafkaConfig;
+import io.strimzi.oauth.testsuite.environment.OAuthEnvironment;
+import io.strimzi.oauth.testsuite.environment.OAuthEnvironmentExtension;
+import io.strimzi.oauth.testsuite.metrics.TestMetrics;
+import io.strimzi.oauth.testsuite.clients.KafkaClientsConfig;
+import io.strimzi.oauth.testsuite.clients.MockOAuthAdmin;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.net.URI;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+
+import static io.strimzi.oauth.testsuite.utils.KafkaClientsUtils.produceMessage;
+
+/**
+ * Tests for OAuth metrics functionality.
+ * These tests verify that metrics are properly collected and exposed via Prometheus.
+ */
+@OAuthEnvironment(
+    authServer = AuthServer.MOCK_OAUTH,
+    kafka = @KafkaConfig(
+        metrics = true,
+        initEndpoints = false,
+        oauthProperties = {
+            "oauth.config.id=JWT",
+            "oauth.fail.fast=false",
+            "oauth.jwks.endpoint.uri=https://mockoauth:8090/jwks",
+            "oauth.jwks.refresh.seconds=10",
+            "oauth.valid.issuer.uri=https://mockoauth:8090",
+            "oauth.check.access.token.type=false",
+            "unsecuredLoginStringClaim_sub=admin"
+        }
+    )
+)
+public class MetricsIT {
+
+    private static final Logger LOG = LoggerFactory.getLogger(MetricsIT.class);
+
+    private final static int PAUSE_MILLIS = 15_000;
+
+    OAuthEnvironmentExtension env;
+
+    @BeforeAll
+    void setUp() throws Exception {
+        // Initial zero check - verify no Prometheus metrics errors before tests run
+        LOG.info("See log at: {}", new File("target/test.log").getAbsolutePath());
+        zeroCheck();
+
+        env.initMockOAuthEndpoints();  // now switch to MODE_200
+
+        postInitCheck();
+    }
+
+    private String getTokenEndpointUri() {
+        return "https://" + env.getMockOAuthHostPort() + "/token";
+    }
+
+    @Test
+    @Tag(TestTags.METRICS)
+    public void testNetworkErrors() throws Exception {
+        // Turn off mockoauth auth server to cause network errors
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "server", "mode_off");
+
+        Thread.sleep(PAUSE_MILLIS * 2);
+        TestMetrics metrics = TestMetrics.getPrometheusMetrics(URI.create(env.getMetricsUri()));
+
+        // See some network errors on JWT's
+        String value = metrics.getValueStartsWith("strimzi_oauth_http_requests_count", "context", "JWT", "outcome", "error", "error_type", "connect");
+        Assertions.assertNotNull(value, "Metric missing");
+        Assertions.assertTrue(new BigDecimal(value).doubleValue() > 0.0, "There should be some network errors");
+
+        value = metrics.getValueStartsWith("strimzi_oauth_http_requests_totaltimems", "context", "JWT", "outcome", "error", "error_type", "connect");
+        Assertions.assertNotNull(value, "Metric missing");
+        Assertions.assertTrue(new BigDecimal(value).doubleValue() > 0.0, "There should be some network errors");
+    }
+
+    @Test
+    @Tag(TestTags.METRICS)
+    public void testExpiredCert() throws Exception {
+        // Turn mockoauth auth server back on, and make JWT produce SSL errors
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "server", "mode_expired_cert_on");
+
+        Thread.sleep(PAUSE_MILLIS);
+        TestMetrics metrics = TestMetrics.getPrometheusMetrics(URI.create(env.getMetricsUri()));
+
+        // We should see some TLS errors
+        String value = metrics.getValueStartsWith("strimzi_oauth_http_requests_count", "context", "JWT", "outcome", "error", "error_type", "tls");
+        Assertions.assertNotNull(value, "Metric missing");
+        Assertions.assertTrue(new BigDecimal(value).doubleValue() > 0.0, "There should be some TLS errors");
+
+        value = metrics.getValueStartsWith("strimzi_oauth_http_requests_totaltimems", "context", "JWT", "outcome", "error", "error_type", "tls");
+        Assertions.assertNotNull(value, "Metric missing");
+        Assertions.assertTrue(new BigDecimal(value).doubleValue() > 0.0, "There should be some TLS errors");
+    }
+
+    @Test
+    @Tag(TestTags.METRICS)
+    public void testInternalServerErrors() throws Exception {
+        // Configure jwks endpoint to return 503
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "jwks", "mode_503");
+        // Turn mockoauth auth server back on with cert no. 2
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "server", "mode_cert_two_on");
+
+        Thread.sleep(PAUSE_MILLIS);
+        TestMetrics metrics = TestMetrics.getPrometheusMetrics(URI.create(env.getMetricsUri()));
+
+        // We should not see any 503 errors yet because of more TLS errors due to CERT_TWO being used
+        String value = metrics.getValueStartsWith("strimzi_oauth_http_requests_count", "context", "JWT", "outcome", "error", "error_type", "http", "status", "503");
+        Assertions.assertNull(value, "There should be no 503 errors");
+        // Switch mockoauth auth server back to using cert no. 1
+        MockOAuthAdmin.changeAuthServerMode(env.getMockOAuthAdminHostPort(), "server", "mode_cert_one_on");
+
+        Thread.sleep(PAUSE_MILLIS);
+        metrics = TestMetrics.getPrometheusMetrics(URI.create(env.getMetricsUri()));
+
+        // We should see some 503 errors
+        value = metrics.getValueStartsWith("strimzi_oauth_http_requests_count", "context", "JWT", "outcome", "error", "error_type", "http", "status", "503");
+        Assertions.assertNotNull(value, "Metric missing");
+        Assertions.assertTrue(new BigDecimal(value).doubleValue() > 0.0, "There should be some 503 errors");
+
+        value = metrics.getValueStartsWith("strimzi_oauth_http_requests_totaltimems", "context", "JWT", "outcome", "error", "error_type", "http", "status", "503");
+        Assertions.assertNotNull(value, "Metric missing");
+        Assertions.assertTrue(new BigDecimal(value).doubleValue() > 0.0, "There should be some 503 errors");
+    }
+
+    @Test
+    @Tag(TestTags.METRICS)
+    public void testOAuthMetricReporters() throws Exception {
+        LogLineReader logReader = new LogLineReader("target/test.log");
+        // seek to the end of log file
+        logReader.readNext();
+
+        Map<String, String> configs = new HashMap<>();
+        configs.put("strimzi.oauth.metric.reporters", TestMetricsReporter.class.getName());
+        reinitServices(configs);
+        Services.getInstance()
+            .getMetrics();
+        LOG.info("Waiting for: reporters: TestMetricsReporter"); // Make sure to not repeat the below condition in the string here
+        logReader.waitFor("reporters: \\[" + TestMetricsReporter.class.getName()
+            .replace(".", "\\.") + "[^,]+\\]");
+
+        configs.remove("strimzi.oauth.metric.reporters");
+        configs.put("metric.reporters", TestMetricsReporter.class.getName());
+        reinitServices(configs);
+        // JmxReporter will be instantiated, 'metric.reporters' setting is ignored
+        Services.getInstance()
+            .getMetrics();
+        LOG.info("Waiting for: reporters: JmxReporter"); // Make sure to not repeat the below condition in the string here
+        logReader.waitFor("reporters: \\[org\\.apache\\.kafka\\.common\\.metrics\\.JmxReporter");
+
+        configs.put("strimzi.oauth.metric.reporters", "org.apache.kafka.common.metrics.JmxReporter");
+        reinitServices(configs);
+        // Only JmxReporter will be instantiated the other setting is ignored
+        Services.getInstance()
+            .getMetrics();
+        LOG.info("Waiting for: reporters: JmxReporter"); // Make sure to not repeat the below condition in the string here
+        logReader.waitFor("reporters: \\[org\\.apache\\.kafka\\.common\\.metrics\\.JmxReporter");
+
+        configs.put("strimzi.oauth.metric.reporters", "");
+        reinitServices(configs);
+        // No reporter will be instantiated
+        Services.getInstance()
+            .getMetrics();
+        LOG.info("Waiting for: reporters: <empty>"); // Make sure to not repeat the below condition in the string here
+        logReader.waitFor("reporters: \\[\\]");
+
+        configs.put("strimzi.oauth.metric.reporters", "org.apache.kafka.common.metrics.JmxReporter," + TestMetricsReporter.class.getName());
+        reinitServices(configs);
+        // JmxReporter and TestMetricsReporter are instantiated
+        Services.getInstance()
+            .getMetrics();
+        LOG.info("Waiting for: reporters: JmxReporter,TestMetricsReporter"); // Make sure to not repeat the below condition in the string here
+        logReader.waitFor("reporters: \\[org\\.apache\\.kafka\\.common\\.metrics\\.JmxReporter.*, " + TestMetricsReporter.class.getName()
+            .replace(".", "\\."));
+    }
+
+    @Test
+    @Tag(TestTags.METRICS)
+    public void testKafkaClientConfig() throws Exception {
+        Map<String, String> oauthConfig = new HashMap<>();
+        oauthConfig.put(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, getTokenEndpointUri());
+        oauthConfig.put(ClientConfig.OAUTH_CLIENT_ID, "ignored");
+        oauthConfig.put(ClientConfig.OAUTH_CLIENT_SECRET, "ignored");
+        oauthConfig.put(ClientConfig.OAUTH_ENABLE_METRICS, "true");
+
+        Properties producerProps = new Properties();
+
+        LogLineReader logReader = new LogLineReader("target/test.log");
+        logReader.readNext();
+
+        // Clear the configured metrics in order to trigger reinitialisation
+        Services.close();
+
+        try {
+            initJaas(oauthConfig, producerProps);
+            Assertions.fail("Should have failed due to bad access token");
+        } catch (Exception e) {
+            LOG.debug("[IGNORED] Failed as expected: {}", e.getMessage(), e);
+        }
+
+        List<String> lines = logReader.readNext();
+        Assertions.assertTrue(TestUtil.checkLogForRegex(lines, "reporters: \\[org\\.apache\\.kafka\\.common\\.metrics\\.JmxReporter"), "Instantiated JMX Reporter");
+
+        producerProps.put(GlobalConfig.STRIMZI_OAUTH_METRIC_REPORTERS, TestMetricsReporter.class.getName());
+
+        // Clear the configured metrics in order to trigger reinitialisation
+        Services.close();
+
+        try {
+            initJaas(oauthConfig, producerProps);
+            Assertions.fail("Should have failed due to bad access token");
+        } catch (Exception e) {
+            LOG.debug("[IGNORED] Failed as expected: {}", e.getMessage(), e);
+        }
+
+        lines = logReader.readNext();
+        Assertions.assertTrue(TestUtil.checkLogForRegex(lines, "reporters: \\[" + TestMetricsReporter.class.getName()
+            .replace(".", "\\.") + "[^,]+\\]"), "Instantiated TestMetricsReporter");
+    }
+
+    private void initJaas(Map<String, String> oauthConfig, Properties additionalProps) throws Exception {
+        Properties producerProps = KafkaClientsConfig.buildProducerConfigOAuthBearer(env.getBootstrapServers(), oauthConfig);
+        producerProps.putAll(additionalProps);
+        produceMessage(producerProps, "Test-testTopic", "The Message");
+    }
+
+    private void postInitCheck() throws IOException {
+        TestMetrics metrics = TestMetrics.getPrometheusMetrics(URI.create(env.getMetricsUri()));
+
+        // mockoauth has JWKS endpoint configured to return 404
+        // error counter for 404 for JWT should not be zero as at least one JWKS request should fail
+        // during JWT listener's JWTSignatureValidator initialisation
+        String value = metrics.getValueStartsWith("strimzi_oauth_http_requests_count", "context", "JWT", "outcome", "error", "error_type", "http", "status", "404");
+        Assertions.assertNotNull(value, "Metric missing");
+        Assertions.assertTrue(new BigDecimal(value).doubleValue() > 0.0, "There should be some 404 errors");
+
+        value = metrics.getValueStartsWith("strimzi_oauth_http_requests_totaltimems", "context", "JWT", "outcome", "error", "error_type", "http", "status", "404");
+        Assertions.assertNotNull(value, "Metric missing");
+        Assertions.assertTrue(new BigDecimal(value).doubleValue() > 0.0, "There should be some 404 errors");
+    }
+
+    private void zeroCheck() throws IOException {
+        TestMetrics metrics = TestMetrics.getPrometheusMetrics(URI.create(env.getMetricsUri()));
+
+        // assumption check
+        // JWT listener config (on port 9404 in docker-compose.yml) has no token endpoint so the next metric should not exist.
+        // However, inter-broker authentication on the JWT listener during KRaft startup may generate
+        // validation requests, so we allow a non-null value here.
+        String value = metrics.getValueStartsWith("strimzi_oauth_validation_requests_count", "context", "JWT");
+        if (value != null) {
+            LOG.info("strimzi_oauth_validation_requests_count for JWT context is {} at startup (inter-broker auth)", value);
+        }
+
+        // JWT success counters should be null - JWKS endpoints return 404 during Kafka startup
+        // because mock OAuth endpoints are not yet switched to MODE_200
+        value = metrics.getValueStartsWith("strimzi_oauth_http_requests_count", "context", "JWT", "outcome", "success");
+        Assertions.assertNull(value);
+
+        value = metrics.getValueStartsWith("strimzi_oauth_http_requests_totaltimems", "context", "JWT", "outcome", "success");
+        Assertions.assertNull(value);
+
+        value = metrics.getValueStartsWith("strimzi_oauth_http_requests_count", "context", "INTROSPECT", "outcome", "success");
+        Assertions.assertNull(value);
+
+        value = metrics.getValueStartsWith("strimzi_oauth_http_requests_totaltimems", "context", "INTROSPECT", "outcome", "success");
+        Assertions.assertNull(value);
+
+        value = metrics.getValueStartsWith("strimzi_oauth_http_requests_count", "context", "JWTPLAIN", "outcome", "success");
+        Assertions.assertNull(value);
+
+        value = metrics.getValueStartsWith("strimzi_oauth_http_requests_totaltimems", "context", "JWTPLAIN", "outcome", "success");
+        Assertions.assertNull(value);
+
+        value = metrics.getValueStartsWith("strimzi_oauth_http_requests_count", "context", "JWTPLAIN", "outcome", "success");
+        Assertions.assertNull(value);
+
+        value = metrics.getValueStartsWith("strimzi_oauth_http_requests_totaltimems", "context", "JWTPLAIN", "outcome", "success");
+        Assertions.assertNull(value);
+    }
+
+    private void reinitServices(Map<String, String> configs) {
+        Services.close();
+        Services.configure(configs);
+    }
+}

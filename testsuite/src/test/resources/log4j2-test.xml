@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+    <Appenders>
+        <!-- File appender for detailed debugging - also used by LogLineReader for test assertions -->
+        <File name="File" fileName="target/test.log" append="false">
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss:SSS} [%t] %-5level %logger{36} - %msg%n"/>
+        </File>
+
+        <!-- Console appender for test lifecycle visibility (INFO and above only) -->
+        <Console name="Console" target="SYSTEM_OUT">
+            <ThresholdFilter level="INFO" onMatch="ACCEPT" onMismatch="DENY"/>
+            <PatternLayout pattern="%d{HH:mm:ss.SSS} %-5level %logger{36}:%L - %msg%n"/>
+        </Console>
+    </Appenders>
+
+    <Loggers>
+        <!-- Kafka logging - keep quiet to reduce noise -->
+        <Logger name="org.apache.kafka" level="OFF"/>
+        <!-- TRACE level needed for test assertions via LogLineReader, but only to file -->
+        <Logger name="org.apache.kafka.common.security" level="TRACE" additivity="false">
+            <AppenderRef ref="File"/>
+        </Logger>
+
+        <!-- Strimzi OAuth logging - TRACE level required by unit KeycloakAuthorizerTest
+             (tests assert on TRACE-level "Response body" log messages from HttpUtil) -->
+        <Logger name="io.strimzi" level="TRACE"/>
+
+        <Root level="WARN">
+            <AppenderRef ref="File"/>
+            <AppenderRef ref="Console"/>
+        </Root>
+    </Loggers>
+</Configuration>

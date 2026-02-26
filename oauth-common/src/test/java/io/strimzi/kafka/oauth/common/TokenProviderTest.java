@@ -4,8 +4,8 @@
  */
 package io.strimzi.kafka.oauth.common;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,7 +17,7 @@ public class TokenProviderTest {
     @Test
     public void testStaticTokenProvider() {
         final TokenProvider staticTokenProvider = new StaticTokenProvider("test-token");
-        Assert.assertEquals(staticTokenProvider.token(), "test-token");
+        Assertions.assertEquals(staticTokenProvider.token(), "test-token");
     }
 
     @Test
@@ -30,18 +30,18 @@ public class TokenProviderTest {
         final String tokenValueFromFile = fileBasedTokenProvider.token();
         final boolean delete = tempFile.delete();
 
-        Assert.assertEquals("some-test-value", tokenValueFromFile);
-        Assert.assertTrue(delete);
+        Assertions.assertEquals("some-test-value", tokenValueFromFile);
+        Assertions.assertTrue(delete);
     }
 
     @Test
     public void testFileBasedTokenProviderWhenFileDoesNotExist() {
         try {
             new FileBasedTokenProvider("invalid-file-path");
-            Assert.fail("failed to test for file type");
+            Assertions.fail("failed to test for file type");
 
         } catch (IllegalArgumentException e) {
-            Assert.assertTrue("No such file ...", e.getMessage().contains("No such file"));
+            Assertions.assertTrue(e.getMessage().contains("No such file"), "No such file ...");
         }
     }
 
@@ -50,10 +50,10 @@ public class TokenProviderTest {
         String tempDir = new File(System.getProperty("java.io.tmpdir")).getAbsolutePath();
         try {
             new FileBasedTokenProvider(tempDir);
-            Assert.fail("failed to test for file existence");
+            Assertions.fail("failed to test for file existence");
 
         } catch (IllegalArgumentException e) {
-            Assert.assertEquals("File is not a regular file: " + tempDir, e.getMessage());
+            Assertions.assertEquals("File is not a regular file: " + tempDir, e.getMessage());
         }
     }
 
@@ -65,14 +65,14 @@ public class TokenProviderTest {
         final TokenProvider fileBasedTokenProvider = new FileBasedTokenProvider(tempFile.getPath());
 
         final boolean delete = tempFile.delete();
-        Assert.assertTrue(delete);
+        Assertions.assertTrue(delete);
 
         try {
             fileBasedTokenProvider.token();
-            Assert.fail("this should not be possible");
+            Assertions.fail("this should not be possible");
 
         } catch (IllegalStateException e) {
-            Assert.assertTrue(e.getCause() instanceof IOException);
+            Assertions.assertTrue(e.getCause() instanceof IOException);
         }
     }
 }

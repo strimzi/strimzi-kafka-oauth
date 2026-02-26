@@ -4,8 +4,8 @@
  */
 package io.strimzi.kafka.oauth.common;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.file.FileSystem;
@@ -36,7 +36,7 @@ public class FilePermissionsTest {
 
         String filePath = "target/test1.txt";
         Path file = Paths.get(filePath);
-        Assert.assertFalse("File should not yet exist", Files.exists(file));
+        Assertions.assertFalse(Files.exists(file), "File should not yet exist");
 
         try {
             FileSystem fs = FileSystems.getDefault();
@@ -45,13 +45,13 @@ public class FilePermissionsTest {
                 // This part of the test only works in posix compatible environment
                 // Create a file
                 createFile(file, false);
-                Assert.assertFalse("File should be accessible to group and others", isFileAccessLimitedToOwner(file));
+                Assertions.assertFalse(isFileAccessLimitedToOwner(file), "File should be accessible to group and others");
 
                 Files.delete(file);
             }
 
             createFile(file, true);
-            Assert.assertTrue("File should NOT be accessible to group and others", isFileAccessLimitedToOwner(file));
+            Assertions.assertTrue(isFileAccessLimitedToOwner(file), "File should NOT be accessible to group and others");
         } finally {
             try {
                 Files.delete(file);
@@ -69,13 +69,13 @@ public class FilePermissionsTest {
 
             String filePath = "target/test1.txt";
             Path file = Paths.get(filePath);
-            Assert.assertFalse("File should not yet exist", Files.exists(file));
+            Assertions.assertFalse(Files.exists(file), "File should not yet exist");
 
             // also check that symlinks don't exist
             Path link1File = Paths.get("target/link1");
             Path link2File = Paths.get("target/link2");
-            Assert.assertFalse("Link1 should not yet exist", Files.exists(link1File, LinkOption.NOFOLLOW_LINKS));
-            Assert.assertFalse("Link2 should not yet exist", Files.exists(link2File, LinkOption.NOFOLLOW_LINKS));
+            Assertions.assertFalse(Files.exists(link1File, LinkOption.NOFOLLOW_LINKS), "Link1 should not yet exist");
+            Assertions.assertFalse(Files.exists(link2File, LinkOption.NOFOLLOW_LINKS), "Link2 should not yet exist");
 
             try {
                 createSymbolicLink(link1File, file.getFileName());
@@ -84,12 +84,12 @@ public class FilePermissionsTest {
                 // This part of the test only works in posix compatible environment
                 // Create a file
                 createFile(file, false);
-                Assert.assertFalse("File should be accessible to group and others", isFileAccessLimitedToOwner(link2File));
+                Assertions.assertFalse(isFileAccessLimitedToOwner(link2File), "File should be accessible to group and others");
 
                 Files.delete(file);
 
                 createFile(file, true);
-                Assert.assertTrue("File should NOT be accessible to group and others", isFileAccessLimitedToOwner(file));
+                Assertions.assertTrue(isFileAccessLimitedToOwner(file), "File should NOT be accessible to group and others");
 
             } finally {
                 for (Path f: Arrays.asList(file, link1File, link2File)) {
