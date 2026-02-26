@@ -459,6 +459,25 @@
                 </executions>
             </plugin>
 
+            <!-- Create main artifact JAR early so shade + docker can run before test phase -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>early-jar</id>
+                        <phase>process-test-classes</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>default-jar</id>
+                        <phase>none</phase>
+                    </execution>
+                </executions>
+            </plugin>
+
             <!-- Shade plugin for mock-oauth-server fat JAR -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -473,7 +492,7 @@
                 </dependencies>
                 <executions>
                     <execution>
-                        <phase>package</phase>
+                        <phase>process-test-classes</phase>
                         <goals>
                             <goal>shade</goal>
                         </goals>
@@ -532,7 +551,7 @@
                 <executions>
                     <execution>
                         <id>build</id>
-                        <phase>pre-integration-test</phase>
+                        <phase>process-test-classes</phase>
                         <goals>
                             <goal>build</goal>
                         </goals>
