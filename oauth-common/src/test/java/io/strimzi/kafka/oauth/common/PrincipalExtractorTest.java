@@ -12,16 +12,16 @@ public class PrincipalExtractorTest {
     @Test
     public void testToStringMethod() {
 
-        PrincipalExtractor extractor = new PrincipalExtractor("username.claim", null, null, null);
+        PrincipalExtractor extractor = new PrincipalExtractor("username.claim", null, null, null, false);
         Assert.assertEquals("PrincipalExtractor {usernameClaim: username.claim, usernamePrefix: null, fallbackUsernameClaim: null, fallbackUsernamePrefix: null}", extractor.toString());
 
-        extractor = new PrincipalExtractor("['username'].['claim']", "admins_", null, "client_");
+        extractor = new PrincipalExtractor("['username'].['claim']", "admins_", null, "client_", false);
         Assert.assertEquals("PrincipalExtractor {usernameClaim: ['username'].['claim'], usernamePrefix: admins_, fallbackUsernameClaim: null, fallbackUsernamePrefix: client_}", extractor.toString());
 
-        extractor = new PrincipalExtractor("username", null, "user.id", null);
+        extractor = new PrincipalExtractor("username", null, "user.id", null, false);
         Assert.assertEquals("PrincipalExtractor {usernameClaim: username, usernamePrefix: null, fallbackUsernameClaim: user.id, fallbackUsernamePrefix: null}", extractor.toString());
 
-        extractor = new PrincipalExtractor("username", "intra_", "['user.id']", "intra_service-account-");
+        extractor = new PrincipalExtractor("username", "intra_", "['user.id']", "intra_service-account-", false);
         Assert.assertEquals("PrincipalExtractor {usernameClaim: username, usernamePrefix: intra_, fallbackUsernameClaim: ['user.id'], fallbackUsernamePrefix: intra_service-account-}", extractor.toString());
     }
 }

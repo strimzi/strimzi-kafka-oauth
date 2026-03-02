@@ -92,6 +92,11 @@ public class PrincipalExtractorTest {
             "['$.user.id']", "$.alice",
         };
 
+        String[] claimSpecWithFunctions = {
+            // using functions
+            "$.concat($['userInfo'].['id'], ':', $['sub'])", "alice@example.com"
+        };
+
         String[] claimSpecError = {
             // square brackets but no single quotes
             "[user.id]",
@@ -123,14 +128,33 @@ public class PrincipalExtractorTest {
             String expected = claimSpec[++i];
 
             try {
-                PrincipalExtractor extractor = new PrincipalExtractor(query, usernamePrefix, null, null);
+                PrincipalExtractor extractor = new PrincipalExtractor(query, usernamePrefix, null, null, false);
                 Assert.assertEquals(query + " top level works as primary", applyPrefix(usernamePrefix, expected), extractor.getPrincipal(json));
             } catch (Exception e) {
                 throw new RuntimeException("Unexpected error while testing: " + query + " expecting it to return: " + applyPrefix(usernamePrefix, expected), e);
             }
 
             try {
-                PrincipalExtractor extractor = new PrincipalExtractor("nonexisting", usernamePrefix, query, fallbackUsernamePrefix);
+                PrincipalExtractor extractor = new PrincipalExtractor("nonexisting", usernamePrefix, query, fallbackUsernamePrefix, false);
+                Assert.assertEquals(query + " top level works as fallback", applyPrefix(fallbackUsernamePrefix, expected), extractor.getPrincipal(json));
+            } catch (Exception e) {
+                throw new RuntimeException("Unexpected error while testing: " + query + " expecting it to return: " + applyPrefix(fallbackUsernamePrefix, expected), e);
+            }
+        }
+
+        for (int i = 0; i < claimSpecWithFunctions.length; i++) {
+            String query = claimSpecWithFunctions[i];
+            String expected = claimSpecWithFunctions[++i];
+
+            try {
+                PrincipalExtractor extractor = new PrincipalExtractor(query, usernamePrefix, null, null, true);
+                Assert.assertEquals(query + " top level works as primary", applyPrefix(usernamePrefix, expected), extractor.getPrincipal(json));
+            } catch (Exception e) {
+                throw new RuntimeException("Unexpected error while testing: " + query + " expecting it to return: " + applyPrefix(usernamePrefix, expected), e);
+            }
+
+            try {
+                PrincipalExtractor extractor = new PrincipalExtractor("nonexisting", usernamePrefix, query, fallbackUsernamePrefix, true);
                 Assert.assertEquals(query + " top level works as fallback", applyPrefix(fallbackUsernamePrefix, expected), extractor.getPrincipal(json));
             } catch (Exception e) {
                 throw new RuntimeException("Unexpected error while testing: " + query + " expecting it to return: " + applyPrefix(fallbackUsernamePrefix, expected), e);
@@ -139,7 +163,7 @@ public class PrincipalExtractorTest {
 
         for (String query : claimSpecError) {
             try {
-                PrincipalExtractor extractor = new PrincipalExtractor(query, usernamePrefix, "nonexisting", fallbackUsernamePrefix);
+                PrincipalExtractor extractor = new PrincipalExtractor(query, usernamePrefix, "nonexisting", fallbackUsernamePrefix, false);
                 extractor.getPrincipal(json);
                 Assert.fail("Should have failed");
             } catch (JsonPathQueryException e) {
