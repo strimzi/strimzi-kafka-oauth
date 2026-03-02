@@ -63,8 +63,18 @@ class Matcher {
      * @return Jackson JsonObject with the result
      */
     public JsonNode apply(JsonNode json) {
-        DocumentContext doc = ctx.parse(json);
-        return doc.read(parsed);
+        DocumentContext doc = ctx.parse(json.toString());
+        Object result = doc.read(parsed);
+        if (result == null) {
+            return null;
+        }
+        if (result instanceof JsonNode) {
+            return (JsonNode) result;
+        }
+        if (result instanceof String) {
+            return JsonNodeFactory.instance.textNode((String) result);
+        }
+        return MAPPER.valueToTree(result);
     }
 
     private JsonNode wrapToken(JsonNode json) {
