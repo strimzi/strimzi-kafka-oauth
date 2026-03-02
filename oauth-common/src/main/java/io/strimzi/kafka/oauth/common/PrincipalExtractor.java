@@ -48,7 +48,6 @@ public class PrincipalExtractor {
     private final String usernamePrefix;
     private final Extractor fallbackUsernameExtractor;
     private final String fallbackUsernamePrefix;
-    private final boolean allowJsonPathFunctions;
 
 
     /**
@@ -59,7 +58,6 @@ public class PrincipalExtractor {
         usernamePrefix = null;
         fallbackUsernameExtractor = null;
         fallbackUsernamePrefix = null;
-        allowJsonPathFunctions = false;
     }
 
     /**
@@ -68,11 +66,10 @@ public class PrincipalExtractor {
      * @param usernameClaim Attribute name for an attribute containing the user id to lookup first.
      */
     public PrincipalExtractor(String usernameClaim) {
-        this.usernameExtractor = parseClaimSpec(usernameClaim);
+        this.usernameExtractor = parseClaimSpec(usernameClaim, false);
         usernamePrefix = null;
         fallbackUsernameExtractor = null;
         fallbackUsernamePrefix = null;
-        allowJsonPathFunctions = false;
     }
 
     /**
@@ -84,11 +81,10 @@ public class PrincipalExtractor {
      * @param fallbackUsernamePrefix A prefix to prepend to the value of the fallback attribute value if set
      */
     public PrincipalExtractor(String usernameClaim, String usernamePrefix, String fallbackUsernameClaim, String fallbackUsernamePrefix, boolean allowJsonPathFunctions) {
-        this.usernameExtractor = parseClaimSpec(usernameClaim);
+        this.usernameExtractor = parseClaimSpec(usernameClaim, allowJsonPathFunctions);
         this.usernamePrefix = usernamePrefix;
-        this.fallbackUsernameExtractor = parseClaimSpec(fallbackUsernameClaim);
+        this.fallbackUsernameExtractor = parseClaimSpec(fallbackUsernameClaim, allowJsonPathFunctions);
         this.fallbackUsernamePrefix = fallbackUsernamePrefix;
-        this.allowJsonPathFunctions = allowJsonPathFunctions;
     }
 
     /**
@@ -189,7 +185,7 @@ public class PrincipalExtractor {
             return new Extractor(JsonPathQuery.parse(spec));
         }
 
-        if (allowJsonPathFunctions && spec.startsWith("$")) {
+        if (allowJsonPathFunctions && spec.startsWith("$.")) {
             return new Extractor(JsonPathQuery.parse(spec));
         }
 
