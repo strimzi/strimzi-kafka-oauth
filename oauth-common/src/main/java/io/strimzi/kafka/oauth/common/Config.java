@@ -41,6 +41,9 @@ public class Config {
     /** The name of 'oauth.username.prefix' config option  */
     public static final String OAUTH_USERNAME_PREFIX = "oauth.username.prefix";
 
+    /** The name of 'oauth.username.allow.jsonpathfunctions' config option  */
+    public static final String OAUTH_USERNAME_ALLOW_JSONPATH_FUNCTIONS = "oauth.username.allow.jsonpathfunctions";
+
     /** The name of 'oauth.fallback.username.claim' config option  */
     public static final String OAUTH_FALLBACK_USERNAME_CLAIM = "oauth.fallback.username.claim";
 
