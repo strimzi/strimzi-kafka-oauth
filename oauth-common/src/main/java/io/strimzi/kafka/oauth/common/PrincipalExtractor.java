@@ -48,6 +48,8 @@ public class PrincipalExtractor {
     private final String usernamePrefix;
     private final Extractor fallbackUsernameExtractor;
     private final String fallbackUsernamePrefix;
+    private final boolean allowJsonPathFunctions;
+
 
     /**
      * Create a new instance
@@ -57,6 +59,7 @@ public class PrincipalExtractor {
         usernamePrefix = null;
         fallbackUsernameExtractor = null;
         fallbackUsernamePrefix = null;
+        allowJsonPathFunctions = false;
     }
 
     /**
@@ -69,6 +72,7 @@ public class PrincipalExtractor {
         usernamePrefix = null;
         fallbackUsernameExtractor = null;
         fallbackUsernamePrefix = null;
+        allowJsonPathFunctions = false;
     }
 
     /**
@@ -79,11 +83,12 @@ public class PrincipalExtractor {
      * @param fallbackUsernameClaim Attribute name for an attribute containing the user id to lookup as a fallback
      * @param fallbackUsernamePrefix A prefix to prepend to the value of the fallback attribute value if set
      */
-    public PrincipalExtractor(String usernameClaim, String usernamePrefix, String fallbackUsernameClaim, String fallbackUsernamePrefix) {
+    public PrincipalExtractor(String usernameClaim, String usernamePrefix, String fallbackUsernameClaim, String fallbackUsernamePrefix, boolean allowJsonPathFunctions) {
         this.usernameExtractor = parseClaimSpec(usernameClaim);
         this.usernamePrefix = usernamePrefix;
         this.fallbackUsernameExtractor = parseClaimSpec(fallbackUsernameClaim);
         this.fallbackUsernamePrefix = fallbackUsernamePrefix;
+        this.allowJsonPathFunctions = allowJsonPathFunctions;
     }
 
     /**
@@ -154,6 +159,8 @@ public class PrincipalExtractor {
      * <ul>
      * <li>If the claim specification starts with an opening square bracket '[', it is interpreted as a JsonPath query, and allows
      * targeting a nested attribute. </li>
+     * <li>If the claim specification starts with an opening square bracket '$', it is interpreted as a JsonPath query, and allows
+     * targeting a nested attribute as well as using JsonPath functions. Must be enabled use oauth.username.allow.jsonpathfunctions</li>
      * <li>Otherwise, it is interpreted as a top level attribute name.</li>
      * </ul>
      * For more on JsonPath syntax see https://github.com/json-path/JsonPath.
@@ -172,17 +179,21 @@ public class PrincipalExtractor {
      * @param spec Claim specification
      * @return Result containing either a claim with top level attribute name or a JsonPathQuery object
      */
-    private static Extractor parseClaimSpec(String spec) {
+    private static Extractor parseClaimSpec(String spec, boolean allowJsonPathFunctions) {
         spec = spec == null ? null : spec.trim();
         if (spec == null || spec.isEmpty()) {
             return null;
         }
 
-        if (!spec.startsWith("[")) {
-            return new Extractor(spec);
+        if (spec.startsWith("[")) {
+            return new Extractor(JsonPathQuery.parse(spec));
         }
 
-        return new Extractor(JsonPathQuery.parse(spec));
+        if (allowJsonPathFunctions && spec.startsWith("$")) {
+            return new Extractor(JsonPathQuery.parse(spec));
+        }
+
+        return new Extractor(spec);
     }
 
     static class Extractor {
