@@ -53,6 +53,10 @@ public class OAuthIntrospectionValidator implements TokenValidator {
 
     private static final Logger log = LoggerFactory.getLogger(OAuthIntrospectionValidator.class);
     private static final String DEFAULT_INTROSPECTION_TOKEN_PARAM_NAME = "token";
+    private static final String DEFAULT_EXPIRES_IN_SECONDS_FIELD = "expires_in";
+    private static final String LEGACY_SCOPE_CLAIM = "scope";
+    private static final String LEGACY_SCOPE_KEYWORD = "wap-kafka";
+    private static final String LEGACY_CLIENT_ID_CLAIM = "client_id";
 
     private final String validatorId;
     private final URI introspectionURI;
@@ -341,21 +345,18 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         }
 
         JsonNode activeAttr = response.get("active");
-        if (!(activeAttr instanceof BooleanNode)) {
-            throw new ValidationException("Failed to introspect token - invalid response: \"active\" attribute is missing or not a boolean (" + activeAttr + ")");
+        // POC compatibility mode: if 'active' is missing, treat token as active
+        if (activeAttr == null) {
+            log.info("Introspection response has no 'active' attribute. Applying POC compatibility and treating token as active");
         }
-        boolean active = activeAttr.asBoolean();
+        boolean active = !(activeAttr instanceof BooleanNode) || activeAttr.asBoolean();
         if (!active) {
             throw new TokenValidationException("Token validation failed: Token not active");
         }
 
         JsonNode value;
 
-        value = response.get("exp");
-        if (value == null) {
-            throw new IllegalStateException("Introspection response contains no expires information (\"exp\"): " + response);
-        }
-        long expiresMillis = 1000 * value.asLong();
+        long expiresMillis = resolveExpiryTimeMillis(response);
         if (Time.SYSTEM.milliseconds() > expiresMillis)    {
             throw new TokenExpiredException("The token expired at: " + expiresMillis + " (" +
                     TimeUtil.formatIsoDateTimeUTC(expiresMillis) + ")");
@@ -364,7 +365,10 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         value = response.get("iat");
         long iat = value == null ? 0 : 1000 * value.asLong();
 
-        String principal = principalExtractor.getPrincipal(response);
+        String principal = buildLegacyPrincipal(response);
+        if (principal == null) {
+            principal = principalExtractor.getPrincipal(response);
+        }
         JsonNode fallbackResponse = null;
         if (principal == null) {
             if (userInfoURI != null) {
@@ -392,6 +396,49 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         String scopes = value != null ? String.join(" ", JSONUtil.asListOfString(value)) : null;
 
         return new TokenInfo(token, scopes, principal, groups, iat, expiresMillis);
+    }
+
+    private long resolveExpiryTimeMillis(JsonNode response) {
+        JsonNode value = response.get("exp");
+        if (value != null && value.canConvertToLong()) {
+            return 1000 * value.asLong();
+        }
+
+        JsonNode expiresInNode = response.get(DEFAULT_EXPIRES_IN_SECONDS_FIELD);
+        if (expiresInNode != null && expiresInNode.canConvertToLong()) {
+            log.info("Introspection response has no 'exp'. Falling back to '{}' for expiry calculation", DEFAULT_EXPIRES_IN_SECONDS_FIELD);
+            return Time.SYSTEM.milliseconds() + (expiresInNode.asLong() * 1000);
+        }
+
+        throw new IllegalStateException("Introspection response contains no expires information (\"exp\" or \"" + DEFAULT_EXPIRES_IN_SECONDS_FIELD + "\"): " + response);
+    }
+
+    private String buildLegacyPrincipal(JsonNode response) {
+        JsonNode scopeNode = response.get(LEGACY_SCOPE_CLAIM);
+        if (scopeNode == null) {
+            return null;
+        }
+
+        List<String> scopes = JSONUtil.asListOfString(scopeNode);
+        String principalBase = null;
+        for (String scope : scopes) {
+            if (scope.contains(LEGACY_SCOPE_KEYWORD)) {
+                principalBase = scope;
+            }
+        }
+
+        if (principalBase == null) {
+            return null;
+        }
+
+        JsonNode clientIdNode = response.get(LEGACY_CLIENT_ID_CLAIM);
+        if (clientIdNode == null || clientIdNode.asText() == null || clientIdNode.asText().trim().isEmpty()) {
+            log.info("Using legacy principal from scope without client id suffix: {}", principalBase);
+            return principalBase;
+        }
+        String principal = principalBase + "#clid:" + clientIdNode.asText();
+        log.info("Using legacy principal with client id suffix from introspection response: {}", principal);
+        return principal;
     }
 
     private String generateAuthorizationHeader() {

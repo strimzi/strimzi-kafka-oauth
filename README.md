@@ -662,6 +662,13 @@ If you want to install OAuthSessionAuthorizer wrapped around Simple ACL Authoriz
     authorizer.class.name=io.strimzi.kafka.oauth.server.OAuthSessionAuthorizer
     strimzi.authorizer.delegate.class.name=kafka.security.auth.SimpleAclAuthorizer
 
+If you want legacy ACL compatibility based on protocol-aware principal normalization (strip `#clid:<client-id>` only for `SASL_PLAINTEXT` and `SASL_SSL`), install:
+
+    authorizer.class.name=io.strimzi.kafka.oauth.server.ProtocolAwareLegacyAclAuthorizer
+    strimzi.authorizer.delegate.class.name=kafka.security.auth.SimpleAclAuthorizer
+
+This authorizer does not require `principal.builder.class=io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder` for basic ACL compatibility flow. Configure `principal.builder.class` only if you need other OAuth features that depend on `OAuthKafkaPrincipal` (for example `OAuthSessionAuthorizer` token-expiry enforcement, or OAuth over PLAIN flows).
+
 You configure the `SimpleAclAuthorizer` by specifying the same properties as if it was installed under `authorizer.class.name`.
 
 It's the same for any other authorizer you may use - instead of using `authorizer.class.name` you install it by using `strimzi.authorizer.delegate.class.name`.
