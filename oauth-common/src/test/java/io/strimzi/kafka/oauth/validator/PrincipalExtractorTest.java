@@ -134,12 +134,12 @@ public class PrincipalExtractorTest {
         };
 
         String[] claimSpecErrorWithFunctions = {
-                // missing closing parenthesis
-                "$.concat($['userId']",
-                // invalid function name
-                "$.fakefunc($['userId'])",
-                // empty function arguments with bad syntax
-                "$.concat(",
+            // missing closing parenthesis
+            "$.concat($['userId']",
+            // invalid function name
+            "$.fakefunc($['userId'])",
+            // empty function arguments with bad syntax
+            "$.concat(",
         };
 
         runClaimsTest(json, claimSpec, false);

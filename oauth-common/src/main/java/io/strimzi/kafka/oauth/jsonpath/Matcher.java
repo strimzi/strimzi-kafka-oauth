@@ -68,12 +68,7 @@ class Matcher {
         if (result == null) {
             return null;
         }
-        if (result instanceof JsonNode) {
-            return (JsonNode) result;
-        }
-        if (result instanceof String) {
-            return JsonNodeFactory.instance.textNode((String) result);
-        }
+
         return MAPPER.valueToTree(result);
     }
 
