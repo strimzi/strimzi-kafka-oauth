@@ -357,6 +357,7 @@ public class ValidatorKey {
     public static class IntrospectionValidatorKey extends ValidatorKey {
 
         private final String introspectionEndpoint;
+        private final String introspectionTokenParamName;
         private final String userInfoEndpoint;
         private final String validTokenType;
         private final int retries;
@@ -383,6 +384,7 @@ public class ValidatorKey {
          * @param sslRandom sslRandom
          * @param hasHostnameVerifier hasHostnameVerifier
          * @param introspectionEndpoint introspectionEndpoint
+         * @param introspectionTokenParamName introspectionTokenParamName
          * @param userInfoEndpoint userInfoEndpoint
          * @param validTokenType validTokenType
          * @param connectTimeout connectTimeout
@@ -411,6 +413,7 @@ public class ValidatorKey {
                                   boolean hasHostnameVerifier,
 
                                   String introspectionEndpoint,
+                                  String introspectionTokenParamName,
                                   String userInfoEndpoint,
                                   String validTokenType,
                                   int connectTimeout,
@@ -441,6 +444,7 @@ public class ValidatorKey {
                     enableMetrics,
                     includeAcceptHeader);
             this.introspectionEndpoint = introspectionEndpoint;
+            this.introspectionTokenParamName = introspectionTokenParamName;
             this.userInfoEndpoint = userInfoEndpoint;
             this.validTokenType = validTokenType;
             this.retries = retries;
@@ -448,6 +452,7 @@ public class ValidatorKey {
 
             this.configIdHash = IOUtil.hashForObjects(super.getConfigIdHash(),
                     introspectionEndpoint,
+                    introspectionTokenParamName,
                     userInfoEndpoint,
                     validTokenType,
                     clientId,
@@ -463,6 +468,7 @@ public class ValidatorKey {
             if (!super.equals(o)) return false;
             IntrospectionValidatorKey that = (IntrospectionValidatorKey) o;
             return Objects.equals(introspectionEndpoint, that.introspectionEndpoint) &&
+                    Objects.equals(introspectionTokenParamName, that.introspectionTokenParamName) &&
                     Objects.equals(userInfoEndpoint, that.userInfoEndpoint) &&
                     Objects.equals(validTokenType, that.validTokenType) &&
                     Objects.equals(retries, that.retries) &&
@@ -473,6 +479,7 @@ public class ValidatorKey {
         public int hashCode() {
             return Objects.hash(super.hashCode(),
                     introspectionEndpoint,
+                    introspectionTokenParamName,
                     userInfoEndpoint,
                     validTokenType,
                     retries,
@@ -507,6 +514,7 @@ public class ValidatorKey {
                     + ", enableMetrics: " + super.enableMetrics
                     + ", includeAcceptHeader: " + super.includeAcceptHeader
                     + ", introspectionEndpoint: " + singleQuote(introspectionEndpoint)
+                    + ", introspectionTokenParamName: " + singleQuote(introspectionTokenParamName)
                     + ", userInfoEndpoint: " + singleQuote(userInfoEndpoint)
                     + ", validTokenType: " + singleQuote(validTokenType)
                     + ", retries: " + retries

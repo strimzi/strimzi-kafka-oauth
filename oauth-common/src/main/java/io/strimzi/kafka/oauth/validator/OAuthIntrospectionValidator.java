@@ -52,9 +52,11 @@ import static io.strimzi.kafka.oauth.validator.TokenValidationException.Status;
 public class OAuthIntrospectionValidator implements TokenValidator {
 
     private static final Logger log = LoggerFactory.getLogger(OAuthIntrospectionValidator.class);
+    private static final String DEFAULT_INTROSPECTION_TOKEN_PARAM_NAME = "token";
 
     private final String validatorId;
     private final URI introspectionURI;
+    private final String introspectionTokenParamName;
     private final String validIssuerURI;
     private final URI userInfoURI;
     private final String validTokenType;
@@ -90,6 +92,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
      * @param clientSecret The secret of the OAuth2 client representing this Kafka broker - used to authenticate to the introspection endpoint using Basic authentication
      * @param bearerTokenProvider The provider of the bearer token as an alternative to clientId and secret of the OAuth2 client representing this Kafka broker - used to authenticate to the introspection endpoint using Bearer authentication
      * @param introspectionEndpointUri The introspection endpoint url at the authorization server
+     * @param introspectionTokenParamName The request parameter name used to send token to introspection endpoint
      * @param socketFactory The optional SSL socket factory to use when establishing the connection to authorization server
      * @param verifier The optional hostname verifier used to validate the TLS certificate by the authorization server
      * @param principalExtractor The object used to extract the username from the attributes in the server's response
@@ -113,6 +116,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
                                        String clientSecret,
                                        TokenProvider bearerTokenProvider,
                                        String introspectionEndpointUri,
+                                       String introspectionTokenParamName,
                                        SSLSocketFactory socketFactory,
                                        HostnameVerifier verifier,
                                        PrincipalExtractor principalExtractor,
@@ -133,6 +137,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         this.validatorId = checkValidatorId(id);
 
         this.introspectionURI = checkIntrospectionUri(introspectionEndpointUri);
+        this.introspectionTokenParamName = parseIntrospectionTokenParamName(introspectionTokenParamName);
 
         this.socketFactory = checkSocketFactory(socketFactory);
 
@@ -176,6 +181,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
             log.debug("Configured OAuthIntrospectionValidator:"
                     + "\n\t  id: " + id
                     + "\n\t  introspectionEndpointUri: " + introspectionURI
+                    + "\n\t  introspectionTokenParamName: " + this.introspectionTokenParamName
                     + "\n\t  sslSocketFactory: " + socketFactory
                     + "\n\t  hostnameVerifier: " + hostnameVerifier
                     + "\n\t  principalExtractor: " + principalExtractor
@@ -260,6 +266,17 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         return validatorId;
     }
 
+    private String parseIntrospectionTokenParamName(String tokenParamName) {
+        if (tokenParamName == null) {
+            return DEFAULT_INTROSPECTION_TOKEN_PARAM_NAME;
+        }
+        String result = tokenParamName.trim();
+        if (result.isEmpty()) {
+            return DEFAULT_INTROSPECTION_TOKEN_PARAM_NAME;
+        }
+        return result;
+    }
+
     private JsonPathFilterQuery parseCustomClaimCheck(String customClaimCheck) {
         if (customClaimCheck != null) {
             String query = customClaimCheck.trim();
@@ -296,7 +313,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
 
         String authorization = generateAuthorizationHeader();
 
-        StringBuilder body = new StringBuilder("token=").append(token);
+        StringBuilder body = new StringBuilder(introspectionTokenParamName).append("=").append(token);
 
         JsonNode response;
         try {

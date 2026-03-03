@@ -49,6 +49,11 @@ public class ServerConfig extends Config {
     public static final String OAUTH_INTROSPECTION_ENDPOINT_URI = "oauth.introspection.endpoint.uri";
 
     /**
+     * "oauth.introspection.token.param.name"
+     */
+    public static final String OAUTH_INTROSPECTION_TOKEN_PARAM_NAME = "oauth.introspection.token.param.name";
+
+    /**
      * "oauth.userinfo.endpoint.uri"
      */
     public static final String OAUTH_USERINFO_ENDPOINT_URI = "oauth.userinfo.endpoint.uri";
