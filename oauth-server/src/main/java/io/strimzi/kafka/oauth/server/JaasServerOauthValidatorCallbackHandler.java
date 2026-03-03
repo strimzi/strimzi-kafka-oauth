@@ -133,6 +133,7 @@ import static io.strimzi.kafka.oauth.common.TokenIntrospection.debugLogJWT;
  * <ul>
  * <li><em>oauth.client.id</em> OAuth client id which the Kafka broker uses to authenticate against the authorization server to use the introspection endpoint.</li>
  * <li><em>oauth.client.secret</em> The OAuth client secret which the Kafka broker uses to authenticate to the authorization server and use the introspection endpoint.</li>
+ * <li><em>oauth.introspection.token.param.name</em> The request parameter name used to send the token to introspection endpoint. Default value is <em>token</em>.</li>
  * <li><em>oauth.server.bearer.token</em> The bearer token which the Kafka broker uses to authenticate to the authorization server and use the introspection endpoint as an alternative to using client id and secret.</li>
  * <li><em>oauth.server.bearer.token.location</em> The path to the file containing the bearer token (as opposed to raw value if <em>oauth.server.bearer.token</em> is configured) which the Kafka broker uses to authenticate to the authorization server and use the introspection endpoint as an alternative to using client id and secret.</li>
  * <li><em>oauth.userinfo.endpoint.uri</em> A URL of the token introspection endpoint which can be used to validate opaque non-JWT tokens.<br>
@@ -202,6 +203,7 @@ import static io.strimzi.kafka.oauth.common.TokenIntrospection.debugLogJWT;
 public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCallbackHandler {
 
     private static final Logger log = LoggerFactory.getLogger(JaasServerOauthValidatorCallbackHandler.class);
+    private static final String DEFAULT_INTROSPECTION_TOKEN_PARAM_NAME = "token";
 
     private TokenValidator validator;
 
@@ -374,6 +376,8 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
             boolean includeAcceptHeader) {
 
         String introspectionEndpoint = config.getValue(ServerConfig.OAUTH_INTROSPECTION_ENDPOINT_URI);
+        String introspectionTokenParamName = normalizeIntrospectionTokenParamName(
+                config.getValue(ServerConfig.OAUTH_INTROSPECTION_TOKEN_PARAM_NAME));
         String userInfoEndpoint = config.getValue(ServerConfig.OAUTH_USERINFO_ENDPOINT_URI);
         String validTokenType = config.getValue(ServerConfig.OAUTH_VALID_TOKEN_TYPE);
 
@@ -395,6 +399,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                 sslRnd,
                 verifier != null,
                 introspectionEndpoint,
+                introspectionTokenParamName,
                 userInfoEndpoint,
                 validTokenType,
                 connectTimeout,
@@ -412,6 +417,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                 clientSecret,
                 bearerTokenProvider,
                 introspectionEndpoint,
+                introspectionTokenParamName,
                 socketFactory,
                 verifier,
                 principalExtractor,
@@ -433,6 +439,14 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         validator = Services.getInstance().getValidators().get(confKey, factory);
 
         return effectiveConfigId;
+    }
+
+    private String normalizeIntrospectionTokenParamName(String introspectionTokenParamName) {
+        if (introspectionTokenParamName == null) {
+            return DEFAULT_INTROSPECTION_TOKEN_PARAM_NAME;
+        }
+        String result = introspectionTokenParamName.trim();
+        return result.isEmpty() ? DEFAULT_INTROSPECTION_TOKEN_PARAM_NAME : result;
     }
 
     @SuppressWarnings("checkstyle:ParameterNumber")
