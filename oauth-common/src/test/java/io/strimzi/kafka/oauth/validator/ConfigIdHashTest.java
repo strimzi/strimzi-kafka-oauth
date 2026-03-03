@@ -16,14 +16,14 @@ public class ConfigIdHashTest {
         ValidatorKey vkey = getKey(null, null);
         ValidatorKey vkey2 = getKey(null, null);
 
-        Assert.assertEquals("Config id hash mismatch", "f433dbf8", vkey.getConfigIdHash());
+        Assert.assertEquals("Config id hash mismatch", "29f15220", vkey.getConfigIdHash());
         Assert.assertEquals("Config id hash should be the same", vkey.getConfigIdHash(), vkey2.getConfigIdHash());
 
         ValidatorKey key3 = getKey("group", null);
         ValidatorKey key4 = getKey(null, "group");
 
-        Assert.assertEquals("Config id hash mismatch", "024dcc79", key3.getConfigIdHash());
-        Assert.assertEquals("Config id hash mismatch", "dfec1585", key4.getConfigIdHash());
+        Assert.assertEquals("Config id hash mismatch", "801f35da", key3.getConfigIdHash());
+        Assert.assertEquals("Config id hash mismatch", "8189b1bb", key4.getConfigIdHash());
     }
 
     ValidatorKey getKey(String groupQuery, String groupDelimiter) {
@@ -45,6 +45,7 @@ public class ConfigIdHashTest {
                 null,
                 false,
                 "http://mockoauth:8080/introspect",
+                null,
                 null,
                 null,
                 60,

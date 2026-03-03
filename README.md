@@ -416,6 +416,7 @@ Specify the following `oauth.*` properties:
 - `oauth.valid.issuer.uri` (e.g.: "https://localhost:8443/realms/demo" - only access tokens issued by this issuer will be accepted)
 - `oauth.client.id` (e.g.: "kafka" - this is the OAuth2 client configuration id for the Kafka broker)
 - `oauth.client.secret` (e.g.: "kafka-secret")
+- `oauth.introspection.token.param.name` (e.g.: "access_token" - request parameter name for the token, defaults to "token")
  
 Introspection endpoint should be protected. The `oauth.client.id` and `oauth.client.secret` specify Kafka Broker credentials for authenticating to access the introspection endpoint. 
 
