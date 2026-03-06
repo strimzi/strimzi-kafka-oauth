@@ -13,14 +13,14 @@ runs:
           maven-
 
 #    # TODO - Is that needed?
-#    - name: Build & Test Java
-#      shell: bash
-#      run: mvn -e -V -B install -DskipTests
-#      env:
-#        BUILD_REASON: ${{ github.event_name }}
-#        BRANCH: ${{ github.ref }}
-#        TESTCONTAINERS_RYUK_DISABLED: "TRUE"
-#        TESTCONTAINERS_CHECKS_DISABLE: "TRUE"
+    - name: Build & Test Java
+      shell: bash
+      run: mvn -e -V -B install -DskipTests
+      env:
+        BUILD_REASON: ${{ github.event_name }}
+        BRANCH: ${{ github.ref }}
+        TESTCONTAINERS_RYUK_DISABLED: "TRUE"
+        TESTCONTAINERS_CHECKS_DISABLE: "TRUE"
 
     - name: Test Docker Examples
       shell: bash
