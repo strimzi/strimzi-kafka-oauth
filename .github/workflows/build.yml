@@ -44,7 +44,7 @@ jobs:
           clusterOperatorBuild: "false"
 
   test-kafka-oauth:
-    name: Build & Test Kafka OAuth
+    name: Run OAuth testsuite
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
