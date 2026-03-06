@@ -2,7 +2,7 @@ include ./Makefile.os
 include ./Makefile.maven
 
 RELEASE_VERSION ?= latest
-PROJECT_NAME ?= kafka-kubernetes-config-provider
+PROJECT_NAME ?= strimzi-kafka-oauth
 
 .PHONY: all
 all: java_install spotbugs
