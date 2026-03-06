@@ -1,0 +1,43 @@
+name: GitHub Actions Integration
+
+on:
+  pull_request:
+    paths:
+      - 'pom.xml'
+      - 'server-metrics-reporter/pom.xml'
+      - 'client-metrics-reporter/pom.xml'
+      - 'Makefile'
+      - 'Makefile.maven'
+      - 'Makefile.os'
+      - '.github/workflows/github-actions-integration.yml'
+    branches:
+      - "*"
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-github-actions-integration:
+    # TODO - change ref once we will have released version
+    uses: strimzi/github-actions/.github/workflows/reusable-test-integrations.yml@main
+    with:
+      repo: ${{ github.repository }}
+      ref: ${{ github.sha }}
+      architecture: "amd64"
+      artifactSuffix: "kafka-oauth"
+      buildContainers: false
+      modules: "./,oauth-common,oauth-client,oauth-server"
+      nexusCheck: "oauth-common"
+      javaVersion: "17"
+      helmChartName: "none"
+      releaseVersion: "6.6.6"
+      imagesDir: "none"
+      clusterOperatorBuild: false
+      # TODO - change ref once we will have released version
+      githubActionsRef: "main"
+    secrets: inherit
