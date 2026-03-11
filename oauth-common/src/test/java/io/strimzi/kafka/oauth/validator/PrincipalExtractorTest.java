@@ -4,6 +4,7 @@
  */
 package io.strimzi.kafka.oauth.validator;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.jayway.jsonpath.InvalidPathException;
 import io.strimzi.kafka.oauth.common.PrincipalExtractor;
@@ -16,6 +17,8 @@ import java.io.IOException;
 import static io.strimzi.kafka.oauth.common.JSONUtil.readJSON;
 
 public class PrincipalExtractorTest {
+    private final String usernamePrefix = "prefix-";
+    private final String fallbackUsernamePrefix = "fallback_prefix-";
 
     @Test
     public void testUsernameClaim() throws IOException {
@@ -92,6 +95,21 @@ public class PrincipalExtractorTest {
             "['$.user.id']", "$.alice",
         };
 
+        String[] claimSpecWithFunctions = {
+            // concat two fields without separator
+            "$.concat($['userInfo'].['id'], $['sub'])", "alice@example.comu123456",
+            // concat two fields with string literal separator
+            "$.concat($['userInfo'].['id'], \":\", $['sub'])", "alice@example.com:u123456",
+            // concat with a different separator
+            "$.concat($['userId'], \"-\", $['sub'])", "alice-u123456",
+            // concat with multiple string literals
+            "$.concat(\"user:\", $['userId'], \"@\", $['sub'])", "user:alice@u123456",
+            // nested field access with function
+            "$.concat($['userInfo'].['id'], \"/\", $['sub'])", "alice@example.com/u123456",
+            // concat nested field from
+            "$.concat($['user.info'].['sub.id'], \"|\", $['userId'])", "alice-123456@example.com|alice",
+        };
+
         String[] claimSpecError = {
             // square brackets but no single quotes
             "[user.id]",
@@ -115,27 +133,18 @@ public class PrincipalExtractorTest {
             "[ 'userInfo' ] [ 'id' ]"
         };
 
-        String usernamePrefix = "prefix-";
-        String fallbackUsernamePrefix = "fallback_prefix-";
+        String[] claimSpecErrorWithFunctions = {
+            // missing closing parenthesis
+            "$.concat($['userId']",
+            // invalid function name
+            "$.fakefunc($['userId'])",
+            // empty function arguments with bad syntax
+            "$.concat(",
+        };
 
-        for (int i = 0; i < claimSpec.length; i++) {
-            String query = claimSpec[i];
-            String expected = claimSpec[++i];
+        runClaimsTest(json, claimSpec, false);
 
-            try {
-                PrincipalExtractor extractor = new PrincipalExtractor(query, usernamePrefix, null, null);
-                Assert.assertEquals(query + " top level works as primary", applyPrefix(usernamePrefix, expected), extractor.getPrincipal(json));
-            } catch (Exception e) {
-                throw new RuntimeException("Unexpected error while testing: " + query + " expecting it to return: " + applyPrefix(usernamePrefix, expected), e);
-            }
-
-            try {
-                PrincipalExtractor extractor = new PrincipalExtractor("nonexisting", usernamePrefix, query, fallbackUsernamePrefix);
-                Assert.assertEquals(query + " top level works as fallback", applyPrefix(fallbackUsernamePrefix, expected), extractor.getPrincipal(json));
-            } catch (Exception e) {
-                throw new RuntimeException("Unexpected error while testing: " + query + " expecting it to return: " + applyPrefix(fallbackUsernamePrefix, expected), e);
-            }
-        }
+        runClaimsTest(json, claimSpecWithFunctions, true);
 
         for (String query : claimSpecError) {
             try {
@@ -145,6 +154,41 @@ public class PrincipalExtractorTest {
             } catch (JsonPathQueryException e) {
                 Assert.assertTrue("Cause instanceof InvalidPathException", e.getCause() instanceof InvalidPathException);
                 // ignored
+            }
+        }
+
+        for (String query : claimSpecErrorWithFunctions) {
+            try {
+                PrincipalExtractor extractor = new PrincipalExtractor(query, usernamePrefix, "nonexisting", fallbackUsernamePrefix, true, true);
+                System.out.println(query);
+                extractor.getPrincipal(json);
+                Assert.fail("Should have failed");
+            } catch (JsonPathQueryException e) {
+                Assert.assertTrue("Cause instanceof InvalidPathException", e.getCause() instanceof InvalidPathException);
+                // ignored
+            } catch (InvalidPathException e) {
+                // ignored
+            }
+        }
+    }
+
+    private void runClaimsTest(JsonNode json, String[] claimSpec, boolean allowJsonPathFunctions) {
+        for (int i = 0; i < claimSpec.length; i++) {
+            String query = claimSpec[i];
+            String expected = claimSpec[++i];
+
+            try {
+                PrincipalExtractor extractor = new PrincipalExtractor(query, usernamePrefix, null, null, allowJsonPathFunctions, allowJsonPathFunctions);
+                Assert.assertEquals(query + " top level works as primary", applyPrefix(usernamePrefix, expected), extractor.getPrincipal(json));
+            } catch (Exception e) {
+                throw new RuntimeException("Unexpected error while testing: " + query + " expecting it to return: " + applyPrefix(usernamePrefix, expected), e);
+            }
+
+            try {
+                PrincipalExtractor extractor = new PrincipalExtractor("nonexisting", usernamePrefix, query, fallbackUsernamePrefix, allowJsonPathFunctions, allowJsonPathFunctions);
+                Assert.assertEquals(query + " top level works as fallback", applyPrefix(fallbackUsernamePrefix, expected), extractor.getPrincipal(json));
+            } catch (Exception e) {
+                throw new RuntimeException("Unexpected error while testing: " + query + " expecting it to return: " + applyPrefix(fallbackUsernamePrefix, expected), e);
             }
         }
     }
