@@ -49,7 +49,7 @@ public class Credentials {
 
         KafkaPrincipal result = queue.poll();
 
-        if (queue.size() == 0) {
+        if (queue.isEmpty()) {
             validatedCredentials.remove(clientId);
         }
 

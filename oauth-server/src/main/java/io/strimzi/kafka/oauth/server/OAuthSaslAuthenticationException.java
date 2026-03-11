@@ -28,17 +28,6 @@ public class OAuthSaslAuthenticationException extends SaslAuthenticationExceptio
      *
      * @param message An error message
      * @param errId An error id that is logged to facilitate debugging
-     */
-    public OAuthSaslAuthenticationException(String message, String errId) {
-        super(message);
-        this.errId = errId;
-    }
-
-    /**
-     * Create a new instance
-     *
-     * @param message An error message
-     * @param errId An error id that is logged to facilitate debugging
      * @param cause A triggering cause of this exception
      */
     public OAuthSaslAuthenticationException(String message, String errId, Throwable cause) {

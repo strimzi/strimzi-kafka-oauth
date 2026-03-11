@@ -681,7 +681,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
             TokenInfo ti = validateToken(token);
             callback.token(new BearerTokenWithJsonPayload(ti));
             if (log.isDebugEnabled()) {
-                log.debug("Set validated token on callback: " + callback.token());
+                log.debug("Set validated token on callback: {}", callback.token());
             }
 
         } catch (TokenValidationException e) {

@@ -188,7 +188,7 @@ public class OAuthKafkaPrincipalBuilder extends DefaultKafkaPrincipalBuilder imp
                     return principal;
                 }
 
-                // Take it from Credentials - it shuld be present there, and store it in Principals for any subsequent use
+                // Take it from Credentials - it should be present there, and store it in Principals for any subsequent use
                 principal = (OAuthKafkaPrincipal) Services.getInstance().getCredentials().takeCredentials(server.getAuthorizationID());
                 if (principal != null) {
                     principals.putPrincipal(saslServer, principal);

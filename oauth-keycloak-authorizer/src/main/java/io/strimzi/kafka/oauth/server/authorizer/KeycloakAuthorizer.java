@@ -93,7 +93,7 @@ public class KeycloakAuthorizer implements ClusterMetadataAuthorizer {
         }
 
         if (log.isDebugEnabled()) {
-            log.debug("Configured " + this + " using " + singleton);
+            log.debug("Configured {} using {}", this, singleton);
         }
     }
 
