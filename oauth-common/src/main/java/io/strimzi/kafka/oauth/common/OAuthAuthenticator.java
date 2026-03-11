@@ -11,7 +11,6 @@ import org.slf4j.LoggerFactory;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -630,10 +629,6 @@ public class OAuthAuthenticator {
      * @return Urlencoded string
      */
     public static String urlencode(String value) {
-        try {
-            return URLEncoder.encode(value, "utf-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new IllegalStateException("Unexpected: Encoding utf-8 not supported");
-        }
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 }

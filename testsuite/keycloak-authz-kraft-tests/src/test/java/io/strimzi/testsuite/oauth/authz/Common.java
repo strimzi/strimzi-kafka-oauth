@@ -9,7 +9,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.strimzi.kafka.oauth.client.ClientConfig;
 import io.strimzi.kafka.oauth.common.HttpUtil;
 import io.strimzi.testsuite.oauth.common.TestUtil;
-import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -173,7 +173,7 @@ public class Common {
 
         // Create admin client using user `admin:admin-password` over PLAIN listener (port 9100)
         TestUtil.waitForCondition(() -> {
-            try (AdminClient adminClient = buildAdminClientForPlain(PLAIN_LISTENER, "admin")) {
+            try (Admin adminClient = buildAdminClientForPlain(PLAIN_LISTENER, "admin")) {
                 try {
                     Collection<AclBinding> result = adminClient.describeAcls(new AclBindingFilter(ResourcePatternFilter.ANY,
                             new AccessControlEntryFilter("User:alice", null, AclOperation.IDEMPOTENT_WRITE, AclPermissionType.ALLOW))).values().get();
@@ -406,14 +406,14 @@ public class Common {
         return p;
     }
 
-    public static AdminClient buildAdminClientForPlain(String kafkaBootstrap, String user) {
+    public static Admin buildAdminClientForPlain(String kafkaBootstrap, String user) {
         Properties adminProps = buildProducerConfigPlain(kafkaBootstrap, buildAuthConfigForPlain(user, user + "-password"));
-        return AdminClient.create(adminProps);
+        return Admin.create(adminProps);
     }
 
     void cleanup() {
         Properties bobAdminProps = buildAdminConfigForAccount(BOB);
-        try (AdminClient admin = AdminClient.create(bobAdminProps)) {
+        try (Admin admin = Admin.create(bobAdminProps)) {
             admin.deleteTopics(Arrays.asList(TOPIC_A, TOPIC_B, TOPIC_X, "non-existing-topic"));
             admin.deleteConsumerGroups(Arrays.asList(groupFor(TOPIC_A), groupFor(TOPIC_B), groupFor(TOPIC_X), groupFor("non-existing-topic")));
         }

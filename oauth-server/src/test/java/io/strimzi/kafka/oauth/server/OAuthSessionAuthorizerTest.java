@@ -102,7 +102,7 @@ public class OAuthSessionAuthorizerTest {
 
     private void testOAuthUserWithDelegate(Authorizer authorizer, MockAuthorizer delegateAuthorizer) throws Exception {
 
-        // Prepare condition after mock OAuth athentication with valid token
+        // Prepare condition after mock OAuth authentication with valid token
         TokenInfo tokenInfo = new TokenInfo("accesstoken123", null, "User:bob", new HashSet<>(Arrays.asList("group1", "group2")),
                 System.currentTimeMillis() - 100_000,
                 System.currentTimeMillis() + 100_000);
@@ -225,7 +225,7 @@ public class OAuthSessionAuthorizerTest {
 
     private void testOAuthUserWithoutDelegate(Authorizer authorizer) throws Exception {
 
-        // Prepare condition after mock OAuth athentication with valid token
+        // Prepare condition after mock OAuth authentication with valid token
         TokenInfo tokenInfo = new TokenInfo("accesstoken123", null, "User:bob", null,
                 System.currentTimeMillis() - 100_000,
                 System.currentTimeMillis() + 100_000);

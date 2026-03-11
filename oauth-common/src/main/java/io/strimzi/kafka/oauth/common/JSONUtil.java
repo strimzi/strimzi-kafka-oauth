@@ -55,7 +55,7 @@ public class JSONUtil {
             // just read and convert to UTF-8 String
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             IOUtil.copy(is, baos);
-            return clazz.cast(new String(baos.toByteArray(), StandardCharsets.UTF_8));
+            return clazz.cast(baos.toString(StandardCharsets.UTF_8));
         }
         return MAPPER.readValue(is, clazz);
     }

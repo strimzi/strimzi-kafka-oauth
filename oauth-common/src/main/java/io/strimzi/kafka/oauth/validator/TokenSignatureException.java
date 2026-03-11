@@ -22,13 +22,4 @@ public class TokenSignatureException extends TokenValidationException {
         super(message);
     }
 
-    /**
-     * Create a new instance
-     *
-     * @param message An error message
-     * @param cause A triggering cause of this exception
-     */
-    public TokenSignatureException(String message, Throwable cause) {
-        super(message, cause);
-    }
 }

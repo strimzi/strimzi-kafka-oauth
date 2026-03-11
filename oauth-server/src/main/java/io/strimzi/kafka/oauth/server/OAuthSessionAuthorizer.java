@@ -114,7 +114,7 @@ public class OAuthSessionAuthorizer implements Authorizer {
                 return delegate.authorize(requestContext, actions);
             } else {
                 if (GRANT_LOG.isDebugEnabled()) {
-                    GRANT_LOG.debug("Authorization GRANTED - no access token: " + principal + ", actions: " + actions);
+                    GRANT_LOG.debug("Authorization GRANTED - no access token: {}, actions: {}", principal, actions);
                 }
                 return Collections.nCopies(actions.size(), AuthorizationResult.ALLOWED);
             }
@@ -128,7 +128,7 @@ public class OAuthSessionAuthorizer implements Authorizer {
 
         if (delegate == null) {
             if (GRANT_LOG.isDebugEnabled()) {
-                GRANT_LOG.debug("Authorization GRANTED - access token still valid: " + principal + ", actions: " + actions + ", token: " + mask(token.value()));
+                GRANT_LOG.debug("Authorization GRANTED - access token still valid: {}, actions: {}, token: {}", principal, actions, mask(token.value()));
             }
             return Collections.nCopies(actions.size(), AuthorizationResult.ALLOWED);
         }
@@ -139,8 +139,8 @@ public class OAuthSessionAuthorizer implements Authorizer {
     private boolean denyIfTokenInvalid(BearerTokenWithPayload token) {
         if (token.lifetimeMs() <= System.currentTimeMillis()) {
             if (DENY_LOG.isDebugEnabled()) {
-                DENY_LOG.debug("Authorization DENIED due to token expiry - The token expired at: "
-                        + token.lifetimeMs() + " (" + TimeUtil.formatIsoDateTimeUTC(token.lifetimeMs()) + " UTC), for token: " + mask(token.value()));
+                DENY_LOG.debug("Authorization DENIED due to token expiry - The token expired at: {} ({} UTC), for token: {}",
+                        token.lifetimeMs(), TimeUtil.formatIsoDateTimeUTC(token.lifetimeMs()), mask(token.value()));
             }
             return true;
         }

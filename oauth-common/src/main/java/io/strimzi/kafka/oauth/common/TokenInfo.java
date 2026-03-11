@@ -8,9 +8,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
@@ -107,7 +105,7 @@ public class TokenInfo {
      */
     public TokenInfo(String token, String scope, String principal, Set<String> groups, long issuedAtMs, long expiresAtMs) {
         this(token,
-                Collections.unmodifiableSet(new HashSet<>(Arrays.asList(scope != null ? scope.split(" ") : new String[0]))),
+                Set.of(scope != null ? scope.split(" ") : new String[0]),
                 principal,
                 groups,
                 issuedAtMs,

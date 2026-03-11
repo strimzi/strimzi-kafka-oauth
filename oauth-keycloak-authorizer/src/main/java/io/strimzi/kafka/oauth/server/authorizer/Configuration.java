@@ -81,6 +81,7 @@ public class Configuration {
     private final int grantsMaxIdleTimeSeconds;
     private final int grantsRefreshPoolSize;
     private final int gcPeriodSeconds;
+    private final boolean includeAcceptHeader;
     private String truststore;
     private String truststoreData;
     private String truststorePassword;
@@ -93,7 +94,6 @@ public class Configuration {
     private URI tokenEndpointUrl;
     private int connectTimeoutSeconds;
     private int readTimeoutSeconds;
-    private boolean includeAcceptHeader;
 
     /**
      * Create a new Configuration instance

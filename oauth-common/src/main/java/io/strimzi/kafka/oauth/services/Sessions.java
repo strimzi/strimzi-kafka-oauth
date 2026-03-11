@@ -129,7 +129,7 @@ public class Sessions {
     /**
      * Get a list of objects retrieved by applying the passed mapping function to the current active sessions set.
      * <p>
-     * For example, you can get a list of all the princiapl names.
+     * For example, you can get a list of all the principal names.
      *
      * @param mapper A mapping function
      * @return A list of mapped results

@@ -147,14 +147,14 @@ public class ConfigUtil {
      * @param c the Config object
      * @param key the configuration key
      * @param fallbackKey the fallback key
-     * @param defautValue the default value
+     * @param defaultValue the default value
      * @return Configured value as String
      */
-    public static Boolean getDefaultBooleanConfigWithFallbackLookup(Config c, String key, String fallbackKey, boolean defautValue) {
+    public static Boolean getDefaultBooleanConfigWithFallbackLookup(Config c, String key, String fallbackKey, boolean defaultValue) {
         String result = c.getValue(key);
         if (result == null) {
-            return c.getValueAsBoolean(fallbackKey, defautValue);
+            return c.getValueAsBoolean(fallbackKey, defaultValue);
         }
-        return c.getValueAsBoolean(key, defautValue);
+        return c.getValueAsBoolean(key, defaultValue);
     }
 }

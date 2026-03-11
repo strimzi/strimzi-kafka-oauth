@@ -17,7 +17,7 @@ public class TokenProviderTest {
     @Test
     public void testStaticTokenProvider() {
         final TokenProvider staticTokenProvider = new StaticTokenProvider("test-token");
-        Assert.assertEquals(staticTokenProvider.token(), "test-token");
+        Assert.assertEquals("test-token", staticTokenProvider.token());
     }
 
     @Test

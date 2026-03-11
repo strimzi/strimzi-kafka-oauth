@@ -101,7 +101,7 @@ public class Config {
     Config delegate;
 
     /**
-     * Use this construtor if you only want to lookup configuration in system properties and env
+     * Use this constructor if you only want to lookup configuration in system properties and env
      * without any default configuration.
      */
     public Config() {}
