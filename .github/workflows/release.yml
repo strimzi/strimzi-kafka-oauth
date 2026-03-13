@@ -19,10 +19,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: ./.github/actions/build/release-artifacts
+
+      - name: Setup Java and Maven
+        uses: strimzi/github-actions/.github/actions/dependencies/setup-java@v1
+        with:
+          javaVersion: "17"
+
+      - name: Prepare release artifacts
+        uses: strimzi/github-actions/.github/actions/build/release-artifacts@v1
         with:
           releaseVersion: ${{ inputs.releaseVersion }}
-          runnerArch: "amd64"
+          artifactSuffix: "kafka-oauth"
+
+      - name: Deploy to Maven Central
+        uses: strimzi/github-actions/.github/actions/build/deploy-java@v1
+        with:
+          modules: "!examples/producer','!examples/consumer"
           gpgPassphrase: ${{ secrets.GPG_PASSPHRASE }}
           gpgSigningKey: ${{ secrets.GPG_SIGNING_KEY }}
           centralUsername: ${{ secrets.CENTRAL_USERNAME }}
