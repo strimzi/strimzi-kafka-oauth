@@ -1,6 +1,6 @@
-[![Build Status](https://travis-ci.org/strimzi/strimzi-kafka-oauth.svg?branch=main)](https://travis-ci.org/strimzi/strimzi-kafka-oauth)
+[![Build Status](https://github.com/strimzi/strimzi-kafka-oauth/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/strimzi/strimzi-kafka-oauth/actions/workflows/build.yml?query=branch%3Amain)
 [![GitHub release](https://img.shields.io/github/release/strimzi/strimzi-kafka-oauth.svg)](https://github.com/strimzi/strimzi-kafka-oauth/releases/latest)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.strimzi/oauth/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.strimzi/oauth)
+[![Maven Central](https://img.shields.io/maven-central/v/io.strimzi/oauth)](https://search.maven.org/artifact/io.strimzi/oauth)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 [![Twitter Follow](https://img.shields.io/twitter/follow/strimziio?style=social)](https://twitter.com/strimziio)
 
