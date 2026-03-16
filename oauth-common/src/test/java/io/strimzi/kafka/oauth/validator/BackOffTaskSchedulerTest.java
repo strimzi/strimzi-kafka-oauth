@@ -242,7 +242,7 @@ public class BackOffTaskSchedulerTest {
         // Fetch executor log
         List<MockScheduledExecutorLog> elog = executor.log();
 
-        // The second call to executor happens when The Trigger Task is triggered, which which schedules The Task for immediate execution
+        // The second call to executor happens when The Trigger Task is triggered, which schedules The Task for immediate execution
         // It must exist, otherwise the counter couldn't have been incremented
         Assert.assertTrue("Has at least 2 entries :: " + elog, elog.size() >= 2);
         assertLogEntry(elog.get(1), MockExecutorLogActionType.SCHEDULE, 0, TimeUnit.MILLISECONDS);
@@ -297,7 +297,7 @@ public class BackOffTaskSchedulerTest {
 
         // With taskDuration = 4 we should after 3 executions be at around 22 seconds (plus 60 seconds initial offset)
         // immediate 4s execution + 2 x (5s pause + 4s execution)
-        log.info("Current time: " + CurrentTime.currentTime());
+        log.info("Current time: {}", CurrentTime.currentTime());
     }
 
     private void testFourthExecution(MockCurrentTimeProvider timeProvider, MockTimeProviderBasedScheduledExecutorService executor, AtomicInteger theTaskCounter) {
@@ -317,7 +317,7 @@ public class BackOffTaskSchedulerTest {
 
         // With taskDuration = 4 we should after 4 executions be at around 34 seconds (plus 60 seconds initial offset)
         // immediate 4s execution + 2 x (5s pause + 4s execution) + 8s pause + 4s execution
-        log.info("Current time: " + CurrentTime.currentTime());
+        log.info("Current time: {}", CurrentTime.currentTime());
     }
 
     private void testFifthExecution(MockCurrentTimeProvider timeProvider, MockTimeProviderBasedScheduledExecutorService executor, AtomicInteger theTaskCounter) {
@@ -337,7 +337,7 @@ public class BackOffTaskSchedulerTest {
 
         // With taskDuration = 4 we should after 5 executions be at around 54 seconds (plus 60 seconds initial offset)
         // immediate 4s execution + 2 x (5s pause + 4s execution) + 8s pause + 4s execution + 16s pause + 4s
-        log.info("Current time (5): " + CurrentTime.currentTime());
+        log.info("Current time (5): {}", CurrentTime.currentTime());
     }
 
     private void testSecondTriggerTask(MockCurrentTimeProvider timeProvider, MockTimeProviderBasedScheduledExecutorService executor, AtomicInteger theTaskCounter, AtomicInteger regularTriggerCounter) {
@@ -362,7 +362,7 @@ public class BackOffTaskSchedulerTest {
         Assert.assertEquals("Entry is of type " + MockExecutorLogActionType.SCHEDULE_AT_FIXED_RATE,
                 MockExecutorLogActionType.SCHEDULE_AT_FIXED_RATE, elog.get(8).type);
 
-        log.info("Current time (5 - trigger): " + CurrentTime.currentTime());
+        log.info("Current time (5 - trigger): {}", CurrentTime.currentTime());
         dumpExecutorLog(executor);
     }
 
@@ -384,7 +384,7 @@ public class BackOffTaskSchedulerTest {
 
         // With taskDuration = 4 we should after 6 executions be at around 125 seconds (plus 60 seconds initial offset)
         // immediate 4s execution + 2 x (5s pause + 4s execution) + 8s pause + 4s execution + 16s pause + 4s + 32s pause + 4s
-        log.info("Current time (6): " + CurrentTime.currentTime());
+        log.info("Current time (6): {}", CurrentTime.currentTime());
     }
 
     private void testThirdTriggerTask(MockCurrentTimeProvider timeProvider, MockTimeProviderBasedScheduledExecutorService executor, AtomicInteger theTaskCounter, AtomicInteger regularTriggerCounter) {
@@ -408,7 +408,7 @@ public class BackOffTaskSchedulerTest {
     private void dumpSchedules(Map<Long, Runnable> schedules) {
         log.debug("Schedules: ");
         for (Map.Entry<Long, Runnable> e : schedules.entrySet()) {
-            log.debug("  - " + e.getKey());
+            log.debug("  - {}", e.getKey());
         }
     }
 
@@ -424,19 +424,19 @@ public class BackOffTaskSchedulerTest {
     private void dumpExecutorLog(MockScheduledExecutorService executor) {
         log.debug("Executor log: ");
         for (MockScheduledExecutorLog e : executor.invocationLog()) {
-            log.debug("" + e);
+            log.debug("{}", e);
         }
     }
 
     private void dumpExecutorLog(MockTimeProviderBasedScheduledExecutorService executor) {
         log.debug("Executor log: ");
         for (MockScheduledExecutorLog e : executor.log()) {
-            log.debug("" + e);
+            log.debug("{}", e);
         }
     }
 
     private void dumpScheduleSuccessLog(List<Boolean> scheduleSuccess) {
-        log.debug("Schedule success log: " + scheduleSuccess);
+        log.debug("Schedule success log: {}", scheduleSuccess);
     }
 
     private void waitForTargetCount(AtomicInteger counter, int expected) {

@@ -378,7 +378,7 @@ public class HttpUtil {
     }
 
     /**
-     * Perform an HTTP request, auto-detecting a method, and using the default connect and read timeouts (60 seconds)..
+     * Perform an HTTP request, auto-detecting a method, and using the default connect and read timeouts (60 seconds)
      * If body is null the HTTP method GET is used.
      * If responseType is null the HTTP method PUT is used.
      * Otherwise, the HTTP method POST is used.
@@ -518,7 +518,7 @@ public class HttpUtil {
         con.setReadTimeout(readTimeout * 1000);
     }
 
-    // Surpressed because of Spotbugs Java 11 bug - https://github.com/spotbugs/spotbugs/issues/756
+    // Suppressed because of Spotbugs Java 11 bug - https://github.com/spotbugs/spotbugs/issues/756
     @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
     private static <T> T handleResponse(HttpURLConnection con, String method, URI uri, Class<T> responseType) throws IOException {
         int code = con.getResponseCode();
@@ -532,7 +532,7 @@ public class HttpUtil {
                     log.warn("[IGNORED] Failed to read response body", e);
                 }
 
-                throw new HttpException(method, uri, code, errbuf.toString(StandardCharsets.UTF_8.name()));
+                throw new HttpException(method, uri, code, errbuf.toString(StandardCharsets.UTF_8));
             } else {
                 throw new HttpException(method, uri, code, con.getResponseMessage());
             }
@@ -547,7 +547,7 @@ public class HttpUtil {
             if (log.isTraceEnabled()) {
                 ByteArrayOutputStream buffer = new ByteArrayOutputStream();
                 IOUtil.copy(response, buffer);
-                log.trace("Response body for " + method + " " + uri + ": " + buffer.toString("utf-8"));
+                log.trace("Response body for {} {}: {}", method, uri, buffer.toString(StandardCharsets.UTF_8));
 
                 is = new ByteArrayInputStream(buffer.toByteArray());
             }

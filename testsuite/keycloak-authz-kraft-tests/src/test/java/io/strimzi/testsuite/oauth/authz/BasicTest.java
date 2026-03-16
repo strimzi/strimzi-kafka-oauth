@@ -6,7 +6,7 @@ package io.strimzi.testsuite.oauth.authz;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.strimzi.testsuite.oauth.common.TestUtil;
-import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -54,7 +54,7 @@ public class BasicTest extends Common {
     void createTopicAsClusterManager() throws Exception {
 
         Properties bobAdminProps = buildAdminConfigForAccount(Common.BOB);
-        try (AdminClient admin = AdminClient.create(bobAdminProps)) {
+        try (Admin admin = Admin.create(bobAdminProps)) {
             //
             // Create x_* topic
             //

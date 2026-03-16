@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * the refresh task on demand as a one-off, but tries hard to succeed - it reschedules the task if it fails.
  * </p>
  * <p>
- * If the task has already been scheduled (by calling {@link #scheduleTask()} and has not yet successfully completed,
+ * If the task has already been scheduled (by calling {@link #scheduleTask()}) and has not yet successfully completed,
  * another request to schedule the task will be ignored.
  * </p>
  * <p>

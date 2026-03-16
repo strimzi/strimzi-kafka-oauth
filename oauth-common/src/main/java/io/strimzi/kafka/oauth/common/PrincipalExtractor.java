@@ -76,7 +76,7 @@ public class PrincipalExtractor {
      *
      * @param usernameClaim Attribute name for an attribute containing the user id to lookup first.
      * @param usernamePrefix A prefix to prepend to the user id
-     * @param fallbackUsernameClaim Attribute name for an attribute containg the user id to lookup as a fallback
+     * @param fallbackUsernameClaim Attribute name for an attribute containing the user id to lookup as a fallback
      * @param fallbackUsernamePrefix A prefix to prepend to the value of the fallback attribute value if set
      */
     public PrincipalExtractor(String usernameClaim, String usernamePrefix, String fallbackUsernameClaim, String fallbackUsernamePrefix) {
