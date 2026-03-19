@@ -43,7 +43,7 @@ jobs:
       uses: actions/checkout@v6
     
     - name: Setup Java
-      uses: strimzi/strimzi-kafka-operator/.github/actions/dependencies/setup-java@main
+      uses: strimzi/github-actions/.github/actions/dependencies/setup-java@v1
       with:
         javaVersion: "17"
 
