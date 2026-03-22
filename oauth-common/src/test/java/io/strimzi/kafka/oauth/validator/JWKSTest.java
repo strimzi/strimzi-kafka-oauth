@@ -4,10 +4,12 @@
  */
 package io.strimzi.kafka.oauth.validator;
 
+import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.KeyUse;
+import com.nimbusds.jose.jwk.OctetKeyPair;
 import com.nimbusds.jose.jwk.RSAKey;
 import io.strimzi.kafka.oauth.common.JSONUtil;
 import org.junit.Assert;
@@ -48,4 +50,26 @@ public class JWKSTest {
         Assert.assertEquals("PdbyxXXc7pwIX8xoIS7Kb-g1ZEDNFISpbyZs2MNkRJY", parsedKeyID);
         Assert.assertNotNull(publicKey);
     }
+
+    @Test
+    public void testParseOKPKey() throws Exception {
+        String keyId = "ed25519-test-key";
+        String bodyString = "{\"keys\":[{\"kid\":\"" + keyId +
+                "\",\"kty\":\"OKP\",\"alg\":\"EdDSA\",\"use\":\"sig\"," +
+                "\"crv\":\"Ed25519\",\"x\":\"11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo\"}]}";
+
+        JWKSet jwks = JWKSet.parse(bodyString);
+        Assert.assertEquals(1, jwks.getKeys().size());
+
+        JWK jwk = jwks.getKeys().iterator().next();
+        Assert.assertEquals(KeyUse.SIGNATURE, jwk.getKeyUse());
+        Assert.assertTrue(jwk instanceof OctetKeyPair);
+
+        Assert.assertEquals(keyId, jwk.getKeyID());
+        OctetKeyPair signingKey = (OctetKeyPair) jwk.toPublicJWK();
+        Assert.assertNotNull(signingKey);
+        Assert.assertEquals(Curve.Ed25519, signingKey.getCurve());
+        Assert.assertFalse(signingKey.isPrivate());
+    }
+
 }
