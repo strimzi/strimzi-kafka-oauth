@@ -81,7 +81,7 @@ public class PrincipalExtractor {
      * @param fallbackUsernamePrefix A prefix to prepend to the value of the fallback attribute value if set
      */
     public PrincipalExtractor(String usernameClaim, String usernamePrefix, String fallbackUsernameClaim, String fallbackUsernamePrefix) {
-        this(usernameClaim, usernamePrefix, fallbackUsernameClaim, fallbackUsernamePrefix, false, false);
+        this(usernameClaim, usernamePrefix, fallbackUsernameClaim, fallbackUsernamePrefix, false);
     }
 
     /**
@@ -91,13 +91,12 @@ public class PrincipalExtractor {
      * @param usernamePrefix A prefix to prepend to the user id
      * @param fallbackUsernameClaim Attribute name for an attribute containg the user id to lookup as a fallback
      * @param fallbackUsernamePrefix A prefix to prepend to the value of the fallback attribute value if set
-     * @param usernameUseJsonPath Forces the claim spec for username to be parsed as a JsonPathQuery.
-     * @param fallbackUsernameUseJsonPath Forces the claim spec for fallbackUsername to be parsed as a JsonPathQuery.
+     * @param usernameForceJsonPath Forces the claim spec for username to be parsed as a JsonPathQuery.
      */
-    public PrincipalExtractor(String usernameClaim, String usernamePrefix, String fallbackUsernameClaim, String fallbackUsernamePrefix, boolean usernameUseJsonPath, boolean fallbackUsernameUseJsonPath) {
-        this.usernameExtractor = parseClaimSpec(usernameClaim, usernameUseJsonPath);
+    public PrincipalExtractor(String usernameClaim, String usernamePrefix, String fallbackUsernameClaim, String fallbackUsernamePrefix, boolean usernameForceJsonPath) {
+        this.usernameExtractor = parseClaimSpec(usernameClaim, usernameForceJsonPath);
         this.usernamePrefix = usernamePrefix;
-        this.fallbackUsernameExtractor = parseClaimSpec(fallbackUsernameClaim, fallbackUsernameUseJsonPath);
+        this.fallbackUsernameExtractor = parseClaimSpec(fallbackUsernameClaim, usernameForceJsonPath);
         this.fallbackUsernamePrefix = fallbackUsernamePrefix;
     }
 

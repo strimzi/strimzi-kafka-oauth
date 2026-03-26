@@ -42,16 +42,13 @@ public class Config {
     public static final String OAUTH_USERNAME_PREFIX = "oauth.username.prefix";
 
     /** The name of 'oauth.username.claim.jsonpath' config option  */
-    public static final String OAUTH_USERNAME_CLAIM_JSONPATH = "oauth.username.claim.jsonpath";
+    public static final String OAUTH_USERNAME_CLAIM_JSONPATH = "oauth.force.jsonpath.username.extraction";
 
     /** The name of 'oauth.fallback.username.claim' config option  */
     public static final String OAUTH_FALLBACK_USERNAME_CLAIM = "oauth.fallback.username.claim";
 
     /** The name of 'oauth.fallback.username.prefix' config option  */
     public static final String OAUTH_FALLBACK_USERNAME_PREFIX = "oauth.fallback.username.prefix";
-
-    /** The name of 'oauth.fallback.username.claim.jsonpath' config option  */
-    public static final String OAUTH_FALLBACK_USERNAME_CLAIM_JSONPATH = "oauth.fallback.username.claim.jsonpath";
 
     /** The name of 'oauth.ssl.truststore.location' config option  */
     public static final String OAUTH_SSL_TRUSTSTORE_LOCATION = "oauth.ssl.truststore.location";
