@@ -30,6 +30,7 @@ Strimzi Kafka OAuth modules provide support for OAuth2 as authentication mechani
         - [Validation using the JWKS endpoint](#validation-using-the-jwks-endpoint)
         - [JWKS caching and local JWT validation](#jwks-caching-and-local-jwt-validation)
         - [Validation using the introspection endpoint](#validation-using-the-introspection-endpoint)
+        - [JSONPath username extraction](#jsonpath-username-extraction)
         - [Custom claim checking](#custom-claim-checking)
         - [Group extraction](#group-extraction)
         - [Configuring the `OAuth over PLAIN`](#configuring-the-oauth-over-plain)
@@ -348,6 +349,25 @@ For example, if the following configuration is set:
 Then, if the token contains `"username": "alice"` claim then the principal will be `User:alice`.
 Otherwise, if the token contains `"client_id": "my-producer"` claim then the principal will be `User:client-account-my-producer`. 
 
+##### JSONPath username extraction
+
+By default, the `oauth.username.claim` and `oauth.fallback.username.claim` values are interpreted as top-level attribute names, unless the value starts with `[` in which case it is interpreted as a JSONPath query.
+
+You can force the claim specification to always be interpreted as a JSONPath query by setting:
+
+    oauth.force.jsonpath.username.extraction="true"
+
+When this option is enabled, both `oauth.username.claim` and `oauth.fallback.username.claim` are parsed as JSONPath expressions. The claim specification must begin with `$.`.
+
+If you previously used a simple attribute name such as `something`, change it to `$.['something']`.
+If you already used square brackets notation such as `['topAttrKey'].['subAttrKey']`, prefix it with `$.` to get `$.['topAttrKey'].['subAttrKey']`.
+
+With JSONPath username extraction enabled, you can use [JSONPath functions](https://github.com/json-path/JsonPath#functions) such as `concat` to construct the principal from multiple token claims. For example:
+
+    oauth.username.claim="$.concat($['userId'], \":\", $['sub'])"
+
+Given a token containing `"userId": "alice"` and `"sub": "u123456"`, this produces the principal `User:alice:u123456`.
+
 If your authorization server uses ECDSA signing algorithms, no additional Java cryptography providers are required. The Kafka broker ignores the following options:
 
 - `oauth.crypto.provider.bouncycastle`
@@ -454,6 +474,8 @@ If `oauth.username.claim` is specified but value does not exist in the Introspec
 When `oauth.fallback.username.prefix` is specified and the attribute specified by `oauth.fallback.username.claim` contains a non-null value the resulting user id will be equal to concatenation of the prefix, and the value.
 
 If none of the `oauth.*.username.*` attributes is specified, `sub` claim will be used automatically.
+
+The `oauth.force.jsonpath.username.extraction` option also applies to introspection-based validation. When enabled, `oauth.username.claim` and `oauth.fallback.username.claim` are interpreted as JSONPath queries. See [JSONPath username extraction](#jsonpath-username-extraction) for details.
 
 For example, if the following configuration is set:
 
@@ -1290,6 +1312,7 @@ These configuration options apply to the Kafka broker when using the Strimzi Kaf
 | `oauth.username.prefix` | Identity mapping | Optional | Prefix added to the resolved username. |
 | `oauth.fallback.username.claim` | Identity mapping | Optional | Secondary claim used when the primary username claim is not present. |
 | `oauth.fallback.username.prefix` | Identity mapping | Optional | Prefix applied when the fallback claim is used. |
+| `oauth.force.jsonpath.username.extraction` | Identity mapping | Optional | When `true`, `oauth.username.claim` and `oauth.fallback.username.claim` are interpreted as JSONPath queries. Default: `false`. |
 | `oauth.custom.claim.check` | Policy enforcement | Optional | JSONPath filter expression used to restrict which tokens may authenticate. |
 
 #### JWKS caching
