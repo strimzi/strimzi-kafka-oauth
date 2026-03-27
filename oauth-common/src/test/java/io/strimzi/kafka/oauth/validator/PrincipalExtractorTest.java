@@ -159,7 +159,7 @@ public class PrincipalExtractorTest {
 
         for (String query : claimSpecErrorWithFunctions) {
             try {
-                PrincipalExtractor extractor = new PrincipalExtractor(query, usernamePrefix, "nonexisting", fallbackUsernamePrefix, true, true);
+                PrincipalExtractor extractor = new PrincipalExtractor(query, usernamePrefix, "nonexisting", fallbackUsernamePrefix, true);
                 System.out.println(query);
                 extractor.getPrincipal(json);
                 Assert.fail("Should have failed");
@@ -178,14 +178,14 @@ public class PrincipalExtractorTest {
             String expected = claimSpec[++i];
 
             try {
-                PrincipalExtractor extractor = new PrincipalExtractor(query, usernamePrefix, null, null, allowJsonPathFunctions, allowJsonPathFunctions);
+                PrincipalExtractor extractor = new PrincipalExtractor(query, usernamePrefix, null, null, allowJsonPathFunctions);
                 Assert.assertEquals(query + " top level works as primary", applyPrefix(usernamePrefix, expected), extractor.getPrincipal(json));
             } catch (Exception e) {
                 throw new RuntimeException("Unexpected error while testing: " + query + " expecting it to return: " + applyPrefix(usernamePrefix, expected), e);
             }
 
             try {
-                PrincipalExtractor extractor = new PrincipalExtractor("nonexisting", usernamePrefix, query, fallbackUsernamePrefix, allowJsonPathFunctions, allowJsonPathFunctions);
+                PrincipalExtractor extractor = new PrincipalExtractor("nonexisting", usernamePrefix, query, fallbackUsernamePrefix, allowJsonPathFunctions);
                 Assert.assertEquals(query + " top level works as fallback", applyPrefix(fallbackUsernamePrefix, expected), extractor.getPrincipal(json));
             } catch (Exception e) {
                 throw new RuntimeException("Unexpected error while testing: " + query + " expecting it to return: " + applyPrefix(fallbackUsernamePrefix, expected), e);
