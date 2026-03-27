@@ -49,6 +49,7 @@ public class PrincipalExtractor {
     private final Extractor fallbackUsernameExtractor;
     private final String fallbackUsernamePrefix;
 
+
     /**
      * Create a new instance
      */
@@ -65,7 +66,7 @@ public class PrincipalExtractor {
      * @param usernameClaim Attribute name for an attribute containing the user id to lookup first.
      */
     public PrincipalExtractor(String usernameClaim) {
-        this.usernameExtractor = parseClaimSpec(usernameClaim);
+        this.usernameExtractor = parseClaimSpec(usernameClaim, false);
         usernamePrefix = null;
         fallbackUsernameExtractor = null;
         fallbackUsernamePrefix = null;
@@ -80,9 +81,22 @@ public class PrincipalExtractor {
      * @param fallbackUsernamePrefix A prefix to prepend to the value of the fallback attribute value if set
      */
     public PrincipalExtractor(String usernameClaim, String usernamePrefix, String fallbackUsernameClaim, String fallbackUsernamePrefix) {
-        this.usernameExtractor = parseClaimSpec(usernameClaim);
+        this(usernameClaim, usernamePrefix, fallbackUsernameClaim, fallbackUsernamePrefix, false);
+    }
+
+    /**
+     * Create a new instance
+     *
+     * @param usernameClaim Attribute name for an attribute containing the user id to lookup first.
+     * @param usernamePrefix A prefix to prepend to the user id
+     * @param fallbackUsernameClaim Attribute name for an attribute containg the user id to lookup as a fallback
+     * @param fallbackUsernamePrefix A prefix to prepend to the value of the fallback attribute value if set
+     * @param usernameForceJsonPath Forces the claim spec for username to be parsed as a JsonPathQuery.
+     */
+    public PrincipalExtractor(String usernameClaim, String usernamePrefix, String fallbackUsernameClaim, String fallbackUsernamePrefix, boolean usernameForceJsonPath) {
+        this.usernameExtractor = parseClaimSpec(usernameClaim, usernameForceJsonPath);
         this.usernamePrefix = usernamePrefix;
-        this.fallbackUsernameExtractor = parseClaimSpec(fallbackUsernameClaim);
+        this.fallbackUsernameExtractor = parseClaimSpec(fallbackUsernameClaim, usernameForceJsonPath);
         this.fallbackUsernamePrefix = fallbackUsernamePrefix;
     }
 
@@ -154,6 +168,7 @@ public class PrincipalExtractor {
      * <ul>
      * <li>If the claim specification starts with an opening square bracket '[', it is interpreted as a JsonPath query, and allows
      * targeting a nested attribute. </li>
+     * <li>If useJsonPath is enabled, the claim specification is always interpreted as a JsonPath query.</li>
      * <li>Otherwise, it is interpreted as a top level attribute name.</li>
      * </ul>
      * For more on JsonPath syntax see https://github.com/json-path/JsonPath.
@@ -167,22 +182,23 @@ public class PrincipalExtractor {
      *     ['userInfo'].id           ... use nested attribute 'id' under 'userInfo' top level attribute (second segment not using brackets)
      *     ['user.info']['user.id']  ... use nested attribute 'user.id' under 'user.info' top level attribute
      *     ['user.info'].['user.id'] ... use nested attribute 'user.id' under 'user.info' top level attribute (optional dot)
+     *     $.concat(['user.id'], ['user.name']) ... concat top level attribute named 'user.id' with top level attribute name 'user.name'
      * </pre>
      *
      * @param spec Claim specification
      * @return Result containing either a claim with top level attribute name or a JsonPathQuery object
      */
-    private static Extractor parseClaimSpec(String spec) {
+    private static Extractor parseClaimSpec(String spec, boolean useJsonPath) {
         spec = spec == null ? null : spec.trim();
         if (spec == null || spec.isEmpty()) {
             return null;
         }
 
-        if (!spec.startsWith("[")) {
-            return new Extractor(spec);
+        if (useJsonPath || spec.startsWith("[")) {
+            return new Extractor(JsonPathQuery.parse(spec));
         }
 
-        return new Extractor(JsonPathQuery.parse(spec));
+        return new Extractor(spec);
     }
 
     static class Extractor {

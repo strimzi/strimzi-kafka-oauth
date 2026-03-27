@@ -9,7 +9,7 @@ import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.JsonPathException;
 import com.jayway.jsonpath.Option;
 import com.jayway.jsonpath.ParseContext;
-import com.jayway.jsonpath.spi.json.JacksonJsonNodeJsonProvider;
+import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
 import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
 
 import static com.jayway.jsonpath.JsonPath.using;
@@ -81,7 +81,7 @@ public class JsonPathQuery {
 
     private JsonPathQuery(String query) {
         Configuration conf = Configuration.builder()
-                .jsonProvider(new JacksonJsonNodeJsonProvider())
+                .jsonProvider(new JacksonJsonProvider())
                 .mappingProvider(new JacksonMappingProvider())
                 .options(Option.SUPPRESS_EXCEPTIONS)
                 .build();
