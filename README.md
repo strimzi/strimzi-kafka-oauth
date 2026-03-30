@@ -497,10 +497,11 @@ You can force the claim specification to always be interpreted as a JSONPath que
 
     oauth.force.jsonpath.username.extraction="true"
 
-When this option is enabled, both `oauth.username.claim` and `oauth.fallback.username.claim` are parsed as JSONPath expressions. The claim specification must begin with `$.`.
-
-If you previously used a simple attribute name such as `something`, change it to `$.['something']`.
-If you already used square brackets notation such as `['topAttrKey'].['subAttrKey']`, prefix it with `$.` to get `$.['topAttrKey'].['subAttrKey']`.
+When this option is enabled, both `oauth.username.claim` and `oauth.fallback.username.claim` are parsed as JSONPath expressions.
+If you need to have `oauth.force.jsonpath.username.extraction` enabled and need to specify a single attribute or square bracket notation, you have to prefix it with `$.`.
+For example:
+* `$.['something']` instead of `something`
+* `$.['topAttrKey'].['subAttrKey']` instead of `['topAttrKey'].['subAttrKey']`
 
 With JSONPath username extraction enabled, you can use [JSONPath functions](https://github.com/json-path/JsonPath#functions) such as `concat` to construct the principal from multiple token claims. For example:
 
