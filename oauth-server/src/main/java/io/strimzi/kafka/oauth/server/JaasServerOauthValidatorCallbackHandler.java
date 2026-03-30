@@ -270,7 +270,7 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
 
         String usernameClaim = config.getValue(Config.OAUTH_USERNAME_CLAIM);
         String usernamePrefix = config.getValue(Config.OAUTH_USERNAME_PREFIX);
-        boolean usernameUseJsonPath = config.getValueAsBoolean(Config.OAUTH_USERNAME_CLAIM_JSONPATH, false);
+        boolean usernameUseJsonPath = config.getValueAsBoolean(Config.OAUTH_FORCE_JSONPATH_USERNAME_EXTRACTION, false);
         String fallbackUsernameClaim = config.getValue(Config.OAUTH_FALLBACK_USERNAME_CLAIM);
         String fallbackUsernamePrefix = config.getValue(Config.OAUTH_FALLBACK_USERNAME_PREFIX);
 

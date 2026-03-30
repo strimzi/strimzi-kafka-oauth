@@ -168,7 +168,7 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
                 config.getValue(Config.OAUTH_USERNAME_PREFIX),
                 config.getValue(Config.OAUTH_FALLBACK_USERNAME_CLAIM),
                 config.getValue(Config.OAUTH_FALLBACK_USERNAME_PREFIX),
-                config.getValueAsBoolean(Config.OAUTH_USERNAME_CLAIM_JSONPATH, false));
+                config.getValueAsBoolean(Config.OAUTH_FORCE_JSONPATH_USERNAME_EXTRACTION, false));
 
         isJwt = isAccessTokenJwt(config, LOG, null);
         if (!isJwt && principalExtractor.isConfigured()) {
