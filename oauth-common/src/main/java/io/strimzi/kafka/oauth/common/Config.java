@@ -41,7 +41,7 @@ public class Config {
     /** The name of 'oauth.username.prefix' config option  */
     public static final String OAUTH_USERNAME_PREFIX = "oauth.username.prefix";
 
-    /** The name of 'oauth.username.claim.jsonpath' config option  */
+    /** The name of 'oauth.force.jsonpath.username.extraction' config option  */
     public static final String OAUTH_FORCE_JSONPATH_USERNAME_EXTRACTION = "oauth.force.jsonpath.username.extraction";
 
     /** The name of 'oauth.fallback.username.claim' config option  */
