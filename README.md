@@ -30,6 +30,7 @@ Strimzi Kafka OAuth modules provide support for OAuth2 as authentication mechani
         - [Validation using the JWKS endpoint](#validation-using-the-jwks-endpoint)
         - [JWKS caching and local JWT validation](#jwks-caching-and-local-jwt-validation)
         - [Validation using the introspection endpoint](#validation-using-the-introspection-endpoint)
+        - [JSONPath username extraction](#jsonpath-username-extraction)
         - [Custom claim checking](#custom-claim-checking)
         - [Group extraction](#group-extraction)
         - [Configuring the `OAuth over PLAIN`](#configuring-the-oauth-over-plain)
@@ -487,6 +488,26 @@ The default value is '0', meaning 'no pause'. Provide the value greater than '0'
 When using `oauth.http.retries` and `oauth.http.retry.pause.millis` options also keep in mind that the worker thread can 
 get blocked on unresponsive connection, and you will want to set `oauth.connect.timeout.seconds` and `oauth.read.timeout.seconds` 
 to smaller values as well, as explained in [the chapter on timeouts](#configuring-the-network-timeouts-for-communication-with-authorization-server). 
+
+##### JSONPath username extraction
+
+By default, the `oauth.username.claim` and `oauth.fallback.username.claim` values are interpreted as top-level attribute names, unless the value starts with `[` in which case it is interpreted as a JSONPath query.
+
+You can force the claim specification to always be interpreted as a JSONPath query by setting:
+
+    oauth.force.jsonpath.username.extraction="true"
+
+When this option is enabled, both `oauth.username.claim` and `oauth.fallback.username.claim` are parsed as JSONPath expressions.
+If you need to have `oauth.force.jsonpath.username.extraction` enabled and need to specify a single attribute or square bracket notation, you have to prefix it with `$.`.
+For example:
+* `$.['something']` instead of `something`
+* `$.['topAttrKey'].['subAttrKey']` instead of `['topAttrKey'].['subAttrKey']`
+
+With JSONPath username extraction enabled, you can use [JSONPath functions](https://github.com/json-path/JsonPath#functions) such as `concat` to construct the principal from multiple token claims. For example:
+
+    oauth.username.claim="$.concat($['userId'], \":\", $['sub'])"
+
+Given a token containing `"userId": "alice"` and `"sub": "u123456"`, this produces the principal `User:alice:u123456`.
 
 ##### Custom claim checking
 
@@ -1290,6 +1311,7 @@ These configuration options apply to the Kafka broker when using the Strimzi Kaf
 | `oauth.username.prefix` | Identity mapping | Optional | Prefix added to the resolved username. |
 | `oauth.fallback.username.claim` | Identity mapping | Optional | Secondary claim used when the primary username claim is not present. |
 | `oauth.fallback.username.prefix` | Identity mapping | Optional | Prefix applied when the fallback claim is used. |
+| `oauth.force.jsonpath.username.extraction` | Identity mapping | Optional | When `true`, `oauth.username.claim` and `oauth.fallback.username.claim` are interpreted as JSONPath queries. Default: `false`. |
 | `oauth.custom.claim.check` | Policy enforcement | Optional | JSONPath filter expression used to restrict which tokens may authenticate. |
 
 #### JWKS caching
