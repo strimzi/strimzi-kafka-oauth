@@ -116,6 +116,7 @@
         <jsonpath.version>2.9.0</jsonpath.version>
         <jsonsmart.version>2.5.2</jsonsmart.version>
         <junit.version>4.13.2</junit.version>
+        <tink.version>1.16.0</tink.version>
         <slf4j.version>1.7.36</slf4j.version>
         <mockito.version>3.12.4</mockito.version>
         <nimbus.jose.version>10.0.2</nimbus.jose.version>
@@ -281,6 +282,8 @@
                                 <ignoredUnusedDeclaredDependency>org.slf4j:slf4j-simple:jar</ignoredUnusedDeclaredDependency>
                                 <!-- Added due to transitive override to address CVE-2024-57699. Remove in the future. -->
                                 <ignoredUnusedDeclaredDependency>net.minidev:json-smart:jar</ignoredUnusedDeclaredDependency>
+                                <!-- Added for ability to construct com.nimbusds.jose.crypto.Ed25519Verifier -->
+                                <ignoredUnusedDeclaredDependency>com.google.crypto.tink:tink</ignoredUnusedDeclaredDependency>
                             </ignoredUnusedDeclaredDependencies>
                         </configuration>
                     </execution>
