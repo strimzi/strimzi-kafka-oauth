@@ -15,6 +15,8 @@ data:
         {
           "username": "alice",
           "enabled": true,
+          "firstName" : "Alice",
+          "lastName" : "Doe",
           "email": "alice@example.com",
           "credentials": [
             {
@@ -34,6 +36,8 @@ data:
         {
           "username": "admin",
           "enabled": true,
+          "firstName" : "Admin",
+          "lastName" : "Doe",
           "email": "admin@example.com",
           "credentials": [
             {
@@ -281,6 +285,7 @@ data:
           "totp" : false,
           "emailVerified" : true,
           "firstName" : "Alice",
+          "lastName" : "Doe",
           "email" : "alice@strimzi.io",
           "credentials" : [ {
             "type" : "password",
@@ -300,6 +305,7 @@ data:
           "totp" : false,
           "emailVerified" : true,
           "firstName" : "Bob",
+          "lastName" : "Doe",
           "email" : "bob@strimzi.io",
           "credentials" : [ {
             "type" : "password",
