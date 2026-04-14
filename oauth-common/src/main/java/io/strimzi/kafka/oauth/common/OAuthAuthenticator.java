@@ -156,7 +156,7 @@ public class OAuthAuthenticator {
             clientSecret = "";
         }
 
-        String authorization = "Basic " + base64encode(clientId + ':' + clientSecret);
+        String authorization = "Basic " + base64encode(urlencode(clientId) + ':' + urlencode(clientSecret));
 
         if (grantType == null) {
             grantType = OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_DEFAULT_VALUE;
