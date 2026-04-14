@@ -29,9 +29,9 @@ import static io.strimzi.testsuite.oauth.mockoauth.Common.createOAuthClient;
 import static io.strimzi.testsuite.oauth.mockoauth.Common.createOAuthUser;
 import static io.strimzi.testsuite.oauth.mockoauth.Common.revokeToken;
 
-public class PasswordAuthAndPrincipalExtractionTest {
+public class ClientCredentialsEncodingTest {
 
-    private static final Logger log = LoggerFactory.getLogger(PasswordAuthAndPrincipalExtractionTest.class);
+    private static final Logger log = LoggerFactory.getLogger(ClientCredentialsEncodingTest.class);
 
     public void doTest() throws Exception {
 
@@ -44,13 +44,13 @@ public class PasswordAuthAndPrincipalExtractionTest {
         createOAuthClient(clientSrv, clientSrvSecret);
 
         // create a client client1
-        String client1 = "client1%[]{},.";
-        String client1Secret = "client1-secret%[]{},.";
+        String client1 = "client1%1";
+        String client1Secret = ":,.{client1-secret%[}]1";
         createOAuthClient(client1, client1Secret);
 
         // create a user user1
-        String user1 = "user1%[]{},.";
-        String user1Pass = "user1-password%[]{},.";
+        String user1 = "user1%1";
+        String user1Pass = "%user1-password%";
         createOAuthUser(user1, user1Pass);
 
         String projectRoot = Common.getProjectRoot();
