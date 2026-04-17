@@ -9,6 +9,8 @@ import io.vertx.core.http.HttpServerRequest;
 import org.slf4j.Logger;
 import org.slf4j.helpers.NOPLogger;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.EnumSet;
 
@@ -70,5 +72,9 @@ public class Commons {
     static void handleFailure(HttpServerRequest req, Throwable t, Logger log) {
         log.error("An error during processing of request: " + req, t);
         sendResponse(req, INTERNAL_SERVER_ERROR);
+    }
+
+    public static String urldecode(String value) {
+        return URLDecoder.decode(value, StandardCharsets.UTF_8);
     }
 }

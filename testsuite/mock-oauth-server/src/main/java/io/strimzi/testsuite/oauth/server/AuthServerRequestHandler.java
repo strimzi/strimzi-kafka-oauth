@@ -54,6 +54,7 @@ import static io.strimzi.testsuite.oauth.server.Commons.handleFailure;
 import static io.strimzi.testsuite.oauth.server.Commons.isOneOf;
 import static io.strimzi.testsuite.oauth.server.Commons.sendResponse;
 import static io.strimzi.testsuite.oauth.server.Commons.setContextLog;
+import static io.strimzi.testsuite.oauth.server.Commons.urldecode;
 import static io.strimzi.testsuite.oauth.server.Endpoint.FAILING_GRANTS;
 import static io.strimzi.testsuite.oauth.server.Endpoint.FAILING_INTROSPECT;
 import static io.strimzi.testsuite.oauth.server.Endpoint.FAILING_TOKEN;
@@ -279,41 +280,49 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
 
             // clientId should be passed via Authorization header
             // and should have a secret matching the stored client record
-            String clientId = authorizeClient(authorization);
-
-            // or via the body together with its assertion
-            // and should match client assertion in the stored client record and assertion type
-            if (clientId == null) {
-                final String clientIdFromForm = form.get("client_id");
-                final String clientAssertion = form.get("client_assertion");
-                final String clientAssertionType = form.get("client_assertion_type");
-                clientId = authorizeClientUsingAssertion(clientIdFromForm, clientAssertion, clientAssertionType);
-            }
-
-            if ("password".equals(grantType)) {
-                // if it's a password auth, also make sure the username and password are a match
-                username = authorizeUser(form.get("username"), form.get("password"));
-                if (username != null && clientId == null) {
-                    clientId = form.get("client_id");
-                }
-            } else if ("refresh_token".equals(grantType)) {
-                // if it's a refresh_token auth, make sure the refresh_token has been issued by us
-                // and that clientId matches (if clientId not available at this point
-                RefreshTokenInfo refreshTokenInfo = verticle.getRefreshTokens().get(form.get("refresh_token"));
-                if (clientId == null) {
-                    clientId = form.get("client_id");
-                }
-                if (processUnauthorizedRefreshToken(req, clientId, refreshTokenInfo)) {
-                    return;
-                }
-                username = refreshTokenInfo.username;
-            }
-
-            if (processUnauthorized(req, grantType, username, clientId)) {
-                return;
-            }
+            String clientId = null;
 
             try {
+                try {
+                    clientId = authorizeClient(authorization);
+                } catch (IllegalArgumentException iae) {
+                    log.error("Failed to parse authentication credentials: ", iae);
+                    sendResponse(req, BAD_REQUEST);
+                }
+
+                // or via the body together with its assertion
+                // and should match client assertion in the stored client record and assertion type
+                if (clientId == null) {
+                    final String clientIdFromForm = form.get("client_id");
+                    final String clientAssertion = form.get("client_assertion");
+                    final String clientAssertionType = form.get("client_assertion_type");
+                    clientId = authorizeClientUsingAssertion(clientIdFromForm, clientAssertion, clientAssertionType);
+                }
+
+                if ("password".equals(grantType)) {
+                    // if it's a password auth, also make sure the username and password are a match
+                    username = authorizeUser(form.get("username"), form.get("password"));
+                    if (username != null && clientId == null) {
+                        clientId = form.get("client_id");
+                    }
+                } else if ("refresh_token".equals(grantType)) {
+                    // if it's a refresh_token auth, make sure the refresh_token has been issued by us
+                    // and that clientId matches (if clientId not available at this point
+                    RefreshTokenInfo refreshTokenInfo = verticle.getRefreshTokens().get(form.get("refresh_token"));
+                    if (clientId == null) {
+                        clientId = form.get("client_id");
+                    }
+                    if (processUnauthorizedRefreshToken(req, clientId, refreshTokenInfo)) {
+                        return;
+                    }
+                    username = refreshTokenInfo.username;
+                }
+
+                if (processUnauthorized(req, grantType, username, clientId)) {
+                    return;
+                }
+
+            
                 // Create a signed JWT token
                 UserInfo userInfo = username != null ? verticle.getUsers().get(username) : null;
                 long expiresIn = userInfo != null && userInfo.expiresIn != null ? userInfo.expiresIn : EXPIRES_IN_SECONDS;
@@ -628,8 +637,8 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
                 return null;
             }
 
-            String clientId = decoded.substring(0, pos);
-            String secret = decoded.substring(pos + 1);
+            String clientId = urldecode(decoded.substring(0, pos));
+            String secret = urldecode(decoded.substring(pos + 1));
 
             String existingClientSecret = verticle.getClients().get(clientId);
             if (existingClientSecret == null) {
