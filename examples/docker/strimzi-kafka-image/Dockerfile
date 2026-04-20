@@ -1,4 +1,4 @@
-FROM quay.io/strimzi/kafka:0.47.0-kafka-4.0.0
+FROM quay.io/strimzi/kafka:0.49.1-kafka-4.1.1
 
 COPY target/libs/* /opt/kafka/libs/oauth/
 ENV CLASSPATH /opt/kafka/libs/oauth/*
