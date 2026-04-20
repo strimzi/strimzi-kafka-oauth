@@ -23,6 +23,7 @@ import javax.net.ssl.SSLSocketFactory;
 import java.net.URI;
 import java.text.ParseException;
 
+import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.basicAuthorizationHeader;
 import static io.strimzi.testsuite.oauth.mockoauth.Common.WWW_FORM_CONTENT_TYPE;
 import static io.strimzi.testsuite.oauth.mockoauth.Common.changeAuthServerMode;
 import static io.strimzi.testsuite.oauth.mockoauth.Common.createOAuthClient;
@@ -44,13 +45,13 @@ public class PasswordAuthAndPrincipalExtractionTest {
         createOAuthClient(clientSrv, clientSrvSecret);
 
         // create a client client1
-        String client1 = "client1";
-        String client1Secret = "client1-secret";
+        String client1 = "client1%[]{},.";
+        String client1Secret = "client1-secret%[]{},.";
         createOAuthClient(client1, client1Secret);
 
         // create a user user1
-        String user1 = "user1";
-        String user1Pass = "user1-password";
+        String user1 = "user1%[]{},.";
+        String user1Pass = "user1-password%[]{},.";
         createOAuthUser(user1, user1Pass);
 
         String projectRoot = Common.getProjectRoot();
@@ -87,7 +88,7 @@ public class PasswordAuthAndPrincipalExtractionTest {
 
         // introspect the token using the introspection endpoint
         json = HttpUtil.post(URI.create("https://mockoauth:8090/introspect"), sslFactory, null,
-                "Basic " + OAuthAuthenticator.base64encode(clientSrv + ':' + clientSrvSecret), WWW_FORM_CONTENT_TYPE, "token=" + token, ObjectNode.class);
+                basicAuthorizationHeader(clientSrv, clientSrvSecret), WWW_FORM_CONTENT_TYPE, "token=" + token, ObjectNode.class);
 
         log.info("Got introspection endpoint response: " + json);
         Assert.assertTrue("Token active", json.get("active").asBoolean());
@@ -99,14 +100,14 @@ public class PasswordAuthAndPrincipalExtractionTest {
 
         // introspect the token again
         json = HttpUtil.post(URI.create("https://mockoauth:8090/introspect"), sslFactory, null,
-                "Basic " + OAuthAuthenticator.base64encode(clientSrv + ':' + clientSrvSecret), WWW_FORM_CONTENT_TYPE, "token=" + token, ObjectNode.class);
+                basicAuthorizationHeader(clientSrv, clientSrvSecret), WWW_FORM_CONTENT_TYPE, "token=" + token, ObjectNode.class);
 
         log.info("Got introspection endpoint response: " + json);
         Assert.assertFalse("Token not active", json.get("active").asBoolean());
 
         // introspect an invalid token
         json = HttpUtil.post(URI.create("https://mockoauth:8090/introspect"), sslFactory, null,
-                "Basic " + OAuthAuthenticator.base64encode(clientSrv + ':' + clientSrvSecret), WWW_FORM_CONTENT_TYPE, "token=invalidtoken", ObjectNode.class);
+                basicAuthorizationHeader(clientSrv, clientSrvSecret), WWW_FORM_CONTENT_TYPE, "token=invalidtoken", ObjectNode.class);
 
         log.info("Got introspection endpoint response: " + json);
         Assert.assertFalse("Token not active", json.get("active").asBoolean());
@@ -114,7 +115,7 @@ public class PasswordAuthAndPrincipalExtractionTest {
         // introspect the token using the introspection endpoint with a bad secret
         try {
             HttpUtil.post(URI.create("https://mockoauth:8090/introspect"), sslFactory, null,
-                    "Basic " + OAuthAuthenticator.base64encode(clientSrv + ":bad"), WWW_FORM_CONTENT_TYPE, "token=" + token, ObjectNode.class);
+                    basicAuthorizationHeader(clientSrv, "bad"), WWW_FORM_CONTENT_TYPE, "token=" + token, ObjectNode.class);
 
             Assert.fail("Should have failed with 401");
         } catch (HttpException e) {
@@ -143,7 +144,7 @@ public class PasswordAuthAndPrincipalExtractionTest {
 
         // introspect the token using the introspection endpoint
         json = HttpUtil.post(URI.create("https://mockoauth:8090/introspect"), sslFactory, null,
-                "Basic " + OAuthAuthenticator.base64encode(clientSrv + ':' + clientSrvSecret), WWW_FORM_CONTENT_TYPE, "token=" + token, ObjectNode.class);
+                basicAuthorizationHeader(clientSrv, clientSrvSecret), WWW_FORM_CONTENT_TYPE, "token=" + token, ObjectNode.class);
 
         log.info("Got introspection endpoint response: " + json);
         Assert.assertTrue("Token active", json.get("active").asBoolean());

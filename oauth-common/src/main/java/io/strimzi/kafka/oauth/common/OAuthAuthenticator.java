@@ -156,7 +156,7 @@ public class OAuthAuthenticator {
             clientSecret = "";
         }
 
-        String authorization = "Basic " + base64encode(clientId + ':' + clientSecret);
+        String authorization = basicAuthorizationHeader(clientId, clientSecret);
 
         if (grantType == null) {
             grantType = OAUTH_CLIENT_CREDENTIALS_GRANT_TYPE_DEFAULT_VALUE;
@@ -390,7 +390,7 @@ public class OAuthAuthenticator {
             clientSecret = "";
         }
 
-        String authorization = "Basic " + base64encode(clientId + ':' + clientSecret);
+        String authorization = basicAuthorizationHeader(clientId, clientSecret);
 
         StringBuilder body = new StringBuilder("grant_type=password");
 
@@ -527,7 +527,7 @@ public class OAuthAuthenticator {
         }
 
         String authorization = clientSecret != null ?
-                "Basic " + base64encode(clientId + ':' + clientSecret) :
+                basicAuthorizationHeader(clientId, clientSecret) :
                 null;
 
         StringBuilder body = new StringBuilder("grant_type=refresh_token")
@@ -630,5 +630,16 @@ public class OAuthAuthenticator {
      */
     public static String urlencode(String value) {
         return URLEncoder.encode(value, StandardCharsets.UTF_8);
+    }
+
+    /**
+     * A helper method to compose Basic Authorization header composed of a base64 encoded string with id and secret urlencoded 
+     * 
+     * @param id ClientId or username
+     * @param secret Client secret or password
+     * @return Basic Authorization header
+     */
+    public static String basicAuthorizationHeader(String id, String secret) {
+        return "Basic " + base64encode(urlencode(id) + ':' + urlencode(secret));
     }
 }

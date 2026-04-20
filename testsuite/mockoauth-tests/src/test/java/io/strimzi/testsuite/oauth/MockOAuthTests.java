@@ -74,6 +74,7 @@ public class MockOAuthTests {
             // MetricsTest has to be the first as it relies on initial configuration and behaviour of mockoauth server
             //   JWKS endpoint is expected to return 404
             //   Subsequent tests can change that, but it takes some seconds for Kafka to retry fetching JWKS keys
+
             logStart("MetricsTest :: Basic Metrics Tests");
             new MetricsTest().doTest();
 
