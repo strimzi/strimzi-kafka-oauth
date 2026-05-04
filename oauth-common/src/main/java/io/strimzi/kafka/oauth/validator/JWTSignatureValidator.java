@@ -5,13 +5,9 @@
 package io.strimzi.kafka.oauth.validator;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.nimbusds.jose.jwk.Curve;
-import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.KeyUse;
-import com.nimbusds.jose.jwk.OctetKeyPair;
-import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jwt.SignedJWT;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.strimzi.kafka.oauth.common.HttpUtil;
@@ -38,6 +34,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -100,6 +97,8 @@ public class JWTSignatureValidator implements TokenValidator {
     private final OAuthMetrics metrics;
     private final SensorKeyProducer jwksHttpSensorKeyProducer;
     private final boolean includeAcceptHeader;
+
+    private static volatile Map<Class<? extends JWK>, SigningKeyProvider> signingKeyProviders;
 
     /**
      * Create a new instance.
@@ -189,6 +188,8 @@ public class JWTSignatureValidator implements TokenValidator {
 
         this.includeAcceptHeader = includeAcceptHeader;
 
+        initSigningKeyProviders();
+
         try {
             metrics = enableMetrics ? Services.getInstance().getMetrics() : null;
             jwksHttpSensorKeyProducer = new JwksHttpSensorKeyProducer(validatorId, keysUri);
@@ -267,6 +268,50 @@ public class JWTSignatureValidator implements TokenValidator {
             throw new IllegalArgumentException("SSL socket factory set but keysEndpointUri not 'https'");
         }
         return socketFactory;
+    }
+
+    /**
+     * Load all available SigningKeyProvider implementations via ServiceLoader.
+     * If multiple providers are found for the same JWK class type, the first one found is used.
+     *
+     * @return A map of JWK class to SigningKeyProvider
+     * @throws IllegalStateException if multiple providers are registered for the same JWK class type
+     */
+    private static void initSigningKeyProviders() {
+        if (signingKeyProviders != null) {
+            return;
+        }
+
+        synchronized (JWTSignatureValidator.class) {
+            if (signingKeyProviders != null) {
+                return;
+            }
+
+            Map<Class<? extends JWK>, SigningKeyProvider> providers = new HashMap<>();
+            ServiceLoader<SigningKeyProvider> loader = ServiceLoader.load(SigningKeyProvider.class);
+
+            for (SigningKeyProvider provider : loader) {
+                Set<Class<? extends JWK>> supportedClasses = provider.getSupportedJwkClasses();
+
+                for (Class<? extends JWK> jwkClass : supportedClasses) {
+                    if (providers.containsKey(jwkClass)) {
+                        SigningKeyProvider existingProvider = providers.get(jwkClass);
+                        log.warn("Multiple SigningKeyProvider implementations found for JWK class '{}'. " +
+                            "Already registered provider '{}' will be used. Ignoring provider '{}'.",
+                            jwkClass.getSimpleName(), existingProvider.getClass().getName(), provider.getClass().getName());
+                        continue;
+                    }
+                    providers.put(jwkClass, provider);
+                    log.info("Registered SigningKeyProvider for JWK class '{}': {}", jwkClass.getSimpleName(), provider.getClass().getName());
+                }
+            }
+
+            if (providers.isEmpty()) {
+                log.warn("No SigningKeyProvider implementations found via ServiceLoader");
+            }
+
+            signingKeyProviders = Collections.unmodifiableMap(providers);
+        }
     }
 
     private ScheduledExecutorService setupExecutorAndFetchInitialKeys(int refreshSeconds, int refreshMinPauseSeconds, boolean failFast) {
@@ -388,23 +433,30 @@ public class JWTSignatureValidator implements TokenValidator {
 
             for (JWK jwk : jwks.getKeys()) {
                 if (ignoreKeyUse || KeyUse.SIGNATURE.equals(jwk.getKeyUse())) {
-                    SigningKey signingKey;
+                    SigningKey signingKey = null;
+                    Class<? extends JWK> jwkClass = jwk.getClass();
 
-                    if (jwk instanceof ECKey) {
-                        signingKey = new JCASigningKey(((ECKey) jwk).toPublicKey());
-                    } else if (jwk instanceof RSAKey) {
-                        signingKey = new JCASigningKey(((RSAKey) jwk).toPublicKey());
-                    } else if (jwk instanceof OctetKeyPair) {
-                        OctetKeyPair okp = (OctetKeyPair) jwk;
-                        if (!Curve.Ed25519.equals(okp.getCurve())) {
-                            log.warn("Unsupported OKP curve: {}", okp .getCurve());
-                            continue;
+                    // Look up the provider directly by JWK class (O(1) lookup)
+                    SigningKeyProvider provider = signingKeyProviders.get(jwkClass);
+                    
+                    if (provider != null && provider.supports(jwk)) {
+                        try {
+                            signingKey = provider.createSigningKey(jwk);
+                            if (log.isDebugEnabled()) {
+                                log.debug("Created signing key for kid '{}' using provider for class: {}",
+                                    jwk.getKeyID(), jwkClass.getSimpleName());
+                            }
+                        } catch (Exception e) {
+                            log.warn("Provider for class {} failed to create signing key for kid '{}': {}",
+                                jwkClass.getSimpleName(), jwk.getKeyID(), e.getMessage());
                         }
-                        signingKey = new OKPSigningKey(okp.toPublicJWK());
-                    } else {
-                        log.warn("Unsupported JWK key type: {}", jwk.getKeyType());
+                    }
+
+                    if (signingKey == null) {
+                        log.warn("No provider found for JWK class: {} (kid: {})", jwkClass.getSimpleName(), jwk.getKeyID());
                         continue;
                     }
+
                     newCache.put(jwk.getKeyID(), signingKey);
                 }
             }

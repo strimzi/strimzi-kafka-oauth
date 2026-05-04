@@ -13,6 +13,7 @@ import io.strimzi.kafka.oauth.services.Services;
 import io.strimzi.kafka.oauth.validator.JWTSignatureValidator;
 import io.strimzi.kafka.oauth.validator.TokenValidationException;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,6 +31,21 @@ public class JWKSKeyUseTest {
     public void doTest() throws Exception {
         testKeyUseEnforcement();
         testOKPSignatureValidation();
+    }
+
+    /**
+     * Check if OKP support is available on the classpath.
+     * This is used to conditionally skip tests that require the oauth-okp-support module.
+     *
+     * @return true if OKP support is available, false otherwise
+     */
+    private static boolean isOKPSupportAvailable() {
+        try {
+            Class.forName("io.strimzi.kafka.oauth.validator.okp.OKPSigningKeyProvider");
+            return true;
+        } catch (ClassNotFoundException e) {
+            return false;
+        }
     }
 
     public void testKeyUseEnforcement() throws Exception {
@@ -82,8 +98,16 @@ public class JWKSKeyUseTest {
     /**
      * Test that JWTSignatureValidator correctly validates a token signed with an OKP (Ed25519) key
      * by the mock OAuth server, using the mock server's JWKS endpoint.
+     *
+     * This test requires the oauth-okp-support module to be available on the classpath.
+     * If it's not available (i.e., when building without the okp-support profile), the test is skipped.
      */
     public void testOKPSignatureValidation() throws Exception {
+        // Skip this test if OKP support is not available
+        Assume.assumeTrue("OKP support not available - skipping testOKPSignatureValidation", isOKPSupportAvailable());
+        
+        log.info("OKP support is available - running testOKPSignatureValidation");
+        
         Services.configure(Collections.emptyMap());
 
         changeAuthServerMode("jwks", "MODE_JWKS_OKP_WITH_SIG_USE");

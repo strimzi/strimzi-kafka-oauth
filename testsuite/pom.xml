@@ -324,6 +324,19 @@
 
     <profiles>
         <profile>
+            <id>okp-support</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>io.strimzi</groupId>
+                    <artifactId>kafka-oauth-okp-support</artifactId>
+                    <version>${strimzi-oauth.version}</version>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
             <id>kafka-3_2_3</id>
             <properties>
                 <kafka.docker.image>quay.io/strimzi/kafka:0.33.0-kafka-3.2.3</kafka.docker.image>
