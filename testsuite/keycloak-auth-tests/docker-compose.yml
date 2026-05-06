@@ -31,6 +31,7 @@ services:
       - "9102:9102"
       - "9103:9103"
       - "9104:9104"
+      - "9105:9105"
 
       # Prometheus JMX Exporter
       - "9404:9404"
@@ -59,8 +60,8 @@ services:
       - KAFKA_SASL_MECHANISM_CONTROLLER_PROTOCOL=SCRAM-SHA-512
 
       - CLASSPATH=/opt/kafka/libs/strimzi/reporters
-      - KAFKA_LISTENERS=CONTROLLER://kafka:9091,JWT://kafka:9092,INTROSPECT://kafka:9093,AUDIENCE://kafka:9094,AUDIENCEINTROSPECT://kafka:9095,JWTPLAIN://kafka:9096,INTROSPECTPLAIN://kafka:9097,CUSTOM://kafka:9098,CUSTOMINTROSPECT://kafka:9099,PLAIN://kafka:9100,SCRAM://kafka:9101,FLOOD://kafka:9102,JWTPLAINWITHOUTCC://kafka:9103,FORGE://kafka:9104
-      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:SASL_PLAINTEXT,JWT:SASL_PLAINTEXT,INTROSPECT:SASL_PLAINTEXT,AUDIENCE:SASL_PLAINTEXT,AUDIENCEINTROSPECT:SASL_PLAINTEXT,JWTPLAIN:SASL_PLAINTEXT,INTROSPECTPLAIN:SASL_PLAINTEXT,CUSTOM:SASL_PLAINTEXT,CUSTOMINTROSPECT:SASL_PLAINTEXT,PLAIN:SASL_PLAINTEXT,SCRAM:SASL_PLAINTEXT,FLOOD:SASL_PLAINTEXT,JWTPLAINWITHOUTCC:SASL_PLAINTEXT,FORGE:SASL_PLAINTEXT
+      - KAFKA_LISTENERS=CONTROLLER://kafka:9091,JWT://kafka:9092,INTROSPECT://kafka:9093,AUDIENCE://kafka:9094,AUDIENCEINTROSPECT://kafka:9095,JWTPLAIN://kafka:9096,INTROSPECTPLAIN://kafka:9097,CUSTOM://kafka:9098,CUSTOMINTROSPECT://kafka:9099,PLAIN://kafka:9100,SCRAM://kafka:9101,FLOOD://kafka:9102,JWTPLAINWITHOUTCC://kafka:9103,FORGE://kafka:9104,OKP://kafka:9105
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:SASL_PLAINTEXT,JWT:SASL_PLAINTEXT,INTROSPECT:SASL_PLAINTEXT,AUDIENCE:SASL_PLAINTEXT,AUDIENCEINTROSPECT:SASL_PLAINTEXT,JWTPLAIN:SASL_PLAINTEXT,INTROSPECTPLAIN:SASL_PLAINTEXT,CUSTOM:SASL_PLAINTEXT,CUSTOMINTROSPECT:SASL_PLAINTEXT,PLAIN:SASL_PLAINTEXT,SCRAM:SASL_PLAINTEXT,FLOOD:SASL_PLAINTEXT,JWTPLAINWITHOUTCC:SASL_PLAINTEXT,FORGE:SASL_PLAINTEXT,OKP:SASL_PLAINTEXT
       - KAFKA_SASL_ENABLED_MECHANISMS=OAUTHBEARER
       - KAFKA_INTER_BROKER_LISTENER_NAME=INTROSPECT
       - KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL=OAUTHBEARER
@@ -126,6 +127,9 @@ services:
 
       - KAFKA_LISTENER_NAME_FORGE_OAUTHBEARER_SASL_JAAS_CONFIG=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required    oauth.config.id=\"FORGE\"    oauth.jwks.endpoint.uri=\"http://keycloak:8080/realms/forge/protocol/openid-connect/certs\"    oauth.valid.issuer.uri=\"http://keycloak:8080/realms/forge\"    oauth.fallback.username.claim=\"client_id\"    oauth.fallback.username.prefix=\"service-account-\"    unsecuredLoginStringClaim_sub=\"admin\" ;
       - KAFKA_LISTENER_NAME_FORGE_OAUTHBEARER_SASL_SERVER_CALLBACK_HANDLER_CLASS=io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
+
+      - KAFKA_LISTENER_NAME_OKP_OAUTHBEARER_SASL_JAAS_CONFIG=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required    oauth.config.id=\"OKP\"    oauth.jwks.endpoint.uri=\"http://keycloak:8080/realms/demo-okp/protocol/openid-connect/certs\"    oauth.valid.issuer.uri=\"http://keycloak:8080/realms/demo-okp\"    unsecuredLoginStringClaim_sub=\"admin\"    oauth.fallback.username.claim=\"client_id\"    oauth.fallback.username.prefix=\"service-account-\" ;
+      - KAFKA_LISTENER_NAME_OKP_OAUTHBEARER_SASL_SERVER_CALLBACK_HANDLER_CLASS=io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
 
       # Test Metrics Reporters
       - KAFKA_METRICS_CONTEXT_TEST_LABEL=testvalue

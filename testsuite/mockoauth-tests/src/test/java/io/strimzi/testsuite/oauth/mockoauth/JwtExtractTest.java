@@ -5,7 +5,7 @@
 package io.strimzi.testsuite.oauth.mockoauth;
 
 import java.util.HashMap;
-import io.strimzi.kafka.oauth.common.PrincipalExtractor;
+
 import io.strimzi.kafka.oauth.common.SSLUtil;
 import io.strimzi.kafka.oauth.common.TokenIntrospection;
 import io.strimzi.kafka.oauth.services.Services;
@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
 import static io.strimzi.testsuite.oauth.mockoauth.Common.changeAuthServerMode;
 import static io.strimzi.testsuite.oauth.mockoauth.Common.createOAuthClient;
+import static io.strimzi.testsuite.oauth.mockoauth.Common.createTokenValidator;
 import static io.strimzi.testsuite.oauth.mockoauth.Common.getProjectRoot;
 import static io.strimzi.testsuite.oauth.mockoauth.Common.loginWithClientSecretAndExtraAttrs;
 
@@ -73,31 +74,5 @@ public class JwtExtractTest {
         // and try to validate it
         // The overflow bug triggers a TokenExpiredException
         validator.validate(accessToken);
-    }
-
-    private static JWTSignatureValidator createTokenValidator(String validatorId, SSLSocketFactory sslFactory, boolean ignoreKeyUse) {
-        return new JWTSignatureValidator(validatorId,
-                null,
-                null,
-                null,
-                "https://mockoauth:8090/jwks",
-                sslFactory,
-                null,
-                new PrincipalExtractor(),
-                null,
-                null,
-                "https://mockoauth:8090",
-                30,
-                0,
-                300,
-                ignoreKeyUse,
-                false,
-                null,
-                null,
-                60,
-                60,
-                true,
-                true,
-                true);
     }
 }

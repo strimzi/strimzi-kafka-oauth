@@ -197,6 +197,42 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>okp-support</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-dependency-plugin</artifactId>
+                        <version>${maven.dependency.version}</version>
+                        <executions>
+                            <execution>
+                                <id>copy-okp-support</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>copy-dependencies</goal>
+                                </goals>
+                                <configuration>
+                                    <includeArtifactIds>kafka-oauth-okp-support,tink</includeArtifactIds>
+                                    <outputDirectory>target/kafka/libs</outputDirectory>
+                                    <includeScope>runtime</includeScope>
+                                    <excludeTransitive>false</excludeTransitive>
+                                    <overWriteReleases>false</overWriteReleases>
+                                    <overWriteSnapshots>true</overWriteSnapshots>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
 
 
