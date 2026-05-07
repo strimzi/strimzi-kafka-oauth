@@ -74,6 +74,22 @@ Note: just building the testsuite module is not enough (`mvn clean install -f te
     mvn test -f testsuite/keycloak-auth-tests
 
 
+Running OKP Tests
+=================
+
+OKP (Octet Key Pair) tests require the `okp-support` profile to be activated. These tests are marked with the `@Category(io.strimzi.testsuite.oauth.common.OKPTestGroup.class)` annotation.
+
+To run only OKP-related tests, use the following command:
+
+    mvn test -f testsuite -Dgroups=io.strimzi.testsuite.oauth.common.OKPTestGroup
+
+To exclude OKP tests and run all other tests:
+
+    mvn test -f testsuite -DexcludedGroups=io.strimzi.testsuite.oauth.common.OKPTestGroup
+
+Note: OKP tests will be automatically skipped if the `okp-support` profile is not activated. The category-based filtering provides an additional way to explicitly select or exclude these tests.
+
+
 Troubleshooting
 ===============
 

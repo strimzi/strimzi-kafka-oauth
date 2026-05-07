@@ -25,6 +25,7 @@ import org.junit.AssumptionViolatedException;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.TestRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -123,6 +124,7 @@ public class MockOAuthTests {
     }
 
     @Test
+    @Category(io.strimzi.testsuite.oauth.common.OKPTestGroup.class)
     public void runOKPTests() throws Exception {
         try {
             // Skip this test if OKP support is not available
