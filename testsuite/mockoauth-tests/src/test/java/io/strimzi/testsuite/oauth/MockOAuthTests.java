@@ -17,11 +17,15 @@ import io.strimzi.testsuite.oauth.mockoauth.JwtExtractTest;
 import io.strimzi.testsuite.oauth.mockoauth.PasswordAuthAndPrincipalExtractionTest;
 import io.strimzi.testsuite.oauth.mockoauth.RetriesTests;
 import io.strimzi.testsuite.oauth.mockoauth.KerberosListenerTest;
-
+import io.strimzi.testsuite.oauth.mockoauth.OKPValidationTest;
 import io.strimzi.testsuite.oauth.mockoauth.metrics.MetricsTest;
+
+import org.junit.Assume;
+import org.junit.AssumptionViolatedException;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.TestRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +33,8 @@ import org.testcontainers.containers.wait.strategy.Wait;
 
 import java.io.File;
 import java.time.Duration;
+
+import static io.strimzi.testsuite.oauth.common.TestUtil.isOKPSupportAvailable;
 
 /**
  * Some tests rely on <code>resources/simplelogger.properties</code> to be configured to log to the file <code>target/test.log</code>.
@@ -117,7 +123,24 @@ public class MockOAuthTests {
         }
     }
 
+    @Test
+    @Category(io.strimzi.testsuite.oauth.common.OKPTestGroup.class)
+    public void runOKPTests() throws Exception {
+        try {
+            // Skip this test if OKP support is not available
+            Assume.assumeTrue("OKP support not available - skipping testOKPSignatureValidation", isOKPSupportAvailable());
 
+            logStart("OKPValidationTest :: Tests");
+            new OKPValidationTest().doTest();
+
+        } catch (AssumptionViolatedException e) {            
+            throw e;
+        } catch (Throwable e) {
+            log.error("Exception has occurred: ", e);
+            throw e;
+        }
+    }
+           
     private void logStart(String msg) {
         System.out.println();
         System.out.println("========    "  + msg);

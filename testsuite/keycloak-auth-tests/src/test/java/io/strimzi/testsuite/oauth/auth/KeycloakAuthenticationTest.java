@@ -6,9 +6,13 @@ package io.strimzi.testsuite.oauth.auth;
 
 import io.strimzi.testsuite.oauth.common.TestContainersLogCollector;
 import io.strimzi.testsuite.oauth.common.TestContainersWatcher;
+
+import org.junit.Assume;
+import org.junit.AssumptionViolatedException;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.TestRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +20,8 @@ import org.testcontainers.containers.wait.strategy.Wait;
 
 import java.io.File;
 import java.time.Duration;
+
+import static io.strimzi.testsuite.oauth.common.TestUtil.isOKPSupportAvailable;
 
 /**
  * Tests for OAuth authentication using Keycloak
@@ -67,6 +73,24 @@ public class KeycloakAuthenticationTest {
 
         } catch (Throwable e) {
             log.error("Keycloak Authentication Test failed: ", e);
+            throw e;
+        }
+    }
+
+    @Test
+    @Category(io.strimzi.testsuite.oauth.common.OKPTestGroup.class)
+    public void doOKPTest() throws Exception {
+        try {
+            // Skip this test if OKP support is not available
+            Assume.assumeTrue("OKP support not available - skipping testOKPSignatureValidation", isOKPSupportAvailable());
+
+            logStart("KeycloakAuthenticationTest :: OKP Tests");
+            new OKPTest().doTests();
+
+        } catch (AssumptionViolatedException e) {            
+            throw e;
+        } catch (Throwable e) {
+            log.error("Keycloak Authentication OKP Test failed: ", e);
             throw e;
         }
     }

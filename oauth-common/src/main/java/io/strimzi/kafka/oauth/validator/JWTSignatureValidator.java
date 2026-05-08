@@ -5,12 +5,9 @@
 package io.strimzi.kafka.oauth.validator;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.nimbusds.jose.crypto.factories.DefaultJWSVerifierFactory;
-import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.KeyUse;
-import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jwt.SignedJWT;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.strimzi.kafka.oauth.common.HttpUtil;
@@ -33,11 +30,11 @@ import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSocketFactory;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.security.PublicKey;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -66,8 +63,6 @@ public class JWTSignatureValidator implements TokenValidator {
 
     private static final Logger log = LoggerFactory.getLogger(JWTSignatureValidator.class);
 
-    private static final DefaultJWSVerifierFactory VERIFIER_FACTORY = new DefaultJWSVerifierFactory();
-
     private final String validatorId;
     private final String clientId;
     private final String clientSecret;
@@ -91,8 +86,8 @@ public class JWTSignatureValidator implements TokenValidator {
 
     private long lastFetchTime;
 
-    private Map<String, PublicKey> cache = Collections.emptyMap();
-    private Map<String, PublicKey> oldCache = Collections.emptyMap();
+    private Map<String, SigningKey> cache = Collections.emptyMap();
+    private Map<String, SigningKey> oldCache = Collections.emptyMap();
 
     private BackOffTaskScheduler fastScheduler;
 
@@ -102,6 +97,8 @@ public class JWTSignatureValidator implements TokenValidator {
     private final OAuthMetrics metrics;
     private final SensorKeyProducer jwksHttpSensorKeyProducer;
     private final boolean includeAcceptHeader;
+
+    private static volatile Map<Class<? extends JWK>, SigningKeyProvider> signingKeyProviders;
 
     /**
      * Create a new instance.
@@ -191,6 +188,8 @@ public class JWTSignatureValidator implements TokenValidator {
 
         this.includeAcceptHeader = includeAcceptHeader;
 
+        initSigningKeyProviders();
+
         try {
             metrics = enableMetrics ? Services.getInstance().getMetrics() : null;
             jwksHttpSensorKeyProducer = new JwksHttpSensorKeyProducer(validatorId, keysUri);
@@ -269,6 +268,50 @@ public class JWTSignatureValidator implements TokenValidator {
             throw new IllegalArgumentException("SSL socket factory set but keysEndpointUri not 'https'");
         }
         return socketFactory;
+    }
+
+    /**
+     * Load all available SigningKeyProvider implementations via ServiceLoader.
+     * If multiple providers are found for the same JWK class type, the first one found is used.
+     *
+     * @return A map of JWK class to SigningKeyProvider
+     * @throws IllegalStateException if multiple providers are registered for the same JWK class type
+     */
+    private static void initSigningKeyProviders() {
+        if (signingKeyProviders != null) {
+            return;
+        }
+
+        synchronized (JWTSignatureValidator.class) {
+            if (signingKeyProviders != null) {
+                return;
+            }
+
+            Map<Class<? extends JWK>, SigningKeyProvider> providers = new HashMap<>();
+            ServiceLoader<SigningKeyProvider> loader = ServiceLoader.load(SigningKeyProvider.class);
+
+            for (SigningKeyProvider provider : loader) {
+                Set<Class<? extends JWK>> supportedClasses = provider.getSupportedJwkClasses();
+
+                for (Class<? extends JWK> jwkClass : supportedClasses) {
+                    if (providers.containsKey(jwkClass)) {
+                        SigningKeyProvider existingProvider = providers.get(jwkClass);
+                        log.warn("Multiple SigningKeyProvider implementations found for JWK class '{}'. " +
+                            "Already registered provider '{}' will be used. Ignoring provider '{}'.",
+                            jwkClass.getSimpleName(), existingProvider.getClass().getName(), provider.getClass().getName());
+                        continue;
+                    }
+                    providers.put(jwkClass, provider);
+                    log.info("Registered SigningKeyProvider for JWK class '{}': {}", jwkClass.getSimpleName(), provider.getClass().getName());
+                }
+            }
+
+            if (providers.isEmpty()) {
+                log.warn("No SigningKeyProvider implementations found via ServiceLoader");
+            }
+
+            signingKeyProviders = Collections.unmodifiableMap(providers);
+        }
     }
 
     private ScheduledExecutorService setupExecutorAndFetchInitialKeys(int refreshSeconds, int refreshMinPauseSeconds, boolean failFast) {
@@ -361,13 +404,13 @@ public class JWTSignatureValidator implements TokenValidator {
         }, refreshSeconds, refreshSeconds, TimeUnit.SECONDS);
     }
 
-    private PublicKey getPublicKey(String id) {
+    private SigningKey getSigningKey(String id) {
         return getKeyUnlessStale(id);
     }
 
-    private PublicKey getKeyUnlessStale(String id) {
+    private SigningKey getKeyUnlessStale(String id) {
         if (lastFetchTime + maxStaleSeconds * 1000L > System.currentTimeMillis()) {
-            PublicKey result = cache.get(id);
+            SigningKey result = cache.get(id);
             if (result == null) {
                 log.warn("No public key for id: {}", id);
             }
@@ -385,23 +428,36 @@ public class JWTSignatureValidator implements TokenValidator {
             String response = HttpUtil.get(keysUri, socketFactory, hostnameVerifier, authorization, String.class, connectTimeout, readTimeout, includeAcceptHeader);
             addJwksHttpMetricSuccessTime(requestStartTime);
 
-            Map<String, PublicKey> newCache = new HashMap<>();
+            Map<String, SigningKey> newCache = new HashMap<>();
             JWKSet jwks = JWKSet.parse(response);
 
             for (JWK jwk : jwks.getKeys()) {
                 if (ignoreKeyUse || KeyUse.SIGNATURE.equals(jwk.getKeyUse())) {
+                    SigningKey signingKey = null;
+                    Class<? extends JWK> jwkClass = jwk.getClass();
 
-                    PublicKey publicKey;
+                    // Look up the provider directly by JWK class (O(1) lookup)
+                    SigningKeyProvider provider = signingKeyProviders.get(jwkClass);
+                    
+                    if (provider != null && provider.supports(jwk)) {
+                        try {
+                            signingKey = provider.createSigningKey(jwk);
+                            if (log.isDebugEnabled()) {
+                                log.debug("Created signing key for kid '{}' using provider for class: {}",
+                                    jwk.getKeyID(), jwkClass.getSimpleName());
+                            }
+                        } catch (Exception e) {
+                            log.warn("Provider for class {} failed to create signing key for kid '{}': {}",
+                                jwkClass.getSimpleName(), jwk.getKeyID(), e.getMessage());
+                        }
+                    }
 
-                    if (jwk instanceof ECKey) {
-                        publicKey = ((ECKey) jwk).toPublicKey();
-                    } else if (jwk instanceof RSAKey) {
-                        publicKey = ((RSAKey) jwk).toPublicKey();
-                    } else {
-                        log.warn("Unsupported JWK key type: {}", jwk.getKeyType());
+                    if (signingKey == null) {
+                        log.warn("No provider found for JWK class: {} (kid: {})", jwkClass.getSimpleName(), jwk.getKeyID());
                         continue;
                     }
-                    newCache.put(jwk.getKeyID(), publicKey);
+
+                    newCache.put(jwk.getKeyID(), signingKey);
                 }
             }
 
@@ -445,8 +501,8 @@ public class JWTSignatureValidator implements TokenValidator {
 
         JsonNode t;
         try {
-            PublicKey pub = getPublicKey(kid);
-            if (pub == null) {
+            SigningKey signingKey = getSigningKey(kid);
+            if (signingKey == null) {
                 if (oldCache.get(kid) != null) {
                     throw new TokenValidationException("Token validation failed: The signing key is no longer valid (kid:" + kid + ")");
                 } else {
@@ -460,7 +516,7 @@ public class JWTSignatureValidator implements TokenValidator {
                 }
             }
 
-            if (!jwt.verify(VERIFIER_FACTORY.createJWSVerifier(jwt.getHeader(), pub))) {
+            if (!jwt.verify(signingKey.createVerifier(jwt.getHeader()))) {
                 throw new TokenSignatureException("Signature check failed: Invalid token signature");
             }
             t = JSONUtil.asJson(jwt.getPayload().toJSONObject());
