@@ -377,8 +377,8 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
             boolean includeAcceptHeader) {
 
         String introspectionEndpoint = config.getValue(ServerConfig.OAUTH_INTROSPECTION_ENDPOINT_URI);
-        String introspectionTokenParamName = normalizeIntrospectionTokenParamName(
-                config.getValue(ServerConfig.OAUTH_INTROSPECTION_TOKEN_PARAM_NAME));
+        String introspectionTokenParamName = IOUtil.trimmedNonEmptyValueOrDefault(
+                config.getValue(ServerConfig.OAUTH_INTROSPECTION_TOKEN_PARAM_NAME), DEFAULT_INTROSPECTION_TOKEN_PARAM_NAME);
         String userInfoEndpoint = config.getValue(ServerConfig.OAUTH_USERINFO_ENDPOINT_URI);
         String validTokenType = config.getValue(ServerConfig.OAUTH_VALID_TOKEN_TYPE);
 
@@ -440,14 +440,6 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
         validator = Services.getInstance().getValidators().get(confKey, factory);
 
         return effectiveConfigId;
-    }
-
-    private String normalizeIntrospectionTokenParamName(String introspectionTokenParamName) {
-        if (introspectionTokenParamName == null) {
-            return DEFAULT_INTROSPECTION_TOKEN_PARAM_NAME;
-        }
-        String result = introspectionTokenParamName.trim();
-        return result.isEmpty() ? DEFAULT_INTROSPECTION_TOKEN_PARAM_NAME : result;
     }
 
     @SuppressWarnings("checkstyle:ParameterNumber")
