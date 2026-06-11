@@ -227,6 +227,7 @@ public class JaasServerConfigTest {
         Common.checkLog(logReader, "OAuthIntrospectionValidator", "",
                 "id", "config-id-1_1",
                 "introspectionEndpointUri", "https://sso/introspect",
+                "introspectionTokenParamName", "token",
                 "groupsClaimQuery", "\\$\\.groups",
                 "groupsClaimDelimiter", ",",
                 "validIssuerUri", "https://sso",

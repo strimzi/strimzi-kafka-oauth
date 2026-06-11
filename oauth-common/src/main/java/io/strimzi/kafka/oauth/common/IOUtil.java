@@ -116,6 +116,21 @@ public class IOUtil {
     }
 
     /**
+     * Trim the specified value and return the default value when the result is empty.
+     *
+     * @param value The value to trim
+     * @param defaultValue The default value to return when value is null or empty
+     * @return trimmed value or defaultValue
+     */
+    public static String trimmedNonEmptyValueOrDefault(String value, String defaultValue) {
+        if (value == null) {
+            return defaultValue;
+        }
+        value = value.trim();
+        return value.isEmpty() ? defaultValue : value;
+    }
+
+    /**
      * Calculate a CRC32 for the specified String
      *
      * @param content The input string

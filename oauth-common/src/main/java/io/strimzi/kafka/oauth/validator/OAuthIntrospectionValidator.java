@@ -7,6 +7,7 @@ package io.strimzi.kafka.oauth.validator;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.BooleanNode;
 import io.strimzi.kafka.oauth.common.HttpUtil;
+import io.strimzi.kafka.oauth.common.IOUtil;
 import io.strimzi.kafka.oauth.common.JSONUtil;
 import io.strimzi.kafka.oauth.common.MetricsHandler;
 import io.strimzi.kafka.oauth.common.PrincipalExtractor;
@@ -39,6 +40,7 @@ import static io.strimzi.kafka.oauth.common.HttpUtil.post;
 import static io.strimzi.kafka.oauth.common.HttpUtil.get;
 import static io.strimzi.kafka.oauth.common.LogUtil.mask;
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.base64encode;
+import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
 import static io.strimzi.kafka.oauth.validator.TokenValidationException.Status;
 
 /**
@@ -52,9 +54,11 @@ import static io.strimzi.kafka.oauth.validator.TokenValidationException.Status;
 public class OAuthIntrospectionValidator implements TokenValidator {
 
     private static final Logger log = LoggerFactory.getLogger(OAuthIntrospectionValidator.class);
+    private static final String DEFAULT_INTROSPECTION_TOKEN_PARAM_NAME = "token";
 
     private final String validatorId;
     private final URI introspectionURI;
+    private final String introspectionTokenParamName;
     private final String validIssuerURI;
     private final URI userInfoURI;
     private final String validTokenType;
@@ -90,6 +94,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
      * @param clientSecret The secret of the OAuth2 client representing this Kafka broker - used to authenticate to the introspection endpoint using Basic authentication
      * @param bearerTokenProvider The provider of the bearer token as an alternative to clientId and secret of the OAuth2 client representing this Kafka broker - used to authenticate to the introspection endpoint using Bearer authentication
      * @param introspectionEndpointUri The introspection endpoint url at the authorization server
+     * @param introspectionTokenParamName The request parameter name used to send token to introspection endpoint
      * @param socketFactory The optional SSL socket factory to use when establishing the connection to authorization server
      * @param verifier The optional hostname verifier used to validate the TLS certificate by the authorization server
      * @param principalExtractor The object used to extract the username from the attributes in the server's response
@@ -113,6 +118,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
                                        String clientSecret,
                                        TokenProvider bearerTokenProvider,
                                        String introspectionEndpointUri,
+                                       String introspectionTokenParamName,
                                        SSLSocketFactory socketFactory,
                                        HostnameVerifier verifier,
                                        PrincipalExtractor principalExtractor,
@@ -133,6 +139,8 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         this.validatorId = checkValidatorId(id);
 
         this.introspectionURI = checkIntrospectionUri(introspectionEndpointUri);
+        this.introspectionTokenParamName = IOUtil.trimmedNonEmptyValueOrDefault(
+                introspectionTokenParamName, DEFAULT_INTROSPECTION_TOKEN_PARAM_NAME);
 
         this.socketFactory = checkSocketFactory(socketFactory);
 
@@ -176,6 +184,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
             log.debug("Configured OAuthIntrospectionValidator:"
                     + "\n\t  id: " + id
                     + "\n\t  introspectionEndpointUri: " + introspectionURI
+                    + "\n\t  introspectionTokenParamName: " + this.introspectionTokenParamName
                     + "\n\t  sslSocketFactory: " + socketFactory
                     + "\n\t  hostnameVerifier: " + hostnameVerifier
                     + "\n\t  principalExtractor: " + principalExtractor
@@ -296,7 +305,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
 
         String authorization = generateAuthorizationHeader();
 
-        StringBuilder body = new StringBuilder("token=").append(token);
+        String body = buildIntrospectionRequestBody(introspectionTokenParamName, token);
 
         JsonNode response;
         try {
@@ -306,7 +315,7 @@ public class OAuthIntrospectionValidator implements TokenValidator {
                             hostnameVerifier,
                             authorization,
                             "application/x-www-form-urlencoded",
-                            body.toString(),
+                            body,
                             JsonNode.class,
                             connectTimeoutSeconds,
                             readTimeoutSeconds,
@@ -375,6 +384,10 @@ public class OAuthIntrospectionValidator implements TokenValidator {
         String scopes = value != null ? String.join(" ", JSONUtil.asListOfString(value)) : null;
 
         return new TokenInfo(token, scopes, principal, groups, iat, expiresMillis);
+    }
+
+    static String buildIntrospectionRequestBody(String introspectionTokenParamName, String token) {
+        return urlencode(introspectionTokenParamName) + "=" + urlencode(token);
     }
 
     private String generateAuthorizationHeader() {
