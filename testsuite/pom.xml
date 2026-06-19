@@ -44,7 +44,7 @@
         <commons.compress.version>1.26.0</commons.compress.version>
         <version.junit>4.13.2</version.junit>
         <spotbugs.version>4.7.0</spotbugs.version>
-        <jackson.annotation.version>2.15.2</jackson.annotation.version>
+        <jackson.annotation.version>2.21</jackson.annotation.version>
         <strimzi-oauth.version>1.0.0-SNAPSHOT</strimzi-oauth.version>
         <checkstyle.dir>..</checkstyle.dir>
 
