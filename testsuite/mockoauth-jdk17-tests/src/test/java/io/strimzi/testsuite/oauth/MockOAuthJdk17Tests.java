@@ -34,7 +34,7 @@ public class MockOAuthJdk17Tests {
     private static TestContainersWatcher initWatcher() {
         TestContainersWatcher watcher = new TestContainersWatcher(new File("docker-compose.yml"));
         watcher.withServices("mockoauth", "kafka");
-        watcher.waitingFor("mockoauth", Wait.forLogMessage(".*Succeeded in deploying verticle.*", 1)
+        watcher.waitingFor("mockoauth", Wait.forLogMessage(".*AuthServer started successfully.*", 1)
                         .withStartupTimeout(Duration.ofSeconds(180)))
                 .waitingFor("kafka", Wait.forLogMessage(".*started \\(kafka.server.KafkaRaftServer\\).*", 1)
                         .withStartupTimeout(Duration.ofSeconds(300)));
