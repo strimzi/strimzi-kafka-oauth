@@ -52,7 +52,7 @@ public class MockOAuthTests {
         } else {
             watcher.withServices("mockoauth", "kafka");
         }
-        watcher.waitingFor("mockoauth", Wait.forLogMessage(".*Succeeded in deploying verticle.*", 1)
+        watcher.waitingFor("mockoauth", Wait.forLogMessage(".*AuthServer started successfully.*", 1)
                         .withStartupTimeout(Duration.ofSeconds(180)))
                 .waitingFor("kafka", Wait.forLogMessage(".*started \\(kafka.server.KafkaRaftServer\\).*", 1)
                         .withStartupTimeout(Duration.ofSeconds(300)));
