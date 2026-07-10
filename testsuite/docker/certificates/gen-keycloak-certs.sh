@@ -18,3 +18,6 @@ keytool -keystore keycloak.server.keystore.p12 -storetype pkcs12 -alias keycloak
 openssl x509 -req -CA ca.crt -CAkey ca.key -in cert-file -out cert-signed -days 3650 -CAcreateserial -passin pass:$PASSWORD
 keytool -keystore keycloak.server.keystore.p12 -alias CARoot -storepass $PASSWORD -keypass $PASSWORD -import -file ca.crt -noprompt
 keytool -keystore keycloak.server.keystore.p12 -alias keycloak -storepass $PASSWORD -keypass $PASSWORD -import -file cert-signed -noprompt
+
+echo "#### Create OKP Ed25519 key"
+keytool -genkeypair -keyalg eddsa -keysize 255 -validity 3650 -alias ed25519-key -keystore keycloak.server.keystore.p12 -storepass $PASSWORD -dname "CN=Keycloak EdDSA"

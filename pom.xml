@@ -281,6 +281,8 @@
                                 <ignoredUnusedDeclaredDependency>org.slf4j:slf4j-simple:jar</ignoredUnusedDeclaredDependency>
                                 <!-- Added due to transitive override to address CVE-2024-57699. Remove in the future. -->
                                 <ignoredUnusedDeclaredDependency>net.minidev:json-smart:jar</ignoredUnusedDeclaredDependency>
+                                <!-- Added for ability to construct com.nimbusds.jose.crypto.Ed25519Verifier -->
+                                <ignoredUnusedDeclaredDependency>com.google.crypto.tink:tink</ignoredUnusedDeclaredDependency>
                             </ignoredUnusedDeclaredDependencies>
                         </configuration>
                     </execution>
@@ -377,6 +379,15 @@
     </build>
 
     <profiles>
+        <profile>
+            <id>okp-support</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <modules>
+                <module>oauth-okp-support</module>
+            </modules>
+        </profile>
         <profile>
             <id>central</id>
             <activation>

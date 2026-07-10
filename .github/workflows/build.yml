@@ -45,6 +45,13 @@ jobs:
 
   test-kafka-oauth:
     name: Run OAuth testsuite
+    strategy:
+      matrix:
+        test:
+          - name: "OAuth testsuite"
+            okpSupport: false
+          - name: "OAuth testsuite OKP tests"
+            okpSupport: true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -56,6 +63,8 @@ jobs:
 
       - name: Run OAuth testsuite
         uses: ./.github/actions/build/test-oauth
+        with:
+          okpSupport: ${{ matrix.test.okpSupport }}
 
   deploy-java:
     name: Deploy Java artifacts to Maven Central

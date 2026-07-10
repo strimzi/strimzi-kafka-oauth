@@ -26,7 +26,8 @@ enum Mode {
     MODE_CERT_TWO_ON,
     MODE_EXPIRED_CERT_ON,
     MODE_JWKS_RSA_WITH_SIG_USE,
-    MODE_JWKS_RSA_WITHOUT_SIG_USE;
+    MODE_JWKS_RSA_WITHOUT_SIG_USE,
+    MODE_JWKS_OKP_WITH_SIG_USE;
 
 
     public static Mode fromString(String value) {

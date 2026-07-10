@@ -171,4 +171,19 @@ public class TestUtil {
             throw new AssertionError(e.getMessage() + " " + extraInfo, t);
         }
     }
+
+    /**
+     * Check if OKP support is available on the classpath.
+     * This is used to conditionally skip tests that require the oauth-okp-support module.
+     *
+     * @return true if OKP support is available, false otherwise
+     */
+    public static boolean isOKPSupportAvailable() {
+        try {
+            Class.forName("io.strimzi.kafka.oauth.validator.okp.OKPSigningKeyProvider");
+            return true;
+        } catch (ClassNotFoundException e) {
+            return false;
+        }
+    }
 }

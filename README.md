@@ -117,6 +117,12 @@ This project requires Java 17 to build. It produces the classes using Java 11 by
 
     mvn clean install
 
+#### Building with OKP (Ed25519) Support
+
+By default, the build includes support for RSA and EC key types. To enable optional support for OKP (Octet Key Pair) keys, specifically Ed25519, use the `okp-support` Maven profile:
+
+    mvn clean install -Pokp-support
+
 Installing
 ----------
 
@@ -134,6 +140,32 @@ If you want to use custom claim checking, or json-path based principal extractio
     oauth-server/target/lib/json-path-*.jar
     oauth-server/target/lib/json-smart-*.jar
     oauth-server/target/lib/accessors-smart-*.jar
+
+If you built with OKP support (`-Pokp-support`) and need to validate JWT tokens signed with Ed25519 keys, also copy:
+
+    oauth-okp-support/target/kafka-oauth-okp-support-*.jar
+    oauth-okp-support/target/lib/tink-*.jar
+
+Supported JWT Signature Algorithms
+-----------------------------------
+
+Strimzi Kafka OAuth uses a pluggable architecture based on Java ServiceLoader, allowing additional key types to be added as separate modules without modifying the core library.
+
+It comes with the following JWT signature algorithms:
+
+### Built-in Support (always available)
+- **RSA**: RS256, RS384, RS512
+- **ECDSA**: ES256, ES384, ES512
+
+### Optional Support (requires `oauth-okp-support` module)
+- **EdDSA**: Ed25519 (OKP - Octet Key Pair)
+
+To enable OKP support:
+1. Build with the `okp-support` Maven profile: `mvn clean install -Pokp-support`
+2. Copy the `kafka-oauth-okp-support` jar and `tink` jar to your Kafka `libs` directory (see [Installing](#installing))
+3. The OKP support will be automatically detected and enabled at runtime
+
+**Note**: OKP support uses the Google Tink crypto library as the underlying Ed25519 provider which has to be available to your Kafka deployment at runtime.
 
 Configuring the authorization server
 ------------------------------------

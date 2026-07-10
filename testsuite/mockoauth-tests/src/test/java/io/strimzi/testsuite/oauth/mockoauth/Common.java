@@ -10,6 +10,7 @@ import io.strimzi.kafka.oauth.common.OAuthAuthenticator;
 import io.strimzi.kafka.oauth.common.PrincipalExtractor;
 import io.strimzi.kafka.oauth.common.SSLUtil;
 import io.strimzi.kafka.oauth.common.TokenInfo;
+import io.strimzi.kafka.oauth.validator.JWTSignatureValidator;
 import io.strimzi.testsuite.oauth.common.LogLineReader;
 import io.strimzi.testsuite.oauth.common.TestUtil;
 import io.strimzi.testsuite.oauth.mockoauth.metrics.Metrics;
@@ -30,6 +31,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
+
+import javax.net.ssl.SSLSocketFactory;
 
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.base64encode;
 
@@ -310,5 +313,31 @@ public class Common {
         for (int i = 0; i < args.length; i += 2) {
             Assert.assertEquals(args[i] + " =~ " + args[i + 1], 1, TestUtil.countLogForRegex(lines, args[i] + ":.*" + args[i + 1]));
         }
+    }
+
+    static JWTSignatureValidator createTokenValidator(String validatorId, SSLSocketFactory sslFactory, boolean ignoreKeyUse) {
+        return new JWTSignatureValidator(validatorId,
+                null,
+                null,
+                null,
+                "https://mockoauth:8090/jwks",
+                sslFactory,
+                null,
+                new PrincipalExtractor(),
+                null,
+                null,
+                "https://mockoauth:8090",
+                30,
+                0,
+                300,
+                ignoreKeyUse,
+                false,
+                null,
+                null,
+                60,
+                60,
+                false,
+                true,
+                true);
     }
 }

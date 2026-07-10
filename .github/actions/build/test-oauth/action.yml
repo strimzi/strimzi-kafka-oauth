@@ -1,6 +1,12 @@
 name: "Run OAuth testsuite"
 description: "Run OAuth testsuite"
 
+inputs:
+  okpSupport:
+    description: "Whether to build and test with optional OKP support enabled"
+    required: false
+    default: "false"
+
 runs:
   using: "composite"
   steps:
@@ -15,7 +21,7 @@ runs:
 #    # TODO - Is that needed?
     - name: Build & Test Java
       shell: bash
-      run: mvn -e -V -B install -DskipTests
+      run: mvn -e -V -B install -DskipTests ${{ inputs.okpSupport == 'true' && '-Pokp-support' || '' }}
       env:
         BUILD_REASON: ${{ github.event_name }}
         BRANCH: ${{ github.ref }}
@@ -55,8 +61,19 @@ runs:
       run: mvn -e -V -B test-compile spotbugs:check -f testsuite
 
     - name: Run Testsuite
+      if: ${{ inputs.okpSupport != 'true' }}
       shell: bash
       run: mvn -e -V -B install -f testsuite --no-transfer-progress
+
+    - name: Build OKP-enabled testsuite dependencies
+      if: ${{ inputs.okpSupport == 'true' }}
+      shell: bash
+      run: mvn -e -V -B install -f testsuite -pl common,mock-oauth-server,docker -am -Pokp-support --no-transfer-progress
+
+    - name: Run mockoauth tests with OKP support
+      if: ${{ inputs.okpSupport == 'true' }}
+      shell: bash
+      run: mvn -e -V -B install -f testsuite -pl mockoauth-tests,keycloak-auth-tests -Pokp-support -Dgroups=io.strimzi.testsuite.oauth.common.OKPTestGroup --no-transfer-progress
 
     - name: Publish test results
       uses: dorny/test-reporter@v2

@@ -11,6 +11,7 @@ import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.JWSSigner;
+import com.nimbusds.jose.crypto.Ed25519Signer;
 import com.nimbusds.jose.crypto.RSASSASigner;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
@@ -68,6 +69,7 @@ import static io.strimzi.testsuite.oauth.server.Mode.MODE_200_DELAYED;
 import static io.strimzi.testsuite.oauth.server.Mode.MODE_200_PROTECTED;
 import static io.strimzi.testsuite.oauth.server.Mode.MODE_200_UNPROTECTED;
 import static io.strimzi.testsuite.oauth.server.Mode.MODE_FAILING_500;
+import static io.strimzi.testsuite.oauth.server.Mode.MODE_JWKS_OKP_WITH_SIG_USE;
 import static io.strimzi.testsuite.oauth.server.Mode.MODE_JWKS_RSA_WITHOUT_SIG_USE;
 import static io.strimzi.testsuite.oauth.server.Mode.MODE_JWKS_RSA_WITH_SIG_USE;
 import static io.vertx.core.http.HttpMethod.GET;
@@ -120,7 +122,7 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
 
     private boolean processRequest(Endpoint endpoint, Mode mode, HttpServerRequest req) throws NoSuchAlgorithmException, JOSEException, InterruptedException {
         if (endpoint == Endpoint.JWKS &&
-                isOneOf(mode, MODE_200, MODE_200_PROTECTED, MODE_JWKS_RSA_WITH_SIG_USE, MODE_JWKS_RSA_WITHOUT_SIG_USE)) {
+                isOneOf(mode, MODE_200, MODE_200_PROTECTED, MODE_JWKS_RSA_WITH_SIG_USE, MODE_JWKS_RSA_WITHOUT_SIG_USE, MODE_JWKS_OKP_WITH_SIG_USE)) {
             processJwksRequest(req, mode);
         } else if (endpoint == TOKEN && mode == MODE_200) {
             processTokenRequest(req, mode);
@@ -573,9 +575,17 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
     }
 
     private String createSignedAccessToken(String clientId, String username, long expiresIn, Map<String, String> claims) throws JOSEException, NoSuchAlgorithmException {
+        JWSSigner signer;
+        JWSHeader header;
 
-        // Create RSA-signer with the private key
-        JWSSigner signer = new RSASSASigner(verticle.getSigKey());
+        Mode jwksMode = verticle.getMode(Endpoint.JWKS);
+        if (jwksMode == MODE_JWKS_OKP_WITH_SIG_USE) {
+            signer = new Ed25519Signer(verticle.getOkpSigKey());
+            header = new JWSHeader.Builder(JWSAlgorithm.EdDSA).keyID(verticle.getOkpSigKey().getKeyID()).build();
+        } else {
+            signer = new RSASSASigner(verticle.getRsaSigKey());
+            header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(verticle.getRsaSigKey().getKeyID()).build();
+        }
 
         // Prepare JWT with claims set
         JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder()
@@ -599,9 +609,7 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
             builder.claim("username", username);
         }
         JWTClaimsSet claimsSet = builder.build();
-        SignedJWT signedJWT = new SignedJWT(
-                new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(verticle.getSigKey().getKeyID()).build(),
-                claimsSet);
+        SignedJWT signedJWT = new SignedJWT(header, claimsSet);
 
         // Compute the RSA signature
         signedJWT.sign(signer);
@@ -707,10 +715,13 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
                 // pass through to next case block
             case MODE_200:
             case MODE_JWKS_RSA_WITH_SIG_USE:
-                sendResponse(req, OK, jwksWithSig());
+                sendResponse(req, OK, jwksWithRsaSig());
                 break;
             case MODE_JWKS_RSA_WITHOUT_SIG_USE:
                 sendResponse(req, OK, jwksWithoutSig());
+                break;
+            case MODE_JWKS_OKP_WITH_SIG_USE:
+                sendResponse(req, OK, jwksWithOkpSig());
                 break;
             default:
                 throw new IllegalStateException("Internal error");
@@ -718,16 +729,20 @@ public class AuthServerRequestHandler implements Handler<HttpServerRequest> {
     }
 
 
-    private String jwksWithSig() throws NoSuchAlgorithmException {
-        return JSONUtil.asJson(new JWKSet(verticle.getSigKey()).toJSONObject()).toPrettyString();
+    private String jwksWithRsaSig() throws NoSuchAlgorithmException {
+        return JSONUtil.asJson(new JWKSet(verticle.getRsaSigKey()).toJSONObject()).toPrettyString();
     }
 
     private String jwksWithoutSig() throws NoSuchAlgorithmException, JOSEException {
-        RSAKey jwk = verticle.getSigKey();
+        RSAKey jwk = verticle.getRsaSigKey();
         jwk = new RSAKey.Builder(jwk.toRSAPublicKey())
                 .privateKey(jwk.toRSAPrivateKey())
                 .keyID(jwk.getKeyID())
                 .build();
         return JSONUtil.asJson(new JWKSet(jwk).toJSONObject()).toPrettyString();
+    }
+
+    private String jwksWithOkpSig() throws JOSEException {
+        return JSONUtil.asJson(new JWKSet(verticle.getOkpSigKey()).toJSONObject()).toPrettyString();
     }
 }

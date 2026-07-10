@@ -4,8 +4,12 @@
  */
 package io.strimzi.testsuite.oauth.server;
 
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.KeyUse;
+import com.nimbusds.jose.jwk.OctetKeyPair;
 import com.nimbusds.jose.jwk.RSAKey;
+import com.nimbusds.jose.jwk.gen.OctetKeyPairGenerator;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
@@ -78,10 +82,11 @@ import static io.strimzi.testsuite.oauth.server.Mode.MODE_404;
  *
  * Some other modes are endpoint specific.
  * <p>
- * For 'jwks' there are two specific modes:
+ * For 'jwks' there are three specific modes:
  * <ul>
  *     <li>MODE_JWKS_RSA_WITH_SIG_USE</li>
  *     <li>MODE_JWKS_RSA_WITHOUT_SIG_USE</li>
+ *     <li>MODE_JWKS_OKP_WITH_SIG_USE</li>
  * </ul>
  *
  * For example, <tt>POST /admin/jwks?mode=MODE_404</tt> will configure the authorization server to always return status 404
@@ -147,6 +152,7 @@ public class MockOAuthServerMainVerticle extends AbstractVerticle {
     private final Map<String, JsonArray> grants = new HashMap<>();
 
     private RSAKey sigKey;
+    private OctetKeyPair okpSigKey;
 
     private final Map<Endpoint, AtomicCoin> coins = new ConcurrentHashMap<>();
 
@@ -268,7 +274,7 @@ public class MockOAuthServerMainVerticle extends AbstractVerticle {
         return modes.get(e);
     }
 
-    synchronized RSAKey getSigKey() throws NoSuchAlgorithmException {
+    synchronized RSAKey getRsaSigKey() throws NoSuchAlgorithmException {
         if (sigKey != null) {
             return sigKey;
         }
@@ -285,6 +291,18 @@ public class MockOAuthServerMainVerticle extends AbstractVerticle {
                 .keyUse(KeyUse.SIGNATURE)
                 .build();
         return sigKey;
+    }
+
+    synchronized OctetKeyPair getOkpSigKey() throws JOSEException {
+        if (okpSigKey != null) {
+            return okpSigKey;
+        }
+
+        okpSigKey = new OctetKeyPairGenerator(Curve.Ed25519)
+                .keyID(UUID.randomUUID().toString())
+                .keyUse(KeyUse.SIGNATURE)
+                .generate();
+        return okpSigKey;
     }
 
     void createOrUpdateClient(String clientId, String secret) {
