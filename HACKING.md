@@ -372,7 +372,7 @@ instead of doing the whole `docker_build` again:
     
 Let's make sure the SNAPSHOT Strimzi OAuth libraries are included.
 
-    docker run --rm -ti $DOCKER_REG/strimzi/kafka:1.0.1-kafka-4.2.0 /bin/sh -c 'ls -la /opt/kafka/libs/kafka-oauth*'
+    docker run --rm -ti $DOCKER_REG/strimzi/kafka:latest-kafka-4.3.1 /bin/sh -c 'ls -la /opt/kafka/libs/kafka-oauth*'
 
 This executes a `ls` command inside a new Kafka container, which it removes afterwards.
 The deployed version should be 1.0.0-SNAPSHOT.
@@ -462,7 +462,7 @@ For examples of deploying such a cluster see [/examples/kubernetes/README.md](ex
 
 You can explore the Kafka container more by starting it in interactive mode:
 
-    docker run --rm -ti $DOCKER_REG/strimzi/kafka:1.0.1-kafka-4.2.0 /bin/sh
+    docker run --rm -ti $DOCKER_REG/strimzi/kafka:latest-kafka-4.3.1 /bin/sh
  
 Here you've just started another interactive container from within the existing interactive container session.
 Pretty neat!

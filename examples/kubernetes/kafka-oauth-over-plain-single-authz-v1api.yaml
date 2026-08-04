@@ -1,0 +1,83 @@
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaNodePool
+metadata:
+  name: controller
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  replicas: 1
+  roles:
+    - controller
+  storage:
+    type: jbod
+    volumes:
+      - id: 0
+        type: ephemeral
+        kraftMetadata: shared
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaNodePool
+metadata:
+  name: broker
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  replicas: 1
+  roles:
+    - broker
+  storage:
+    type: jbod
+    volumes:
+      - id: 0
+        type: ephemeral
+        kraftMetadata: shared
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: my-cluster
+  annotations:
+    strimzi.io/node-pools: enabled
+    strimzi.io/kraft: enabled
+spec:
+  kafka:
+    version: 4.2.0
+    metadataVersion: 4.2-IV0
+    listeners:
+      - name: plain
+        port: 9092
+        type: internal
+        tls: false
+        authentication:
+          type: oauth
+          enablePlain: true
+          tokenEndpointUri: http://keycloak:8080/realms/kafka-authz/protocol/openid-connect/token
+          validIssuerUri: http://keycloak:8080/realms/kafka-authz
+          jwksEndpointUri: http://keycloak:8080/realms/kafka-authz/protocol/openid-connect/certs
+          userNameClaim: preferred_username
+    authorization:
+      type: keycloak
+      clientId: kafka
+      tokenEndpointUri: http://keycloak:8080/realms/kafka-authz/protocol/openid-connect/token
+      delegateToKafkaAcls: true
+      superUsers:
+      - User:service-account-kafka
+    config:
+      offsets.topic.replication.factor: 1
+      transaction.state.log.replication.factor: 1
+      transaction.state.log.min.isr: 1
+      default.replication.factor: 1
+      min.insync.replicas: 1
+    logging:
+      type: inline
+      loggers:
+        logger.io_strimzi.name: "io.strimzi"
+        logger.io_strimzi.level: "TRACE"
+        logger.kafka.name: "kafka"
+        logger.kafka.level: "INFO"
+        logger.org_apache_kafka.name: "org.apache.kafka"
+        logger.org_apache_kafka.level: "INFO"
+  entityOperator:
+    topicOperator: {}
+    userOperator: {}

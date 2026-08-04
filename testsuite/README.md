@@ -167,5 +167,5 @@ Thus, you don't need to use the latest local build of strimzi/kafka libraries to
 
 But if you want you can specify the kafka image to use for the test as follows:
 
-    mvn clean test -Dkafka.docker.image=quay.io/strimzi/kafka:latest-kafka-4.3.0 -f testsuite
+    mvn clean test -Dkafka.docker.image=quay.io/strimzi/kafka:latest-kafka-4.3.1 -f testsuite
 
