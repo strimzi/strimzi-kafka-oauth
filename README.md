@@ -7,15 +7,16 @@
 Strimzi OAuth for Apache Kafka
 ==============================
 
-[Apache Kafka®](https://kafka.apache.org) comes with basic OAuth2 support in the form of SASL based authentication module which provides client-server retrieval, exchange and validation of access token used as credentials.
-In the past the out-of-the box support wasn't production ready because it didn't communicate with OAuth2 / OIDC Authorization servers to obtain and validate access tokens.
-For real world usage, extensions had to be provided in the form of JAAS callback handlers which is what Strimzi Kafka OAuth provides.
-Recent versions of [Apache Kafka®](https://kafka.apache.org) provide production quality integration with OAuth2 / OIDC Authorization servers on the client, and on the server.
-However, Strimzi OAuth provides support for more client and server workflows, it has more configuration options, and can be used with both opaque access tokens, and JWT access tokens.
+[Apache Kafka®](https://kafka.apache.org) comes with basic OAuth2 support in the form of a SASL-based authentication module which provides client-server retrieval, exchange and validation of access tokens used as credentials.
+In the past, the out-of-the-box support wasn't production ready because it lacked built-in integration with OAuth2 / OIDC Authorization servers to obtain and validate access tokens.
+For real world usage, extensions had to be provided in the form of JAAS callback handlers, which is what Strimzi Kafka OAuth provides.
 
-It is very well tested with [Keycloak](https://keycloak.org) authorization server, and also provides a token-based authorization mechanism that integrates with [Keycloak Authorization Services](https://www.keycloak.org/docs/latest/authorization_services/index.html).
+Recent versions of Apache Kafka® provide production quality integration with OAuth2 / OIDC Authorization servers on both the client and the server side.
+However, Strimzi OAuth supports more client and server workflows, has more configuration options, and works with both opaque and JWT access tokens.
 
-It is also an OAuth2 integration library of choice for the [Strimzi](https://strimzi.io) projects.
+It is very well tested with [Keycloak](https://keycloak.org), and also provides a token-based authorization mechanism that integrates with [Keycloak Authorization Services](https://www.keycloak.org/docs/latest/authorization_services/index.html).
+
+It is also the OAuth2 integration library of choice for [Strimzi](https://strimzi.io) projects.
 
 
 <!-- TOC depthFrom:2 -->
