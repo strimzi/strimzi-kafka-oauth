@@ -39,9 +39,12 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.loginWithClientSecret;
 import static io.strimzi.kafka.oauth.common.OAuthAuthenticator.urlencode;
@@ -411,10 +414,19 @@ public class Common {
         return Admin.create(adminProps);
     }
 
-    void cleanup() {
+    void cleanup() throws InterruptedException, TimeoutException {
         Properties bobAdminProps = buildAdminConfigForAccount(BOB);
         try (Admin admin = Admin.create(bobAdminProps)) {
-            admin.deleteTopics(Arrays.asList(TOPIC_A, TOPIC_B, TOPIC_X, "non-existing-topic"));
+            final List<String> topics = Arrays.asList(TOPIC_A, TOPIC_B, TOPIC_X, "non-existing-topic");
+            admin.deleteTopics(topics);
+            TestUtil.waitForCondition(() -> {
+                try {
+                    Set<String> remaining = admin.listTopics().names().get();
+                    return Collections.disjoint(remaining, topics);
+                } catch (Throwable e) {
+                    throw new RuntimeException("Failed to list topics during cleanup: ", e);
+                }
+            }, 500, 30);
             admin.deleteConsumerGroups(Arrays.asList(groupFor(TOPIC_A), groupFor(TOPIC_B), groupFor(TOPIC_X), groupFor("non-existing-topic")));
         }
     }
