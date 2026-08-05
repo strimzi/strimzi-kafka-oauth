@@ -124,15 +124,14 @@ public class GenericExampleConsumer {
 
                 } catch (AuthenticationException | AuthorizationException e) {
                     
-                    // Uncommenting the below code will cause the consumer to be recreated 
-                    // thereby automatically fixing internal inconsistent timers state
-
-                    //try {
-                    //    consumer.close();
-                    //} catch (Exception ex) {
-                    //    System.out.println("Exception while closing consumer - " + ex);
-                    //}
-                    //consumer = null;
+                    // Commenting the below code may result in client entering a 100% CPU loop that may not recover in older
+                    // versions of Kafka Clients due to: https://issues.apache.org/jira/browse/KAFKA-20253
+                    try {
+                        consumer.close();
+                    } catch (Exception ex) {
+                        System.out.println("Exception while closing consumer - " + ex);
+                    }
+                    consumer = null;
                 }
             }
         } finally {
