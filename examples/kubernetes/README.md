@@ -13,7 +13,7 @@ For details of how these examples use Keycloak Authorization Services with Kafka
 
 * `keycloak-postgres.yaml`, `postgres.yaml`, `postgres-pvc.yaml`, `keycloak-realms-configmap.yaml`
 
-  An alternative to `keycloak.yaml`, this set of yamls deploys a standalone persistent instance of Keycloak.
+  An alternative to `keycloak.yaml`. This set of yamls deploys a standalone persistent instance of Keycloak backed by PostgreSQL. 
 
 * `kafka-oauth-single.yaml`
 
@@ -38,20 +38,40 @@ For details of how these examples use Keycloak Authorization Services with Kafka
   A single node Kafka cluster with OAuth 2 authentication with OAuth metrics enabled.
   See the [Metrics example](./README-metrics.md) for instructions on how to setup this example.
 
+* `kafka-oauth-single-spring.yaml`
+
+A single node Kafka cluster using OAuth Introspection endpoint for validation, configured to run with example Spring Authorization Server.
+
+* `spring-authserver.yaml`
+
+An example Spring Authorization Server. See ../docker/spring/README.md on how to build and push the image.
+
 ### Deploying Keycloak and accessing the Keycloak Admin Console
 
 Before deploying any of the Kafka cluster definitions, you need to deploy a Keycloak instance, and configure the realms with the necessary client definitions.
 
 #### Deploying the ephemeral Keycloak instance
 
+Before deploying the yamls, install the Keycloak server private key as a secret:
+
+    kubectl create secret generic keycloak-server-keystore --from-file=../docker/keycloak/certificates/keycloak.server.keystore.p12
+
+Also, install the Keycloak CA as a secret for Kafka server / client deployments to use it to connect to Keycloak:
+
+    kubectl create secret generic oauth-server-cert --from-file=../docker/certificates/ca.crt
+
+Deploy the mountable realm import files for Keycloak:
+
+    kubectl create -f keycloak-realms-configmap.yaml
+
 Deploy the simple Keycloak server with an in-memory database that does not survive container restart:
 
-    kubectl apply -f keycloak.yaml 
+    kubectl create -f keycloak.yaml 
 
 Wait for Keycloak to start up:
 
     kubectl get pod
-    kubectl logs $(kubectl get pod | grep keycloak | awk '{print $1}') -f
+    kubectl get pod keycloak -w
 
 In order to connect to Keycloak Admin Console you need an ip address and a port where it is listening. From the point of view of the Keycloak pod it is listening on port 8080 on all the interfaces. The `NodePort` service also exposes a port on the Kubernetes Node's IP:
 
@@ -69,33 +89,27 @@ You can typically make it accessible on 'http://localhost:8080' by using `kubect
 
 First, we need a persistent filesystem that is remounted if the Postgres pod is deleted, and recreated:
 
-    kubectl apply -f postgres-pvc.yaml
+    kubectl create -f postgres-pvc.yaml
     
 Then, we need to start the Postgres:
 
-    kubectl apply -f postgres.yaml
+    kubectl create -f postgres.yaml
+
+Before deploying Keycloak, install the Keycloak server private key as a secret:
+
+    kubectl create secret generic keycloak-server-keystore --from-file=../docker/keycloak/certificates/keycloak.server.keystore.p12
+
+Also, install the Keycloak CA as a secret for Kafka server / client deployments to use it to connect to Keycloak:
+
+    kubectl create secret generic oauth-server-cert --from-file=../docker/certificates/ca.crt
 
 Deploy the mountable realm import files for Keycloak:
 
-    kubectl apply -f keycloak-realms-configmap.yaml
+    kubectl create -f keycloak-realms-configmap.yaml
     
 And finally, start the Keycloak pod that uses Postgres:
 
     kubectl apply -f keycloak-postgres.yaml
-
-Note: The script assumes that the postgres was deployed in `myproject` namespace. If you deploy it to some other namespace
-e.g. `default` you can fix the script on the fly:
-
-    cat keycloak-postgres.yaml | sed -e 's/myproject/default/'  | kubectl apply -f -
-
-
-#### Minishift
-
-    KEYCLOAK_HOST=$(minishift ip)
-    KEYCLOAK_PORT=$(kubectl get svc | grep keycloak | awk -F '8080:' '{print $2}' | awk -F '/' '{print $1}')
-    echo http://$KEYCLOAK_HOST:$KEYCLOAK_PORT/admin
-
-You can then open the printed URL and login with admin:admin.
 
 
 #### Minikube

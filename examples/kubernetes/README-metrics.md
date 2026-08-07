@@ -75,7 +75,7 @@ Deploying the Kafka Producer Pod
 --------------------------------
 
     # Create a secret containing a client secret for OAuth authentication
-     kubectl create secret generic kafka-client-secret --from-literal=secret=team-a-client-secret
+    kubectl create secret generic kafka-client-secret --from-literal=secret=team-a-client-secret
 
     # Deploy kafka-producer-client
     cat kafka-oauth-authz-metrics-client.yaml | sed -e "s/kafka-client-shell/kafka-producer-client/" | kubectl create -f -
