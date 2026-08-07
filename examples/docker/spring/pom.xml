@@ -19,7 +19,8 @@
 	<properties>
 		<java.version>17</java.version>
 		<plugins.resources.version>3.1.0</plugins.resources.version>
-		<fabric8-docker-plugin.version>0.40.2</fabric8-docker-plugin.version>
+		<fabric8-docker-plugin.version>0.48.1</fabric8-docker-plugin.version>
+		<docker.host>${env.DOCKER_HOST}</docker.host>
 	</properties>
 	<dependencyManagement>
 		<dependencies>
@@ -78,6 +79,11 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-oauth2-authorization-server</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
 		</dependency>
 
 		<dependency>
