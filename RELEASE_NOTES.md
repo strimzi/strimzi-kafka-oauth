@@ -1,6 +1,55 @@
 Release Notes
 =============
 
+0.18.0
+------
+
+### Fix the missing URL-encode of `clientId` and `clientSecret` in the Basic authentication header
+
+When `clientId` or `clientSecret` contained special characters (e.g. `+`, `=`, `&`, `@`) the raw values were Base64-encoded without first applying the percent-encoding mandated by [RFC 6749 §2.3.1](https://datatracker.ietf.org/doc/html/rfc6749#section-2.3.1).
+This caused authentication failures against strictly-conformant authorization servers.
+Both values are now percent-encoded before being included in the `Basic` authorization header.
+
+See [PR 312](https://github.com/strimzi/strimzi-kafka-oauth/pull/312)
+
+### Force JSONPath interpretation for username claim extraction
+
+A new boolean option `oauth.force.jsonpath.username.extraction` (default `false`) causes `oauth.username.claim` and `oauth.fallback.username.claim` to always be interpreted as JSONPath expressions, even when the value does not start with `[`.
+By default these values are treated as plain top-level attribute names unless the value starts with `[`.
+
+The new option makes it possible to use JSONPath functions such as `concat` to construct a principal from multiple token claims:
+
+    oauth.username.claim=$.concat($['userId'], ":", $['sub'])
+
+Given a token containing `"userId": "alice"` and `"sub": "u123456"`, this produces the principal `User:alice:u123456`.
+
+See [PR 301](https://github.com/strimzi/strimzi-kafka-oauth/pull/301)
+
+### Allow renaming the 'token' parameter in the request to the introspection endpoint
+
+Some OAuth2 / OIDC authorization servers require the token to be submitted as a request parameter with a name other than the standard `token`.
+A new configuration option `oauth.introspection.token.param.name` allows you to specify the name of the parameter used when sending the token to the introspection endpoint.
+The default value remains `token` so there is no change in behaviour for existing deployments.
+
+See [PR 315](https://github.com/strimzi/strimzi-kafka-oauth/pull/315)
+
+### Dependency upgrades
+
+- The library dependencies have been updated to recent versions to address known vulnerabilities.
+- Testsuite Kafka image versions have been updated to use a recent version of Kafka.
+- Kubernetes examples have been updated to use a recent version of Kafka CRD.
+
+### Documentation improvements
+
+The README and Kubernetes example docs have been significantly expanded with new sections covering:
+- JWKS caching and local JWT validation details
+- Keycloak authorization concepts and configuration
+- JSONPath username extraction
+- Group extraction
+- Detailed configuration option tables
+
+See [PR 289](https://github.com/strimzi/strimzi-kafka-oauth/pull/289), [PR 293](https://github.com/strimzi/strimzi-kafka-oauth/pull/293)
+
 0.17.1
 ------
 
