@@ -31,11 +31,12 @@ spec:
     spec:
       containers:
         - name: spring
-          image: strimzi/example-spring
+          # you may need to adjust image coordinates
+          image: default/example-spring
           ports:
             - name: http
               containerPort: 8080
           readinessProbe:
             httpGet:
-              path: /oauth/error
+              path: /actuator/health/readiness
               port: 8080

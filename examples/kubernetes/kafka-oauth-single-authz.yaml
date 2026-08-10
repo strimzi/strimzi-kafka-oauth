@@ -1,52 +1,81 @@
-apiVersion: kafka.strimzi.io/v1beta2
+---
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaNodePool
+metadata:
+  name: dual-role
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  replicas: 1
+  roles:
+    - controller
+    - broker
+  storage:
+    type: jbod
+    volumes:
+      - id: 0
+        type: persistent-claim
+        size: 1Gi
+        kraftMetadata: shared
+---
+apiVersion: kafka.strimzi.io/v1
 kind: Kafka
 metadata:
   name: my-cluster
 spec:
   kafka:
-    version: 3.7.0
-    replicas: 1
+    version: 4.3.0
+    metadataVersion: 4.3-IV0
     listeners:
       - name: plain
         port: 9092
         type: internal
         tls: false
         authentication:
-          type: oauth
-          validIssuerUri: http://keycloak:8080/realms/kafka-authz
-          jwksEndpointUri: http://keycloak:8080/realms/kafka-authz/protocol/openid-connect/certs
-          userNameClaim: preferred_username
-          checkAccessTokenType: false
-          customClaimCheck: "@.typ && @.typ == 'Bearer'"
-
-          # the next option is only available since Strimzi 0.20.0
-          # remove it if using an older version of Strimzi
-          maxSecondsWithoutReauthentication: 3600
+          type: custom
+          sasl: true
+          listenerConfig:
+            sasl.enabled.mechanisms: OAUTHBEARER
+            oauthbearer.sasl.server.callback.handler.class: io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
+            oauthbearer.sasl.jaas.config: |
+              org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required unsecuredLoginStringClaim_sub="thePrincipalName" oauth.valid.issuer.uri="http://keycloak:8080/realms/kafka-authz" oauth.jwks.endpoint.uri="http://keycloak:8080/realms/kafka-authz/protocol/openid-connect/certs" oauth.username.claim="preferred_username" oauth.check.access.token.type="false" oauth.custom.claim.check="@.typ && @.typ == 'Bearer'" ;
+            connections.max.reauth.ms: "3600"
     authorization:
-      type: keycloak
-      clientId: kafka
-      tokenEndpointUri: http://keycloak:8080/realms/kafka-authz/protocol/openid-connect/token
-      delegateToKafkaAcls: true
+      type: custom
+      authorizerClass: io.strimzi.kafka.oauth.server.authorizer.KeycloakAuthorizer
       superUsers:
-      - service-account-kafka
-    logging:
-      type: inline
-      loggers:
-        log4j.logger.io.strimzi: "TRACE"
-        log4j.logger.kafka: "DEBUG"
-        log4j.logger.org.apache.kafka: "DEBUG"
+      - User:service-account-kafka
     config:
+      # Needed for Oauth authentication and Keycloak authorization
+      principal.builder.class: io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder
+      # Needed for Keycloak authorization
+      strimzi.authorization.client.id: kafka
+      strimzi.authorization.token.endpoint.uri: http://keycloak:8080/realms/kafka-authz/protocol/openid-connect/token
+      strimzi.authorization.ssl.endpoint.identification.algorithm: ""
+      strimzi.authorization.delegate.to.kafka.acl: "true"
+      # Other Kafka configuration options
       offsets.topic.replication.factor: 1
       transaction.state.log.replication.factor: 1
       transaction.state.log.min.isr: 1
-    storage:
-      type: jbod
-      volumes:
-      - id: 0
-        type: persistent-claim
-        size: 100Gi
-        deleteClaim: false
+      default.replication.factor: 1
+      min.insync.replicas: 1
+    logging:
+      type: inline
+      loggers:
+        logger.io_strimzi.name: "io.strimzi"
+        logger.io_strimzi.level: "TRACE"
+        logger.io_strimzi.appenderRefs: "console"
+        logger.io_strimzi.appenderRef.console.ref: "STDOUT"
+        logger.kafka.name: "kafka"
+        logger.kafka.level: "INFO"
+        logger.org_apache_kafka.name: "org.apache.kafka"
+        logger.org_apache_kafka.level: "INFO"
+
+    # Uncomment if file access denied
+    #template:
+    #  pod:
+    #    securityContext:
+    #      fsGroup: 0
   entityOperator:
     topicOperator: {}
     userOperator: {}
-
