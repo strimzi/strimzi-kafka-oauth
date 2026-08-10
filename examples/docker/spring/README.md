@@ -12,6 +12,25 @@ Building
     mvn clean install
 
 
+Deploying the container image
+-----------------------------
+
+If using it from a local Kubernetes environment you may need to push it into a local Kubernetes container registry.
+
+For example, on OpenShift Local you may need to run the following:
+
+    docker login --tls-verify=false -u $(oc whoami) -p $(oc whoami -t) default-route-openshift-image-registry.apps-crc.testing
+
+    docker build -t strimzi/example-spring:latest .
+
+    docker tag strimzi/example-spring:latest default-route-openshift-image-registry.apps-crc.testing/default/example-spring
+
+    docker push --tls-verify=false default-route-openshift-image-registry.apps-crc.testing/default/example-spring
+
+In your pod definition you can then set the image as:
+
+    image: image-registry.openshift-image-registry.svc:5000/default/example-spring
+
 Running
 -------
 

@@ -19,7 +19,7 @@ spec:
 ---
 
 apiVersion: v1
-kind: Pod
+kind: Pod 
 metadata:
   name: keycloak
   labels:
@@ -27,17 +27,25 @@ metadata:
 spec:
   containers:
   - name: keycloak
-    image: quay.io/keycloak/keycloak:19.0.3-legacy
-    args:
-    - "-b 0.0.0.0"
-    - "-Dkeycloak.profile.feature.upload_scripts=enabled"
+    image: quay.io/keycloak/keycloak:26.3.3
+    args: ["-v", 
+      "start", 
+      "--import-realm", 
+      "--features=token-exchange,authorization,scripts", 
+      "--https-key-store-file=/opt/keycloak/data/certs/keycloak.server.keystore.p12", 
+      "--https-key-store-password=changeit",
+      "--db=dev-mem"]
     env:
-    - name: KEYCLOAK_USER
+    - name: KEYCLOAK_ADMIN
       value: admin
-    - name: KEYCLOAK_PASSWORD
+    - name: KEYCLOAK_ADMIN_PASSWORD
       value: admin
-    - name: PROXY_ADDRESS_FORWARDING
+    - name: KC_HOSTNAME
+      value: keycloak
+    - name: KC_HTTP_ENABLED
       value: "true"
+    - name: KC_DB
+      value: dev-mem
     ports:
     - name: http
       containerPort: 8080
@@ -47,3 +55,15 @@ spec:
       httpGet:
         path: /realms/master
         port: 8080
+    volumeMounts:
+      - name: realms
+        mountPath: /opt/keycloak/data/import
+      - name: certificates
+        mountPath: /opt/keycloak/data/certs
+  volumes:
+    - name: realms
+      configMap:
+        name: realms
+    - name: certificates
+      secret:
+        secretName: keycloak-server-keystore    

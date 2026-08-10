@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.4.9</version>
+		<version>4.1.0</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 
@@ -19,7 +19,8 @@
 	<properties>
 		<java.version>17</java.version>
 		<plugins.resources.version>3.1.0</plugins.resources.version>
-		<fabric8-docker-plugin.version>0.40.2</fabric8-docker-plugin.version>
+		<fabric8-docker-plugin.version>0.48.1</fabric8-docker-plugin.version>
+		<docker.host>${env.DOCKER_HOST}</docker.host>
 	</properties>
 	<dependencyManagement>
 		<dependencies>
@@ -28,12 +29,61 @@
 				<artifactId>nimbus-jose-jwt</artifactId>
 				<version>10.0.2</version>
 			</dependency>
+			<!-- CVE fix: Expression Injection (SNYK-JAVA-CHQOSLOGBACK-17675439) - fixed in 1.5.36 -->
+			<dependency>
+				<groupId>ch.qos.logback</groupId>
+				<artifactId>logback-classic</artifactId>
+				<version>1.5.36</version>
+			</dependency>
+			<dependency>
+				<groupId>ch.qos.logback</groupId>
+				<artifactId>logback-core</artifactId>
+				<version>1.5.36</version>
+			</dependency>
+			<!-- CVE fix: Improper Authentication, Detection of Error Condition, Improper/Incorrect Authorization
+			     (SNYK-JAVA-ORGAPACHETOMCATEMBED-17732890, -17733746, -17733895, -17734715, -17734718) - fixed in 11.0.23 -->
+			<dependency>
+				<groupId>org.apache.tomcat.embed</groupId>
+				<artifactId>tomcat-embed-core</artifactId>
+				<version>11.0.23</version>
+			</dependency>
+			<dependency>
+				<groupId>org.apache.tomcat.embed</groupId>
+				<artifactId>tomcat-embed-el</artifactId>
+				<version>11.0.23</version>
+			</dependency>
+			<dependency>
+				<groupId>org.apache.tomcat.embed</groupId>
+				<artifactId>tomcat-embed-websocket</artifactId>
+				<version>11.0.23</version>
+			</dependency>
+			<!-- CVE fix: Incorrect Authorization (SNYK-JAVA-TOOLSJACKSONCORE-17972609) - fixed in 3.1.5 -->
+			<dependency>
+				<groupId>tools.jackson.core</groupId>
+				<artifactId>jackson-annotations</artifactId>
+				<version>3.1.5</version>
+			</dependency>
+			<dependency>
+				<groupId>tools.jackson.core</groupId>
+				<artifactId>jackson-core</artifactId>
+				<version>3.1.5</version>
+			</dependency>
+			<dependency>
+				<groupId>tools.jackson.core</groupId>
+				<artifactId>jackson-databind</artifactId>
+				<version>3.1.5</version>
+			</dependency>
 		</dependencies>
 	</dependencyManagement>
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-oauth2-authorization-server</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
 		</dependency>
 
 		<dependency>
