@@ -25,7 +25,7 @@ import static io.strimzi.kafka.oauth.common.JSONUtil.MAPPER;
 class Matcher {
 
     private final ParseContext ctx;
-    private final JsonPath parsed;
+    private final String effectiveQuery;
     private final String query;
 
     Matcher(ParseContext ctx, String query) {
@@ -35,7 +35,15 @@ class Matcher {
     Matcher(ParseContext ctx, String query, boolean rewriteQuery) {
         this.ctx = ctx;
         this.query = query;
-        this.parsed = JsonPath.compile(rewriteQuery ? "$[*][?(" + query + ")]" : query);
+        this.effectiveQuery = rewriteQuery ? "$[*][?(" + query + ")]" : query;
+        // Fail fast on an invalid query
+        JsonPath.compile(effectiveQuery);
+    }
+
+    // A compiled JsonPath with functions stores per-evaluation state in its parameters,
+    // so it must not be shared between concurrent or consecutive evaluations
+    private JsonPath compile() {
+        return JsonPath.compile(effectiveQuery);
     }
 
     /**
@@ -50,7 +58,7 @@ class Matcher {
     public boolean matches(JsonNode json) {
         json = wrapToken(json);
         DocumentContext doc = ctx.parse(json);
-        ArrayNode result = doc.read(parsed);
+        ArrayNode result = doc.read(compile());
 
         return result.size() == 1;
     }
@@ -64,7 +72,7 @@ class Matcher {
      */
     public JsonNode apply(JsonNode json) {
         DocumentContext doc = ctx.parse(json.toString());
-        Object result = doc.read(parsed);
+        Object result = doc.read(compile());
         if (result == null) {
             return null;
         }
