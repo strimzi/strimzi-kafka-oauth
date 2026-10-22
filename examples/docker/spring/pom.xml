@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>4.1.1</version>
+		<version>4.2.0-RC1</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 
@@ -22,31 +22,7 @@
 		<fabric8-docker-plugin.version>0.48.1</fabric8-docker-plugin.version>
 		<docker.host>${env.DOCKER_HOST}</docker.host>
 	</properties>
-	<dependencyManagement>
-		<dependencies>
-			<dependency>
-				<groupId>com.nimbusds</groupId>
-				<artifactId>nimbus-jose-jwt</artifactId>
-				<version>10.0.2</version>
-			</dependency>
-			<!-- CVE fixes (SNYK-JAVA-TOOLSJACKSONCORE-19477043, SNYK-JAVA-TOOLSJACKSONCORE-19496767) - fixed in 3.1.6 -->
-			<dependency>
-				<groupId>tools.jackson.core</groupId>
-				<artifactId>jackson-annotations</artifactId>
-				<version>3.1.6</version>
-			</dependency>
-			<dependency>
-				<groupId>tools.jackson.core</groupId>
-				<artifactId>jackson-core</artifactId>
-				<version>3.1.6</version>
-			</dependency>
-			<dependency>
-				<groupId>tools.jackson.core</groupId>
-				<artifactId>jackson-databind</artifactId>
-				<version>3.1.6</version>
-			</dependency>
-		</dependencies>
-	</dependencyManagement>
+
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
