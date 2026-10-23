@@ -140,6 +140,12 @@ public class ReloadableSSLSocketFactoryTest {
         Assert.assertNotSame("A rotated truststore file should result in a new delegate", delegate, factory.currentDelegate());
     }
 
+    @Test
+    public void testToStringReturnsSimpleName() {
+        ReloadableSSLSocketFactory factory = new ReloadableSSLSocketFactory(new File("dummy.p12"), () -> newDelegateFactory());
+        Assert.assertEquals("ReloadableSSLSocketFactory", factory.toString());
+    }
+
     private static Supplier<SSLSocketFactory> countingSupplier(AtomicInteger calls) {
         return () -> {
             calls.incrementAndGet();

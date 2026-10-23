@@ -71,6 +71,12 @@ public class ReloadableSSLSocketFactory extends SSLSocketFactory {
         return delegate;
     }
 
+    @Override
+    public String toString() {
+        // Keep logs stable (Object.toString would include an identity hash).
+        return "ReloadableSSLSocketFactory";
+    }
+
     /**
      * Get the delegate factory currently in use. Exposed for tests.
      *
