@@ -1,12 +1,12 @@
 Strimzi Kafka Image with SNAPSHOT Strimzi Kafka OAuth
 =====================================================
 
-This is a build of a Docker image based on `quay.io/strimzi/kafka:latest-kafka-4.3.1` with added most recently locally built SNAPSHOT version of Strimzi Kafka OAuth libraries.
+This is a build of a Docker image based on `quay.io/strimzi/kafka:latest-kafka-4.4.0` with added most recently locally built SNAPSHOT version of Strimzi Kafka OAuth libraries.
 
 This image adds a `/opt/kafka/libs/oauth` directory, and copies the latest jars for OAuth support in it.
 Then it puts this directory as the first directory on the classpath.
 
-The result is that the specific version of Strimzi Kafka OAuth jars and their dependencies is used, because they appear on the classpath before the ones that are part of `quay.io/strimzi/kafka:latest-kafka-4.3.1` which are located in the `/opt/kafka/libs` directory.
+The result is that the specific version of Strimzi Kafka OAuth jars and their dependencies is used, because they appear on the classpath before the ones that are part of `quay.io/strimzi/kafka:latest-kafka-4.4.0` which are located in the `/opt/kafka/libs` directory.
 
 
 Building
@@ -14,7 +14,7 @@ Building
 
 Run `mvn install` then, use `docker build` to build the image:
 
-    docker build --output type=docker -t strimzi/kafka:latest-kafka-4.3.1-oauth .
+    docker build --output type=docker -t strimzi/kafka:latest-kafka-4.4.0-oauth .
 
 You can choose a different tag if you want.
 
@@ -34,7 +34,7 @@ Validating
 
 You can start an interactive shell container and confirm that the jars are there.
 
-    docker run --rm -ti strimzi/kafka:latest-kafka-4.3.1-oauth /bin/sh
+    docker run --rm -ti strimzi/kafka:latest-kafka-4.4.0-oauth /bin/sh
     ls -la libs/oauth/
     echo "$CLASSPATH"
     
@@ -42,7 +42,7 @@ If you want to play around more within the container you may need to make yourse
 
 You achieve that by running the docker session as `root` user:
 
-    docker run --rm -ti --user root strimzi/kafka:latest-kafka-4.3.1-oauth /bin/sh
+    docker run --rm -ti --user root strimzi/kafka:latest-kafka-4.4.0-oauth /bin/sh
 
 
 
@@ -63,12 +63,12 @@ For example if you are using Kubernetes Kind as described in [HACKING.md](../../
     
 You need to retag the built image, so you can push it to Docker Registry:
 
-    docker tag strimzi/kafka:latest-kafka-4.3.1-oauth $DOCKER_REG/strimzi/kafka:latest-kafka-4.3.1-oauth
-    docker push $DOCKER_REG/strimzi/kafka:latest-kafka-4.3.1-oauth
+    docker tag strimzi/kafka:latest-kafka-4.4.0-oauth $DOCKER_REG/strimzi/kafka:latest-kafka-4.4.0-oauth
+    docker push $DOCKER_REG/strimzi/kafka:latest-kafka-4.4.0-oauth
 
 Actually, Kubernetes Kind supports an even simpler option how to make an image available to Kubernetes:
 
-    kind load docker-image strimzi/kafka:latest-kafka-4.3.1-oauth 
+    kind load docker-image strimzi/kafka:latest-kafka-4.4.0-oauth 
     
 If you're using minikube, you'll need to run `minikube docker-env` before building the image.
 
@@ -81,7 +81,7 @@ In order for the operator to use your Kafka image, you have to replace the Kafka
 
 This image builds the kafka-4.3.1 replacement image, so we need to replace all occurrences where kafka-4.3.1 is referred to into the proper coordinates to our image:
 
-    sed -Ei "s#quay.io/strimzi/kafka:[^:]*-kafka-4\.3\.1#${DOCKER_REG}/strimzi/kafka:latest-kafka-4.3.1-oauth#" \
+    sed -Ei "s#quay.io/strimzi/kafka:[^:]*-kafka-4\.3\.1#${DOCKER_REG}/strimzi/kafka:latest-kafka-4.4.0-oauth#" \
         packaging/install/cluster-operator/060-Deployment-strimzi-cluster-operator.yaml
 
 

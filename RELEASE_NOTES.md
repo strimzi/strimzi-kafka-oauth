@@ -1,6 +1,17 @@
 Release Notes
 =============
 
+0.18.1
+------
+
+This is a bugfix release that also bumps third party dependencies.
+
+### Fix for a race-condition issue when using `oauth.force.jsonpath.username.extraction` option
+
+The feature introduced in 0.18.0 suffered from a race condition when JSONPath functions like concat() were used.
+
+See [PR 344](https://github.com/strimzi/strimzi-kafka-oauth/pull/344)
+
 0.18.0
 ------
 
