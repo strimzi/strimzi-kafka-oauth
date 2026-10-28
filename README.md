@@ -141,6 +141,8 @@ If you want to use custom claim checking, or json-path based principal extractio
     oauth-server/target/lib/json-path-*.jar
     oauth-server/target/lib/json-smart-*.jar
     oauth-server/target/lib/accessors-smart-*.jar
+    
+This library also uses jackson-databind-*.jar which should already by packaged in Kafka `libs`.
 
 Configuring the authorization server
 ------------------------------------
