@@ -79,9 +79,9 @@ Deploying
 
 In order for the operator to use your Kafka image, you have to replace the Kafka image coordinates in `packaging/install/cluster-operator/060-Deployment-strimzi-cluster-operator.yaml` in your `strimzi-kafka-operator` project.
 
-This image builds the kafka-4.3.1 replacement image, so we need to replace all occurrences where kafka-4.3.1 is referred to into the proper coordinates to our image:
+This image builds the kafka-4.4.0 replacement image, so we need to replace all occurrences where kafka-4.4.0 is referred to into the proper coordinates to our image:
 
-    sed -Ei "s#quay.io/strimzi/kafka:[^:]*-kafka-4\.3\.1#${DOCKER_REG}/strimzi/kafka:latest-kafka-4.4.0-oauth#" \
+    sed -Ei "s#quay.io/strimzi/kafka:[^:]*-kafka-4\.4\.0#${DOCKER_REG}/strimzi/kafka:latest-kafka-4.4.0-oauth#" \
         packaging/install/cluster-operator/060-Deployment-strimzi-cluster-operator.yaml
 
 
