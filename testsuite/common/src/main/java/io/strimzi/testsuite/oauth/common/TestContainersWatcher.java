@@ -30,8 +30,8 @@ public class TestContainersWatcher implements TestRule {
     private boolean collectLogs;
 
     public TestContainersWatcher(File composeFile) {
+        // Testcontainers 2.x always uses the local docker-compose executable for DockerComposeContainer
         this.environment = new DockerComposeContainer<>(composeFile)
-                .withLocalCompose(true)
                 .withEnv("KAFKA_DOCKER_IMAGE", System.getProperty("KAFKA_DOCKER_IMAGE"));
     }
 

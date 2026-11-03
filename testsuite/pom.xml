@@ -39,7 +39,7 @@
         <maven.surefire.version>2.22.1</maven.surefire.version>
         <fabric8-docker-plugin.version>0.45.1</fabric8-docker-plugin.version>
 
-        <testcontainers.version>1.20.4</testcontainers.version>
+        <testcontainers.version>2.0.3</testcontainers.version>
         <testcontainers.ryuk.disabled>true</testcontainers.ryuk.disabled>
         <commons.compress.version>1.26.0</commons.compress.version>
         <version.junit>4.13.2</version.junit>
