@@ -1,6 +1,17 @@
 Release Notes
 =============
 
+0.18.2
+------
+
+This is a bug fix release.
+
+### Exclude org.ow2.asm:asm dependency pulled in by json-smart override
+
+An unnecessary transitive dependency affecting packaging of oauth-client into other projects was fixed 
+
+See [PR 347](https://github.com/strimzi/strimzi-kafka-oauth/pull/347)
+
 0.18.1
 ------
 
