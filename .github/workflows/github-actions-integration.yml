@@ -21,7 +21,7 @@ concurrency:
 
 jobs:
   test-github-actions-integration:
-    uses: strimzi/github-actions/.github/workflows/reusable-test-integrations.yml@v1
+    uses: strimzi/github-actions/.github/workflows/reusable-test-integrations.yml@bb4758d4afacd9c0ff8f426395bbbece41fd142a # v4.0
     with:
       repo: ${{ github.repository }}
       ref: ${{ github.sha }}
@@ -33,7 +33,5 @@ jobs:
       javaVersion: "17"
       helmChartName: "none"
       releaseVersion: "6.6.6"
-      imagesDir: "none"
-      clusterOperatorBuild: false
-      githubActionsRef: "v1"
+      imagesLocation: "none"
     secrets: inherit
