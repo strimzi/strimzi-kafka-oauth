@@ -3,17 +3,27 @@ name: GitHub Actions Integration
 on:
   pull_request:
     paths:
+      - '.github/**'
       - '**/pom.xml'
       - 'Makefile'
       - 'Makefile.maven'
       - 'Makefile.os'
-      - '.github/workflows/github-actions-integration.yml'
     branches:
       - "*"
+  push:
+    branches:
+      - "main"
+    paths:
+      - '.github/**'
+      - '**/pom.xml'
+      - 'Makefile'
+      - 'Makefile.maven'
+      - 'Makefile.os'
 
 permissions:
   contents: read
   id-token: write
+  attestations: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
