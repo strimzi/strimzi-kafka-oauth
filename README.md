@@ -3,6 +3,7 @@
 [![Maven Central](https://img.shields.io/maven-central/v/io.strimzi/oauth)](https://search.maven.org/artifact/io.strimzi/oauth)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 [![Twitter Follow](https://img.shields.io/twitter/follow/strimziio?style=social)](https://twitter.com/strimziio)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fstrimzi%2Fstrimzi-kafka-oauth.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fstrimzi%2Fstrimzi-kafka-oauth?ref=badge_shield)
 
 Strimzi OAuth for Apache Kafka
 ==============================
@@ -1850,3 +1851,7 @@ It can also happen the other way around. Your existing client may still use the 
 ### HTTP 406: Not Acceptable errors.
 
 For certain servers setting the `Accept` header on outbound requests to `application/json` can cause the identity provider to reject the request. If that is an issue, you can set `oauth.include.accept.header` to `false` and remove the `Accept` header from outbound requests made by the Kafka server or client.  
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fstrimzi%2Fstrimzi-kafka-oauth.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fstrimzi%2Fstrimzi-kafka-oauth?ref=badge_large)
