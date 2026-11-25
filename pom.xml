@@ -114,7 +114,7 @@
         <jackson.version>2.22.4</jackson.version>
         <jackson.databind.version>2.22.4</jackson.databind.version>
         <jsonpath.version>2.9.0</jsonpath.version>
-        <jsonsmart.version>2.5.2</jsonsmart.version>
+        <jsonsmart.version>2.6.1</jsonsmart.version>
         <junit.version>4.13.2</junit.version>
         <slf4j.version>1.7.36</slf4j.version>
         <mockito.version>3.12.4</mockito.version>
