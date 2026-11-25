@@ -12,6 +12,8 @@ An unnecessary transitive dependency affecting packaging of oauth-client into ot
 
 See [PR 347](https://github.com/strimzi/strimzi-kafka-oauth/pull/347)
 
+### Bump json-smart from 2.5.2 to 2.6.1
+
 0.18.1
 ------
 
