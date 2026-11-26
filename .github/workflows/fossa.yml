@@ -1,0 +1,60 @@
+name: FOSSA Scanning
+
+on:
+  # Run after build workflow finishes in non-blocking way
+  workflow_run:
+    workflows: ["Build"]
+    types:
+      - completed
+    branches:
+      - main
+  # Allow to run it also as reusable workflow from releases
+  workflow_call:
+    inputs:
+      releaseVersion:
+        description: 'Release version for FOSSA branch reference'
+        required: false
+        type: string
+        default: ''
+    secrets:
+      FOSSA_API_KEY:
+        required: true
+
+# Declare default permissions as read only
+permissions:
+  contents: read
+
+# Cancel previous scans on the same branch
+concurrency:
+  group: fossa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fossa-maven-scan:
+    name: FOSSA Maven Scan
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name != 'workflow_run' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+    env:
+      FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Java and Maven
+        uses: strimzi/github-actions/.github/actions/dependencies/setup-java@bb4758d4afacd9c0ff8f426395bbbece41fd142a # v4.0
+        with:
+          javaVersion: "17"
+
+      - name: Build Java code
+        run: mvn -B -DskipTests -Dmaven.javadoc.skip=true clean install
+
+      - name: Run FOSSA Maven scan
+        uses: strimzi/github-actions/.github/actions/security/fossa-maven-scan@bb4758d4afacd9c0ff8f426395bbbece41fd142a # v4.0
+        with:
+          scanName: kafka-oauth
+          exclude: "examples"
+          fossaTest: "true"
+          branch: ${{ inputs.releaseVersion || github.ref_name }}

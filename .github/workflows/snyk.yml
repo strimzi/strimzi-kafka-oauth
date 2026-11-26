@@ -1,0 +1,61 @@
+name: Snyk Scanning
+
+on:
+  # Run after build workflow finishes in non-blocking way
+  workflow_run:
+    workflows: ["Build"]
+    types:
+      - completed
+    branches:
+      - main
+  # Allow to run it also as reusable workflow from releases
+  workflow_call:
+    inputs:
+      releaseVersion:
+        description: 'Release version for Snyk monitoring target reference'
+        required: false
+        type: string
+        default: 'latest'
+    secrets:
+      SNYK_TOKEN:
+        required: true
+
+# Declare default permissions as read only
+permissions:
+  contents: read
+
+# Cancel previous scans on the same branch
+concurrency:
+  group: snyk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  snyk-maven-scan:
+    name: Snyk Maven Scan
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name != 'workflow_run' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    env:
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Java and Maven
+        uses: strimzi/github-actions/.github/actions/dependencies/setup-java@bb4758d4afacd9c0ff8f426395bbbece41fd142a # v4.0
+        with:
+          javaVersion: "17"
+
+      - name: Build Java code
+        run: mvn -B -DskipTests -Dmaven.javadoc.skip=true clean install
+
+      - name: Run Snyk Maven scan
+        uses: strimzi/github-actions/.github/actions/security/snyk-maven-scan@bb4758d4afacd9c0ff8f426395bbbece41fd142a # v4.0
+        with:
+          scanName: kafka-oauth
+          exclude: "examples"
+          snykMonitor: "true"
+          uploadToCodeScanning: "true"
