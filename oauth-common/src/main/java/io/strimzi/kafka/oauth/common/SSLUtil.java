@@ -14,6 +14,7 @@ import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -34,6 +35,9 @@ public class SSLUtil {
 
     /**
      * Create a new SSL Factory from given configuration arguments
+     * <p>
+     * When the truststore is file based, the returned factory is a {@link ReloadableSSLSocketFactory} that
+     * picks up changes to the truststore file at runtime. A truststore provided as data is loaded once.
      *
      * @param truststore A path to truststore file (used by default)
      * @param truststoreData A PEM string containing a chain of X.509 certificates. Used if <code>type</code> is set to <code>pem</code>
@@ -42,9 +46,30 @@ public class SSLUtil {
      * @param rnd A random number generator to use (optional)
      * @return A new SSLSocketFactory instance
      */
+    public static SSLSocketFactory createSSLFactory(String truststore, String truststoreData, String password, String type, String rnd) {
+        File truststoreFile = fileBasedTruststore(truststore, truststoreData, type);
+        if (truststoreFile == null) {
+            return createDelegateSSLFactory(truststore, truststoreData, password, type, rnd);
+        }
+        return new ReloadableSSLSocketFactory(truststoreFile,
+            () -> createDelegateSSLFactory(truststore, truststoreData, password, type, rnd));
+    }
+
+    /**
+     * Resolve the truststore file to watch for changes, or {@code null} when the truststore is not file based
+     * (no truststore configured, or the certificates are provided directly as PEM data).
+     */
+    private static File fileBasedTruststore(String truststore, String truststoreData, String type) {
+        if (truststore == null) {
+            return null;
+        }
+        boolean pemData = truststoreData != null && type != null && "pem".equals(type.toLowerCase(Locale.ENGLISH));
+        return pemData ? null : new File(truststore);
+    }
+
     @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION",
             justification = "Avoid enumerating all checked exceptions in try-with-resources")
-    public static SSLSocketFactory createSSLFactory(String truststore, String truststoreData, String password, String type, String rnd) {
+    private static SSLSocketFactory createDelegateSSLFactory(String truststore, String truststoreData, String password, String type, String rnd) {
         KeyStore store;
 
         if (type != null && "pem".equals(type.toLowerCase(Locale.ENGLISH))) {
