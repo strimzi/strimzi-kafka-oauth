@@ -88,6 +88,7 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
     private long retryPauseMillis;
 
     private boolean enableMetrics;
+    private boolean ignoreTokenFilePermissions;
     private OAuthMetrics metrics;
     private SensorKeyProducer authSensorKeyProducer;
     private SensorKeyProducer tokenSensorKeyProducer;
@@ -115,6 +116,8 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
             p.putAll(options);
             config = new ClientConfig(p);
         }
+
+        ignoreTokenFilePermissions = config.getValueAsBoolean(Config.OAUTH_TOKEN_FILE_IGNORE_PERMISSIONS, false);
 
         final String token = config.getValue(ClientConfig.OAUTH_ACCESS_TOKEN);
         final String tokenLocation = config.getValue(ClientConfig.OAUTH_ACCESS_TOKEN_LOCATION);
@@ -221,6 +224,7 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
                     + "\n    retryPauseMillis: " + retryPauseMillis
                     + "\n    enableMetrics: " + enableMetrics
                     + "\n    includeAcceptHeader: " + includeAcceptHeader
+                    + "\n    ignoreTokenFilePermissions: " + ignoreTokenFilePermissions
                     + "\n    saslExtensions: " + saslExtensions);
         }
     }
@@ -264,7 +268,7 @@ public class JaasClientOauthLoginCallbackHandler implements AuthenticateCallback
                 if (token != null) {
                     LOG.warn(tokenIgnoredMessage);
                 }
-                return new FileBasedTokenProvider(tokenLocation);
+                return new FileBasedTokenProvider(tokenLocation, ignoreTokenFilePermissions);
 
             } catch (IllegalArgumentException e) {
                 throw new ConfigException(noSuchFileMessage + ": " + e.getMessage());

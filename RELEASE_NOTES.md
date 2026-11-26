@@ -1,6 +1,20 @@
 Release Notes
 =============
 
+Unreleased
+----------
+
+### Option to suppress the token file permissions warning
+
+`FileBasedTokenProvider` warns when a token file is readable by users other than the owner.
+That warning is not useful when the file is a Kubernetes secret volume, because the mount permissions cannot be changed.
+
+Set `oauth.token.file.ignore.permissions` to `true` to skip the check and suppress the warning.
+The default remains `false`, so the warning is still logged when the option is not set.
+The option applies to `oauth.access.token.location`, `oauth.refresh.token.location`, `oauth.client.assertion.location`, and `oauth.server.bearer.token.location`.
+
+See [#333](https://github.com/strimzi/strimzi-kafka-oauth/issues/333)
+
 0.18.1
 ------
 

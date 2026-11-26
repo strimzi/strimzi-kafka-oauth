@@ -156,12 +156,7 @@ public class IOUtil {
      * @throws IOException if an I/O error occurs
      */
     public static boolean isFileAccessLimitedToOwner(Path file) throws IOException {
-        if (!Files.exists(file)) {
-            throw new IllegalArgumentException("No such file: " + file.toAbsolutePath());
-        }
-        if (!Files.isRegularFile(file)) {
-            throw new IllegalArgumentException("File is not a regular file: " + file.toAbsolutePath());
-        }
+        ensureRegularFile(file);
 
         FileSystem fs = FileSystems.getDefault();
 
@@ -197,5 +192,20 @@ public class IOUtil {
         }
 
         throw new RuntimeException("Not a POSIX or ACL compatible filesystem: " + fs);
+    }
+
+    /**
+     * Ensure the path exists and refers to a regular file.
+     *
+     * @param file Path to check
+     * @throws IllegalArgumentException if the file doesn't exist or is not a regular file (not a directory)
+     */
+    public static void ensureRegularFile(Path file) {
+        if (!Files.exists(file)) {
+            throw new IllegalArgumentException("No such file: " + file.toAbsolutePath());
+        }
+        if (!Files.isRegularFile(file)) {
+            throw new IllegalArgumentException("File is not a regular file: " + file.toAbsolutePath());
+        }
     }
 }
