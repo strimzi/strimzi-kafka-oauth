@@ -136,6 +136,8 @@ import static io.strimzi.kafka.oauth.common.TokenIntrospection.debugLogJWT;
  * <li><em>oauth.introspection.token.param.name</em> The request parameter name used to send the token to introspection endpoint. Default value is <em>token</em>.</li>
  * <li><em>oauth.server.bearer.token</em> The bearer token which the Kafka broker uses to authenticate to the authorization server and use the introspection endpoint as an alternative to using client id and secret.</li>
  * <li><em>oauth.server.bearer.token.location</em> The path to the file containing the bearer token (as opposed to raw value if <em>oauth.server.bearer.token</em> is configured) which the Kafka broker uses to authenticate to the authorization server and use the introspection endpoint as an alternative to using client id and secret.</li>
+ * <li><em>oauth.token.file.ignore.permissions</em> When set to <em>true</em>, the owner-only permissions check on <em>oauth.server.bearer.token.location</em> is skipped and the associated warning is not logged.
+ * Use this when the token file is mounted with permissions that cannot be restricted to the owner, for example a Kubernetes secret volume. Default value is <em>false</em>.</li>
  * <li><em>oauth.userinfo.endpoint.uri</em> A URL of the token introspection endpoint which can be used to validate opaque non-JWT tokens.<br>
  * <li><em>oauth.valid.token.type</em> If set, the token type returned by the introspection endpoint has to match the configured value.<br>
  * </ul>
@@ -333,7 +335,8 @@ public class JaasServerOauthValidatorCallbackHandler implements AuthenticateCall
                 if (token != null) {
                     log.warn("Server bearer token location is configured ('{}'), server bearer token will be ignored ('{}').", ServerConfig.OAUTH_SERVER_BEARER_TOKEN_LOCATION, ServerConfig.OAUTH_SERVER_BEARER_TOKEN);
                 }
-                return new FileBasedTokenProvider(tokenLocation);
+                boolean ignoreTokenFilePermissions = config.getValueAsBoolean(Config.OAUTH_TOKEN_FILE_IGNORE_PERMISSIONS, false);
+                return new FileBasedTokenProvider(tokenLocation, ignoreTokenFilePermissions);
 
             } catch (IllegalArgumentException e) {
                 throw new ConfigException("Specified server bearer token location is invalid ('" + ServerConfig.OAUTH_SERVER_BEARER_TOKEN_LOCATION + "'): " + e.getMessage());

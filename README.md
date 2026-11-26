@@ -427,7 +427,9 @@ Specify the following `oauth.*` properties:
 - `oauth.client.secret` (e.g.: "kafka-secret")
 - `oauth.introspection.token.param.name` (e.g.: "access_token" - request parameter name for the token, defaults to "token")
  
-Introspection endpoint should be protected. The `oauth.client.id` and `oauth.client.secret` specify Kafka Broker credentials for authenticating to access the introspection endpoint. 
+Introspection endpoint should be protected. The `oauth.client.id` and `oauth.client.secret` specify Kafka Broker credentials for authenticating to access the introspection endpoint.
+
+As an alternative, the broker can authenticate with a bearer token (`oauth.server.bearer.token`) or with a token read from a file (`oauth.server.bearer.token.location`). The token file should be readable only by its owner. When that is not possible, for example when Kubernetes mounts the file, set `oauth.token.file.ignore.permissions` to `true` to suppress the permissions warning. The default is `false`. The file must still exist and be a regular file. 
 
 Some authorization servers do not include the `iss` claim.
 In this case, do not set `oauth.valid.issuer.uri`.
@@ -1091,6 +1093,10 @@ Consider using an external secrets management tool to securely store your config
 
 #### Common Options
 
+When a token or client assertion is loaded from a file (`oauth.access.token.location`, `oauth.refresh.token.location`, or `oauth.client.assertion.location`), the library checks that the file is readable only by its owner and logs a warning when it is not. Restricting those permissions is not always possible. Kubernetes, for example, mounts secret volumes as root and the ownership cannot be changed. Set the following option to `true` to skip the permissions check and suppress that warning. The default is `false`. The file must still exist and be a regular file.
+
+- `oauth.token.file.ignore.permissions` (e.g.: "true")
+
 Some authorization servers require that scope is specified:
 
 - `oauth.scope`
@@ -1341,6 +1347,9 @@ These configuration options apply to the Kafka broker when using the Strimzi Kaf
 | `oauth.introspection.endpoint.uri` | Introspection | Required for opaque tokens | URI of the introspection endpoint. |
 | `oauth.client.id` | Introspection | Required | OAuth client ID used when authenticating to the introspection endpoint. |
 | `oauth.client.secret` | Introspection | Required if endpoint requires client credentials | Secret used for authentication to the introspection endpoint. |
+| `oauth.server.bearer.token` | Introspection | Optional | Bearer token used instead of client id and secret when calling the introspection or UserInfo endpoint. |
+| `oauth.server.bearer.token.location` | Introspection | Optional | Path to a file containing that bearer token. |
+| `oauth.token.file.ignore.permissions` | Token file | Optional | When `true`, do not warn if `oauth.server.bearer.token.location` is readable by users other than the owner. Default: `false`. The file must still exist and be a regular file. |
 | `oauth.valid.token.type` | Introspection | Optional | Expected `token_type` value returned by the introspection endpoint. |
 | `oauth.userinfo.endpoint.uri` | User identity | Optional | URI of the UserInfo endpoint used when introspection response does not include identifying information. |
 | `oauth.access.token.is.jwt` | Token format | Optional | Set to `false` to skip JWT parsing when using opaque tokens. |
@@ -1416,6 +1425,12 @@ These configuration options apply to Kafka clients using the `OAUTHBEARER` SASL 
 |--------|---------|----------|-------------|
 | `oauth.access.token` | Access token | Optional | Directly configured access token. |
 | `oauth.access.token.location` | Access token | Optional | Path to a file containing an access token. |
+
+#### Token file permissions
+
+| Option | Purpose | Required | Description |
+|--------|---------|----------|-------------|
+| `oauth.token.file.ignore.permissions` | Token files | Optional | When `true`, do not warn if `oauth.access.token.location`, `oauth.refresh.token.location`, or `oauth.client.assertion.location` is readable by users other than the owner. Default: `false`. The file must still exist and be a regular file. |
 
 #### Password grant
 

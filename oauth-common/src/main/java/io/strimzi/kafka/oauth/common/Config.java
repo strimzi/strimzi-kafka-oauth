@@ -95,6 +95,14 @@ public class Config {
      */
     public static final String OAUTH_INCLUDE_ACCEPT_HEADER = "oauth.include.accept.header";
 
+    /**
+     * "oauth.token.file.ignore.permissions"
+     * <p>
+     * When set to {@code true}, file-based tokens are not checked for owner-only access and the permissions warning is not logged.
+     * The file must still exist and be a regular file. Default value is {@code false}.
+     */
+    public static final String OAUTH_TOKEN_FILE_IGNORE_PERMISSIONS = "oauth.token.file.ignore.permissions";
+
     /** The name of 'oauth.tokens.not.jwt' config option  */
     @Deprecated
     public static final String OAUTH_TOKENS_NOT_JWT = "oauth.tokens.not.jwt";

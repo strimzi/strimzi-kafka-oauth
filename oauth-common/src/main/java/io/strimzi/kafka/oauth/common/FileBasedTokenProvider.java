@@ -15,6 +15,9 @@ import java.nio.file.Paths;
 /**
  * A TokenProvider that uses a file as a token source.
  * The content of the file is fully read and returned every time a {@link io.strimzi.kafka.oauth.common.FileBasedTokenProvider#token()} method is called.
+ * <p>
+ * By default the file is checked to be readable only by its owner, and a warning is logged when it is not.
+ * That check can be skipped when the file permissions cannot be restricted to the owner, for example on Kubernetes.
  */
 public class FileBasedTokenProvider implements TokenProvider {
 
@@ -24,12 +27,34 @@ public class FileBasedTokenProvider implements TokenProvider {
 
     /**
      * Create a new instance that refers to a specified file as a token source.
+     * <p>
+     * The file is checked to be readable only by its owner. A warning is logged when it is not.
      *
      * @param tokenFilePath A path to a file containing a token
      * @throws IllegalArgumentException if the specified tokenFilePath does not exist or is not a regular file
      */
     public FileBasedTokenProvider(final String tokenFilePath) {
+        this(tokenFilePath, false);
+    }
+
+    /**
+     * Create a new instance that refers to a specified file as a token source.
+     *
+     * @param tokenFilePath A path to a file containing a token
+     * @param ignorePermissions When {@code true}, skip the owner-only permissions check and do not log a warning
+     *                          when the file is readable by other users. The file must still exist and be a regular file.
+     *                          Use this when the token file is mounted with permissions that cannot be changed,
+     *                          for example a Kubernetes secret volume.
+     * @throws IllegalArgumentException if the specified tokenFilePath does not exist or is not a regular file
+     */
+    public FileBasedTokenProvider(final String tokenFilePath, final boolean ignorePermissions) {
         this.filePath = Paths.get(tokenFilePath);
+
+        if (ignorePermissions) {
+            IOUtil.ensureRegularFile(filePath);
+            log.debug("Skipping token file permissions check [{}]", filePath);
+            return;
+        }
 
         try {
             if (!IOUtil.isFileAccessLimitedToOwner(filePath)) {
