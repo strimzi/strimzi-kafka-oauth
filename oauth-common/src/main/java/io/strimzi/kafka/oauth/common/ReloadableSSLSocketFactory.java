@@ -58,9 +58,11 @@ public class ReloadableSSLSocketFactory extends SSLSocketFactory {
                 modified = truststoreFile.lastModified();
                 if (modified != lastModified) {
                     try {
+                        // Record the new modification time before reloading, so a broken truststore
+                        // is not retried (and WARN logged) on every call until the file changes again.
+                        lastModified = modified;
                         SSLSocketFactory fresh = factorySupplier.get();
                         delegate = fresh;
-                        lastModified = modified;
                         log.info("Reloaded truststore: {}", truststoreFile);
                     } catch (RuntimeException e) {
                         log.warn("Failed to reload truststore: {} - keeping the previously loaded truststore", truststoreFile, e);

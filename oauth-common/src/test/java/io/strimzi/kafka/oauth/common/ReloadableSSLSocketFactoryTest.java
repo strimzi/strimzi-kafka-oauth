@@ -88,6 +88,36 @@ public class ReloadableSSLSocketFactoryTest {
     }
 
     @Test
+    public void testFailedReloadDoesNotRetryUntilFileChangesAgain() throws Exception {
+        File file = createTempTruststoreFile();
+        long modified = System.currentTimeMillis();
+        Assert.assertTrue(file.setLastModified(modified));
+
+        AtomicInteger calls = new AtomicInteger();
+        Supplier<SSLSocketFactory> supplier = () -> {
+            if (calls.incrementAndGet() == 2) {
+                throw new ConfigException("Simulated reload failure");
+            }
+            return newDelegateFactory();
+        };
+
+        ReloadableSSLSocketFactory factory = new ReloadableSSLSocketFactory(file, supplier);
+        SSLSocketFactory delegate = factory.currentDelegate();
+
+        // the reload fails: the previous delegate is kept
+        Assert.assertTrue(file.setLastModified(modified + 10_000));
+        factory.createSocket().close();
+        Assert.assertEquals(2, calls.get());
+        Assert.assertSame(delegate, factory.currentDelegate());
+
+        // further calls do not retry the broken truststore while the file is unchanged
+        factory.createSocket().close();
+        factory.createSocket().close();
+        Assert.assertEquals("A failed reload should not be retried until the file changes again", 2, calls.get());
+        Assert.assertSame(delegate, factory.currentDelegate());
+    }
+
+    @Test
     public void testFileBasedTruststoreIsReloadable() throws Exception {
         File store = File.createTempFile("truststore_", ".p12");
         store.deleteOnExit();
